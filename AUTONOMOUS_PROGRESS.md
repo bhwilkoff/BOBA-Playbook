@@ -102,6 +102,26 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 32 — 2026-05-20 — Web Collection grid pagination (audit item #8)
+- **Picked:** Final web piece of the large-collection audit. Item #8 — `sortedGroups.map(buildCollectionCardHtml).join('')` emitted EVERY group as a single `innerHTML` assignment. At 500 cards that's 500 DOM nodes parsed synchronously on every tab switch; at 5000, paint stalls visibly. Find tab already had this solved (PAGE_SIZE = 60 + IntersectionObserver); Collection just hadn't picked up the pattern.
+- **Verified other Find-side perf paths first:** web search debounce = 280ms (`SEARCH_DEBOUNCE_MS`, line 22) ✓. `applyFilters` paginates via `renderNextPage` + `PAGE_SIZE = 60` ✓. Find is clean.
+- **Shipped:**
+  - `js/collection.js`:
+    - New `_COLLECTION_PAGE_SIZE = 60` constant (matches Find).
+    - `_collectionPaginator` module-scope reference for the active IntersectionObserver.
+    - `renderCollectionView` now slices `sortedGroups.slice(0, _COLLECTION_PAGE_SIZE)` for the initial `innerHTML` instead of emitting every group.
+    - New `<div id="collection-load-sentinel">` appended after `.collection-card-list`.
+    - After `view.innerHTML` is set, attaches `IntersectionObserver` (rootMargin 600px) on the sentinel. On intersect: builds the next-page HTML in a temp `<div>`, then moves each child node into the list with `appendChild` (single-batch DOM mutation, fewer reflows than re-assigning innerHTML). On final page, disconnects + removes the sentinel.
+    - **Critical**: observer uses `root: document.getElementById('main-content')` per DECISIONS.md #020 (body has `overflow: hidden` for Safari Dynamic Island handling; #main-content is the scroll container). Without this root, observers silently never fire.
+    - Prior observer disconnected on every new render so they don't pile up.
+    - `clear()` (sign-out) also disconnects the observer.
+  - `css/styles.css`: 1-line `.collection-load-sentinel { height: 1px; }` — invisible; observer-only.
+- **Verified:** node -c clean. Logic trace: open Collection with 500 groups → first 60 render → scroll past 540px (60 × 9px-ish thumb plus spacing) → sentinel intersects → next 60 appended → continue until rendered ≥ sortedGroups.length → observer disconnects. Switch tab → observer disconnected first, new render starts at page 1. 100-card collection → sentinel removed immediately (everything fits page 1, no observer needed).
+- **PARITY.md:** No row — perf fix.
+- **Architectural note:** the appendChild loop (vs `insertAdjacentHTML`) keeps the existing per-cell event delegation pattern working (clicks bubble up to the `.collection-card-list` container). Moving each node from the temp div preserves attached state if any.
+- **Audit complete:** all five identified web + iOS hot paths are now optimized. Android already clean per audit. Big-collection users (500+) should see noticeable Collection tab switch / sort / search smoothness across all three platforms.
+- **Next:** Tick 33. Loop continues at 60s. Plausible: (a) audit Card detail modal for re-render-on-keystroke patterns, (b) tackle a non-perf item — Decks deck-stats live update audit, (c) move to a new feature area.
+
 ### Tick 31 — 2026-05-20 — iOS rainbowRows: computed property → @State + .task(id:)
 - **Picked:** Audit items #2 + #4 — iOS `CollectionView.rainbowRows` was a computed property running on every body re-eval. At 500+ owned cards × 17k catalog, the ownedBobaIds Set construction + per-hero filter + sort all ran synchronously on every state-change re-render. iOS body re-evals during typical interaction can fire 5-15 times per gesture.
 - **Shipped:**

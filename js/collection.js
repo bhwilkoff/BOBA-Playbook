@@ -26,6 +26,13 @@ const Collection = (() => {
     { key: 'grails',    label: 'Grails'    },
   ];
 
+  // Paginated render — same pattern as Find's PAGE_SIZE. 60 groups
+  // per page keeps the initial paint snappy even at 5000+ user_cards.
+  const _COLLECTION_PAGE_SIZE = 60;
+  // IntersectionObserver + state for the paginated Collection grid.
+  // Re-created on every renderCollectionView pass.
+  let _collectionPaginator = null;
+
   /* ================================================================
      DATA
   ================================================================ */
@@ -51,6 +58,10 @@ const Collection = (() => {
     _draftCriteria = {};
     _rainbowMatchCache.clear();
     _rainbowMatchCacheCatalogLen = 0;
+    if (_collectionPaginator) {
+      try { _collectionPaginator.disconnect(); } catch {}
+      _collectionPaginator = null;
+    }
     renderCollectionView();
     renderProfileView();
   }
@@ -136,9 +147,15 @@ const Collection = (() => {
     }, {});
     const groupArray = Object.values(groups);
     const sortedGroups = sortCollectionGroups(groupArray);
+    // Paginated render — match Find's `PAGE_SIZE` pattern. Big
+    // collections (1k+ groups) used to emit every cell synchronously
+    // into a single innerHTML, causing visible jank on tab switch.
+    // Now: emit first page, observer below appends next page on
+    // scroll. Tab switch / sort change re-renders from page 1.
+    const initialPage = sortedGroups.slice(0, _COLLECTION_PAGE_SIZE);
     const listHtml = sortedGroups.length === 0
       ? `<p class="collection-empty">No cards in ${esc(DESIGNATIONS.find(d => d.key === _activeTab)?.label)} yet.</p>`
-      : sortedGroups.map(buildCollectionCardHtml).join('');
+      : initialPage.map(buildCollectionCardHtml).join('');
 
     view.innerHTML = `
       <div class="collection-view">
@@ -209,9 +226,10 @@ const Collection = (() => {
             Wall
           </button>
         </div>
-        <div class="collection-card-list" role="list">
+        <div class="collection-card-list" id="collection-card-list" role="list">
           ${listHtml}
         </div>
+        <div class="collection-load-sentinel" id="collection-load-sentinel" aria-hidden="true"></div>
         <!-- CUSTOM RAINBOWS — read-only display of user-defined
              collecting goals stored in user_custom_rainbows. Hydrates
              async on first view-render. iOS shipped v2.219-v2.221;
@@ -263,6 +281,49 @@ const Collection = (() => {
         cards: sortedGroups.map(g => g[0]),  // one card per group (representative)
       });
     });
+
+    // Paginated render: attach IntersectionObserver on the sentinel to
+    // append the next page when it scrolls into view. Re-created on
+    // every render (so prior observer is GC'd when its sentinel is
+    // overwritten). Skips entirely if everything fits in page 1.
+    if (_collectionPaginator) {
+      try { _collectionPaginator.disconnect(); } catch {}
+      _collectionPaginator = null;
+    }
+    if (sortedGroups.length > _COLLECTION_PAGE_SIZE) {
+      const sentinel = view.querySelector('#collection-load-sentinel');
+      const listEl   = view.querySelector('#collection-card-list');
+      const mainEl   = document.getElementById('main-content');
+      if (sentinel && listEl) {
+        let rendered = _COLLECTION_PAGE_SIZE;
+        _collectionPaginator = new IntersectionObserver((entries) => {
+          if (!entries[0].isIntersecting) return;
+          const next = Math.min(rendered + _COLLECTION_PAGE_SIZE, sortedGroups.length);
+          // Append the next slice as innerHTML — single DOM mutation
+          // for the whole batch keeps reflow cost bounded.
+          const tmp = document.createElement('div');
+          tmp.innerHTML = sortedGroups.slice(rendered, next).map(buildCollectionCardHtml).join('');
+          // Move children one-by-one; faster than re-assigning innerHTML.
+          while (tmp.firstChild) listEl.appendChild(tmp.firstChild);
+          rendered = next;
+          if (rendered >= sortedGroups.length) {
+            _collectionPaginator?.disconnect();
+            _collectionPaginator = null;
+            sentinel.remove();
+          }
+        }, {
+          // Body has overflow:hidden; the scrolling container is #main-content
+          // (DECISIONS.md #020 + WEB-DESIGN.md note). IntersectionObserver
+          // must use this as the root or it never fires.
+          root: mainEl,
+          rootMargin: '600px 0px',  // start loading well before sentinel enters viewport
+        });
+        _collectionPaginator.observe(sentinel);
+      }
+    } else {
+      // Everything already in page 1 — remove the (empty) sentinel.
+      view.querySelector('#collection-load-sentinel')?.remove();
+    }
 
     // Custom Rainbows — fire async; render only when at least one
     // rainbow comes back. No spinner; the section is hidden by

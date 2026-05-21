@@ -2166,13 +2166,31 @@ const Collection = (() => {
       try {
         const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', 0.85));
         if (!blob) throw new Error('Could not encode image');
+        if (blob.size > 2 * 1024 * 1024) {
+          throw new Error('Image too large after crop. Try a smaller source image.');
+        }
         const { url, version } = await API.uploadAvatar(blob);
         await API.setAvatarUrl(url);
         currentAvatarUrl = `${url}?v=${version}`;
         renderAvatar();
         cropDialog.close();
+        if (typeof window.showToast === 'function') {
+          window.showToast('Avatar updated.');
+        }
       } catch (e) {
-        alert('Could not upload avatar: ' + (e?.message || e));
+        // Non-blocking toast — was a blocking alert(); inconsistent
+        // with the rest of the app's transient-error pattern (tick 54).
+        const msg = e?.message || String(e);
+        const friendly = /401|expired|signed in/i.test(msg)
+          ? 'Sign-in expired. Sign in again and retry.'
+          : /network|fetch|failed to/i.test(msg)
+          ? 'Network error. Check your connection and retry.'
+          : msg;
+        if (typeof window.showToast === 'function') {
+          window.showToast('Avatar upload failed: ' + friendly);
+        } else {
+          alert('Could not upload avatar: ' + friendly);
+        }
       } finally {
         cropConfirm.disabled = false;
         cropConfirm.textContent = 'Use Photo';

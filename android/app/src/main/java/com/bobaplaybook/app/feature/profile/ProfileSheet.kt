@@ -375,6 +375,10 @@ private fun SignedInContent(
     var publicCollection by rememberSaveable { mutableStateOf(false) }
     var matchAlerts by rememberSaveable { mutableStateOf(false) }
     var deleteConfirmOpen by rememberSaveable { mutableStateOf(false) }
+    /// Tick 169 — confirm before signing out. iOS uses .alert, web
+    /// uses confirm(). Android was the only platform that signed
+    /// out on the first tap.
+    var signOutConfirmOpen by rememberSaveable { mutableStateOf(false) }
     var username by rememberSaveable { mutableStateOf(deriveUsername(authState.email)) }
     var roleRequestOpen by rememberSaveable { mutableStateOf(false) }
 
@@ -848,12 +852,12 @@ private fun SignedInContent(
 
         item("signout") {
             OutlinedButton(
-                onClick = {
-                    scope.launch {
-                        authManager.signOut()
-                        onDismiss()
-                    }
-                },
+                // Tick 169 — confirm sign-out (iOS + web parity). Without
+                // the dialog, a stray tap immediately kicks the user out
+                // of every personal surface (Collection / Decks / Custom
+                // Rainbows / Shows). Sync layer is durable so no data is
+                // lost, but the re-sign-in friction warrants a confirm.
+                onClick = { signOutConfirmOpen = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 4.dp),
@@ -932,6 +936,32 @@ private fun SignedInContent(
             },
             dismissButton = {
                 TextButton(onClick = { roleRequestOpen = false }) { Text("Cancel") }
+            },
+        )
+    }
+
+    if (signOutConfirmOpen) {
+        AlertDialog(
+            onDismissRequest = { signOutConfirmOpen = false },
+            title = { Text("Sign out?") },
+            text = {
+                Text(
+                    "Your collection, decks, and wanted list stay synced to the cloud. Sign back in any time to bring them back."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    signOutConfirmOpen = false
+                    scope.launch {
+                        authManager.signOut()
+                        onDismiss()
+                    }
+                }) {
+                    Text("Sign out")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { signOutConfirmOpen = false }) { Text("Cancel") }
             },
         )
     }

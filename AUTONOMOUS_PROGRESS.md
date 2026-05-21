@@ -76,6 +76,22 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 169 — 2026-05-21 — **Android** — Profile sign-out: confirm dialog (iOS + web parity)
+- **Cadence:** 169 % 5 = 4 → Android.
+- **Picked:** Android Profile's "Sign out" button fired `authManager.signOut() + onDismiss()` immediately on tap — no confirmation. iOS uses `.alert("Sign out?", isPresented:)`. Web uses `confirm('Sign out? Your collection data is saved and will sync back...')`. Android was the only platform without a confirm. A stray tap on the Profile sheet's outlined Sign Out button kicks the user out of every personal surface (Collection, Decks, Custom Rainbows, Shows) — sync layer is durable so no data loss, but the re-sign-in friction (especially for OAuth users) warrants protection.
+- **Shipped:**
+  - `ProfileSheet.kt`:
+    - New `var signOutConfirmOpen by rememberSaveable { mutableStateOf(false) }` adjacent to `deleteConfirmOpen`.
+    - Sign out button onClick changed from `scope.launch { authManager.signOut(); onDismiss() }` to `{ signOutConfirmOpen = true }`.
+    - New `AlertDialog` block above the deleteConfirmOpen dialog:
+      - Title: "Sign out?"
+      - Body: *"Your collection, decks, and wanted list stay synced to the cloud. Sign back in any time to bring them back."* (more reassuring than the bare "Are you sure?" — emphasizes the sync layer so coaches aren't worried about losing data).
+      - Confirm: "Sign out" (no destructive-red — it's recoverable, just disruptive).
+      - Dismiss: "Cancel".
+- **Verified:** the dialog's confirmButton handler does the same `signOut + onDismiss` sequence the old direct-tap did. Cancel just dismisses the dialog. State is `rememberSaveable` so config changes don't lose the confirm state.
+- **PARITY.md:** No row — UX polish on already-✅ Profile.
+- **Next:** tick 170 = opt.
+
 ### Tick 168 — 2026-05-21 — **web** — Profile feedback: pre-filled subject + Copy-email fallback
 - **Cadence:** 168 % 5 = 3 → web.
 - **Picked:** Closes parity with iOS tick 167 + Android tick 166. Web's "Send Feedback" was a plain `<a href="mailto:ben@bobaplaybook.com">` — two gaps:

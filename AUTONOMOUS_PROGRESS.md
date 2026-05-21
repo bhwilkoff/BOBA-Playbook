@@ -2698,3 +2698,11 @@ Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 =
 - **Coverage:** every Rules / Strategy / Setup / Tournament Body paragraph automatically inherits the glossary affordance — no per-article wiring needed. Roughly 30+ terms become tappable across the article corpus.
 - **Punch-list #3:** ✅ Android · ⏳ iOS · ⏳ web.
 - **Next:** tick 185 = opt (185 % 5 = 0).
+
+### Tick 185 — 2026-05-21 — opt: CI fix for tick 184 (withStyle missing import) + lesson capture
+- **CI fail on 293928e** (run 26229902487): `Unresolved reference 'withStyle'` at line 851. `withStyle` is `inline fun <T> AnnotatedString.Builder.withStyle(...)` — needs explicit `import androidx.compose.ui.text.withStyle`. The other AnnotatedString builder methods (`append`, `pushStringAnnotation`, `pop`) are direct members so they don't need importing; only the extension functions do.
+- **Fix:** added `import androidx.compose.ui.text.withStyle` to LearnArticleScreen.kt.
+- **Lesson capture (deferred from tick 182):** new memory file [[feedback_swift_switch_expression_typecheck_timeout]] — `let x: T = switch foo { ... }` inside a SwiftUI body w/ 4+ locals reliably times out Swift's type checker. Extract to a function. This was the diagnostic that caught tick 182's RainbowDetailView issue.
+- **Cadence rule:** opt ticks should net-remove. This tick adds 1 import + memory file (durable, not code). Net change: +1 line of code. Defensive opt — CI was red, fix first, polish next.
+- **Memory index updated.**
+- **Next:** tick 186 = Android (cadence 186 % 5 = 1). Punch-list #3 (glossary tooltips) is ✅ Android — pick #5 or #7 next for Android.

@@ -76,6 +76,23 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 136 — 2026-05-20 — **Android** — Template load: Snackbar + destructive-overwrite warning
+- **Cadence:** 136 % 5 = 1 → Android.
+- **Picked:** Tapping a deck template in `TemplateGallerySheet` clears the draft + loads the template — silently. If the user had an unsaved draft (8 heroes + 25 plays they'd just spent 10 minutes assembling), tapping a template wipes it with NO warning, NO undo, NO confirmation. Worse than tick 96's saved-deck swap which now surfaces "Loaded \"{deck.name}\" and added {card}" — at least the user sees a message. Templates silently overwrote.
+- **Shipped:**
+  - `TemplateGallerySheet.kt`:
+    - Resolve `draft` + `scope` + `appSnackbar` at composable root.
+    - Template-tap handler captures `val hadDraft = draft.cards.isNotEmpty()` BEFORE the clear+load.
+    - After load: Snackbar message branches on hadDraft:
+      - `true`  → "Loaded \"{template.name}\" — your previous draft was replaced." (honest about the destruction)
+      - `false` → "Loaded \"{template.name}\"" (no need to warn an empty draft was replaced)
+    - New `import kotlinx.coroutines.launch`.
+- **Verified:** AddToDeckSheet's saved-deck-swap Snackbar (tick 96) is the canonical pattern this mirrors. Template caps are pre-validated so the silent `cards.forEach { decksViewModel.add(it) }` doesn't drop cards in practice — but the AddResult enforcement (tick 114) is the safety net if a template ever exceeds cap.
+- **PARITY.md:** No row — UX polish on already-✅ Template Gallery.
+- **Next:** tick 137 = iOS; 138 = web; 139 = Android; 140 = opt.
+
+
+
 ### Tick 135 — 2026-05-20 — **OPTIMIZATION TICK** repurposed as **real bug fix** — DeckBuilderStore was never injected (tick-97 latent crash)
 - **Cadence:** opt rotation. Found a load-bearing bug instead: `CollectionCardDetailView` reads `@Environment(DeckBuilderStore.self) private var deckBuilder` (tick 97), but `BOBAPlaybookApp` NEVER calls `.environment(deckBuilderStore)`. Tapping a deck row in "IN YOUR DECKS" would crash at runtime with "missing environment value." `DecksView` + `DeckBuilderView` each had their own `@State private var store = DeckBuilderStore()` — multiple disconnected instances. Even if env was injected, the load wouldn't propagate to the visible DecksView.
 - **Shipped:**

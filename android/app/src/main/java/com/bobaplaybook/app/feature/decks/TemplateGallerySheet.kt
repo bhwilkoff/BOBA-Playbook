@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.app.feature.collection.RainbowCatalogViewModel
 import com.bobaplaybook.core.data.decks.DeckTemplate
 import com.bobaplaybook.core.data.decks.DeckTemplateLoader
+import kotlinx.coroutines.launch
 
 /**
  * Template gallery — pick one of the five iOS-parity archetype decks
@@ -47,6 +48,9 @@ fun TemplateGallerySheet(
     val decksViewModel: DecksViewModel = hiltViewModel()
     val catalogVm: RainbowCatalogViewModel = hiltViewModel()
     val catalog by catalogVm.cards.collectAsStateWithLifecycle()
+    val draft by decksViewModel.draft.collectAsStateWithLifecycle()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
 
     // Load templates lazily off the assets bundle on first sheet open.
     val templates by produceState(initialValue = emptyList<DeckTemplate>()) {
@@ -82,9 +86,21 @@ fun TemplateGallerySheet(
                             .clickable {
                                 val cards = template.expand(catalog)
                                 if (cards.isNotEmpty()) {
+                                    // Capture pre-load draft state so the
+                                    // Snackbar can call out a destructive
+                                    // overwrite (parity with AddToDeckSheet
+                                    // tick 96's "swapped your draft" surfacing).
+                                    val hadDraft = draft.cards.isNotEmpty()
                                     decksViewModel.clear()
                                     decksViewModel.rename(template.name)
                                     cards.forEach { decksViewModel.add(it) }
+                                    scope.launch {
+                                        val msg = if (hadDraft)
+                                            "Loaded \"${template.name}\" — your previous draft was replaced."
+                                        else
+                                            "Loaded \"${template.name}\""
+                                        appSnackbar?.showSnackbar(msg)
+                                    }
                                 }
                                 onDismiss()
                             },

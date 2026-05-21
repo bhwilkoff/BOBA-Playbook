@@ -115,7 +115,7 @@ When shipping any user-facing feature:
 | Price Overlay (in Wall view) | ✅ | ✅ | ✅ | Per-designation defaults (For Sale / Trade / Wanted ON; Personal / Grails OFF). Android FilterChip toggle at CollectionScreen.kt:726 (audit tick 196). |
 | Personal Showcase (iTunes-style screensaver) | ✅ | 🚫 | 🚫 v1 §12 | Android: Cast SDK port deferred |
 | AirPlay-Video for Showcase | ✅ | 🚫 | 🚫 v1 §12 | Android Cast SDK is the parallel |
-| Public collection URL (`/u/{username}`) | n/a (toggle only) | ✅ | ⏳ M7 | Web renders; Android sets the toggle |
+| Public collection URL (`/u/{username}`) | n/a (toggle only) | ✅ | ✅ | Web renders; Android toggle in ProfileSheet was always-rendered but hardcoded to false; tick 199 added the server-hydration LaunchedEffect so it reflects the saved state. |
 
 ---
 

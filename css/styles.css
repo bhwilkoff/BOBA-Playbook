@@ -1568,6 +1568,7 @@ body[data-find-density="l"] #view-search .card-grid { grid-template-columns: rep
    LOAD MORE SENTINEL
 ================================================================ */
 .load-sentinel { height: 80px; }
+.collection-load-sentinel { height: 1px; }  /* invisible; IntersectionObserver only */
 
 /* ================================================================
    CARD DETAIL MODAL

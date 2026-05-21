@@ -102,6 +102,20 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 71 — 2026-05-20 — **Android** — Deck save error messaging
+- **Cadence:** 71 % 5 = 1 → Android.
+- **Picked:** `DecksViewModel.save(onResult: (Boolean) -> Unit)` collapsed every failure to a single boolean — the caller's Snackbar said "Couldn't save deck. Check connectivity." regardless of cause. Real causes (sign-out race, empty-name silently slipping past button-disable, Supabase RLS rejection) all merged. Sign-out is especially misleading — user looks for connectivity issues that don't exist.
+- **Shipped:**
+  - `DecksViewModel.kt`: new overload `fun save(onComplete: (errorMessage: String?) -> Unit)` — null = success, otherwise a user-facing message. Branches:
+    - Sign-out → "Sign in to save your deck."
+    - Empty name → "Give your deck a name before saving."
+    - Empty deck → "Add at least one card before saving."
+    - Repo returned null → "Couldn't save. Check connectivity and try again."
+  - Boolean-result overload preserved as a thin wrapper for backward-compat (one other call site at line 584 uses it; future refactor opportunity).
+  - `DecksScreen.kt` editor save callback now uses the richer signature — surfaces `errorMessage` directly in the appSnackbar instead of the static "Couldn't save..." line.
+- **Verified:** structural edit — boolean overload kept so existing tablet-pane call site unchanged.
+- **PARITY.md:** No row — error-message polish on already-✅ deck save row.
+
 ### Tick 70 — 2026-05-20 — **OPTIMIZATION TICK (web, 5th 1-in-5)** — orphan api.js fns
 - **Cadence:** opt-rotation back to web (50+55+70 web · 60 Android · 65 iOS so far).
 - **Shipped:** removed two truly-orphan exports from api.js:

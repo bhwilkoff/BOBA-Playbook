@@ -2923,6 +2923,11 @@ const Collection = (() => {
   /// Render one filter dimension's checkbox list inside its
   /// `.rainbow-filter-body`. Each option is a `<label><input
   /// type="checkbox">`. Selected count surfaces in the `<summary>`.
+  ///
+  /// Long lists (Heroes ~500, Sets ~80) get a per-picker search
+  /// input at the top — case-insensitive substring filter on the
+  /// option labels. Hides non-matching `<label>`s in place; checked
+  /// state survives because we only toggle `display`, never re-render.
   function _renderFilterDim(dim) {
     const detailsEl = document.querySelector(`.rainbow-filter[data-dim="${dim.key}"]`);
     if (!detailsEl) return;
@@ -2930,13 +2935,36 @@ const Collection = (() => {
     const countEl = detailsEl.querySelector('.rainbow-filter-count');
     const values  = distinctCatalogValues(dim.key);
     const selected = _criteriaSelections(_draftCriteria, dim.key);
-    bodyEl.innerHTML = values.map(v => `
-      <label class="rainbow-filter-option">
+    // Search input only appears when the list is long enough to
+    // benefit from it. Below ~20 entries, all values fit visibly
+    // already and a search input is dead chrome.
+    const showSearch = values.length >= 20;
+    const searchHtml = showSearch
+      ? `<input type="search" class="rainbow-filter-search"
+                placeholder="Search ${esc(dim.label.toLowerCase())}…"
+                aria-label="Search ${esc(dim.label.toLowerCase())}" />`
+      : '';
+    const optionsHtml = values.map(v => `
+      <label class="rainbow-filter-option" data-search="${esc(v.toLowerCase())}">
         <input type="checkbox" data-value="${esc(v)}" ${selected.has(v.toLowerCase()) ? 'checked' : ''} />
         <span>${esc(v)}</span>
       </label>
     `).join('');
+    bodyEl.innerHTML = `${searchHtml}<div class="rainbow-filter-options">${optionsHtml}</div>`;
     countEl.textContent = selected.size > 0 ? `· ${selected.size}` : '';
+    // Wire per-picker search — hides non-matching labels without
+    // touching their checked state.
+    if (showSearch) {
+      const searchEl = bodyEl.querySelector('.rainbow-filter-search');
+      const optsEl   = bodyEl.querySelector('.rainbow-filter-options');
+      searchEl?.addEventListener('input', () => {
+        const q = (searchEl.value || '').trim().toLowerCase();
+        optsEl.querySelectorAll('.rainbow-filter-option').forEach(opt => {
+          const m = !q || (opt.dataset.search || '').includes(q);
+          opt.style.display = m ? '' : 'none';
+        });
+      });
+    }
   }
 
   /// Recompute "X cards match · Y of those owned (Z%)" from the
@@ -3014,6 +3042,19 @@ const Collection = (() => {
       ?.addEventListener('click', closeCustomRainbowEditor);
     document.querySelector('[data-action="close-rainbow-editor"]')
       ?.addEventListener('click', closeCustomRainbowEditor);
+
+    // Enter in the name field saves; Cmd/Ctrl+Enter anywhere in the
+    // dialog saves. ESC is handled natively by <dialog>.
+    const dlgEl = document.getElementById('custom-rainbow-editor');
+    dlgEl?.addEventListener('keydown', (e) => {
+      const isInName = e.target?.id === 'custom-rainbow-editor-name';
+      const isPlainEnter = e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && isInName;
+      const isCmdEnter   = e.key === 'Enter' && (e.metaKey || e.ctrlKey);
+      if (isPlainEnter || isCmdEnter) {
+        e.preventDefault();
+        document.getElementById('custom-rainbow-editor-save')?.click();
+      }
+    });
 
     // Delegate checkbox toggle handling to the filters container —
     // keeps the wiring O(1) regardless of how many catalog values

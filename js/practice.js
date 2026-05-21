@@ -1170,6 +1170,24 @@ function initDeckBuilder(allCards) {
   // Save deck
   let DB_savedId = null; // track the Supabase deck id for the current deck
 
+  // Auth-state listener — wipe the in-memory draft + saved-deck pointer
+  // when the user signs out. Without this, user A's draft (+ their
+  // DB_savedId pointing at one of A's saved decks) lingered into user
+  // B's session. iOS handles this via @Observable store invalidation;
+  // web matches now. Mirrors the Collection.clear() pattern from
+  // feedback_viewmodel_reset_on_auth_change.
+  document.addEventListener('auth-change', ({ detail }) => {
+    if (detail?.session) return;  // sign-in — keep the user's draft
+    DB.clear();
+    DB.format = 'playmaker';  // back to default (DB.clear() doesn't reset format)
+    DB_savedId = null;
+    const nameEl = $('db-deck-name');
+    if (nameEl) nameEl.value = DB.deckName;
+    // Re-render so the empty draft replaces whatever the prior user
+    // had drafted on screen.
+    if (allCards) dbRender(allCards);
+  });
+
   $('db-save-btn')?.addEventListener('click', async () => {
     const session = await API.authGetSession();
     if (!session) {

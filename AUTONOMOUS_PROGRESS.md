@@ -102,6 +102,18 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 63 — 2026-05-20 — **web** — Scan camera error messaging
+- **Cadence:** 63 % 5 = 3 → web. Found a UX gap audit-style.
+- **Picked:** Scan view's camera-failure path generically reported "Camera access denied. Enable camera permissions and refresh." regardless of the actual failure mode. The Web Camera API throws named exceptions (`NotAllowedError`, `NotFoundError`, `NotReadableError`, `OverconstrainedError`, `SecurityError`) — each has a distinct fix. A user whose camera is busy in another app or whose device lacks a rear camera couldn't tell what to fix from the generic message.
+- **Shipped:**
+  - `js/app.js`: scan-camera catch block now switches on `err.name`:
+    - `NotAllowedError` / `SecurityError` → "Camera permission denied. Enable camera in your browser settings, then refresh."
+    - `NotFoundError` / `OverconstrainedError` → "No rear-facing camera found. Try the iOS app for full scan support."
+    - `NotReadableError` → "Camera is in use by another app. Close that app and refresh."
+    - Unknown → "Couldn't start camera ({name || 'unknown error'}). Try refreshing."
+- **Verified:** node -c clean.
+- **PARITY.md:** No row — web error-state polish.
+
 ### Tick 62 — 2026-05-20 — **iOS** — Delete Account: type-to-confirm second gate
 - **Cadence:** 62 % 5 = 2 → iOS. Backfilling parity from web tick 24.
 - **Picked:** iOS Delete Account was a single-step `confirmationDialog` — Delete button + Cancel + warning copy. Web (tick 24) added a second gate requiring the user to type their @username before the actual delete fires. Two taps on iOS could wipe an account; web is three deliberate steps. Real safety gap given the cascade scope (collection / decks / rainbows / shows / account itself via FK ON DELETE CASCADE).

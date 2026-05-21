@@ -902,9 +902,22 @@
       await video.play();
       captureBtn.disabled = false;
       statusEl.textContent = 'Position card so the number is clearly visible, then tap Capture.';
-    } catch {
+    } catch (err) {
+      // Surface specific failure modes so the user knows what to fix.
+      // Camera API errors come with named exceptions per the spec —
+      // generic "denied" is misleading when the actual cause is
+      // a busy camera or hardware-missing.
       captureBtn.hidden = true;
-      statusEl.textContent = 'Camera access denied. Enable camera permissions and refresh.';
+      const name = err?.name || '';
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        statusEl.textContent = 'Camera permission denied. Enable camera in your browser settings, then refresh.';
+      } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+        statusEl.textContent = 'No rear-facing camera found. Try the iOS app for full scan support.';
+      } else if (name === 'NotReadableError') {
+        statusEl.textContent = 'Camera is in use by another app. Close that app and refresh.';
+      } else {
+        statusEl.textContent = `Couldn't start camera (${name || 'unknown error'}). Try refreshing.`;
+      }
     }
   }
 

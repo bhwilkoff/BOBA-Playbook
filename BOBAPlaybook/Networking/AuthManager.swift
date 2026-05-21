@@ -18,7 +18,6 @@ final class AuthManager {
     private(set) var userId: UUID?
     private(set) var email: String?
     private(set) var role: String = "user"
-    private(set) var hasPendingModRequest = false
     private(set) var isLoading = false
     private(set) var error: String?
     private(set) var confirmationEmailSent = false
@@ -53,8 +52,7 @@ final class AuthManager {
     private(set) var notificationsEnabled = true
     private(set) var matchAlertsEnabled   = false
     /// Pending role request — 'moderator' or 'streamer' or nil.
-    /// Generalized from the original hasPendingModRequest so the
-    /// UI can show "Streamer request pending" too.
+    /// Drives the "Request pending" pill on Profile.
     private(set) var pendingRoleRequest: String?
     /// Provider used to create the current session — "apple",
     /// "discord", or "email". Drives the sign-in method pill on
@@ -148,9 +146,6 @@ final class AuthManager {
         discordUserId           = profile.discord_user_id
         customAvatarURL         = profile.avatar_url
         pendingRoleRequest      = profile.requested_role
-        // Keep the legacy hasPendingModRequest flag in sync so any
-        // remaining call sites (AdminPanelView) keep working.
-        hasPendingModRequest    = profile.requested_role == "moderator"
     }
 
     /// Persists a username via the validate-and-write RPC. Returns the
@@ -231,7 +226,6 @@ final class AuthManager {
         do {
             try await client.requestRole(targetRole, reason: reason)
             pendingRoleRequest = targetRole
-            if targetRole == "moderator" { hasPendingModRequest = true }
         } catch {
             self.error = error.localizedDescription
         }
@@ -492,7 +486,6 @@ final class AuthManager {
         discordUserId           = nil
         customAvatarURL         = nil
         pendingRoleRequest      = nil
-        hasPendingModRequest    = false
         signInProvider          = nil
         isLoading               = false
     }

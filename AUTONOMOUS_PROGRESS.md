@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 103 — 2026-05-20 — **web** — AddSheet toast + expose window.showToast (uncovers + fixes silent fallback bug)
+- **Cadence:** 103 % 5 = 3 → web.
+- **Picked:** Web `openAddSheet` save path called `API.collectionAdd(card)`, closed sheet, re-rendered Collection + Profile — but NO confirmation toast. Same anti-pattern iOS tick 102 just fixed. Also discovered a **silent bug**: collection.js wrote `window.showToast('Avatar updated.')` (tick 68) + practice.js wrote `window.showToast('Add some cards…')` — both guarded with `if (typeof window.showToast === 'function')` checks that **always returned false** because app.js's `showToast` function was defined inside an IIFE and never exposed on window. Every "toast" call from sibling modules silently fell through to nothing.
+- **Shipped:**
+  - `js/app.js::showToast` — added `window.showToast = showToast` right after the function definition. Now sibling modules' `window.showToast(...)` calls actually fire. Fixes tick 68 (avatar success/error toasts) + tick 9 (deck wall empty toast) + any future cross-module toast call.
+  - `js/collection.js::openAddSheet` success branch:
+    - Resolved `desigLabel` from `DESIGNATIONS.find(d => d.key === card.designation)?.label`.
+    - Fired `window.showToast(`Added to ${desigLabel}`)` after the existing re-renders. Per-designation label so user sees WHERE the add landed (sheet defaults to Personal but they may have switched).
+- **Verified:** `node -c` clean on both files. Confirmed via grep that `window.showToast` had no `=` assignment anywhere — definitively orphan API surface area until tick 103.
+- **PARITY.md:** No row — UX polish + a real bug fix on already-✅ AddToCollection row. iOS tick 102 + Android tick 96 + web tick 103 = 3-platform lockstep on the post-add toast.
+- **Next:** tick 104 = Android; 105 = opt.
+
+
+
 ### Tick 102 — 2026-05-20 — **iOS** — AddToCollectionSheet fires onAdded toast (Android tick 96 parity)
 - **Cadence:** 102 % 5 = 2 → iOS.
 - **Picked:** iOS `AddToCollectionSheet` saved silently — `collection.addCard(new)` returned + the sheet dismissed, but the host view had no signal to fire the green-checkmark toast. Compare with `AddToDeckSheet` at the same call site (CollectionCardDetailView.swift:242 + CardDetailView.swift:303): both pass `{ name in showAddedToDeckToast(name) }` as a closure parameter. AddToCollectionSheet lacked the equivalent callback — by-design oversight from the sheet's original implementation. Android tick 96 just shipped the equivalent Snackbar — iOS parity gap.

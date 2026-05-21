@@ -5,7 +5,6 @@ struct SearchView: View {
     @Environment(CollectionStore.self) private var collection
     @Environment(AuthManager.self) private var auth
     @State private var showFilters = false
-    @State private var selectedCard: Card?
     @Environment(ScanStore.self) private var scanStore
     @Environment(ScanCoordinator.self) private var scanCoordinator
     @State private var showProfile = false

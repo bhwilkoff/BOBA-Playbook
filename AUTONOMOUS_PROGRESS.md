@@ -104,6 +104,22 @@ Each loop tick appends an entry below. Format:
 
 ### Tick 37 — 2026-05-20 — Collection search clear-× button
 - **Picked:** Re-queued tick after the tick-36 "no 'pool'" interrupt. The tick-34 Collection search input relied on the native `<input type="search">` browser-built-in clear-×, which is small on iOS Safari + sometimes invisible on Android Chrome + inconsistent across themes. Add a custom × matching Find's `searchClear` pattern.
+- **Shipped:** see commit 85aebf0. Markup wrapped in `.collection-search-wrap`, custom `<button id="collection-search-clear">`, instant un-debounced visibility toggle on every keystroke, zero-debounce immediate clear + refocus, `::-webkit-search-cancel-button { appearance: none }` to hide the native ×, keyboard-accessible cyan focus ring.
+- **Architectural note:** the immediate × visibility (un-debounced) + the debounced filter together give the right feel: the user gets instant visual confirmation that BOBA registered the keystroke, while the heavy filter+render coalesces to one execution at 220ms-quiet.
+
+### Tick 38 — 2026-05-20 — Decks card-browser search clear-× button
+- **Picked:** Parity with tick 37's Collection clear-×. The Decks card-browser search input had no clear button; users had to backspace through queries or wait for the inconsistent native `<input type="search">` × across browsers.
+- **Shipped:**
+  - `index.html`: wrapped `<input id="db-search">` in `.db-search-wrap` + new `<button id="db-search-clear">` with Lucide × icon. Same shape as tick-37's Collection version.
+  - `js/practice.js`:
+    - Input handler updated — toggles `_dbSearchClear.hidden = !next` immediately (un-debounced), so the visibility flip is instant even though the filter is the existing 220ms-debounced path.
+    - Clear handler — wipes input value, hides ×, clears the debounce timer (so a half-typed query mid-debounce doesn't fire after clear), zero-debounce immediate clear + `dbRenderGrid` if `DB.search` was non-empty, refocuses input.
+  - `css/styles.css`: `.db-search-wrap` (relative anchor), `.db-search` width 100% with right-padding 28px, `::-webkit-search-cancel-button { appearance: none }` to hide the native ×, `.db-search-clear` (absolute right: 4px, low-alpha-white hover, 2px cyan focus-visible ring).
+- **Verified:** node -c clean. Trace: type "mav" → × appears immediately → 220ms debounce → grid filters. Click × → input cleared → grid restored → focus on input. Tab to × via keyboard → cyan focus ring → Enter clears.
+- **PARITY.md:** No row — polish layer on already-✅ row.
+- **Pattern locked in:** all three web search inputs (Find, Collection, Decks card-browser) now share the same shape — debounce on filter, instant clear-× toggle, custom × that suppresses native ×, focus-visible keyboard ring. Worth a future `BOBASearchInput` primitive if a fourth search ships.
+
+- **Picked:** Re-queued tick after the tick-36 "no 'pool'" interrupt. The tick-34 Collection search input relied on the native `<input type="search">` browser-built-in clear-×, which is small on iOS Safari + sometimes invisible on Android Chrome + inconsistent across themes. Add a custom × matching Find's `searchClear` pattern.
 - **Shipped:**
   - `js/collection.js`:
     - Markup: wrapped the `<input>` in `.collection-search-wrap` (relative positioning anchor) + added `<button id="collection-search-clear">` with Lucide × icon. Hidden by default when query is empty; rendered un-hidden when `_collectionSearchText` is populated (e.g. tab-switch re-render preserves the visible clear button).

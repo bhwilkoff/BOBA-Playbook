@@ -913,13 +913,29 @@ function initDeckBuilder(allCards) {
   // catalog on every keystroke. 220ms matches the Collection search
   // debounce; Find uses 280ms.
   let _dbSearchTimer = null;
+  const _dbSearchClear = $('db-search-clear');
   $('db-search')?.addEventListener('input', e => {
     const next = e.target.value;
+    // Toggle clear-× instantly so the affordance feels snappy even
+    // though the filter is debounced (matches Collection tick 37).
+    if (_dbSearchClear) _dbSearchClear.hidden = !next;
     clearTimeout(_dbSearchTimer);
     _dbSearchTimer = setTimeout(() => {
       DB.search = next;
       dbRenderGrid(allCards);
     }, 220);
+  });
+  _dbSearchClear?.addEventListener('click', () => {
+    const input = $('db-search');
+    if (!input) return;
+    input.value = '';
+    _dbSearchClear.hidden = true;
+    clearTimeout(_dbSearchTimer);
+    if (DB.search) {
+      DB.search = '';
+      dbRenderGrid(allCards);
+    }
+    input.focus();
   });
 
   // Quick-add toggle

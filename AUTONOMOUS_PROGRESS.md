@@ -76,6 +76,17 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 154 — 2026-05-21 — **Android** — Decks tablet-pane Save: Snackbar feedback (was fire-and-forget)
+- **Cadence:** 154 % 5 = 4 → Android.
+- **Picked:** Real UX gap. `DecksScreen.kt:718` had `onSave = { deckViewModel.save { /* tablet pane stays open */ } }` — the trailing-lambda comment was actually consuming the save-result callback as a no-op, so the tablet-pane Save button fired the save then provided NO UI feedback. The compact-screen path at line 391 already used the richer save signature (tick 71) with Snackbar success/error feedback. Tablet path was the lone fire-and-forget.
+  - Worst case: user taps Save → server write fails silently (network drop / RLS rejection / empty name) → user sees the deck still in the editor → taps Save AGAIN → creates a duplicate deck on retry success.
+- **Shipped:**
+  - `DecksScreen.kt:718`: replaced the no-op trailing lambda with the same `errorMessage: String? ->` callback the compact path uses. On `null` (success): Snackbar `"Saved \"${draft.name}\""`. On non-null: Snackbar with the error message verbatim — `tick 71` already disambiguates sign-out / empty-name / network so the user knows what to fix.
+  - Tablet pane intentionally STAYS open after save (the comment "tablet pane stays open" is preserved as the rationale — unlike compact's `ModalBottomSheet` which has nothing to dismiss to, the tablet pane IS the canvas).
+- **Verified:** `scope` and `appSnackbar` are already in scope at the tablet site (declared at line 616-617 in DecksTabletScreen). Same Snackbar copy as the compact path; same callback shape.
+- **PARITY.md:** No row — UX polish on already-✅ tablet Decks Save.
+- **Next:** tick 155 = opt.
+
 ### Tick 153 — 2026-05-21 — **web** — Collection Edit Copy: confirmation toast on save
 - **Cadence:** 153 % 5 = 3 → web.
 - **Picked:** Closes parity with iOS dismiss-as-confirmation + Android tick 151's Snackbar. Web's Collection card detail Edit form submit (collection.js:3050) successfully calls `API.collectionUpdate` then dismisses the edit state — but provides NO toast/banner confirmation. The user sees the form disappear and the updated entry in the detail list, but if they lost their place in the dense form they might wonder if the submit actually went through.

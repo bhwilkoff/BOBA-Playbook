@@ -102,6 +102,21 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 44 — 2026-05-20 — Decks sign-out: clear DB draft + DB_savedId
+- **Picked:** Real bug found while auditing `resetFilters` (false-positive there — `setElementFilter('')` tail-calls applyFilters, so Find Clear-all is fine; comment added so future-Claude doesn't re-flag). Found a real one in practice.js: the deck-builder had **no `auth-change` listener at all**. When user A signed out, their in-memory deck draft (heroes / plays / bonus / hot dogs / deck name) AND `DB_savedId` (the Supabase row pointer for A's loaded saved deck) lingered into user B's session.
+- **Real-user impact:** if user B signed in on the same browser tab and tried to Save, the save would attempt to overwrite user A's saved row. RLS would block, so no data leak — but the user would get a confusing failure, AND if user B had Discord OAuth'd into B's own row (same email path), the pointer could point at A's deck id with B's RLS pass-through. Worst case: confusion. Best case: silently broken Save flow.
+- **Shipped:**
+  - `js/practice.js`: new `document.addEventListener('auth-change', ...)` inside `initDeckBuilder`. When `detail.session` is falsy (sign-out path):
+    - `DB.clear()` (wipes heroes / plays / bonus / hotdogs / deckName)
+    - `DB.format = 'playmaker'` (DB.clear didn't reset format — sweep that too)
+    - `DB_savedId = null`
+    - Reset the visible deck-name input
+    - `dbRender(allCards)` to re-render the empty draft on screen
+  - Sign-in path is a no-op — keeps any work-in-progress draft (the user might be signing in TO save what they were drafting offline).
+- **Verified:** node -c clean. Trace: user A signs in → loads a saved deck → DB_savedId set → signs out → listener fires → DB cleared + DB_savedId null + format reset + re-render shows empty draft. User B signs in → has clean state.
+- **Pattern parity:** matches Collection.clear() in collection.js (the canonical pattern from `feedback_viewmodel_reset_on_auth_change` memory). All three browsing surfaces (Find, Collection, Decks) now clear their auth-scoped state on sign-out.
+- **PARITY.md:** No row — bug fix.
+
 ### Tick 43 — 2026-05-20 — Wall view canvas cap (Safari/Chrome safety)
 - **Picked:** Audit found a latent failure mode: `openWallSheet` rendered every card in scope onto a single 1080-wide canvas with auto-height. Math: at N=300+ cards (8 cols × cellH≈174), canvas.height exceeds 6500px — approaches Safari's 16,384px / Chrome's 32,767px hard canvas limits. A user with 500+ owned cards calling Wall on the Personal designation could hit the limit and get a blank/cropped image with no warning.
 - **Shipped:**

@@ -1746,6 +1746,9 @@
     if (sortBySelect) sortBySelect.value = 'default';
     document.querySelectorAll('.power-preset').forEach(b => b.classList.remove('active'));
     document.querySelector('.power-preset[data-min=""]')?.classList.add('active');
+    // setElementFilter('') already triggers applyFilters() via its tail
+    // call — that's where the re-render after a clear-all happens.
+    // Don't add another applyFilters() here (double-render).
     setElementFilter('');
     updateFilterBadge();
   }

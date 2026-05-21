@@ -345,12 +345,42 @@ fun CollectionScreen(
                         onAction = { collectionQuery = "" },
                     )
                 } else {
+                    // Per-designation brand-voice empty states (parity
+                    // with web tick 78 + universal-feature-states skill).
+                    // Generic "Scan a card or browse Find" said the same
+                    // thing for every designation; each one wants
+                    // different next-action copy.
+                    val (headline, body) = when (designation) {
+                        com.bobaplaybook.core.domain.model.Designation.PERSONAL ->
+                            "No personal cards yet" to
+                                "Scan a card or use Quick Add from the Find tab to start your stack."
+                        com.bobaplaybook.core.domain.model.Designation.FOR_SALE ->
+                            "Nothing for sale yet" to
+                                "Mark a card from your Personal stack to start moving it."
+                        com.bobaplaybook.core.domain.model.Designation.FOR_TRADE ->
+                            "Nothing for trade yet" to
+                                "Flag a card to find a trading partner once trading launches."
+                        com.bobaplaybook.core.domain.model.Designation.WANTED ->
+                            "No wanted cards yet" to
+                                "Flag the cards you're chasing — start with the ones at the top of your list."
+                        com.bobaplaybook.core.domain.model.Designation.GRAILS ->
+                            "No grails yet" to
+                                "Mark the cards you'd cross a state line for."
+                    }
+                    // Only Personal gets a CTA button (Scan a card). The
+                    // other designations need the user to find cards in
+                    // a different surface (Find tab or Personal stack) —
+                    // pointing them at a tab they can already see in the
+                    // NavigationBar is no-op chrome. Body copy carries
+                    // the wayfinding.
+                    val isPersonal = designation ==
+                        com.bobaplaybook.core.domain.model.Designation.PERSONAL
                     BOBAEmptyState(
                         icon = Icons.Default.Inventory2,
-                        headline = "No ${designation.label.lowercase()} cards yet",
-                        body = "Scan a card or browse Find to add your first one.",
-                        actionLabel = "Scan a card",
-                        onAction = onScanClick,
+                        headline = headline,
+                        body = body,
+                        actionLabel = if (isPersonal) "Scan a card" else null,
+                        onAction = if (isPersonal) onScanClick else null,
                     )
                 }
                 return@Scaffold

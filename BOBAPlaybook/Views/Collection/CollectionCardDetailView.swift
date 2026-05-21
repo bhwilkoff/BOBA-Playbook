@@ -26,6 +26,10 @@ struct CollectionCardDetailView: View {
     @State private var isRefreshingPrice = false
     @State private var addedToDeckName: String?
     @State private var addedToShowName: String?
+    /// Tick 122 — "Removed X" toast after the swipe-delete on per-copy
+    /// rows. Distinct state from addedToDeckName so the toast doesn't
+    /// prepend the "Added to " text the existing overlay wraps.
+    @State private var removedEntryName: String?
     /// Custom decks this card is in. Loaded on appear when the user is
     /// authenticated. `nil` = not yet loaded, `[]` = loaded and empty.
     @State private var containingDecks: [SavedDeck]? = nil
@@ -297,6 +301,8 @@ struct CollectionCardDetailView: View {
                     confirmationToast("Added to \(name)")
                 } else if let showName = addedToShowName {
                     confirmationToast("Added to \(showName)")
+                } else if let removed = removedEntryName {
+                    confirmationToast("Removed \(removed)")
                 }
             }
         }
@@ -323,6 +329,14 @@ struct CollectionCardDetailView: View {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(2))
             withAnimation(.easeOut(duration: 0.3)) { addedToDeckName = nil }
+        }
+    }
+
+    private func showRemovedToast(_ name: String) {
+        withAnimation(.easeOut(duration: 0.25)) { removedEntryName = name }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(.easeOut(duration: 0.3)) { removedEntryName = nil }
         }
     }
 
@@ -457,9 +471,18 @@ struct CollectionCardDetailView: View {
         .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
+                // Capture the catalog card for the toast copy BEFORE the
+                // async delete fires. iOS tick 117 added the equivalent
+                // for Decks; Android tick 119 added the equivalent for
+                // Collection (with Undo). iOS Undo here defers — the
+                // confirmationToast helper is text-only; Undo requires
+                // a richer action-state overlay.
+                let cardLabel = catalogCard?.displayName
+                    ?? (entry.cardNumber)
                 Task {
                     do {
                         try await collection.deleteCard(id: entry.id)
+                        showRemovedToast(cardLabel)
                     } catch {
                         deleteError = error.localizedDescription
                     }

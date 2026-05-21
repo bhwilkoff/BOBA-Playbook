@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 122 — 2026-05-20 — **iOS** — Collection card detail swipe-delete: "Removed X" toast (Android tick 119 parity)
+- **Cadence:** 122 % 5 = 2 → iOS.
+- **Picked:** `CollectionCardDetailView::collectionRow` swipe-action `Button(role: .destructive)` fired `collection.deleteCard(id: entry.id)` silently on success (errors surfaced via deleteError). Android tick 119 just shipped the equivalent + Undo for the per-copy delete; iOS got the banner-only version (Undo defer — the confirmationToast helper is text-only; Undo requires a richer action-state overlay).
+- **Shipped:**
+  - `CollectionCardDetailView.swift`:
+    - New `@State private var removedEntryName: String?` — distinct from `addedToDeckName` so the confirmationToast doesn't auto-prepend "Added to " for delete copy.
+    - New overlay branch in the `.overlay(alignment: .top) { ... }` block: renders `confirmationToast("Removed \(removed)")` when `removedEntryName != nil`.
+    - Swipe-action handler captures `catalogCard?.displayName` BEFORE the async delete (falls back to `entry.cardNumber` if the catalog lookup fails). On success: fires `showRemovedToast(cardLabel)`.
+    - New `showRemovedToast(_ name:)` helper — same 2-second timing + animation as `showAddedToDeckToast`.
+- **Verified:** SourceKit cross-file noise preexisting. The existing toast helpers (`showAddedToDeckToast`, `showAddedToShowToast`) preserved verbatim; `removedEntryName` is the cleanest addition.
+- **PARITY.md:** No row — UX polish on already-✅ Collection swipe-delete. Now 2-platform (iOS banner + Android Snackbar+Undo); web Collection per-copy delete is a future parity tick.
+- **Next:** tick 123 = web; 124 = Android; 125 = opt.
+
+
+
 ### Tick 121 — 2026-05-20 — **Android** — Profile notifications: un-bundle push + match alerts (real bug + iOS parity)
 - **Cadence:** 121 % 5 = 1 → Android.
 - **Picked:** Tick 120's notes pointed at a real bug — `ProfileViewModel.setMatchAlerts` called `service.setNotificationPrefs(notifications = enabled, matchAlerts = enabled)`, slamming BOTH columns to the same value. Toggling Match Alerts ON also turned on general push notifications. Worse: toggling either OFF turned off both. iOS Profile keeps them as separate toggles per DECISIONS.md #039.

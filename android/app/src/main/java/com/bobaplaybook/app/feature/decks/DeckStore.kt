@@ -75,6 +75,17 @@ class DeckStore @Inject constructor() {
         _draft.value = DeckDraft()
     }
 
+    /**
+     * Restore a previously-captured draft snapshot. Used by the
+     * Clear-deck Undo Snackbar (tick 139): the editor captures the
+     * current [DeckDraft] before [clear], offers an Undo action, and
+     * calls this if the user taps it. No-op gracefully when called
+     * with an empty draft — the user just hits Undo on nothing.
+     */
+    fun restoreDraft(snapshot: DeckDraft) {
+        _draft.value = snapshot
+    }
+
     /// Structured outcome returned by [add]. Mirrors the iOS
     /// addCardToDeck no-add reason set (DecksView.swift) so feedback
     /// strings stay cross-platform consistent.

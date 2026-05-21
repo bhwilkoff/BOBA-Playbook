@@ -44,6 +44,9 @@ class DecksViewModel @Inject constructor(
     fun rename(name: String) = store.rename(name)
     fun setPlayMode(mode: DeckPlayMode) = store.setPlayMode(mode)
     fun clear() = store.clear()
+    /** Replace the in-memory draft with a previously-captured snapshot.
+     * Wired by the Clear-deck Undo Snackbar (tick 139). */
+    fun restoreDraft(snapshot: DeckDraft) = store.restoreDraft(snapshot)
 
     /** Pull a saved deck into the in-memory draft. Joins via catalog. */
     fun loadSaved(saved: SavedDeck, catalog: List<Card>) =

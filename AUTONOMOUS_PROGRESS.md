@@ -76,6 +76,23 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 126 — 2026-05-20 — **Android** — Glossary: long-press to share (tap-to-copy companion)
+- **Cadence:** 126 % 5 = 1 → Android.
+- **Picked:** Tick 84 shipped tap-to-copy on Glossary rows. Coaches often want to push a definition DIRECTLY into Discord without the copy + paste round-trip. Long-press → Intent.ACTION_SEND chooser is the canonical Android pattern for "share this text to any installed app." iOS doesn't have an equivalent (UIPasteboard tap-to-copy is the iOS canon), so this is Android-specific polish.
+- **Shipped:**
+  - `LearnArticleScreen.kt::TermRow`:
+    - Signature gained `onShare: () -> Unit` callback.
+    - `Modifier.clickable` upgraded to `combinedClickable` with `onClick = onCopy` + `onLongClick = onShare`. Distinct `onClickLabel` ("Copy term") + `onLongClickLabel` ("Share term") for TalkBack.
+    - `@OptIn(ExperimentalFoundationApi::class)` annotation added (`combinedClickable` is still marked experimental in 1.5.x).
+  - New file-private `shareTerm(context, section)` helper — fires `Intent.ACTION_SEND` w/ `type = "text/plain"` + `EXTRA_TEXT` = `"{term} — {definition}"` + `EXTRA_SUBJECT` = `"BOBA Glossary: {term}"` + wraps in `Intent.createChooser` so user picks the target app.
+  - Both call sites (Game glossary + Trading glossary) pass `onShare = { shareTerm(context, term) }`.
+  - New `import androidx.compose.foundation.combinedClickable`.
+- **Verified:** `combinedClickable` is in `androidx.compose.foundation` (stable api, experimental annotation). `Intent.createChooser` is the canonical Android system-share entrypoint.
+- **PARITY.md:** No row — Android-specific polish on already-✅ Glossary surface.
+- **Next:** tick 127 = iOS; 128 = web; 129 = Android; 130 = opt.
+
+
+
 ### Tick 125 — 2026-05-20 — **OPTIMIZATION TICK (16th 1-in-5)** — orphan iOS isOwned(cardNumber) overload
 - **Cadence:** opt rotation. Web 5 · iOS 7 · Android 3 across opt ticks. Bias-toward-Android couldn't find a clean orphan; settled on iOS.
 - **Picked:** `CollectionStore.swift::isOwned(_ cardNumber: String)` — 3-line overload that pre-dates the bobaId addition. `grep -rn .isOwned(` across BOBAPlaybook returned only `.isOwned(bobaId:)` calls — the unlabeled `(_ cardNumber:)` overload had zero callers. Confirmed via second grep (`grep .isOwned(` excluding bobaId pattern) — empty.

@@ -6,6 +6,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -550,6 +551,7 @@ private fun GlossaryPage() {
                     TermRow(
                         section = term,
                         onCopy = { copyTermToClipboard(clipboard, context, term) },
+                        onShare = { shareTerm(context, term) },
                     )
                 }
             }
@@ -564,6 +566,7 @@ private fun GlossaryPage() {
                     TermRow(
                         section = term,
                         onCopy = { copyTermToClipboard(clipboard, context, term) },
+                        onShare = { shareTerm(context, term) },
                     )
                 }
             }
@@ -571,15 +574,27 @@ private fun GlossaryPage() {
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun TermRow(
     section: LearnSection.Term,
     onCopy: () -> Unit,
+    onShare: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClickLabel = "Copy term") { onCopy() }
+            // combinedClickable: tap-to-copy + long-press-to-share. The
+            // share path opens Android's Intent.ACTION_SEND chooser so
+            // users can route the term + definition to any installed
+            // chat app (Discord, Messages, WhatsApp, etc.) without
+            // bouncing through the clipboard.
+            .combinedClickable(
+                onClickLabel = "Copy term",
+                onLongClickLabel = "Share term",
+                onClick = { onCopy() },
+                onLongClick = { onShare() },
+            )
             .padding(horizontal = 16.dp, vertical = 4.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -607,6 +622,20 @@ private fun copyTermToClipboard(
     android.widget.Toast
         .makeText(context, "Copied “${section.term}”", android.widget.Toast.LENGTH_SHORT)
         .show()
+}
+
+/// Long-press to share a glossary term. Fires Android's Intent.ACTION_SEND
+/// chooser so the user can route the term + definition to any installed
+/// messaging app (Discord, WhatsApp, Messages, etc.) without bouncing
+/// through the clipboard.
+private fun shareTerm(context: android.content.Context, section: LearnSection.Term) {
+    val payload = "${section.term} — ${section.definition}"
+    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(android.content.Intent.EXTRA_TEXT, payload)
+        putExtra(android.content.Intent.EXTRA_SUBJECT, "BOBA Glossary: ${section.term}")
+    }
+    context.startActivity(android.content.Intent.createChooser(intent, "Share term"))
 }
 
 // ════════════════════════════════════════════════════════════════

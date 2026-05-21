@@ -71,6 +71,7 @@ fun DeckEditorSheet(
     onRemove: (bobaId: String) -> Unit,
     onSave: () -> Unit,
     onSignInRequest: () -> Unit,
+    onGenerateWall: () -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
@@ -85,6 +86,7 @@ fun DeckEditorSheet(
             onRemove = onRemove,
             onSave = onSave,
             onSignInRequest = onSignInRequest,
+            onGenerateWall = onGenerateWall,
         )
     }
 }
@@ -104,6 +106,7 @@ fun DeckEditorContentInline(
     onSignInRequest: () -> Unit,
     onOpenRules: () -> Unit,
     onOpenLegality: () -> Unit,
+    onGenerateWall: () -> Unit = {},
 ) {
     // Bind directly to draft.name so loading a saved deck via the
     // Manage screen actually updates the visible field. Earlier this
@@ -138,6 +141,10 @@ fun DeckEditorContentInline(
         ) {
             androidx.compose.material3.OutlinedButton(onClick = onOpenRules) { Text("Rules") }
             androidx.compose.material3.OutlinedButton(onClick = onOpenLegality) { Text("Legality") }
+            androidx.compose.material3.OutlinedButton(
+                onClick = onGenerateWall,
+                enabled = draft.cards.isNotEmpty(),
+            ) { Text("Wall") }
             Spacer(Modifier.weight(1f))
             SaveOrSignInButton(
                 isSignedIn = isSignedIn,
@@ -177,6 +184,7 @@ private fun DeckEditorContent(
     onRemove: (bobaId: String) -> Unit,
     onSave: () -> Unit,
     onSignInRequest: () -> Unit,
+    onGenerateWall: () -> Unit = {},
 ) {
     // Bind directly to draft.name — see DeckEditorContentInline
     // comment for the same fix at the inline variant.
@@ -201,6 +209,14 @@ private fun DeckEditorContent(
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )
+            // Generate-deck-wall affordance (DESIGN.md §8.8 + web tick 9
+            // parity). Reuses WallShareHelper via DeckWallSheet.
+            IconButton(
+                onClick = onGenerateWall,
+                enabled = draft.cards.isNotEmpty(),
+            ) {
+                Icon(Icons.Default.ViewModule, contentDescription = "Generate deck wall")
+            }
             SaveOrSignInButton(
                 isSignedIn = isSignedIn,
                 hasCards = draft.cards.isNotEmpty(),

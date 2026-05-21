@@ -190,7 +190,7 @@ fun CardDetailScreen(
                                     onClick = {
                                         addMenuOpen = false
                                         scope.launch {
-                                            snackbarHostState?.showSnackbar(
+                                            snackbarHostState.showSnackbar(
                                                 "Show management ships in M2 polish",
                                             )
                                         }
@@ -915,7 +915,13 @@ private fun ArtPanel(card: Card) {
     // transformable + pointerInput for the double-tap reset.
     var scale by remember { mutableStateOf(1f) }
     var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
-    val transformState = androidx.compose.foundation.gestures.rememberTransformableState { zoomChange, panChange, _ ->
+    // Centroid-aware variant — `_` ignores rotation + centroid since
+    // we only react to zoom + pan. The 3-arg overload is deprecated
+    // per the M3 Compose API audit (Android Studio warning, May '26):
+    // the centroid argument lets gestures rotate / zoom around the
+    // pinch focal point. We don't use it (no rotation; pan is the
+    // user's drag delta) but the new signature is the supported one.
+    val transformState = androidx.compose.foundation.gestures.rememberTransformableState { zoomChange, panChange, _, _ ->
         scale = (scale * zoomChange).coerceIn(1f, 6f)
         if (scale > 1f) {
             offset += panChange

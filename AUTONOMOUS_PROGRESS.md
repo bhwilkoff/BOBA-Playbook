@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 168 — 2026-05-21 — **web** — Profile feedback: pre-filled subject + Copy-email fallback
+- **Cadence:** 168 % 5 = 3 → web.
+- **Picked:** Closes parity with iOS tick 167 + Android tick 166. Web's "Send Feedback" was a plain `<a href="mailto:ben@bobaplaybook.com">` — two gaps:
+  1. No `?subject=` prefill (iOS/Android pre-populate "BOBA Playbook feedback (vX.Y.Z)").
+  2. No fallback when the browser has no `mailto:` handler — silent failure (desktop Safari/Chrome without a configured default mail handler do nothing on click).
+  Detecting mailto-failure on web is unreliable (browsers don't expose success/failure for protocol handlers), so the fix is **always-on**: ship a parallel Copy-email button alongside the mailto link. Users without a mail handler tap that; users with one tap Send Feedback like before.
+- **Shipped:**
+  - `js/collection.js` profile-about render:
+    - Send Feedback link gets `?subject=BOBA%20Playbook%20feedback` query.
+    - New parallel `<button id="profile-feedback-copy-btn">` with a clipboard icon and "Copy email address" label, styled with the same `.profile-about-row` class so it lines up.
+    - Click handler: `navigator.clipboard.writeText('ben@bobaplaybook.com')` → `window.showToast("Copied ben@bobaplaybook.com to clipboard")`. Try/catch with degraded-toast fallback for clipboard-unavailable contexts (HTTPS-only requirement on most modern browsers).
+- **Verified:** Send Feedback link continues to work as before — the new button is purely additive. Both behind soft-fail guards. Web doesn't have a version constant to embed in the subject (always-latest from GitHub Pages), so the subject is plain.
+- **PARITY.md:** No row.
+- **Next:** tick 169 = Android; 170 = opt.
+
 ### Tick 167 — 2026-05-21 — **iOS** — Profile Send Feedback: graceful fallback when no mail client (Android tick 166 parity)
 - **Cadence:** 167 % 5 = 2 → iOS.
 - **Picked:** Same silent-failure bug as Android tick 166. iOS Profile's "Send Feedback" button called `UIApplication.shared.open(url)` (fire-and-forget) for the `mailto:ben@bobaplaybook.com?subject=...` URL. If the user uninstalled Apple Mail and hasn't added Gmail/Outlook (uncommon but not zero — Apple Mail is uninstallable on iOS 14+), the open silently no-ops. Tap → nothing.

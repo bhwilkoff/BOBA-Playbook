@@ -1509,7 +1509,8 @@ const Collection = (() => {
               </svg>
               <span>Terms of Service</span>
             </a>
-            <a class="profile-about-row" href="mailto:ben@bobaplaybook.com">
+            <a class="profile-about-row" href="mailto:ben@bobaplaybook.com?subject=BOBA%20Playbook%20feedback"
+               id="profile-feedback-link">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                    width="15" height="15" aria-hidden="true">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -1517,6 +1518,15 @@ const Collection = (() => {
               </svg>
               <span>Send Feedback</span>
             </a>
+            <button class="profile-about-row" type="button" id="profile-feedback-copy-btn"
+                    aria-label="Copy feedback email">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   width="15" height="15" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span>Copy email address</span>
+            </button>
           </div>
         </div>
 
@@ -1556,6 +1566,25 @@ const Collection = (() => {
       ?.addEventListener('click', async () => {
         if (!confirm('Sign out? Your collection data is saved and will sync back when you sign in again.')) return;
         await Auth.signOut();
+      });
+
+    // Tick 168 — copy-email fallback for users without a mailto:
+    // handler (some desktop browser configs). Closes parity with
+    // iOS tick 167 + Android tick 166's "no email app" graceful
+    // fallback. The Send Feedback link still tries the OS mail
+    // handler first; this button is the always-works backup.
+    view.querySelector('#profile-feedback-copy-btn')
+      ?.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText('ben@bobaplaybook.com');
+          if (typeof window.showToast === 'function') {
+            window.showToast('Copied ben@bobaplaybook.com to clipboard');
+          }
+        } catch (_) {
+          if (typeof window.showToast === 'function') {
+            window.showToast('Clipboard unavailable — email ben@bobaplaybook.com');
+          }
+        }
       });
 
     view.querySelector('#profile-mod-btn')

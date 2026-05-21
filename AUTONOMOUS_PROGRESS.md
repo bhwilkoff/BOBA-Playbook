@@ -102,6 +102,16 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 19 — 2026-05-20 — Auth-state cache reset + post-tick-18 audit
+- **Picked:** Bring web in line with the `feedback_viewmodel_reset_on_auth_change` discipline shipped on Android. Two scenarios to guard against: (1) signed-in user A signs out → some cached state survives → user B signs in same tab → A's state briefly visible. (2) The window between sign-out and Auth.open() showing a stale rainbow's name in an open editor dialog.
+- **Audit done:** verified `public-collection` page (`buildCardElement` already routes through `API.cardThumbUrl`), Watch tab (wired to `boba-youtube-feed` Worker), Profile public-URL copy (working), Decks card popup (deck cards never sealed, no CDN issue). No more bugs in the same family as tick 18.
+- **Shipped:**
+  - `js/collection.js::clear()` — now also resets `_customRainbowsById = {}`, `_editingRainbow = null`, `_draftCriteria = {}`. On sign-out, the rainbow cache + editor state are wiped so a subsequent sign-in starts clean. Mirrors the Android ViewModel-reset pattern: previous-user data can't leak into the next session.
+- **Verified:** node -c clean. `clear()` is invoked by the auth-state-change listener at line 2872; both `signOut` and `tokenRefreshed → no session` paths reach it.
+- **PARITY.md:** No row change — discipline fix, not a feature ship.
+- **Architectural note:** the three `_…` caches all live at module scope inside the Collection IIFE. Future per-user caches added in this module should be reset in `clear()` too. (No lint rule enforces this — it's discipline.)
+- **Next:** Tick 20. Want to find a higher-impact ship. Considering: (a) browser-tab-title updates to reflect the active view (today: shows the static <title> always), (b) Collection sort-mode persistence (memory across sessions), (c) preset deck-builder format remembered across sessions (already does via `bp_decksFormat_v1`?).
+
 ### Tick 18 — 2026-05-20 — Web sealed-product CDN routing bug fix (Collection)
 - **Picked:** Audit triggered by PARITY.md/tick-12 reference to the Android CDN sealed-routing memory + the tick-1 missing-sealed surfacing. Confirmed Find grid + Wall + variant-tile all correctly route via `API.cardThumbUrl`. **Found three Collection-side bugs** where the code called raw `API.thumbUrl(imageFile)` / `API.fullUrl(imageFile)` instead of the sealed-aware `API.cardThumbUrl(card)` / `API.cardFullUrl(card)`.
 - **Real-user impact:** sealed products live at `/sealed/thumbs/` + `/sealed/optimized/` on R2. Any sealed product in a user's Collection (designation = personal/for_sale/for_trade/wanted/grails) would 404 in the Collection grid, the variant-tile picker, AND the collection card-detail view. The user would see a broken-image icon for every sealed box / blaster they own. iOS shipped sealed routing per `feedback_ios_sealed_products` memory; Android shipped via `reference_android_cdn_sealed_routing` (overnight 2026-05-20); web had been silently broken.

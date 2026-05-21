@@ -76,6 +76,19 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 105 — 2026-05-20 — **OPTIMIZATION TICK (12th 1-in-5)** — 2 orphan iOS @State vars
+- **Cadence:** opt rotation. Web 5 ticks · iOS 3 · Android 3. Bias-toward-iOS.
+- **Picked:** Scanned iOS view-level `@State` declarations. Two orphans:
+  - `CollectionView.swift::exportShareURL` — declared as `URL? = nil` but `grep -rn exportShareURL` returned only the declaration. Never assigned, never read.
+  - `SearchView.swift::selectedCard` — declared as `Card?` but `grep -rn selectedCard.* SearchView` returned only the declaration. Never written, never read.
+- **Shipped:** Removed both declarations.
+- **Verified:** Final greps confirm zero remaining references. `tradeRoomFAB` + `discord`/`showTradeRoom` left in place per DECISIONS.md #025 (Discord trade-room feature is intentionally gated, not dead code).
+- **Line-count delta:** -2 lines.
+- **Cumulative across 12 optimization ticks:** -154 lines (50: -26 · 55: -24 · 60: -9 · 65: -6 · 70: -28 · 75: -8 · 80: -2 · 85: -23 · 90: -19 · 95: -6 · 100: -1 · 105: -2).
+- **Next:** tick 106 = Android; 107 = iOS; 108 = web; 109 = Android; 110 = opt.
+
+
+
 ### Tick 104 — 2026-05-20 — **Android** — Collection grid density picker (iOS @AppStorage parity)
 - **Cadence:** 104 % 5 = 4 → Android.
 - **Picked:** Same gap tick 101 closed for Decks — `GridDensityStore.Target.COLLECTION` was registered but `grep -rn Target.COLLECTION` returned zero callers. CollectionGrid hardcoded `Adaptive(minSize = 110.dp)`. iOS exposes per-collection `@AppStorage("bp_collectionGridColumns_v1")` — Android lagged.

@@ -37,7 +37,6 @@ struct CollectionView: View {
     /// pins it permanently below the nav bar (Settings-app pattern). Filters
     /// `collectionIdentifiers` by hero name and card number.
     @State private var searchText: String  = ""
-    @State private var exportShareURL: URL?    = nil
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
     @State private var showingProfile      = false
     @State private var showingWall         = false

@@ -4534,6 +4534,17 @@ dialog.modal-overlay[open] {
   font-family: var(--font-mono);
   margin: 0.5rem 0 0;
 }
+.wall-truncation-note {
+  font-size: 0.72rem;
+  color: rgba(255,215,0,0.85);  /* GLOW yellow — informational, not destructive */
+  background: rgba(255,215,0,0.08);
+  border: 1px solid rgba(255,215,0,0.25);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  padding: 8px 10px;
+  margin: 0.5rem 0 0;
+  line-height: 1.45;
+}
 
 /* DBS explainer dialog — parity with iOS DBSInfoSheet (CardDetailView). */
 .dbs-info-box {

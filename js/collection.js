@@ -686,7 +686,7 @@ const Collection = (() => {
     // through, just drop image-less. Collection: lookup catalog
     // Card by boba_id / card_number, drop image-less (would render
     // as placeholders and look broken in a share image).
-    const resolved = isDeckContext
+    let resolved = isDeckContext
       ? cards.filter(c => c && c.imageFile)
       : cards
           .map(c => {
@@ -702,13 +702,37 @@ const Collection = (() => {
     shBtn.disabled = true;
     shBtn.hidden = !navigator.share;
     loading.hidden = false;
-    loadText.textContent = `Loading ${resolved.length} card${resolved.length === 1 ? '' : 's'}…`;
 
     overlay.showModal();
 
     if (resolved.length === 0) {
       loadText.textContent = 'No cards with images to render.';
       return;
+    }
+
+    // Cap the rendered card count to keep the canvas height under
+    // Safari's 16,384px / Chrome's 32,767px hard limits. At cols=8
+    // (max) and cellH≈174, 200 cards → ~4400px canvas; 300+ cards
+    // approaches the Safari cap. Cap at 200 + surface the truncation
+    // honestly so the user knows what they're seeing.
+    const HARD_CAP = 200;
+    const originalCount = resolved.length;
+    const truncated = originalCount > HARD_CAP;
+    if (truncated) resolved = resolved.slice(0, HARD_CAP);
+    loadText.textContent = truncated
+      ? `Loading first ${HARD_CAP} of ${originalCount} cards…`
+      : `Loading ${resolved.length} card${resolved.length === 1 ? '' : 's'}…`;
+    // Show the truncation note in the dialog footer so the user
+    // knows what they're seeing.
+    const truncNote = document.getElementById('wall-truncation-note');
+    if (truncNote) {
+      if (truncated) {
+        truncNote.textContent = `Showing the first ${HARD_CAP} of ${originalCount} cards — Safari/Chrome canvas limits cap the render. Narrow the scope (e.g. filter to one designation) for a wall of every card.`;
+        truncNote.hidden = false;
+      } else {
+        truncNote.hidden = true;
+        truncNote.textContent = '';
+      }
     }
 
     // Off-screen render plan. Square canvas, grid of card thumbs

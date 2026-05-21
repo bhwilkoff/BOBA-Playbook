@@ -102,6 +102,20 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 43 — 2026-05-20 — Wall view canvas cap (Safari/Chrome safety)
+- **Picked:** Audit found a latent failure mode: `openWallSheet` rendered every card in scope onto a single 1080-wide canvas with auto-height. Math: at N=300+ cards (8 cols × cellH≈174), canvas.height exceeds 6500px — approaches Safari's 16,384px / Chrome's 32,767px hard canvas limits. A user with 500+ owned cards calling Wall on the Personal designation could hit the limit and get a blank/cropped image with no warning.
+- **Shipped:**
+  - `js/collection.js::openWallSheet`:
+    - `resolved` declared `let` instead of `const` so we can truncate.
+    - New `HARD_CAP = 200` constant. At cols=8 / cellH≈174, 200 cards = ~4400px canvas — comfortably under Safari's cap. Slice + remember `originalCount`.
+    - Loading message reflects truncation: "Loading first 200 of 532 cards…"
+    - New `wall-truncation-note` in the dialog footer — GLOW-yellow (informational, not destructive) explaining: "Showing the first 200 of 532 cards — Safari/Chrome canvas limits cap the render. Narrow the scope (e.g. filter to one designation) for a wall of every card."
+  - `index.html`: `<p id="wall-truncation-note" hidden></p>` added under existing wall-footer-note.
+  - `css/styles.css`: `.wall-truncation-note` GLOW-yellow notice block, mono small.
+- **Verified:** node -c clean. Trace: open Wall with 500 owned cards → resolved trimmed to 200 → truncation note visible → canvas renders successfully → user can download/share + read the note explaining what they're seeing.
+- **Why this matters:** the failure was silent — a user wouldn't know their wall was missing cards. The cap is set conservatively; users wanting every card on one image have explicit guidance to narrow the scope.
+- **Architectural note:** 200 is the value that gives consistent results across all major browsers. If Safari ever raises its limit or Chrome adopts a different rendering pipeline, the cap can be re-tuned without changing the UX shape.
+
 ### Tick 42 — 2026-05-20 — Decks ILLEGAL chip: BRAWL red + capsule (iOS parity)
 - **Picked:** UX gap audit. Web's `.db-stat-legality` for ILLEGAL was BoBA-orange text-only (rgba(255,77,0,0.8)). iOS DeckBuilderView lines 441-454 uses **BRAWL red `#C0392B` with a 15%-alpha capsule fill** for ILLEGAL + green `#4CAF50` capsule for LEGAL. Web's orange ILLEGAL colors collided with the brand's primary-action color (orange = CTA, not danger).
 - **Shipped:**

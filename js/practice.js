@@ -667,7 +667,14 @@ function dbRenderGrid(allCards) {
   grid.innerHTML = cards.map(card => {
     const imgUrl = card.imageFile ? thumbUrl(card.imageFile) : null;
     const inDeck = DB.isInDeck(card);
-    const violates = DB.browserTab === 'hero' && DB.wouldHeroViolate(card);
+    // Extended at-cap visual marker — was hero-only; now covers plays /
+    // bonus / hotdog so the user sees *before tapping* which cells
+    // would silently no-op. Mirrors iOS DeckBuilder's disabled tint.
+    const violates =
+      (DB.browserTab === 'hero'   && DB.wouldHeroViolate(card)) ||
+      (DB.browserTab === 'play'   && (inDeck || DB.plays.length    >= (DB.currentFormat.playsTarget || 30))) ||
+      (DB.browserTab === 'bonus'  && (inDeck || DB.bonusPlays.length >= 15)) ||
+      (DB.browserTab === 'hotdog' && DB.hotDogs.length >= 10);
     const label = card.hero || card.name || '';
     const sub = card.cardType === 'Hero'
       ? `${card.element} · ${card.power}`
@@ -1446,9 +1453,16 @@ function dbShowCardPopup(card, allCards) {
   const addBtn = $('db-popup-add');
   if (addBtn) {
     const inDeck  = DB.isInDeck(card);
-    const violates = DB.browserTab === 'hero' && DB.wouldHeroViolate(card);
-    addBtn.disabled   = inDeck || violates;
-    addBtn.textContent = inDeck ? 'In Deck' : violates ? 'Cannot Add' : 'Add to Deck';
+    // Mirror dbRenderGrid's extended at-cap check so the popup add
+    // button accurately reflects "this would silently fail" across
+    // every tab, not just hero.
+    const atCap =
+      (DB.browserTab === 'hero'   && DB.wouldHeroViolate(card)) ||
+      (DB.browserTab === 'play'   && DB.plays.length    >= (DB.currentFormat.playsTarget || 30)) ||
+      (DB.browserTab === 'bonus'  && DB.bonusPlays.length >= 15) ||
+      (DB.browserTab === 'hotdog' && DB.hotDogs.length >= 10);
+    addBtn.disabled   = inDeck || atCap;
+    addBtn.textContent = inDeck ? 'In Deck' : atCap ? 'At cap' : 'Add to Deck';
   }
 
   popup.hidden = false;

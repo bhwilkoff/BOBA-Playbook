@@ -102,6 +102,21 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 27 — 2026-05-20 — Public collection "Wall" button (canvas share image)
+- **Picked:** Continuing the public-collection user-acquisition arc. Tick 25 added the unauth CTA, tick 26 added the Share button (URL share). Tick 27 closes the trio with a Wall button — visitor (auth or unauth) renders the cards they're viewing as a downloadable PNG. Reuses the tick-9/10 `openCardsWallSheet` pipeline entirely; this is mostly UI wiring.
+- **Shipped:**
+  - `index.html`: wrapped the existing Share button + new Wall button in `.public-collection-actions` cluster. Wall button shares the same pill style (cyan + Lucide `image` icon + "Wall" label).
+  - `js/app.js::renderPublicCollection`:
+    - After `resolved` is built, find `#public-collection-wall`, pull catalog cards out of `resolved.map(r => r.card).filter(c => c?.imageFile)`, set `wallBtn.hidden` based on count, and wire `onclick` to `window.Collection.openCardsWallSheet({ title: '@handle on BOBA Playbook', cards })`.
+    - Use `onclick =` (not addEventListener) so re-renders cleanly overwrite the handler instead of stacking.
+    - Hidden when there are zero rendered cards — no point offering a wall of nothing.
+  - `css/styles.css`: `.public-collection-actions` cluster — vertical stack on narrow widths, horizontal at ≥640px. Stays right-aligned next to the title.
+- **Verified:** node -c clean. Logic trace: open `/u/ben` → 47 cards render → Wall button shows → click → existing wall dialog opens with title "@ben on BOBA Playbook" + 47 cards → user can download PNG via existing flow. Private collection → grid is empty → Wall button hidden.
+- **Why this matters:** the unauth CTA captures users who want to BUILD. The Share button captures users who want to PROPAGATE. The Wall button captures users who want to SAVE a snapshot — works regardless of auth. Three orthogonal intent paths off one landing page.
+- **PARITY.md:** No row — public-collection is web-only.
+- **Architectural note:** the openCardsWallSheet pipeline is now called from FOUR surfaces: Collection (own designation), Decks (deck wall), Find multi-select (selected cards), public-collection (someone else's grid). The shared `openWallSheet({ context: 'deck', title, cards })` route handles all four cleanly. Worth a DECISIONS.md entry capturing the Wall view as a primitive when it stabilizes.
+- **Next:** Tick 28. Plausible: (a) accessibility audit on Sign-in modal (focus trap + return focus), (b) view-source `<noscript>` content for non-JS browsers, (c) audit YouTube Watch tab for parity gaps.
+
 ### Tick 26 — 2026-05-20 — Public collection Share button
 - **Picked:** Complement to tick-25's CTA. A visitor who landed via a shared link → enjoys the collection → wants to re-share it with a friend → had to copy the URL bar manually. One-tap share unlocks viral propagation.
 - **Shipped:**

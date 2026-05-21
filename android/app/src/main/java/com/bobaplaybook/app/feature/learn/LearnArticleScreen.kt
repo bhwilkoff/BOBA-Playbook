@@ -41,6 +41,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -647,13 +648,7 @@ private fun SectionRenderer(section: LearnSection) {
     when (section) {
         is LearnSection.Body -> {
             section.heading?.let { BOBASectionHeader(title = it) }
-            Text(
-                text = section.text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                lineHeight = 22.sp,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
+            GlossaryAwareBody(text = section.text)
         }
         is LearnSection.Bullets -> {
             section.heading?.let { BOBASectionHeader(title = it) }
@@ -780,6 +775,135 @@ private fun SectionRenderer(section: LearnSection) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Glossary-aware body (Discord backlog #3, tick 184)
+// ════════════════════════════════════════════════════════════════
+//
+// Discord §4: article prose throws around HTD / OBF / G&S / vouch /
+// PWE without defining them. The standalone Glossary tab exists but
+// users have to know which terms are in it. Inline tap-to-define
+// fixes that — terms in article prose become cyan-underlined links
+// that pop a ModalBottomSheet with the definition.
+//
+// Match strategy: word-boundary regex compiled once at the LearnCorpus
+// level. Terms are sorted longest-first so "G&S" wins over "G" if
+// both were ever in the list. Match is case-sensitive on first letter
+// (so "Coach" matches but "coaching" doesn't), case-insensitive on
+// the rest. The detector is best-effort — false positives on common
+// English words are filtered by the glossary's own niche-vocabulary
+// bias (HTD, OBF, PWE — not "the").
+
+private data class GlossaryHit(val term: String, val definition: String, val range: IntRange)
+
+/// Combined glossary as a single ordered list (game first, trading
+/// second). Computed once at lookup time via `remember`.
+private fun allGlossaryTerms(): List<LearnSection.Term> =
+    LearnCorpus.glossaryGame + LearnCorpus.glossaryTrading
+
+/// Scan `text` for any glossary-term occurrences. Returns
+/// non-overlapping hits sorted by start index, longest-match-wins
+/// when terms overlap.
+private fun detectGlossaryHits(text: String, terms: List<LearnSection.Term>): List<GlossaryHit> {
+    val sortedTerms = terms.sortedByDescending { it.term.length }
+    val claimed = BooleanArray(text.length)
+    val hits = mutableListOf<GlossaryHit>()
+    for (t in sortedTerms) {
+        // Word-boundary regex. Term itself is treated literally
+        // (Regex.escape) so "G&S" doesn't try to interpret "&" as
+        // a regex metachar. Word boundary works for letter-edged
+        // terms; for terms with non-letter chars (G&S, F/S) we
+        // fall back to a (^|non-letter) prefix + (end|non-letter)
+        // suffix lookaround so they're still bracketed correctly.
+        val esc = Regex.escape(t.term)
+        val pattern = if (t.term.first().isLetterOrDigit() && t.term.last().isLetterOrDigit()) {
+            "\\b$esc\\b"
+        } else {
+            "(?<![A-Za-z0-9])$esc(?![A-Za-z0-9])"
+        }
+        val regex = try { Regex(pattern) } catch (_: Throwable) { continue }
+        for (match in regex.findAll(text)) {
+            val r = match.range
+            val overlaps = (r.first..r.last).any { claimed[it] }
+            if (overlaps) continue
+            for (i in r.first..r.last) claimed[i] = true
+            hits += GlossaryHit(term = t.term, definition = t.definition, range = r)
+        }
+    }
+    return hits.sortedBy { it.range.first }
+}
+
+@Composable
+private fun GlossaryAwareBody(text: String) {
+    val terms = remember { allGlossaryTerms() }
+    val hits = remember(text) { detectGlossaryHits(text, terms) }
+    var openHit by remember { mutableStateOf<GlossaryHit?>(null) }
+    val cyan = com.bobaplaybook.core.ui.theme.BobaBrand.Cyan
+    val annotated = remember(text, hits) {
+        androidx.compose.ui.text.buildAnnotatedString {
+            var cursor = 0
+            for (h in hits) {
+                if (h.range.first > cursor) append(text.substring(cursor, h.range.first))
+                pushStringAnnotation(tag = "glossary", annotation = h.term)
+                withStyle(
+                    androidx.compose.ui.text.SpanStyle(
+                        color = cyan,
+                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    )
+                ) { append(text.substring(h.range.first, h.range.last + 1)) }
+                pop()
+                cursor = h.range.last + 1
+            }
+            if (cursor < text.length) append(text.substring(cursor))
+        }
+    }
+    // ClickableText is technically deprecated in favor of Text + new
+    // LinkAnnotation API, but ClickableText with pushStringAnnotation
+    // is the simpler shape and works through Compose 1.7+ without an
+    // API-availability surprise. Future tick may swap to LinkAnnotation
+    // once the pattern is stable.
+    androidx.compose.foundation.text.ClickableText(
+        text = annotated,
+        style = MaterialTheme.typography.bodyMedium.copy(
+            color = MaterialTheme.colorScheme.onSurface,
+            lineHeight = 22.sp,
+        ),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        onClick = { offset ->
+            annotated.getStringAnnotations(tag = "glossary", start = offset, end = offset)
+                .firstOrNull()?.item?.let { term ->
+                    openHit = hits.firstOrNull { it.term == term }
+                }
+        },
+    )
+    val hit = openHit
+    if (hit != null) {
+        val sheetState = androidx.compose.material3.rememberModalBottomSheetState()
+        ModalBottomSheet(
+            onDismissRequest = { openHit = null },
+            sheetState = sheetState,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    hit.term,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = cyan,
+                )
+                Text(
+                    hit.definition,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 22.sp,
+                    modifier = Modifier.padding(bottom = 32.dp),
+                )
+            }
         }
     }
 }

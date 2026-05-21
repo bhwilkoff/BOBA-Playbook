@@ -2249,6 +2249,28 @@ dialog.modal-overlay[open] {
   border-top: 1px solid var(--boba-glass-border);
 }
 
+/* "IN YOUR COLLECTION" summary block — iOS tick 107 parity. Renders
+   between the action toolbar and the pricing panel when the user
+   owns 1+ copies of the displayed card. */
+.in-collection-block {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: var(--sp-3) var(--sp-3);
+  margin-bottom: var(--sp-2);
+  background: rgba(0, 245, 255, 0.06);
+  border: 1px solid rgba(0, 245, 255, 0.25);
+  border-radius: 8px;
+}
+.in-collection-label {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  font-weight: 700; letter-spacing: 0.12em;
+  color: var(--boba-text-muted);
+}
+.in-collection-summary {
+  font-family: var(--font-mono); font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--boba-cyan);
+}
+
 .btn-collection-add {
   display: flex; align-items: center; gap: var(--sp-2);
   flex: 1; height: 44px;

@@ -3567,6 +3567,21 @@ const Collection = (() => {
     return openCardsWallSheet({ title: deckName, cards, context: 'deck' });
   }
 
+  /// Return the user's owned/wanted/etc entries matching a catalog
+  /// card. Used by the Find tab card-detail "IN YOUR COLLECTION"
+  /// summary (tick 108) — same shape iOS CardDetailView surfaces.
+  /// Match prefers bobaId; falls back to cardNumber for legacy rows
+  /// that pre-date the bobaId column.
+  function entriesForCard(card) {
+    if (!card) return [];
+    const bobaId = card.bobaId ? String(card.bobaId) : null;
+    const num    = card.cardNumber ? String(card.cardNumber) : null;
+    return _cards.filter(c =>
+      (bobaId && c.boba_id === bobaId) ||
+      (!c.boba_id && num && c.card_number === num)
+    );
+  }
+
   return {
     init,
     load,
@@ -3574,6 +3589,7 @@ const Collection = (() => {
     openCardsWallSheet,
     openDeckWallSheet,
     quickAdd,
+    entriesForCard,
     setCardLookup:    fn => { _cardLookup    = fn; },
     setBobaIdLookup:  fn => { _bobaIdLookup  = fn; },
     setVariantLookup: fn => { _variantLookup = fn; },

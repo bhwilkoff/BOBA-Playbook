@@ -2806,6 +2806,42 @@
     });
   }
 
+  /// "IN YOUR COLLECTION" summary block — iOS tick 107 + Collection-tab
+  /// CollectionCardDetailView parity. Renders nothing when the user
+  /// doesn't own this card, when signed out, or when the Collection
+  /// module isn't ready yet (first paint before init).
+  function buildInYourCollectionBlock(card) {
+    if (!card || !window.Collection?.entriesForCard) return '';
+    const entries = window.Collection.entriesForCard(card);
+    if (!Array.isArray(entries) || entries.length === 0) return '';
+    // Group by designation, count. DESIGNATIONS shape — label table
+    // lives in collection.js but the keys match the user_cards
+    // designation column so we can map here without depending on it.
+    const labelByKey = {
+      personal:  'Personal',
+      for_sale:  'For Sale',
+      for_trade: 'For Trade',
+      wanted:    'Wanted',
+      grails:    'Grails',
+    };
+    const counts = {};
+    for (const e of entries) {
+      const k = e.designation || 'personal';
+      counts[k] = (counts[k] || 0) + 1;
+    }
+    const summary = Object.keys(counts)
+      .sort()  // stable display order
+      .map(k => {
+        const label = labelByKey[k] || k;
+        return counts[k] > 1 ? `${label} ×${counts[k]}` : label;
+      })
+      .join(' · ');
+    return `<div class="in-collection-block" role="status">
+      <div class="in-collection-label">IN YOUR COLLECTION (${entries.length})</div>
+      <div class="in-collection-summary">${escHtml(summary)}</div>
+    </div>`;
+  }
+
   function buildVersionsSection(card) {
     // Skip for sealed products and for cards without a hero
     if (card.cardType === 'Sealed Product' || !card.hero) return '';
@@ -3067,6 +3103,7 @@
               Share
             </button>
           </div>
+          ${buildInYourCollectionBlock(card)}
           <div class="pricing-section" id="modal-pricing"></div>
           ${buildVersionsSection(card)}
           ${['moderator','admin'].includes(API.getCachedRole()) ? `

@@ -76,6 +76,27 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 108 — 2026-05-20 — **web** — Card detail modal: "IN YOUR COLLECTION" summary (3-platform parity)
+- **Cadence:** 108 % 5 = 3 → web.
+- **Picked:** iOS tick 107 just shipped the Find-tab CardDetailView ownership summary. Web card-detail modal had no equivalent — users tapping a card from search had no signal whether they already owned a copy + at which designation. Same gap iOS tick 107 fixed; web cadence closes 3-platform lockstep.
+- **Shipped:**
+  - `js/collection.js`:
+    - New exported `entriesForCard(card)` helper — returns `_cards.filter(...)` matching by `boba_id` (preferred) or `card_number` (legacy fallback). Same match logic CollectionStore.entries(forBobaId:) uses on iOS.
+    - Returned object adds `entriesForCard` between `quickAdd` + the lookup setters.
+  - `js/app.js`:
+    - New `buildInYourCollectionBlock(card)` helper. Reads `window.Collection.entriesForCard(card)`. Returns empty string when 0 entries, when signed-out, or before Collection.init() has resolved (defensive — first paint can race).
+    - Groups by designation, builds "Personal · For Sale ×2 · Wanted" summary, renders inside `.in-collection-block` with cyan-tint badge + headline.
+    - Inserted between `.modal-collection-action` and `.pricing-section` in the modal body — matches the iOS placement (between action toolbar and pricing).
+  - `css/styles.css::.in-collection-block`:
+    - Flex column with cyan-tint background + cyan-border.
+    - Mono headline at 0.65rem with 0.12em tracking (matches iOS section-header typography).
+    - Bold cyan summary line at 0.82rem.
+- **Verified:** `node -c js/app.js` + `node -c js/collection.js` clean. `entriesForCard` defensive against missing card / non-array return — won't throw on cold-paint.
+- **PARITY.md:** No row — UX polish on already-✅ Card detail row. 3-platform parity on the "in your collection" summary (iOS Collection detail since launch · iOS Find detail tick 107 · web modal tick 108 · Android via CardDetailScreen since baseline).
+- **Next:** tick 109 = Android; 110 = opt.
+
+
+
 ### Tick 107 — 2026-05-20 — **iOS** — Find Card detail "IN YOUR COLLECTION" summary
 - **Cadence:** 107 % 5 = 2 → iOS.
 - **Picked:** Find-tab `CardDetailView` had NO "in your collection" summary — only the Collection-tab `CollectionCardDetailView` did. Find users tapping a card from search had no signal whether they already owned a copy + at which designation. iOS Android tick 94 + 99 + the existing CollectionCardDetail already had this summary; the Find tab was the missing surface.

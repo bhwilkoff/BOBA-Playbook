@@ -574,6 +574,7 @@ Two distinct systems — don't mix.
 | **Whatnot show management** (streamer-gated, #025) | Streamer-only audience | If/when unrolled to general |
 | **Card pipeline UI** | Internal tooling | Probably never user-facing |
 | **App-launch slide-deck onboarding** | Explicitly rejected — §6.10 walkthroughs replace this | **Never** |
+| **Twitter / X integration (any form)** | DECISIONS.md #053 — binding. No Twitter OAuth, no "Share to Twitter" affordances, no Twitter SDK. Other social platforms (Discord, Bluesky, Mastodon, Threads) are fine when use cases arise. | **Never** |
 
 **Add an entry when intentionally not-designed.** Remove when it comes into scope and gets designed elsewhere — don't leave stale "future" markers.
 

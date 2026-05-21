@@ -725,6 +725,7 @@ Documented so future sessions don't re-add these as parity gaps.
 | **Practice executor on web** | DESIGN.md §12 — different design language; iOS-only when shipped. |
 | **Native iOS hero-zoom emulation** | View Transitions API gives us a web-native equivalent (§13). Don't try to emulate the iOS exact behavior — use the platform's primitive. |
 | **`.tabViewBottomAccessory` analog** | iOS-specific. The mobile header + per-view sticky chrome cover the web's needs. |
+| **Twitter / X integration (any form)** | DECISIONS.md #053 — binding. No `twitter:*` Card meta tags, no `twitter.com` share intents, no Twitter OAuth, no Twitter SDK / API, no "Share to Twitter" buttons. The OG protocol covers every other major link-preview consumer. |
 
 The rule for adding to this list: when a feature is intentionally
 not-designed, add the entry. The existence of an "Out of scope"

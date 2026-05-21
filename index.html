@@ -11,13 +11,17 @@
   <meta name="apple-mobile-web-app-title" content="BOBA Playbook">
   <meta name="theme-color" content="#080810">
 
-  <!-- Open Graph + Twitter card meta — drives link previews in
-       Discord, Twitter / X, iMessage, Slack, etc. Static defaults
-       reflect the app shell; client-side route-aware updates in
-       js/app.js refresh og:title + og:url when the route is
-       per-content (card detail, public collection). Note: link
-       crawlers see only the static <head>, so the static defaults
-       are the previewed values for non-JS readers. -->
+  <!-- Open Graph meta — drives link previews in Discord, iMessage,
+       Slack, Bluesky, Mastodon, etc. Static defaults reflect the
+       app shell; client-side route-aware updates in js/app.js
+       refresh og:title + og:url when the route is per-content
+       (card detail, public collection). Note: link crawlers see
+       only the static <head>, so the static defaults are the
+       previewed values for non-JS readers.
+       NO twitter:* tags — per DECISIONS.md #053, BOBA never
+       integrates with Twitter / X. The OG protocol is read by
+       every other major platform; we don't need Twitter-specific
+       metadata. -->
   <meta property="og:type"        content="website">
   <meta property="og:site_name"   content="BOBA Playbook">
   <meta property="og:title"       content="BOBA Playbook">
@@ -27,10 +31,6 @@
   <meta property="og:image:width" content="1024">
   <meta property="og:image:height" content="1024">
   <meta property="og:image:alt"   content="BOBA Playbook — XOXO mark on a dark background.">
-  <meta name="twitter:card"        content="summary_large_image">
-  <meta name="twitter:title"       content="BOBA Playbook">
-  <meta name="twitter:description" content="The definitive companion app for the Bo Jackson Battle Arena trading card game. Search 17k+ cards · Collect · Build decks.">
-  <meta name="twitter:image"       content="https://bobaplaybook.com/assets/icons/boba_playbook_icon_1024.png">
   <!-- Smart App Banner — uncomment when iOS app is on the App Store -->
   <!-- <meta name="apple-itunes-app" content="app-id=YOUR_APP_ID"> -->
   <link rel="icon" href="assets/icons/boba_playbook_icon.svg" type="image/svg+xml">

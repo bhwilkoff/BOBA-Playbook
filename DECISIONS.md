@@ -726,3 +726,20 @@ BOBA Android uses Firebase **only** for Firebase Cloud Messaging (FCM) push noti
 **iOS doesn't currently use Firebase** (APNs directly). If/when iOS Analytics or iOS push routing through Firebase makes sense, a second Firebase app under the same project is the path. Stays on Spark unless we add Firestore / Cloud Functions / Storage (none planned).
 
 **How to apply:** ANDROID-DEV.md §7 + §13.1 — Firebase setup steps. No upgrade to Blaze (pay-as-you-go) needed for v1.
+
+## 053 — No Twitter / X integration, ever
+*2026-05-20*
+
+BOBA Playbook will **never** ship any integration with Twitter / X. This applies across iOS, web, and Android, and includes — non-exhaustively — Twitter login (OAuth), Twitter share intents (`twitter://post`, `twitter.com/intent/tweet`), Twitter Card meta tags (`twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`, etc.), embedded Tweet widgets / Twitter timelines, Twitter API consumption (search, profiles, lookups), Twitter follow buttons, and any other Twitter-branded affordance.
+
+**Why:** Twitter / X is owned and editorially operated by a fascist. Integrating with that platform — even passively, through metadata — signals endorsement and provides material support (sharing surface, click-throughs, brand association). BOBA is a tool for human learning + community, and we will not direct any user, viewer, or piece of our brand identity to that platform.
+
+**What still ships:** the standard Open Graph protocol (`og:*` meta tags) is read by Discord, iMessage, Slack, Bluesky, Mastodon, Threads, Facebook, LinkedIn, WhatsApp, Signal, Telegram, search engines, and every other major link-preview consumer. We ship OG fully (tick-21 work, 2026-05-20). We just don't ship the Twitter-specific dialect. Other social platforms — Bluesky, Mastodon, Threads, Discord — are fine to integrate with when use cases arise.
+
+**How to apply:**
+- Reject any PR / proposal that adds `twitter:*` meta tags, `twitter.com` URLs, Twitter SDK / API dependencies, "Share to Twitter" buttons, or Twitter-flavored language ("tweet this" copy).
+- When a future feature could mirror Twitter's share-pattern, use Web Share API + the OG protocol so every other platform inherits naturally.
+- If a third-party library / template ships with default Twitter integration, gut the Twitter portion before integrating.
+- Discord remains the primary community channel (DECISIONS.md #049 governs Discord usage — authentication only until BoBA Discord moderators authorize a bot).
+
+**Tick history:** Tick 21 (2026-05-20) initially shipped Twitter Card meta tags as part of the Open Graph rollout. Same-day rollback removed them per this decision. Future sessions: do not re-add.

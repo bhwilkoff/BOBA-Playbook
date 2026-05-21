@@ -629,25 +629,6 @@ struct SearchView: View {
         }
     }
 
-    // MARK: - Filter button
-    private var filterButton: some View {
-        Button {
-            showFilters = true
-        } label: {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                if store.activeFilterCount > 0 {
-                    Circle()
-                        .fill(Design.Colors.bobaOrange)
-                        .frame(width: 8, height: 8)
-                        .offset(x: 4, y: -4)
-                }
-            }
-        }
-    }
-
     // MARK: - Loading
     private var loadingView: some View {
         VStack(spacing: Design.Spacing.lg) {

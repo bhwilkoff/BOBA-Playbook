@@ -1135,6 +1135,11 @@ function initDeckBuilder(allCards) {
       for (const c of allCards) { if (c.bobaId) byId[c.bobaId] = c; }
       const tpl = data[meta.key];
       if (!tpl) return;
+      // Capture pre-load draft state so the toast can warn the user
+      // when their existing draft was silently overwritten. Parity
+      // with iOS tick 137 + Android tick 136. Any non-empty section
+      // counts.
+      const hadDraft = (DB.heroes.length + DB.plays.length + (DB.bonusPlays || []).length + DB.hotDogs.length) > 0;
       // Preserve the user's chosen format — DON'T overwrite to
       // 'playmaker'. Starter decks ship universally-legal cards
       // (heroes ≤160 power, ≤8200 total, ≤1000 DBS) so any format
@@ -1152,6 +1157,11 @@ function initDeckBuilder(allCards) {
                         : [];
       DB.hotDogs   = fmt.needsHD ? tpl.hotDogIds.map(id => byId[id]).filter(Boolean) : [];
       dbRender(allCards);
+      if (window.showToast) {
+        window.showToast(hadDraft
+          ? `Loaded "${meta.name}" — your previous draft was replaced.`
+          : `Loaded "${meta.name}"`);
+      }
     }
 
     if (dbTemplateData) {

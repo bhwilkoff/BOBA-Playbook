@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 138 — 2026-05-21 — **web** — Template load: toast + destructive-overwrite warning
+- **Cadence:** 138 % 5 = 3 → web.
+- **Picked:** Web mirror of iOS tick 137 + Android tick 136. `applyTemplate(data)` in `js/practice.js` calls `DB.clear()` + replaces hero/play/bonus/hotdog arrays. If a coach had been building a draft and tapped a starter-deck card, the draft was silently wiped — no toast, no confirmation, no undo.
+- **Shipped:**
+  - `js/practice.js`:
+    - Capture `const hadDraft = (DB.heroes.length + DB.plays.length + (DB.bonusPlays || []).length + DB.hotDogs.length) > 0;` BEFORE `DB.clear()`.
+    - After load completes (post-`dbRender(allCards)`), fire `window.showToast(hadDraft ? "Loaded \"X\" — your previous draft was replaced." : "Loaded \"X\"")`.
+    - Fallback path (random-legal-deck when `template-decks.json` fetch fails) intentionally NOT instrumented — it's a dead-path that's effectively unreachable in practice and reads from a totally separate pre-state.
+- **Verified:** `window.showToast` is the canonical helper exposed from `js/app.js` (tick 103 fix). `(DB.bonusPlays || [])` defensive — Limited format doesn't surface bonus plays so the field may be undefined depending on format.
+- **PARITY.md:** No row — UX polish on already-✅ Decks template gallery. Closes the 3-platform parity loop (Android tick 136, iOS tick 137, web tick 138).
+- **Next:** tick 139 = Android; 140 = opt.
+
 ### Tick 137 — 2026-05-21 — **iOS** — Template load: top banner + destructive-overwrite warning
 - **Cadence:** 137 % 5 = 2 → iOS.
 - **Picked:** iOS mirror of tick 136. `DeckBuilderStore.loadTemplate(_:allCards:)` silently calls `clearDeck()` + replaces hero/play/bonus/hotdog arrays. If the coach had spent 10 minutes on a draft, tapping a starter template wiped it with NO confirmation, NO message, NO undo. Two call sites: the empty-state template gallery in DeckBuilderView (line 515) and the Manage Decks → Templates tab (line 1745). Both immediately dismiss the calling sheet so the user lands back in the editor with no signal that an overwrite happened.

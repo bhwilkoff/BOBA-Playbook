@@ -53,7 +53,7 @@ When shipping any user-facing feature:
 | Featured shelves (no-search state) | ✅ | ✅ | ✅ | Android: `HorizontalMultiBrowseCarousel` showcase carousels |
 | Multi-select + bulk add | n/a | ✅ | 🔮 | Web-only today; mobile uses long-press add |
 | Multi-select → Wall these N cards | n/a | ✅ | 🔮 | Web-only — selection toolbar `Wall` action calls `openCardsWallSheet` (tick 10). Title defaults to "N cards". |
-| Card detail push w/ hero zoom | ✅ | ✅ | ⏳ M1 polish | iOS + web shipped; Android destination scaffolding done, `sharedBounds` zoom is M1 polish |
+| Card detail push w/ hero zoom | ✅ | ✅ | ✅ | All three shipped. Android wired via `cardSharedBounds(card.bobaId)` on Find + Decks + Collection grid cells; CardDetailScreen art panel uses the same key. Audit 2026-05-21 confirmed source + destination plumbing in place. |
 | Card-size picker (S/M/L density) | ✅ | ✅ | ✅ | Toolbar Menu → 1/2/3 cols on all three; Android persists via `GridDensityStore` (DataStore) |
 | Profile entry (Find-only) | ✅ | ✅ | ✅ | TopAppBar leading icon — per `feedback_profile_only_on_find` |
 | Saved Searches | 🔮 | 🔮 | 🔮 | **Not built anywhere.** Earlier ✅✅ claim was inaccurate; audit 2026-05-20 found zero `savedSearch` references in any client. Deferred until designed (DESIGN.md §8.1 mentions as no-search-state shelf candidate, but no implementation has landed). |
@@ -162,7 +162,7 @@ Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan resul
 | Share (deep link + image) | ✅ | ✅ | ✅ | iOS share sheet · Web Share API · Android `Intent.ACTION_SEND` w/ FileProvider |
 | Mod edit (mod-gated) | ✅ | ✅ | 🔮 v2 | Role check; Android admin/mod panel deferred to v2 |
 | Other Versions browsing | ✅ | ✅ | ✅ | Same hero, different treatments |
-| Hero zoom animation | ✅ compact only | ✅ via View Transitions API | ⏳ M1 polish | Android destination scaffolding done; `sharedBounds` zoom is polish |
+| Hero zoom animation | ✅ compact only | ✅ via View Transitions API | ✅ compact only | Android wires `SharedTransitionLayout` at app root + `cardSharedBounds(bobaId)` on source cells (Find / Decks / Collection) + CardDetailScreen art panel destination. Audit 2026-05-21. |
 | DBS explainer modal | ✅ | ✅ | ✅ | iOS sheet · web native `<dialog>` · Android `ModalBottomSheet` |
 | Pricing refresh button | ✅ | ✅ | ✅ | All three platforms; web sends `fresh=1` to Worker for cache bypass |
 | Tap-price hint | ✅ | n/a | ✅ | Mobile-only first-run hint |

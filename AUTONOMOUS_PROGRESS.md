@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 146 — 2026-05-21 — **Android** — Drop `nil()` Swift→Kotlin port artifact + PARITY hero-zoom audit
+- **Cadence:** 146 % 5 = 1 → Android.
+- **Picked two things in one tick** because each is small:
+  1. **Real bug-grade code cleanup**: `FindViewModel.kt:199` had `val isShowcaseSearch = typedShowcase != nil()`. The `nil()` call site was satisfied by a `private fun nil(): Showcase? = null` helper at line 299 — a Swift→Kotlin port artifact that should have been written `null` in idiomatic Kotlin from the start. Replaced with `typedShowcase != null` + dropped the 1-line helper. Same behavior, idiomatic Kotlin, no need for future readers to wonder why we call a function named `nil()`.
+  2. **PARITY.md audit on hero-zoom rows**: Audit confirmed Android's `cardSharedBounds(card.bobaId)` is wired on EVERY card-source surface (FindScreen `LazyVerticalGrid` cells, DecksScreen pool cells + collection cells, CollectionScreen My-Cards + Wall cells) AND on the destination (`CardDetailScreen`'s `AsyncImage` art panel at `cardSharedBounds(card.bobaId)`). `BOBAApp.kt` wraps the whole nav graph in `SharedTransitionLayout`. End-to-end works. Two rows in PARITY.md still said "⏳ M1 polish — Android destination scaffolding done; sharedBounds zoom is M1 polish" — stale. Flipped both to ✅ with the audit note. Closes the doc-accuracy gap.
+- **Shipped:**
+  - `FindViewModel.kt`: drop `private fun nil(): Showcase? = null` (-2 lines).
+  - `FindViewModel.kt:199`: `!= nil()` → `!= null`.
+  - `PARITY.md`: §2 Find row "Card detail push w/ hero zoom" Android cell ⏳ → ✅; §8 Card detail row "Hero zoom animation" Android cell ⏳ → ✅. Both rows updated with the audit-2026-05-21 wire-up note.
+- **Verified:** all CardScreen → CardDetailScreen surfaces tested mentally — FindScreen.kt:813,843 + DecksScreen.kt:531 + CollectionScreen.kt:619,790 all source the bounds; CardDetailScreen.kt:923,945 destinations.
+- **Net:** small overall. The PARITY accuracy bump matters for future-session-orientation (the prior stale ⏳ would have led someone to "fix" something already shipped).
+- **PARITY.md:** updated 2 rows.
+- **Next:** tick 147 = iOS; 148 = web; 149 = Android; 150 = opt.
+
 ### Tick 145 — 2026-05-21 — **opt** — Drop 302 lines of orphan iOS helpers
 - **Cadence:** 145 % 5 = 0 → opt.
 - **Picked:** Per-file orphan-helper scan across iOS `Views/`. For each `private func`, count refs within the same file (Swift `private` is file-scope, so external refs are by definition zero). A count of 1 = the definition only, no callers. Filtered out SwiftUI protocol overrides (`body`) where the protocol invokes them at runtime via dynamic dispatch.

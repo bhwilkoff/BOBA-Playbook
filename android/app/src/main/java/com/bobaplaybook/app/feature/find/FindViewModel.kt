@@ -196,7 +196,7 @@ class FindViewModel @Inject constructor(
         val typedShowcase: Showcase? = if (needle.isEmpty()) null else Showcases.matching(needle)
         val pickedShowcase: Showcase? = f.showcaseId?.let { Showcases.byId(it) }
         val activeShowcase = typedShowcase ?: pickedShowcase
-        val isShowcaseSearch = typedShowcase != nil()
+        val isShowcaseSearch = typedShowcase != null
 
         if (cards.isEmpty()) return emptyList()
         if (f.query.isBlank() && f.weapons.isEmpty() && f.treatment == null && f.set == null &&
@@ -296,7 +296,6 @@ class FindViewModel @Inject constructor(
         return out
     }
 
-    private fun nil(): Showcase? = null
 }
 
 /** Featured-shelf precomputation. Recomputes only on catalog swap. */

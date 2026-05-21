@@ -76,6 +76,19 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 173 — 2026-05-21 — **web** — Deck rename: success toast + drop blocking alert on failure
+- **Cadence:** 173 % 5 = 3 → web.
+- **Picked:** Web's saved-deck rename in `practice.js:1463` had two UX gaps:
+  1. **Silent success** — successful rename updated the DOM (deck name in the list + DB.deckName if active) but provided NO toast. The user saw the name flip but had no verbal "Renamed to X" cue.
+  2. **Blocking failure** — failures fell through to `alert(err?.message || 'Could not rename deck.')`. Same anti-pattern tick 123 / 143 / 163 systematically replaced. (Note: the rename input itself still uses `prompt()` — replacing that needs a custom dialog and is a larger refactor; out of scope this tick.)
+- **Shipped:**
+  - `js/practice.js` rename handler:
+    - On success (after `applyDeckSearchFilter()`): `window.showToast("Renamed to \"X\"")`. Matches the Android Snackbar copy at `DeckSecondaryScreens.kt:289`.
+    - On failure: replace `alert(...)` with `window.showToast("Couldn't rename — {err.message || 'try again'}")`. Same en-dash + fallback pattern as tick 163's three avatar/sharing error paths.
+- **Verified:** `window.showToast` is the canonical helper exposed by tick 103 fix. Soft-fails behind `typeof === 'function'` for the (unlikely) case the helper isn't loaded.
+- **PARITY.md:** No row.
+- **Next:** tick 174 = Android; 175 = opt.
+
 ### Tick 172 — 2026-05-21 — **iOS** — Profile Reset hints: inline checkmark confirmation
 - **Cadence:** 172 % 5 = 2 → iOS.
 - **Picked:** Tick 162 added the iOS Profile hints section. The "Reset hints" Button calls `HintsManager.shared.resetAll()` silently — user taps and sees nothing visible. Android Profile (line 703 area) surfaces a Snackbar `"Hints reset"`. iOS doesn't have a Snackbar host in Profile but does have transient state-driven inline confirmations (Save Cloud / `saveMessage == "Saved!"` pattern).

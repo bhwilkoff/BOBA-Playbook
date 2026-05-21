@@ -102,6 +102,22 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 29 — 2026-05-20 — Find empty-state: icon + dynamic body
+- **Picked:** Per the `universal-feature-states` skill, every empty state should carry brand-voice copy + productive next-action. Web Find's was just "No cards match your search." + Clear button — generic, didn't tell the user WHY there were no matches. iOS DESIGN.md §6.7 ships `ContentUnavailableView.search` with refinement suggestions; web parity now.
+- **Shipped:**
+  - `index.html`: empty-state markup gains a Lucide `search` icon (cyan, low alpha), a "No cards match" `<h2>` title (BOBA orange Bebas), and a dynamic `<p id="empty-state-body">` for the contextual line. Existing Clear-all-filters button kept.
+  - `js/app.js`:
+    - `updateEmptyStateBody()` — inspects every active filter (query / element / set / treatment / release / hasImage / powerMin / powerMax) and synthesizes a brand-voice line:
+      - No filters active: *"Try a different search."*
+      - One filter active: *"Nothing matches FIRE. Try loosening or removing the filter."*
+      - Multiple active: *"Nothing matches all of: \"maverick\" · FIRE · power 60–80. Try removing one."*
+    - Called from `renderNextPage` when `filteredCards.length === 0`.
+  - `css/styles.css`: re-styled `.empty-state` (centered, max-width 420px, narrower padding) + new `.empty-state-icon` (low-alpha cyan) + `.empty-state-title` (orange Bebas) + `.empty-state-body` (muted mono).
+- **Verified:** node -c clean. Logic trace: typing "xyzabc" → 0 results → body line `"Nothing matches \"xyzabc\". Try loosening or removing the filter."` Adding a FIRE filter on top → `"Nothing matches all of: \"xyzabc\" · FIRE. Try removing one."` Clear filters → grid repopulates.
+- **PARITY.md:** No row — iOS §6.7 already covers; this is web parity catching up.
+- **Architectural note:** the empty-state DOM is static in index.html with a single dynamic `<p>` — JS only mutates the body text, never the icon/title. Keeps rendering cheap; doesn't fight View Transitions.
+- **Next:** Tick 30. Plausible: (a) extend `updateEmptyStateBody` to also color-tint per active filter (visual continuity), (b) audit other view empty states (Collection, Decks, Learn) for the same pattern, (c) audit Filter sheet keyboard nav.
+
 ### Tick 28 — 2026-05-20 — Sign-in modal accessibility polish
 - **Picked:** Audit from tick-27 "Next" list. Sign-in modal is the highest-stakes a11y surface — screen-reader users hitting it without proper announcements have a worse experience than they should. Native `<dialog>.showModal()` already handles focus trap + ESC + scroll lock + top layer per WEB-DESIGN.md §13; this tick closes the small gaps on top of that.
 - **Audit findings + fixes:**

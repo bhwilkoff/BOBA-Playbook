@@ -392,7 +392,13 @@
       <div class="card-grid" id="card-grid" role="list" aria-label="Card results" hidden></div>
 
       <div class="empty-state" id="empty-state" hidden>
-        <p>No cards match your search.</p>
+        <svg class="empty-state-icon" viewBox="0 0 24 24" width="48" height="48" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.3-4.3"/>
+        </svg>
+        <h2 class="empty-state-title">No cards match</h2>
+        <p class="empty-state-body" id="empty-state-body">Try a different search, or loosen your filters.</p>
         <button class="btn-ghost-sm" id="clear-filters-btn">Clear all filters</button>
       </div>
 

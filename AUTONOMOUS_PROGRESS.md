@@ -76,6 +76,17 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 110 — 2026-05-20 — **OPTIMIZATION TICK (13th 1-in-5)** — orphan pmDetectHDRecovery
+- **Cadence:** opt rotation. Web 5 ticks · iOS 4 · Android 3. Web has slight lead but `practice.js` had a clean orphan target.
+- **Picked:** `pmDetectHDRecovery(card)` at practice.js:1557 — 12-line regex helper that detected "return/recover N hot dogs" play text. `grep -rn pmDetectHDRecovery js/` returned exactly one hit — the function definition. The structured `play-effects.json` engine (loaded via `pmLoadPlayEffects` immediately below) supersedes this regex approach; the orphan helper is leftover from the pre-structured-effects era.
+- **Shipped:** Removed the function + its trailing blank line (preserving the next section header).
+- **Verified:** `node -c js/practice.js` clean. `grep -rn pmDetectHDRecovery` returns nothing post-edit.
+- **Line-count delta:** -13 lines.
+- **Cumulative across 13 optimization ticks:** -167 lines (50: -26 · 55: -24 · 60: -9 · 65: -6 · 70: -28 · 75: -8 · 80: -2 · 85: -23 · 90: -19 · 95: -6 · 100: -1 · 105: -2 · 110: -13).
+- **Next:** tick 111 = Android; 112 = iOS; 113 = web; 114 = Android; 115 = opt.
+
+
+
 ### Tick 109 — 2026-05-20 — **Android** — Card detail "Other Versions" owned/wanted indicators (iOS parity)
 - **Cadence:** 109 % 5 = 4 → Android.
 - **Picked:** iOS CardDetailView::variationsSection rendered an owned-check or wanted-star icon overlay on each "Other Versions" thumbnail (lines 799-805) so users could see at a glance which treatments they already had. Android's equivalent at CardDetailScreen.kt:447 just rendered the thumb + treatment label — no ownership signal.

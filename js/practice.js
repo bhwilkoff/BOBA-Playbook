@@ -1554,19 +1554,6 @@ function shuffle(arr) {
 }
 
 // Detect if a play card recovers hot dogs; returns number to restore (0 = no recovery)
-function pmDetectHDRecovery(card) {
-  const text = ((card.playAbility || '') + ' ' + (card.description || '')).toLowerCase();
-  if (!text.includes('hot dog') && !text.includes('hotdog')) return 0;
-  const m = text.match(/(?:return|recover|gain|get|add|take back|retrieve)\s+(\d+|one|two|three)\s+hot\s*dog/i);
-  if (m) {
-    const vals = { 'one': 1, 'two': 2, 'three': 3 };
-    const n = vals[m[1].toLowerCase()] ?? parseInt(m[1]);
-    return isNaN(n) ? 1 : n;
-  }
-  if (/(?:return|recover|gain|take back|retrieve)\b/.test(text)) return 1;
-  return 0;
-}
-
 // ── Structured effect executor (play-effects.json) ────────────────
 // Loads the effect database lazily and exposes pmExecStructured, which
 // consumes an entry's `effects[]` and returns {selfDelta, oppDelta,

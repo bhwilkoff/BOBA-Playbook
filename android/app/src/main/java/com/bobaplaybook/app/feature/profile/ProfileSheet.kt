@@ -603,10 +603,29 @@ private fun SignedInContent(
         }
 
         item("notify-header") { BOBASectionHeader(title = "Notifications") }
+        // Two independent toggles — iOS Profile parity. Tick 121
+        // un-bundled them; previously toggling match-alerts also
+        // overwrote the general-push setting and vice-versa.
+        item("push-toggle") {
+            val pushChecked = profile?.notificationsEnabled ?: true
+            var pushOptimistic by remember(pushChecked) { mutableStateOf(pushChecked) }
+            ToggleRow(
+                title = "Push notifications",
+                subtitle = "App-wide push deliveries (deck shares, trade match alerts, BoBA announcements).",
+                icon = Icons.Default.Notifications,
+                checked = pushOptimistic,
+                onCheckedChange = { enabled ->
+                    pushOptimistic = enabled
+                    vm.setNotifications(enabled) { ok ->
+                        if (!ok) pushOptimistic = !enabled
+                    }
+                },
+            )
+        }
         item("match-alerts") {
             ToggleRow(
                 title = "Match alerts",
-                subtitle = "Opt in now — push delivery lands when the dispatcher ships",
+                subtitle = "Opt in now — push delivery lands when the dispatcher ships.",
                 icon = Icons.Default.Notifications,
                 checked = matchAlerts,
                 onCheckedChange = { enabled ->

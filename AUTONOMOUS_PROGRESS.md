@@ -76,6 +76,24 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 121 — 2026-05-20 — **Android** — Profile notifications: un-bundle push + match alerts (real bug + iOS parity)
+- **Cadence:** 121 % 5 = 1 → Android.
+- **Picked:** Tick 120's notes pointed at a real bug — `ProfileViewModel.setMatchAlerts` called `service.setNotificationPrefs(notifications = enabled, matchAlerts = enabled)`, slamming BOTH columns to the same value. Toggling Match Alerts ON also turned on general push notifications. Worse: toggling either OFF turned off both. iOS Profile keeps them as separate toggles per DECISIONS.md #039.
+- **Shipped:**
+  - `ProfileViewModel.kt`:
+    - `setMatchAlerts(enabled, onResult)` now reads `_profile.value.notificationsEnabled` and preserves it — only the matchAlerts flag flips.
+    - New `setNotifications(enabled, onResult)` does the mirror: reads `_profile.value.matchAlertsEnabled` + preserves, flips only notifications.
+    - Doc comments explain the bundling bug + iOS-parity rationale.
+  - `ProfileSheet.kt::notify-header section`:
+    - New `item("push-toggle")` for general "Push notifications" toggle. Optimistic `pushOptimistic` mutable state rekeyed on the server-side value (`remember(pushChecked)`) so when the profile reloads, the optimistic value catches up.
+    - On toggle: fires `vm.setNotifications` + rolls back on failure (same optimistic pattern matchAlerts already uses).
+    - Existing match-alerts toggle preserved — just below the new push toggle. Subtitle copy clarified (push = "app-wide push deliveries" vs match-alerts = "opt in now — push delivery lands when the dispatcher ships").
+- **Verified:** `UserProfile` data class has both `notificationsEnabled` + `matchAlertsEnabled` fields (ProfileService.kt:238). `setNotificationPrefs` takes both as separate params (line 92). 3-platform parity rationale matches DECISIONS.md #039.
+- **PARITY.md:** No row — bug fix on already-✅ Profile Notifications section.
+- **Next:** tick 122 = iOS; 123 = web; 124 = Android; 125 = opt.
+
+
+
 ### Tick 120 — 2026-05-20 — **OPTIMIZATION TICK (15th 1-in-5)** — 2 orphan iOS DeckBuilderStore helpers
 - **Cadence:** opt rotation. Web 5 · iOS 6 · Android 3. Bias-toward-Android couldn't find clean orphans this pass; settled on iOS again.
 - **Picked:**

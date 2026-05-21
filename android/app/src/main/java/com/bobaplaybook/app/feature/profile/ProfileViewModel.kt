@@ -100,9 +100,26 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /// Toggle match-alert push notifications. iOS keeps push and
+    /// match-alerts on separate user_profiles columns; this method
+    /// only flips matchAlerts and preserves the user's general-push
+    /// preference. Tick 121 — was bundling both flags into the same
+    /// payload, so toggling match alerts ALSO toggled general push.
     fun setMatchAlerts(enabled: Boolean, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
-            val ok = service.setNotificationPrefs(notifications = enabled, matchAlerts = enabled)
+            val currentNotifications = _profile.value?.notificationsEnabled ?: true
+            val ok = service.setNotificationPrefs(notifications = currentNotifications, matchAlerts = enabled)
+            onResult(ok)
+        }
+    }
+
+    /// Toggle general push notifications (iOS Profile parity). Preserves
+    /// the user's match-alerts choice. Separate from setMatchAlerts so
+    /// the two ProfileSheet toggles can fire independently.
+    fun setNotifications(enabled: Boolean, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val currentMatchAlerts = _profile.value?.matchAlertsEnabled ?: false
+            val ok = service.setNotificationPrefs(notifications = enabled, matchAlerts = currentMatchAlerts)
             onResult(ok)
         }
     }

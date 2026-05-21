@@ -51,6 +51,11 @@ struct DeckBuilderView: View {
     @AppStorage("bp_deckBuilderTutorialSeen_v1") private var deckTutorialSeen = false
     @State private var showDeckTutorial = false
     @State private var pendingCardAddedBanner: String?
+    /// Transient confirmation surfaced after a deck template is loaded.
+    /// Warns the coach when their existing draft was silently
+    /// overwritten so the destruction isn't invisible. Parity with
+    /// Android tick 136 Snackbar.
+    @State private var templateLoadBanner: String?
     @State private var showLegalityReport = false
 
     init(pendingCard: Card? = nil, isRootView: Bool = false) {
@@ -301,7 +306,7 @@ struct DeckBuilderView: View {
             // confirmation. They never both fire simultaneously — the
             // scanner's banner has priority since it's the more recent
             // event when both are non-nil.
-            if let msg = scannedAddedBanner ?? pendingCardAddedBanner {
+            if let msg = scannedAddedBanner ?? pendingCardAddedBanner ?? templateLoadBanner {
                 HStack(spacing: Design.Spacing.sm) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(Color(hex: "4CAF50"))
@@ -315,6 +320,21 @@ struct DeckBuilderView: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
                 .padding(.top, 50)
                 .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        // Surface a top banner when the store fires a template-load
+        // event. Warns the coach when an existing draft was silently
+        // overwritten. One-shot: we clear `store.lastTemplateLoad` to
+        // nil after consuming it so the next load re-fires.
+        .onChange(of: store.lastTemplateLoad?.name) { _, _ in
+            guard let evt = store.lastTemplateLoad else { return }
+            templateLoadBanner = evt.overwroteDraft
+                ? "Loaded \"\(evt.name)\" — your previous draft was replaced."
+                : "Loaded \"\(evt.name)\""
+            store.lastTemplateLoad = nil
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(4))
+                withAnimation(.easeOut(duration: 0.3)) { templateLoadBanner = nil }
             }
         }
         // Fire the walkthrough AFTER the template splash dismisses — otherwise

@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 137 — 2026-05-21 — **iOS** — Template load: top banner + destructive-overwrite warning
+- **Cadence:** 137 % 5 = 2 → iOS.
+- **Picked:** iOS mirror of tick 136. `DeckBuilderStore.loadTemplate(_:allCards:)` silently calls `clearDeck()` + replaces hero/play/bonus/hotdog arrays. If the coach had spent 10 minutes on a draft, tapping a starter template wiped it with NO confirmation, NO message, NO undo. Two call sites: the empty-state template gallery in DeckBuilderView (line 515) and the Manage Decks → Templates tab (line 1745). Both immediately dismiss the calling sheet so the user lands back in the editor with no signal that an overwrite happened.
+- **Shipped:**
+  - `DeckBuilderStore.swift`:
+    - New one-shot field `var lastTemplateLoad: (name: String, overwroteDraft: Bool)? = nil` (parallels the `pendingImportReveal` / `pendingLegalityAudit` one-shot pattern already in this store).
+    - `loadTemplate(_:allCards:)` captures `let hadDraft = !heroes.isEmpty || !plays.isEmpty || !bonusPlays.isEmpty || !hotDogs.isEmpty` BEFORE `clearDeck()`, then sets `lastTemplateLoad = (template.name, hadDraft)` at the end.
+  - `DeckBuilderView.swift`:
+    - New `@State private var templateLoadBanner: String?`.
+    - Existing top-overlay banner slot extends to `scannedAddedBanner ?? pendingCardAddedBanner ?? templateLoadBanner` (these never race in practice — templateLoad fires on editor entry).
+    - New `.onChange(of: store.lastTemplateLoad?.name)` observer reads the tuple, sets the banner string (overwrote-draft variant calls out the destruction), clears `store.lastTemplateLoad` back to nil (one-shot reset so a repeat-tap of the same template re-fires), and schedules a 4-second `withAnimation` fade.
+- **Verified:** SourceKit reports pre-existing "Cannot find type" noise (Card / RulePreset) — the indexer is slow on the 2000-line @Observable @MainActor file. My change uses only String / Bool / tuple types and the existing one-shot flag pattern; no new symbol references. Will compile in Ben's Xcode.
+- **PARITY.md:** No row — UX polish on already-✅ Decks template gallery.
+- **Next:** tick 138 = web; 139 = Android; 140 = opt.
+
 ### Tick 136 — 2026-05-20 — **Android** — Template load: Snackbar + destructive-overwrite warning
 - **Cadence:** 136 % 5 = 1 → Android.
 - **Picked:** Tapping a deck template in `TemplateGallerySheet` clears the draft + loads the template — silently. If the user had an unsaved draft (8 heroes + 25 plays they'd just spent 10 minutes assembling), tapping a template wipes it with NO warning, NO undo, NO confirmation. Worse than tick 96's saved-deck swap which now surfaces "Loaded \"{deck.name}\" and added {card}" — at least the user sees a message. Templates silently overwrote.

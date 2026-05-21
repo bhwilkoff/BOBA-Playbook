@@ -76,6 +76,23 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 117 — 2026-05-20 — **iOS** — Decks remove gets "Removed X" banner (Add/Remove symmetry)
+- **Cadence:** 117 % 5 = 2 → iOS.
+- **Picked:** `editorDeckRow` had a silent remove path — both the tap-remove inside DeckCardRow (line 1024) AND the swipe-to-remove (line 1035) fired `store.removeCard(...)` with no banner. The add path has `addCardToDeck` → "Added X" banner since v2.038; the remove was silent. Add/Remove asymmetry users notice when swipes register without confirmation. Android tick 116 just shipped the same pattern (Snackbar + Undo); iOS now has the banner half (Undo defer to a future tick when the banner gets a richer action-state).
+- **Shipped:**
+  - `DecksView.swift::editorDeckRow`:
+    - Both remove call sites now route through new `removeCardWithFeedback(card:role:)` helper.
+  - New `removeCardWithFeedback`:
+    - Calls `store.removeCard(card, role:)`.
+    - Fires `UIImpactFeedbackGenerator(.light).impactOccurred()` (lighter than the medium-impact used for add → distinguishes the actions on the wrist).
+    - Sets `addedBanner = "Removed {label}"` (reuses existing state — the banner overlay accepts any message).
+    - 1.5s auto-clear matches the add timing.
+- **Verified:** Banner overlay already renders any `addedBanner` value (checked at line 736); no new overlay branch needed. `UIImpactFeedbackGenerator` is the same helper used by addCardToDeck (line 1499).
+- **PARITY.md:** No row — UX polish. iOS now has Add+Remove banner symmetry; Android (tick 116) has Add+Remove+Undo on the editor remove flow.
+- **Next:** tick 118 = web; 119 = Android; 120 = opt.
+
+
+
 ### Tick 116 — 2026-05-20 — **Android** — Decks tablet pane remove gets Snackbar+Undo (compact parity)
 - **Cadence:** 116 % 5 = 1 → Android.
 - **Picked:** `DecksTabletScreen`'s inline editor wired `onRemove = deckViewModel::remove` as a bare method reference. No Snackbar, no Undo — tablet users lost the cap-restore signal the compact pane has had since the Undo snackbar shipped overnight 2026-05-20. Tap remove → card disappears → no signal it registered, no way to undo without finding the same card in the pool.

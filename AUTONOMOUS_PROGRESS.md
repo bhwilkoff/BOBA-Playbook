@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 166 — 2026-05-21 — **Android** — Profile Send Feedback: graceful fallback when no email app
+- **Cadence:** 166 % 5 = 1 → Android.
+- **Picked:** Real silent-failure bug. The Profile sheet's "Send feedback" `clickable` used `runCatching { context.startActivity(intent) }` for a `mailto:ben@bobaplaybook.com?subject=...` ACTION_VIEW. If the device has no email app installed — Pixel devices often ship WITHOUT a default Gmail in some configurations, and aftermarket ROMs increasingly omit one — `runCatching` swallowed the `ActivityNotFoundException` and the user saw NOTHING. Tap → empty void. Worst-case: a frustrated user who thinks the feedback button is broken silently abandons their bug report.
+- **Shipped:**
+  - `ProfileSheet.kt` "Send feedback" click handler:
+    - `runCatching { ... }.onFailure { ... }` — when the intent fails (no app to handle `mailto:`):
+      - Copies `ben@bobaplaybook.com` to the clipboard via `ClipboardManager.setPrimaryClip(ClipData.newPlainText(...))`.
+      - Fires a Snackbar: *"No email app — copied ben@bobaplaybook.com to clipboard"* so the user can paste into Gmail web / Outlook web / any other mail client.
+- **Verified:** `scope` + `appSnackbar` already in scope (declared at line ~92 of ProfileSheet). `ClipboardManager` is a standard system service. `ClipData.newPlainText` accepts arbitrary label + text. The fallback path costs zero when the happy path fires (runCatching only routes to onFailure on Throwable).
+- **PARITY.md:** No row — UX polish on already-✅ Profile.
+- **Next:** tick 167 = iOS; 168 = web; 169 = Android; 170 = opt.
+
 ### Tick 165 — 2026-05-21 — **opt** — Drop orphan `LearnCorpus.watch` placeholder corpus (14 lines)
 - **Cadence:** 165 % 5 = 0 → opt.
 - **Picked:** `LearnContent.kt:581` defined `val watch: List<LearnSection>` — a 2-section placeholder ("Coming soon" + "Until then") for the Watch tab before the live Worker-backed `WatchPageContent()` shipped. Once the live feed landed, the `watch` corpus became unreferenced — `LearnArticleScreen.kt:124` switched to `WatchPageContent()` directly. Module-wide grep confirmed zero callers (1 reference = the definition itself).

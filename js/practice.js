@@ -766,12 +766,15 @@ function dbRenderDeckList() {
     if (DB.heroes.length === 0) {
       lStat.textContent = 'Build your deck';
       lStat.className = 'db-stat db-stat-legality';
+      lStat.setAttribute('data-state', 'empty');
     } else if (errors.length === 0) {
       lStat.textContent = 'LEGAL';
       lStat.className = 'db-stat db-stat-legality legal';
+      lStat.removeAttribute('data-state');
     } else {
       lStat.textContent = 'ILLEGAL';
       lStat.className = 'db-stat db-stat-legality';
+      lStat.removeAttribute('data-state');
     }
   }
 

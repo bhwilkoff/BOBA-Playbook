@@ -76,6 +76,17 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 115 — 2026-05-20 — **OPTIMIZATION TICK (14th 1-in-5)** — orphan iOS DecksView @State
+- **Cadence:** opt rotation. Web 5 · iOS 5 · Android 3 across opt ticks. Bias-toward-Android but couldn't find a clean Android orphan in this pass; picked an iOS @State sweep instead.
+- **Picked:** `DecksView.swift::selectedBrowserCard` declared as `Card? = nil` at line 128. `grep -rn selectedBrowserCard DecksView.swift` returned only the declaration line — never assigned, never read.
+- **Shipped:** Removed the orphan @State.
+- **Verified:** Final grep returns 0 hits. Other suspect @State vars (showDeckList, showScan, scannedAddedBanner, pendingCardAddedBanner) all confirmed in use (multiple write + read sites each).
+- **Line-count delta:** -1 line.
+- **Cumulative across 14 optimization ticks:** -168 lines (50: -26 · 55: -24 · 60: -9 · 65: -6 · 70: -28 · 75: -8 · 80: -2 · 85: -23 · 90: -19 · 95: -6 · 100: -1 · 105: -2 · 110: -13 · 115: -1).
+- **Next:** tick 116 = Android; 117 = iOS; 118 = web; 119 = Android; 120 = opt.
+
+
+
 ### Tick 114 — 2026-05-20 — **Android** — Decks add: enforce caps + dup-checks + outcome feedback (real bug + 3-platform parity)
 - **Cadence:** 114 % 5 = 4 → Android.
 - **Picked:** Android `DeckStore.add(card)` was fully permissive — `_draft.value = _draft.value.adding(card)` and nothing else. Letting the user add 8 copies of the same Hero or push the bonus-play count past the 7-card cap. iOS tick 112 + web tick 113 just shipped no-op-reason feedback for their already-enforcing stores; Android needed BOTH the enforcement AND the feedback to catch up. **Real bug not just UX polish.**

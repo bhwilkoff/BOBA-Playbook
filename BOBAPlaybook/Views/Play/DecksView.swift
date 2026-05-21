@@ -125,7 +125,6 @@ struct DecksView: View {
         var id: Int { hashValue }
     }
     @State private var secondarySheet: SecondarySheet? = nil
-    @State private var selectedBrowserCard   : Card? = nil
 
     // Scan + alerts + transient feedback. Scan presentation lives at
     // ContentView per DESIGN.md §6.5 — DecksView calls scanCoordinator

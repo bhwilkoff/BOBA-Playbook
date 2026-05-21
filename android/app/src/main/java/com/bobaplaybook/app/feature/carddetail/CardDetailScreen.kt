@@ -370,6 +370,11 @@ private fun CardDetailBody(
         val decksVmHere: com.bobaplaybook.app.feature.decks.DecksViewModel =
             androidx.hilt.navigation.compose.hiltViewModel()
         val savedDecksForCard by decksVmHere.savedDecks.collectAsStateWithLifecycle(initialValue = emptyList())
+        // Pre-load draft state — used to warn the user (with Undo) when
+        // tapping a "Decks with this card" row would overwrite a non-
+        // empty in-progress draft. Tick 149 — parallels tick 144's
+        // DeckManageScreen fix.
+        val draftForOverwriteCheck by decksVmHere.draft.collectAsStateWithLifecycle()
         val decksContaining = remember(savedDecksForCard, card) {
             savedDecksForCard.filter { sd ->
                 sd.cards.any { it.cardNumber == card.cardNumber }
@@ -391,9 +396,22 @@ private fun CardDetailBody(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
+                            val captured = if (draftForOverwriteCheck.cards.isNotEmpty())
+                                draftForOverwriteCheck else null
                             decksVmHere.loadSaved(deck, catalog)
                             scope.launch {
-                                snackbarHostState.showSnackbar("Loaded \"${deck.name}\" into the Decks editor")
+                                if (captured != null) {
+                                    val result = snackbarHostState.showSnackbar(
+                                        message = "Loaded \"${deck.name}\" — your previous draft was replaced.",
+                                        actionLabel = "Undo",
+                                        duration = androidx.compose.material3.SnackbarDuration.Short,
+                                    )
+                                    if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                                        decksVmHere.restoreDraft(captured)
+                                    }
+                                } else {
+                                    snackbarHostState.showSnackbar("Loaded \"${deck.name}\" into the Decks editor")
+                                }
                             }
                         }
                         .padding(horizontal = 16.dp, vertical = 8.dp),

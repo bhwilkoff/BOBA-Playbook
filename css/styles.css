@@ -2658,6 +2658,26 @@ dialog.modal-overlay[open] {
 .collection-toolbar {
   display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2);
   padding: var(--sp-2) 0;
+  flex-wrap: wrap;
+}
+.collection-search-input {
+  flex: 1 1 180px;
+  max-width: 280px;
+  min-width: 0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: var(--boba-text);
+  font-family: var(--font-mono, 'Chakra Petch', monospace);
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  margin-right: auto;  /* push sort + wall to the trailing edge */
+}
+.collection-search-input::placeholder { color: rgba(255,255,255,0.35); }
+.collection-search-input:focus {
+  outline: none;
+  border-color: rgba(0,245,255,0.4);
+  background: rgba(0,245,255,0.04);
 }
 .collection-sort-label {
   font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;

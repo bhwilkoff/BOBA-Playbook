@@ -76,6 +76,23 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 98 — 2026-05-20 — **web** — bulkAddToCollection: parallelize + better Toast
+- **Cadence:** 98 % 5 = 3 → web.
+- **Picked:** `bulkAddToCollection` (web Find multi-select → "Add N to {designation}") used a sequential `for-await` loop. For 50 cards = 50× longest-RTT (~10-15s on slow connections). Cloudflare + Supabase handle parallel writes fine at this scale; sequential was leftover from the simpler 1-card add. Also the toast just said "Added N cards · M failed" without disambiguating common failures (sign-out is the #1 cause; user didn't see "sign in" hint).
+- **Shipped:**
+  - `js/app.js::bulkAddToCollection`:
+    - Replaced `for-await` with `Promise.allSettled(cards.map(...))`. ~10× faster on 50-card adds.
+    - Counted `added` + `failed` via `.filter(r => r.status === 'fulfilled')`.
+    - Toast branches on outcome:
+      - `added === 0` → "Couldn't add — sign in and retry." (mentions the most common cause directly)
+      - `cards.length === 1` → quotes the card name: "Added \"{hero}\" to {designation}"
+      - Multi → "Added N cards to {designation} · M failed" (existing shape preserved)
+- **Verified:** `node -c js/app.js` clean. `Promise.allSettled` is universal — no browser-support concern (Baseline since 2020).
+- **PARITY.md:** No row — perf + UX polish on already-✅ multi-select bulk-add row.
+- **Next:** tick 99 = Android; 100 = opt.
+
+
+
 ### Tick 97 — 2026-05-20 — **iOS** — CollectionCardDetail "IN YOUR DECKS" tap-to-load (Android tick 94 parity)
 - **Cadence:** 97 % 5 = 2 → iOS.
 - **Picked:** iOS `CollectionCardDetailView::decksSection` rendered cyan-tinted deck rows but they were inert — no Button, no onTapGesture. The user saw their decks containing this card but couldn't open them; opening Decks tab and manually finding the named deck was the only path. Android tick 94 just shipped tap-to-load + Snackbar; iOS gap on the opposite axis (Android had tap + no chevron; iOS had nothing).

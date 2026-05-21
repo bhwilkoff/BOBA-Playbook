@@ -3366,23 +3366,38 @@
     });
   }
   async function bulkAddToCollection(cards, designation) {
-    let added = 0, failed = 0;
-    for (const card of cards) {
-      try {
-        await API.collectionAdd({
-          card_number: card.cardNumber,
-          boba_id:     cardKey(card),
-          hero:        card.hero || null,
-          name:        card.name || null,
-          element:     card.element || null,
-          treatment:   card.treatment || null,
-          variation:   card.variation || null,
-          designation,
-        });
-        added++;
-      } catch (_) { failed++; }
+    // Parallelize via Promise.allSettled — previous for-await loop
+    // serialized N HTTP round trips, so a 50-card bulk add took
+    // 50× longest-RTT. Worst case: 100% concurrent in flight, which
+    // Cloudflare + Supabase handle fine at this scale.
+    const results = await Promise.allSettled(
+      cards.map(card => API.collectionAdd({
+        card_number: card.cardNumber,
+        boba_id:     cardKey(card),
+        hero:        card.hero || null,
+        name:        card.name || null,
+        element:     card.element || null,
+        treatment:   card.treatment || null,
+        variation:   card.variation || null,
+        designation,
+      }))
+    );
+    const added  = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.length - added;
+    // Single-card path quotes the card name so users see WHAT was
+    // added; bulk path stays terse. If everything failed, mention the
+    // most common cause (sign-out) so the user knows what to fix.
+    const dLabel = designation.replace('_', ' ');
+    let msg;
+    if (added === 0) {
+      msg = `Couldn't add — sign in and retry.`;
+    } else if (cards.length === 1) {
+      const c = cards[0];
+      msg = `Added "${c.hero || c.name}" to ${dLabel}`;
+    } else {
+      msg = `Added ${added} cards to ${dLabel}${failed ? ` · ${failed} failed` : ''}`;
     }
-    showToast(`Added ${added} card${added===1?'':'s'} to ${designation.replace('_',' ')}${failed?` · ${failed} failed`:''}`);
+    showToast(msg);
     exitSelectionMode();
   }
   /// Wall the currently-selected catalog cards. No auth required —

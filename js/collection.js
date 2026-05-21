@@ -33,6 +33,31 @@ const Collection = (() => {
   // Re-created on every renderCollectionView pass.
   let _collectionPaginator = null;
 
+  // Collection-tab search text. Parity with iOS DESIGN.md §8.4
+  // `.searchable` on Collection. Lower-cased for case-insensitive
+  // substring matching against hero / name / cardNumber / treatment.
+  // Persisted across designation tab switches; cleared on sign-out
+  // (in clear()) so a stale query doesn't leak across users.
+  let _collectionSearchText = '';
+  let _collectionSearchTimer = null;
+  const _COLLECTION_SEARCH_DEBOUNCE = 220;
+
+  /// Does an activeCards row match the current search query? Case-
+  /// insensitive substring across hero, name, cardNumber, treatment.
+  /// Empty query short-circuits to true.
+  function _matchesCollectionSearch(userCardRow, catalogCard) {
+    const q = _collectionSearchText;
+    if (!q) return true;
+    const haystack = [
+      catalogCard?.hero,
+      catalogCard?.name,
+      catalogCard?.cardNumber,
+      catalogCard?.treatment,
+      userCardRow?.notes,
+    ].filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(q);
+  }
+
   /* ================================================================
      DATA
   ================================================================ */
@@ -58,6 +83,9 @@ const Collection = (() => {
     _draftCriteria = {};
     _rainbowMatchCache.clear();
     _rainbowMatchCacheCatalogLen = 0;
+    _collectionSearchText = '';
+    clearTimeout(_collectionSearchTimer);
+    _collectionSearchTimer = null;
     if (_collectionPaginator) {
       try { _collectionPaginator.disconnect(); } catch {}
       _collectionPaginator = null;
@@ -135,7 +163,17 @@ const Collection = (() => {
         <span class="desig-tab-count">${tabCount(d.key)}</span>
       </button>`).join('');
 
-    const activeCards = _cards.filter(c => c.designation === _activeTab);
+    // Designation filter + optional search filter (iOS DESIGN.md §8.4
+    // `.searchable` parity, web tick 34). Search runs against catalog
+    // metadata (hero / name / cardNumber / treatment) + the row's notes.
+    const activeCards = _cards.filter(c => {
+      if (c.designation !== _activeTab) return false;
+      if (!_collectionSearchText) return true;
+      const cat = (_bobaIdLookup && c.boba_id)
+        ? _bobaIdLookup(c.boba_id)
+        : (_cardLookup ? _cardLookup(c.card_number) : null);
+      return _matchesCollectionSearch(c, cat);
+    });
     // Group by bobaId (or cardNumber for legacy rows) so multiple physical
     // copies render as a single stack with a quantity badge — mirrors the
     // iOS layout and matches the way collectors think about their binders.
@@ -153,8 +191,12 @@ const Collection = (() => {
     // Now: emit first page, observer below appends next page on
     // scroll. Tab switch / sort change re-renders from page 1.
     const initialPage = sortedGroups.slice(0, _COLLECTION_PAGE_SIZE);
+    const desigLabel = DESIGNATIONS.find(d => d.key === _activeTab)?.label;
+    const emptyMsg = _collectionSearchText
+      ? `No cards in ${esc(desigLabel)} match &ldquo;${esc(_collectionSearchText)}&rdquo;.`
+      : `No cards in ${esc(desigLabel)} yet.`;
     const listHtml = sortedGroups.length === 0
-      ? `<p class="collection-empty">No cards in ${esc(DESIGNATIONS.find(d => d.key === _activeTab)?.label)} yet.</p>`
+      ? `<p class="collection-empty">${emptyMsg}</p>`
       : initialPage.map(buildCollectionCardHtml).join('');
 
     view.innerHTML = `
@@ -197,6 +239,11 @@ const Collection = (() => {
           ${tabsHtml}
         </div>
         <div class="collection-toolbar">
+          <input type="search" class="collection-search-input" id="collection-search"
+                 placeholder="Search your collection…"
+                 autocomplete="off" autocorrect="off" spellcheck="false"
+                 aria-label="Search this designation"
+                 value="${esc(_collectionSearchText)}" />
           <label class="collection-sort-label" for="collection-sort">Sort</label>
           <select class="collection-sort-select" id="collection-sort" aria-label="Sort collection">
             <option value="added_desc"${_collectionSort==='added_desc'?' selected':''}>Recently Added</option>
@@ -274,6 +321,40 @@ const Collection = (() => {
     view.querySelector('#collection-sort')?.addEventListener('change', (e) => {
       setCollectionSort(e.target.value);
     });
+
+    // Search input — debounced re-render matching Find's pattern.
+    // Restores focus + caret position after re-render so typing isn't
+    // interrupted. Selection range survives via the input's value
+    // round-trip + a manual setSelectionRange.
+    const searchEl = view.querySelector('#collection-search');
+    if (searchEl) {
+      // Restore focus if the user was typing across a render (e.g.
+      // a previous keystroke triggered re-render before the next).
+      if (document.activeElement?.id === 'collection-search-prev-focus') {
+        searchEl.focus();
+      }
+      searchEl.addEventListener('input', (e) => {
+        const next = (e.target.value || '').trim().toLowerCase();
+        clearTimeout(_collectionSearchTimer);
+        _collectionSearchTimer = setTimeout(() => {
+          if (next === _collectionSearchText) return;
+          _collectionSearchText = next;
+          // Mark this input as the focus target so the next render
+          // restores focus. Doesn't actually change the ID; just a
+          // marker the re-render can read.
+          const wasActive = document.activeElement === searchEl;
+          const caret = searchEl.selectionStart;
+          renderCollectionView();
+          if (wasActive) {
+            const newEl = document.getElementById('collection-search');
+            if (newEl) {
+              newEl.focus();
+              try { newEl.setSelectionRange(caret, caret); } catch {}
+            }
+          }
+        }, _COLLECTION_SEARCH_DEBOUNCE);
+      });
+    }
 
     view.querySelector('#collection-wall-btn')?.addEventListener('click', () => {
       openWallSheet({

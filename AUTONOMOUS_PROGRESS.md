@@ -102,6 +102,26 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 34 — 2026-05-20 — Web Collection in-tab search input
+- **Picked:** Audit closed; back to features. Found a real parity gap: iOS Collection has `.searchable` (DESIGN.md §8.4) — composes with the designation tab. Web Collection had no search at all. Users with 500+ owned cards had no way to find a specific one without scrolling.
+- **Shipped:**
+  - `js/collection.js`:
+    - New module-scope `_collectionSearchText` + `_collectionSearchTimer` + `_COLLECTION_SEARCH_DEBOUNCE = 220` (slightly tighter than Find's 280ms — Collection's already paginated so re-render is cheap).
+    - `_matchesCollectionSearch(userCardRow, catalogCard)` — case-insensitive substring across `hero / name / cardNumber / treatment / notes`. Empty query short-circuits.
+    - `activeCards` filter now combines `designation === _activeTab` AND `_matchesCollectionSearch(...)`.
+    - Empty-state copy dynamically reflects search: *"No cards in Personal match \"maverick\"."* when searching, *"No cards in Personal yet."* otherwise.
+    - New `<input type="search" id="collection-search">` at the leading edge of `.collection-toolbar` (margin-right: auto pushes Sort + Wall to the trailing edge).
+    - Input handler:
+      - Debounced 220ms.
+      - **Focus + caret restore across re-render** — `renderCollectionView` rebuilds the toolbar's DOM every render, so a naive input would lose focus mid-typing. Helper captures `selectionStart` + active-element check; after re-render, finds the new input by id, calls `focus()` + `setSelectionRange(caret, caret)`.
+    - `clear()` (sign-out) resets `_collectionSearchText` + clears the debounce timer.
+  - `css/styles.css`: `.collection-search-input` (flex-grow with max-width 280px) + focus-state cyan-tint. `.collection-toolbar` gets `flex-wrap: wrap` so the search input + sort + wall stack gracefully on narrow widths.
+- **Verified:** node -c clean. Logic trace: type "mav" → 220ms debounce → re-render → `activeCards` reduces to Maverick rows → grid shows them. Type more → focus + caret survive the re-render. Switch designation tab → search persists. Sign out → search cleared.
+- **PARITY.md:** §5 row added — "In-collection search | ✅ iOS | ✅ web | ⏳ Android M2 polish".
+- **Why this matters:** Collection search is a power-user feature. A user with "Lockdown Locker" built across 50 owned cards, looking for "Maverick" in their Personal tab, can now find it in 4 keystrokes instead of scrolling 50+ cells.
+- **Architectural note:** the focus-restore pattern is necessary because Collection's render strategy is "rebuild everything via innerHTML." A future refactor toward fine-grained DOM mutations (or moving the toolbar OUT of the rebuild scope) would eliminate the need. For now, the focus dance is the simplest fix.
+- **Next:** Tick 35. Plausible: (a) Android in-collection search parity, (b) Decks pool search shape check, (c) audit Profile sections for organization.
+
 ### Tick 33 — 2026-05-20 — iOS customRainbowProgress: caching audit follow-up
 - **Picked:** Tail finding from the tick-30/31 large-collection audit. Tick 31 cached `rainbowRows` for the hero auto-rainbow list, but `customRainbowProgress(rainbow)` was still a per-rainbow function called from `customRainbowRow` on every body re-eval. Each call did a fresh 17k catalog filter AND a fresh `ownedIds` Set construction from `collection.userCards` — at 5 custom rainbows × N re-evals, this dominated the rainbow tab frame time.
 - **Shipped:**

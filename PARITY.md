@@ -102,6 +102,7 @@ When shipping any user-facing feature:
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
 | Designation: Personal / Sale / Trade / Wanted / Grails | ✅ | ✅ | ✅ | `SegmentedButton` — Android shipped |
+| In-collection search | ✅ | ✅ | ⏳ M2 polish | iOS `.searchable` with `.navigationBarDrawer(.always)`. Web shipped tick 34 — `<input type="search">` in the Collection toolbar, 220ms debounce, matches hero / name / cardNumber / treatment / notes. Persists across tab switches; cleared on sign-out. |
 | Designation badge per cell | ✅ | ✅ | ✅ | Corner overlay |
 | Display modes: Grid / List / Wall | ✅ | ✅ | ⏳ M2 polish — Wall pending | Grid + List shipped on Android; Wall is M2 polish |
 | Grid density picker (1/2/3 cols) | ✅ | ✅ | ✅ | DataStore-backed on Android via `CollectionPrefsStore` |

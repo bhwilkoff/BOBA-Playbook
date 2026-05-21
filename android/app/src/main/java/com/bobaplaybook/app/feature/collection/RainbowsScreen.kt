@@ -66,6 +66,7 @@ fun RainbowsScreen(
     val customVm: CustomRainbowsViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val customRainbows by customVm.rainbows.collectAsStateWithLifecycle()
+    val catalog by viewModel.catalogCards.collectAsStateWithLifecycle()
     var pendingDeleteId by androidx.compose.runtime.saveable.rememberSaveable {
         androidx.compose.runtime.mutableStateOf<String?>(null)
     }
@@ -78,15 +79,39 @@ fun RainbowsScreen(
     }
 
 
-    // Group owned cards by hero for auto rainbows
+    // Per-hero total treatment count from the catalog — used to render
+    // owned/total ("5 of 15 treatments") instead of just "5 treatments."
+    // iOS + web parity (tick 8). Computed via remember on the catalog
+    // list so the O(catalog) pass only re-runs when the catalog
+    // changes, not on every body re-eval.
+    val totalTreatmentsByHero: Map<String, Int> = androidx.compose.runtime.remember(catalog) {
+        catalog.asSequence()
+            .filter { it.hero.isNotBlank() && !it.treatment.isNullOrBlank() }
+            .groupBy { it.hero }
+            .mapValues { (_, cards) -> cards.mapNotNull { it.treatment }.distinct().size }
+    }
+
+    // Group owned cards by hero for auto rainbows. Sort by completion
+    // ratio (owned-treatments / catalog-treatments) descending — the
+    // closest-to-complete rainbows surface first, matching web tick 8.
     val heroRainbows: List<AutoRainbow> = state.entriesByDesignation.values.flatten()
         .filter { it.card.hero.isNotBlank() }
         .groupBy { it.card.hero }
         .map { entry ->
-            val treatments = entry.value.mapNotNull { it.card.treatment }.distinct()
-            AutoRainbow(hero = entry.key, treatmentCount = treatments.size, totalCopies = entry.value.size)
+            val ownedTreatments = entry.value.mapNotNull { it.card.treatment }.distinct().size
+            val totalTreatments = totalTreatmentsByHero[entry.key] ?: ownedTreatments
+            AutoRainbow(
+                hero = entry.key,
+                treatmentCount = ownedTreatments,
+                totalTreatments = totalTreatments,
+                totalCopies = entry.value.size,
+            )
         }
-        .sortedByDescending { it.treatmentCount }
+        .sortedWith(
+            compareByDescending<AutoRainbow> {
+                if (it.totalTreatments == 0) 0.0 else it.treatmentCount.toDouble() / it.totalTreatments
+            }.thenBy { it.hero }
+        )
 
     Scaffold(
         modifier = modifier,
@@ -195,11 +220,16 @@ fun RainbowsScreen(
                 }
             } else {
                 items(items = heroRainbows, key = { it.hero }) { rainbow ->
+                    // iOS + web parity (tick 8): show owned/total
+                    // treatments + completion %, so the user can see at
+                    // a glance how far along each per-hero rainbow is.
+                    val pct = if (rainbow.totalTreatments == 0) 0
+                        else ((rainbow.treatmentCount * 100.0) / rainbow.totalTreatments).toInt()
                     ListItem(
                         headlineContent = { Text(rainbow.hero) },
                         supportingContent = {
                             Text(
-                                "${rainbow.treatmentCount} treatments · ${rainbow.totalCopies} copies",
+                                "${rainbow.treatmentCount} of ${rainbow.totalTreatments} treatments · $pct% · ${rainbow.totalCopies} copies",
                                 style = MaterialTheme.typography.labelMedium,
                             )
                         },
@@ -252,4 +282,9 @@ fun RainbowsScreen(
     }
 }
 
-private data class AutoRainbow(val hero: String, val treatmentCount: Int, val totalCopies: Int)
+private data class AutoRainbow(
+    val hero: String,
+    val treatmentCount: Int,
+    val totalTreatments: Int,
+    val totalCopies: Int,
+)

@@ -102,6 +102,15 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 55 — 2026-05-20 — **OPTIMIZATION TICK** (2nd 1-in-5): unused Collection exports
+- **Second 1-in-5 optimization tick** per `feedback_one_in_five_optimization_tick.md`. Net line-removal target.
+- **Shipped:**
+  - `js/collection.js`: removed unused exported functions `isOwned(cardOrId)` and `isWanted(cardOrId)`. Both were ~10 lines each — confirmed zero external callers via `grep -rn "Collection.isOwned\|Collection.isWanted"`. The internal `isOwned` reference at line 134 was a local lambda (`const isOwned = c => …`) defined inside `renderCollectionView`, NOT the exported function — they happened to share a name. Removed both the function bodies + the public-API export entries.
+- **Line-count delta:** collection.js: 3550 → 3526 (**-24 lines**, +0 added).
+- **Considered:** sweep more dead exports across api.js and elsewhere, but capping the tick here. The cumulative discipline matters more than the per-tick magnitude.
+- **Verified:** node -c clean. `grep -rn "isOwned\|isWanted"` on the JS dir shows only legitimate uses remain (local lambdas, no orphan callers).
+- **PARITY.md:** No row — internal cleanup.
+
 ### Tick 54 — 2026-05-20 — Multi-select Add-to-Deck: alert() → showToast()
 - **Picked:** Small UX consistency win. Four `alert()` calls in the Find multi-select Add-to-Deck flow blocked the user with native browser dialogs for transient errors / hints — inconsistent with the rest of the app which uses non-blocking `showToast()`. The destructive flows (Delete Account, Confirm delete rainbow) keep `alert/confirm` correctly; this swap is only for the non-destructive "Could not load decks" / "No saved decks yet" / "Could not save deck" cases.
 - **Shipped:**

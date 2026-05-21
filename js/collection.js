@@ -3131,28 +3131,6 @@ const Collection = (() => {
      PUBLIC HELPERS — used by app.js card modal
   ================================================================ */
 
-  // Accept a card object (preferred) or a bobaId/cardNumber string (legacy).
-  // Matches by bobaId first for exact card identity; falls back to card_number for legacy rows.
-  function isOwned(cardOrId) {
-    const bobaId = cardOrId?.bobaId ?? null;
-    const cardNum = cardOrId?.cardNumber ?? String(cardOrId);
-    return _cards.some(c =>
-      ['personal','for_sale','for_trade'].includes(c.designation) &&
-      (bobaId ? (c.boba_id === bobaId || (c.boba_id == null && c.card_number === cardNum))
-              : (c.card_number === cardNum))
-    );
-  }
-
-  function isWanted(cardOrId) {
-    const bobaId = cardOrId?.bobaId ?? null;
-    const cardNum = cardOrId?.cardNumber ?? String(cardOrId);
-    return _cards.some(c =>
-      c.designation === 'wanted' &&
-      (bobaId ? (c.boba_id === bobaId || (c.boba_id == null && c.card_number === cardNum))
-              : (c.card_number === cardNum))
-    );
-  }
-
   /* ================================================================
      HELPERS
   ================================================================ */
@@ -3535,8 +3513,6 @@ const Collection = (() => {
     openCardsWallSheet,
     openDeckWallSheet,
     quickAdd,
-    isOwned,
-    isWanted,
     setCardLookup:    fn => { _cardLookup    = fn; },
     setBobaIdLookup:  fn => { _bobaIdLookup  = fn; },
     setVariantLookup: fn => { _variantLookup = fn; },

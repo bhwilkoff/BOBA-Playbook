@@ -102,6 +102,18 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 65 — 2026-05-20 — **OPTIMIZATION TICK (iOS, 4th 1-in-5)** — HoB cardPool console flood
+- **Per platform-cadence rotation:** ticks 50+55 were web opts, 60 was Android. Tick 65 = iOS to balance.
+- **Picked:** `HouseOfCardsView.cardPool` computed property had THREE `print("[HoB] cardPool: ...")` statements that fired on every body re-eval — every time the view re-evaluated (which can be 5-15 times per gesture in SwiftUI), all three prints fired. Floods every HoB user's Xcode/device console.
+- **Shipped:**
+  - `BOBAPlaybook/Views/HouseOfCards/HouseOfCardsView.swift`: collapsed the 3-print + guard-style cardPool computed property into a clean silent fallback chain (`!useCollection || !auth.isAuthenticated || pool.isEmpty → catalogPool`). Comment explains the prior behavior so a future contributor doesn't re-add the prints "to debug."
+- **Line-count delta:** iOS Swift total 65913 → 65907 = **-6 lines**.
+- **Considered + skipped:**
+  - `@available(iOS 18.0, *)` guards across 5 files (HeroShot + CLI runner + Hero Shot env + BOBAPlaybookApp) — per CLAUDE.md they're no-ops and should be removed "when touching the file but don't sweep proactively." Touching files just to remove the guards violates the second clause. Defer to when those files get edited for other reasons.
+  - HoloDebug prints in BOBAPlaybookApp.swift — env-gated runner (`HOLO_DEBUG_RUN=1`), only fires on dev sims. Not user-facing. Leave.
+  - HouseOfCards Smart Snap MISS prints — only fire on explicit user miss + are useful debugging hints. Leave.
+- **Cumulative across all 4 optimization ticks:** -65 lines (50: -26 · 55: -24 · 60: -9 · 65: -6).
+
 ### Tick 64 — 2026-05-20 — **Android** — Wall view cap at 200 cards (parity with web tick 43)
 - **Cadence:** 64 % 5 = 4 → Android.
 - **Picked:** Web shipped a 200-card cap on Wall view tick 43 to avoid Safari (16,384px) / Chrome (32,767px) canvas-height limits. Android has the same family of risk via `graphicsLayer.toImageBitmap()` capturing the rendered grid — at 500 cards × adaptive 90dp on a 480-dpi screen, the captured bitmap is ~39 MB. Low-end Android devices could OOM during share, blowing the share intent silently.

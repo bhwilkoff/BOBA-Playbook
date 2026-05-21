@@ -284,20 +284,14 @@ struct HouseOfCardsView: View {
     // logged so console output makes it obvious why the strip
     // didn't change.
     private var cardPool: [Card] {
-        guard useCollection else {
-            return catalogPool
-        }
-        guard auth.isAuthenticated else {
-            print("[HoB] cardPool: collection mode requested but not signed in → catalog")
-            return catalogPool
-        }
+        // Collection mode → fallback to catalog when (a) not signed
+        // in, or (b) signed in but no owned cards have images yet.
+        // Silent fallback — was previously logging on every body
+        // re-eval which flooded the console.
+        guard useCollection else { return catalogPool }
+        guard auth.isAuthenticated else { return catalogPool }
         let pool = ownedPool
-        if pool.isEmpty {
-            print("[HoB] cardPool: collection mode but \(collection.userCards.count) owned cards have no images → catalog")
-            return catalogPool
-        }
-        print("[HoB] cardPool: collection mode, \(pool.count) owned cards (total owned=\(collection.userCards.count))")
-        return pool
+        return pool.isEmpty ? catalogPool : pool
     }
 
     /// Catalog default: high-power cards with images.

@@ -209,7 +209,7 @@ Just as iOS DESIGN.md §5 constrains Liquid Glass to navigation chrome, M3 Expre
 
 6. **Strip custom containerColor on sheets / dialogs.** Let M3 apply the spec.
 
-7. **`TopAppBarScrollBehavior` is the scroll-edge effect.** Use `enterAlwaysScrollBehavior` on Find / Decks pool / Collection (dense scrolls), `exitUntilCollapsedScrollBehavior` for hero-title screens (card detail, Learn article), `pinnedScrollBehavior` for sheets / dialogs / always-anchored bars.
+7. **`TopAppBarScrollBehavior` is the scroll-edge effect.** Use `enterAlwaysScrollBehavior` on Find / Decks card browser / Collection (dense scrolls), `exitUntilCollapsedScrollBehavior` for hero-title screens (card detail, Learn article), `pinnedScrollBehavior` for sheets / dialogs / always-anchored bars.
 
 8. **Brand theme by default; dynamic color is opt-in.** BOBA ships a **fixed brand theme** (orange/cyan/violet on near-black) — *not* dynamic color — because the card-art palette is the focal point and a user's wallpaper-derived primary fighting with `#FF4D00` reads muddy. Provide a "Use system colors" toggle in Settings for users who want dynamic; default OFF. (DECISIONS.md #042.)
 
@@ -231,7 +231,7 @@ M3's `SearchBar` family is the heart of every dense view.
 
 1. **Find = `ExpandedFullScreenSearchBar` on compact, `ExpandedDockedSearchBar` on medium/expanded.** The bar morphs from a docked input at rest into a full-screen overlay when focused; predictive-back collapses it. Use `SearchBarDefaults.InputField(...)` for the input slot.
 
-2. **Every other tab has a docked `SearchBar`** scoped to its own domain. Decks = pool + saved decks. Learn = articles + glossary. Collection = owned cards. Purchase = stores + breaks.
+2. **Every other tab has a docked `SearchBar`** scoped to its own domain. Decks = browser + saved decks. Learn = articles + glossary. Collection = owned cards. Purchase = stores + breaks.
 
 3. **`SegmentedButton` for orthogonal scopes** (e.g. Cards vs Heroes vs Decks within Find). Sits below the search bar; appears only when search is active.
 
@@ -315,7 +315,7 @@ Android ships across more form factors than iOS. Every new screen declares its m
 | `BottomAppBar` action slot | Floats as `HorizontalFloatingToolbar` near the FAB |
 | Container transform with `sharedBounds` | System fade-through (the destination is in another pane, not pushed) |
 
-**Decks on tablet is the canonical multi-pane shape:** `NavigableListDetailPaneScaffold` with three logical panes — *list* (saved decks), *detail* (current deck editor), *extra* (card pool). Compact = pool only with summary bar; medium = pool + editor; expanded = saved-decks + pool + editor.
+**Decks on tablet is the canonical multi-pane shape:** `NavigableListDetailPaneScaffold` with three logical panes — *list* (saved decks), *detail* (current deck editor), *extra* (card browser). Compact = browser only with summary bar; medium = browser + editor; expanded = saved-decks + browser + editor.
 
 **Don't fork per-platform.** One Composable hierarchy; `NavigationSuiteScaffold` + `NavigableListDetailPaneScaffold` + `LazyVerticalGrid(Adaptive)` + `BoxWithConstraints` cover ~95% of size-class needs.
 
@@ -471,18 +471,18 @@ Rules to inherit Android 17 gains automatically:
 **Verb:** build.
 
 **Anatomy (compact / phone):**
-- **Card pool** = `LazyVerticalGrid` of `BOBACardCell` as canvas.
+- **Card browser** = `LazyVerticalGrid` of `BOBACardCell` as canvas.
 - **Summary** = persistent `DeckSummaryBar` (`Surface` anchored as Scaffold `bottomBar`). Shows draft name + section breakdown + format badge. Empty: *"Build a deck · Tap to open the editor."* **Non-draggable.**
 - **Tap summary** = full-screen `ModalBottomSheet(skipPartiallyExpanded = true)` opening the editor. Hero zoom via `sharedBounds(key = "deck-draft")`. **NOT a draggable bottom sheet at rest** — same lesson as iOS (DESIGN.md §8.3): drag was the problem, tap-into-editor is the answer.
 - **Editor body** = `Scaffold` (inside the sheet) + small `TopAppBar` w/ Close + Save action + overflow `DropdownMenu` (Manage Decks, Rules, Legality, Clear). Editor content = format chip strip + grouped `LazyColumn`.
 - **Secondary surfaces** (Manage Decks / Rules / Legality) **push** as `composable(...)` destinations within the editor's inner `NavHost` — never stacked as a second `ModalBottomSheet`.
-- **Pool filter** = `SearchBar` docked at top of pool with `FilterChip` row (weapon / cost / hero) below.
+- **Browser filter** = `SearchBar` docked at top of the browser with `FilterChip` row (weapon / cost / hero) below.
 - **Card tap** = container transform into card detail.
-- **Long-press on pool card** = adds to draft (canonical add gesture, mirroring iOS).
-- **Scan** = lives in pool `TopAppBar` overflow `DropdownMenu`; routes through `ScanCoordinator.start(destination = .currentDeck)`.
+- **Long-press on a browser card** = adds to draft (canonical add gesture, mirroring iOS).
+- **Scan** = lives in the browser's `TopAppBar` overflow `DropdownMenu`; routes through `ScanCoordinator.start(destination = .currentDeck)`.
 
 **Anatomy (medium+ / tablet):**
-- `NavigableListDetailPaneScaffold` with **three logical panes**: saved decks (list) · current deck (detail) · card pool (extra). Compact = pool only with summary bar; medium = pool + editor; expanded = saved-decks + pool + editor.
+- `NavigableListDetailPaneScaffold` with **three logical panes**: saved decks (list) · current deck (detail) · card browser (extra). Compact = browser only with summary bar; medium = browser + editor; expanded = saved-decks + browser + editor.
 - Hero-zoom into editor is replaced by pane-switch (no shared bounds).
 
 **Anti-patterns:** custom drag-from-bottom drawer. Per-tab "draft" status banner. Sheets stacked on the editor. At most one `ModalBottomSheet` open at a time.
@@ -519,7 +519,7 @@ Rules to inherit Android 17 gains automatically:
 
 ### 8.6 Card detail surface — the universal card view
 
-Pushed from Find, Decks (pool tap), Collection (cell tap). Three composables (`CardDetailScreen`, `BrowserCardDetailScreen`, `CollectionCardDetailScreen`) share `artPanel` + `TopAppBar` verbatim — only body content differs.
+Pushed from Find, Decks (browser tap), Collection (cell tap). Three composables (`CardDetailScreen`, `BrowserCardDetailScreen`, `CollectionCardDetailScreen`) share `artPanel` + `TopAppBar` verbatim — only body content differs.
 
 **Pattern:** **Container transform** (M3 Motion) via `SharedTransitionLayout` + `sharedBounds(key = card.bobaId, ...)` between the grid cell (source) and the detail destination. Compact only (§6.6.2); medium+ uses pane switch.
 
@@ -585,7 +585,7 @@ v1 ship list (compact + medium + expanded across phone / tablet / Chromebook, al
 - **M1 — Find + foundational adaptive layouts** — `NavigationSuiteScaffold` + Find tab w/ `ExpandedFullScreenSearchBar` + featured carousels + container-transform into card detail. **WindowSizeClass adaptation validated on phone + tablet + Chromebook from day one** (per DECISIONS.md #047).
 - **M2 — Collection** — designation segmented button + grid/list/wall display modes + share Intent + tablet list-detail panes.
 - **M3 — Scan + Pricing** — CameraX + ML Kit Text Recognition v2 bundled; pricing panels in card detail.
-- **M4 — Decks** — pool + summary-bar + sheet editor (compact); `NavigableListDetailPaneScaffold` 3-pane on tablet/Chromebook from day one; drag-and-drop via `dragAndDropSource` / `dragAndDropTarget`.
+- **M4 — Decks** — browser + summary-bar + sheet editor (compact); `NavigableListDetailPaneScaffold` 3-pane on tablet/Chromebook from day one; drag-and-drop via `dragAndDropSource` / `dragAndDropTarget`.
 - **M5 — Learn** — single-stream articles + skill-level scope segmented button + glossary tooltips + tablet list-detail panes.
 - **M5.5 — Practice executor (admin-gated)** — port iOS state-machine engine to pure Kotlin in `:core:domain`; Practice screens as Compose translations of SwiftUI anatomy. Admin gate via `user_profiles.role` (DECISIONS.md #048).
 - **M6 — Purchase** — Whatnot breaks tile list + Find a Store with Google Maps Compose.

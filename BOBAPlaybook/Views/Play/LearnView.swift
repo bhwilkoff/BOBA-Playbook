@@ -1271,7 +1271,7 @@ private struct SubstitutionStrategySection: View {
                     Text("10 total")
                         .font(Design.Fonts.mono(13, weight: .bold))
                         .foregroundStyle(Design.Colors.textPrimary)
-                    Text("Pay 2 to substitute a Hero.\nPay 0–6 to play Play cards.\nBoth draw from the same pool.")
+                    Text("Pay 2 to substitute a Hero.\nPay 0–6 to play Play cards.\nBoth come out of the same 10 hot dogs.")
                         .font(Design.Fonts.mono(11))
                         .foregroundStyle(Design.Colors.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

@@ -213,11 +213,6 @@ final class CollectionStore {
             }
     }
 
-    /// Whether the user owns at least one copy of this card number (any owned designation).
-    func isOwned(_ cardNumber: String) -> Bool {
-        userCards.contains { $0.cardNumber == cardNumber && $0.designation.isOwned }
-    }
-
     /// Whether the user owns at least one copy of this exact card (bobaId match).
     /// Falls back to cardNumber matching for legacy entries without a bobaId.
     func isOwned(bobaId identifier: String) -> Bool {

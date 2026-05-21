@@ -189,9 +189,7 @@ def merge(existing: dict, cardeio_events: list[dict], whatnot_events: list[dict]
     entries with the fresh batches. Sort: curated first (preserving
     their order), then official cardeio tournaments by date ascending,
     then community whatnot shows by date ascending."""
-    events_in = existing.get("events", []) if isinstance(events_in_root := existing, dict) else []
-    if not isinstance(events_in, list):
-        events_in = []
+    events_in = existing.get("events") or []
     curated = [e for e in events_in if isinstance(e, dict) and e.get("_curated") is True]
     sorted_cardeio = sorted(cardeio_events,
                             key=lambda e: (e.get("date") or "", e.get("title") or ""))

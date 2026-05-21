@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 148 — 2026-05-21 — **web** — Decks DBS chip tappable (closes 3-platform DBS-explainer loop)
+- **Cadence:** 148 % 5 = 3 → web.
+- **Picked:** Closes the 3-platform parity loop on the tappable-DBS-budget pattern (iOS tick 147, Android tick 134). Web already had the full DBS explainer dialog (`#dbs-info-overlay`) in `index.html:2643`, wired to open from the Card-detail modal via `[data-action="open-dbs-info"]` triggers, but the Decks editor's `#db-stat-dbs` chip was a plain `<span>` — no click affordance.
+- **Shipped:**
+  - `index.html:1991`: `<span class="db-stat db-stat-dbs">` → `<button type="button" class="db-stat db-stat-dbs" data-action="open-dbs-info" aria-label="DBS budget — tap to learn more">`. Same id/classes preserved so the existing render path (`practice.js:800`-`812` toggling `.over` and updating textContent) keeps working without changes.
+  - `js/app.js:118-125`: existing DBS dialog trigger was scoped to `modalContent` (card-detail modal). Promoted to a `document.addEventListener` delegate so ANY element with `[data-action="open-dbs-info"]` opens the dialog — the editor DBS chip now triggers it alongside the existing modal trigger. Safe: the handler short-circuits when no `[data-action="open-dbs-info"]` ancestor exists, so the dispatch cost is just one `closest()` per page-wide click.
+  - `css/styles.css`:
+    - `.db-stat-dbs` extended: explicit `border: 1px solid` (was `border-color` only — relied on the prior `<span>` not having a UA border), `font: inherit`, `padding: 2px 8px`, `border-radius: 4px`, `cursor: pointer`. Neutralizes UA `<button>` chrome so the visual is byte-identical to the prior span treatment.
+    - `.db-stat-dbs:hover` adds a darker orange background for tactile feedback.
+    - `.db-stats` container gets `align-items: center` so the now-`<button>` DBS chip lines up with its `<span>` siblings (buttons in a flex container with default `stretch` alignment would visually outsize the sibling spans).
+- **Verified:** the `<button type="button">` won't submit any form (no enclosing `<form>` in the editor pane anyway). `data-action="open-dbs-info"` is consumed by the now-document-level handler which calls `showModal()` on `#dbs-info-overlay`. Dialog close still works via the `#dbs-info-overlay`-scoped close handler.
+- **PARITY.md:** No row.
+- **Next:** tick 149 = Android; 150 = opt.
+
 ### Tick 147 — 2026-05-21 — **iOS** — Decks editor DBS chip is now tappable (opens DBSInfoSheet)
 - **Cadence:** 147 % 5 = 2 → iOS.
 - **Picked:** Android tick 134 made the DBS budget chip in the Decks editor tappable — taps open `DBSInfoSheet` (the canonical explainer also used from CardDetailView). iOS Decks DBS chip was rendered the same way but inert — coaches couldn't tap to learn what the budget is or why their deck just turned orange when DBS overflowed. The `DBSInfoSheet` View already exists at `CardDetailView.swift:1132` and is presented from Card detail; reusing it here costs nothing.

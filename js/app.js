@@ -113,10 +113,12 @@
   const modalNavNext  = $('modal-nav-next');
 
   // DBS explainer dialog wiring (parity with iOS DBSInfoSheet).
-  // Delegated click handler on the modal so dynamically-rendered DBS
-  // stat cells can open the explainer.
+  // Document-level delegate so EVERY DBS-tagged element opens the
+  // explainer — card-detail modal DBS stat cells AND the Decks
+  // editor DBS budget chip (tick 148, closing the 3-platform parity
+  // loop with iOS tick 147 + Android tick 134).
   const dbsInfoOverlay = $('dbs-info-overlay');
-  modalContent?.addEventListener('click', (e) => {
+  document.addEventListener('click', (e) => {
     const trigger = e.target.closest('[data-action="open-dbs-info"]');
     if (trigger) {
       e.preventDefault();

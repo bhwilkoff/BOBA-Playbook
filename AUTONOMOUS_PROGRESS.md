@@ -102,6 +102,21 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 47 — 2026-05-20 — Wall context sub-tags (deck / selection / public) + 1-in-5 optimization directive
+- **Ben directive ack:** "Add in one tick for every five that focuses upon optimization and streamlining instead of just adding more features or introducing bloat." Saved as `feedback_one_in_five_optimization_tick.md`. Going forward, ticks 50 / 55 / 60 / 65 / … are reserved for perf / dead-code removal / simplification / file-size shrinkage — net line-removal expected.
+- **Picked (this tick's feature work):** Refinement of tick 46. The Wall context was binary (`'deck'` or default-Collection). Three different catalog-cards callers all shared the deck-flavored footer copy: Decks Wall (correct), Find multi-select ("your current deck" is wrong — it's not a deck), public-collection page ("your current deck" is doubly wrong — it's someone else's collection).
+- **Shipped:**
+  - `js/collection.js::openWallSheet`: context now accepts three sub-tags — `'deck'` / `'selection'` / `'public'`. All three are "catalog-cards mode" (skip user-card-row resolution, price overlay off) but each drives different footer copy:
+    - `'deck'` → "Renders the cards in your current deck. Edit the deck and re-open Wall to update."
+    - `'selection'` → "Renders the cards in your current Find selection. Adjust the selection and re-open Wall to update."
+    - `'public'` → "Renders the cards in this public collection. The owner can share or save the image too."
+    - default (Collection scope) → unchanged.
+  - `openCardsWallSheet({ title, cards, context })` — new optional `context` param; defaults to `'selection'` since that's the dominant caller (Find multi-select via app.js:3302).
+  - `openDeckWallSheet({ deckName, cards })` — wrapper now explicitly passes `context: 'deck'`.
+  - `js/app.js::renderPublicCollection` — Wall button now passes `context: 'public'`.
+- **Verified:** node -c clean. Trace: Wall from Decks → deck footer. From Find multi-select → selection footer. From public collection → public footer. From Collection (no context) → designation footer.
+- **PARITY.md:** No row.
+
 ### Tick 46 — 2026-05-20 — Wall view footer-note: context-aware copy
 - **Picked:** Audit found the wall-footer-note copy was always Collection-flavored: "Renders the cards in the current designation. Tap a card on the Collection tab to add or remove copies first, then re-open Wall." Wrong when Wall is invoked from Decks ("Generate deck wall" — tick 9) or Find multi-select ("Wall these N cards" — tick 10) — those invocations have nothing to do with designations.
 - **Shipped:**

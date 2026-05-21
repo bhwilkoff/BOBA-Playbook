@@ -619,17 +619,23 @@ const Collection = (() => {
     return Number.isFinite(n) && n > 0 ? n : null;
   }
 
-  /// Open the Wall dialog. Two callers:
+  /// Open the Wall dialog. Callers:
   ///   - Collection (default): `{ designation, cards }` where cards
   ///     are user_card rows. Price overlay enabled per designation.
-  ///   - Decks: `{ context: 'deck', title, cards }` where cards are
-  ///     catalog Cards directly. Price overlay disabled (deck cards
-  ///     aren't designation-scoped). Title from caller (deck name).
+  ///   - Catalog-card callers: `{ context: 'deck'|'selection'|'public', title, cards }`
+  ///     where cards are catalog Cards directly. Price overlay disabled.
+  ///     `context` sub-tags drive the footer-note copy:
+  ///       - 'deck'      → "your current deck" (practice.js Decks Wall)
+  ///       - 'selection' → "your current selection" (Find multi-select)
+  ///       - 'public'    → "this user's public collection" (public-collection page)
   async function openWallSheet({ designation, cards, context, title }) {
     const overlay = document.getElementById('wall-overlay');
     if (!overlay) return;
 
-    const isDeckContext = context === 'deck';
+    // Any catalog-cards-mode context disables price overlay + skips
+    // user-card-row resolution; the sub-tag drives the footer copy.
+    const isCatalogContext = context === 'deck' || context === 'selection' || context === 'public';
+    const isDeckContext = isCatalogContext;
 
     const titleInput  = document.getElementById('wall-title-input');
     const canvas      = document.getElementById('wall-canvas');
@@ -734,14 +740,20 @@ const Collection = (() => {
         truncNote.textContent = '';
       }
     }
-    // Footer-note copy is context-specific — Collection wants the
-    // designation guidance, Decks wants the deck-content reminder,
-    // Find multi-select wants the "your selection" framing.
+    // Footer-note copy is context-specific.
     const footerNote = document.getElementById('wall-footer-note');
     if (footerNote) {
-      footerNote.textContent = isDeckContext
-        ? 'Renders the cards in your current deck. Edit the deck and re-open Wall to update.'
-        : 'Renders the cards in the current designation. Tap a card on the Collection tab to add or remove copies first, then re-open Wall.';
+      let copy;
+      if (context === 'selection') {
+        copy = 'Renders the cards in your current Find selection. Adjust the selection and re-open Wall to update.';
+      } else if (context === 'public') {
+        copy = "Renders the cards in this public collection. The owner can share or save the image too.";
+      } else if (context === 'deck') {
+        copy = 'Renders the cards in your current deck. Edit the deck and re-open Wall to update.';
+      } else {
+        copy = 'Renders the cards in the current designation. Tap a card on the Collection tab to add or remove copies first, then re-open Wall.';
+      }
+      footerNote.textContent = copy;
     }
 
     // Off-screen render plan. Square canvas, grid of card thumbs
@@ -3494,17 +3506,18 @@ const Collection = (() => {
   /// a title. Price overlay is disabled (no designation context).
   /// Used by Decks ("Generate deck wall") and Find multi-select
   /// ("Wall these N cards"). Both surfaces are DESIGN.md §8.8.
-  function openCardsWallSheet({ title, cards }) {
+  function openCardsWallSheet({ title, cards, context }) {
     return openWallSheet({
-      context: 'deck',
+      // Default to 'selection' since the bulk of callers are Find
+      // multi-select. Decks + public-collection pass their own.
+      context: context || 'selection',
       title: title,
       cards: cards || [],
     });
   }
-  // Backward-compat alias from tick 9 — same shape, deck-flavored
-  // signature. Practice.js still calls this name.
+  // Backward-compat alias from tick 9 — practice.js calls this name.
   function openDeckWallSheet({ deckName, cards }) {
-    return openCardsWallSheet({ title: deckName, cards });
+    return openCardsWallSheet({ title: deckName, cards, context: 'deck' });
   }
 
   return {

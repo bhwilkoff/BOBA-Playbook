@@ -2917,3 +2917,19 @@ Both flow into a single tick 192 commit. Bump v2.293 / build 555.
 - **Verified supabase-kt 3.0.2 API:** `Order.DESCENDING` exists; `select(columns) { order(column = "...", order = Order.DESCENDING) }` is the right shape (SelectRequestBuilder extends PostgrestRequestBuilder which exposes `order(...)`).
 - **PARITY:** keeping ✅ Android (the row functionally shows the user's shows now), but the note will need an honest update — show creation + per-show wall on Android is still M2 polish.
 - **Next:** tick 202 = iOS (cadence). Pick #4 (format-legality chip) or #3 (glossary tooltips) for iOS to keep the cross-platform parity sweep going.
+
+---
+
+## Loop stopped at tick 201 — 2026-05-21
+
+Ben asked to stop after pending work; no new ticks scheduled. Final state:
+- **Last shipped:** tick 201 (8515d6a) — Android Shows fetch + render.
+- **Tick 202 (iOS) NOT shipped.** Was queued for #4 (format-legality chip) or #3 (glossary tooltips) iOS port.
+- **Open punch-list items** for the next loop session:
+  - #3 (glossary tooltips inline in Learn articles) — iOS + web
+  - #4 (format-legality chip) — iOS + web
+  - #6 (Wanted-list public sharing `/u/{handle}/wanted`) — backend + iOS toggle + web render
+  - #8 (events calendar) — iOS port (Android + web shipped)
+- **Skill captured:** `~/.claude/skills/autonomous-loop-cadence/SKILL.md` — encodes the cadence, opt-discipline, mining pattern, audit rule, version bumps, CI gates, and stop conditions battle-tested across ticks 100-201.
+
+Next session pickup pattern: `tail -80 AUTONOMOUS_PROGRESS.md`, then invoke the new `autonomous-loop-cadence` skill alongside `/loop`.

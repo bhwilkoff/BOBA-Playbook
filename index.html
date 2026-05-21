@@ -1782,6 +1782,16 @@
         <!-- ══ TOURNAMENT PANEL ════════════════════════════════════ -->
         <div id="play-panel-tournament" class="play-panel" hidden role="tabpanel" aria-labelledby="play-tab-tournament">
 
+          <!-- Tick 193 — Discord backlog #8 web parity (Android tick 191).
+               Populated from assets/data/events.json by app.js on tab
+               activate. Empty-state fallback shown when no events. -->
+          <section class="tournament-section">
+            <h3 class="tournament-heading">UPCOMING EVENTS</h3>
+            <div id="tournament-events-list" class="events-list" aria-live="polite">
+              <p class="events-empty">No events scheduled yet. Check back as the BoBA team announces dates.</p>
+            </div>
+          </section>
+
           <section class="tournament-section">
             <h3 class="tournament-heading">TOURNAMENT FORMATS</h3>
             <div class="rules-table-wrap">

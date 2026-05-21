@@ -778,8 +778,57 @@
         panels.forEach(p => {
           p.hidden = p.id !== `play-panel-${target}`;
         });
+        // Tick 193 — Discord backlog #8: hydrate the Upcoming Events
+        // list when the tab first activates. Cheap one-shot fetch of
+        // assets/data/events.json; renders inline.
+        if (target === 'tournament') hydrateTournamentEvents();
       });
     });
+
+    // Tick 193 — Discord backlog #8: Upcoming Events on Tournament
+    // tab. One-shot fetch of assets/data/events.json + render. Once
+    // hydrated, the function no-ops (idempotency via _eventsHydrated).
+    let _eventsHydrated = false;
+    async function hydrateTournamentEvents() {
+      if (_eventsHydrated) return;
+      _eventsHydrated = true;
+      const list = document.getElementById('tournament-events-list');
+      if (!list) return;
+      let bundle;
+      try {
+        const resp = await fetch('assets/data/events.json');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        bundle = await resp.json();
+      } catch (e) {
+        // Silently keep the empty-state placeholder; nothing to do.
+        return;
+      }
+      const events = Array.isArray(bundle?.events) ? bundle.events : [];
+      if (events.length === 0) return;  // keep empty-state placeholder
+      const accentFor = (kind) => {
+        switch ((kind || '').toLowerCase()) {
+          case 'release':    return 'var(--boba-cyan)';
+          case 'tournament': return 'var(--boba-orange)';
+          default:           return 'var(--boba-violet)';
+        }
+      };
+      list.innerHTML = events.map(ev => {
+        const accent = accentFor(ev.kind);
+        const date = (ev.date && ev.date.trim()) ? ev.date : 'Date TBA';
+        const loc = ev.location ? `<div class="event-loc">Location: ${escHtml(ev.location)}</div>` : '';
+        return `
+          <article class="event-row" style="border-color: ${accent}66">
+            <div class="event-head">
+              <span class="event-kind" style="color: ${accent}">${escHtml((ev.kind || '').toUpperCase())}</span>
+              <span class="event-dot">·</span>
+              <span class="event-date">${escHtml(date)}</span>
+            </div>
+            <h4 class="event-title">${escHtml(ev.title || '')}</h4>
+            <p class="event-desc">${escHtml(ev.description || '')}</p>
+            ${loc}
+          </article>`;
+      }).join('');
+    }
 
     // Glossary tap-to-copy — 3-platform parity with iOS tick 87 +
     // Android tick 84. Writes "term — definition" to the clipboard,

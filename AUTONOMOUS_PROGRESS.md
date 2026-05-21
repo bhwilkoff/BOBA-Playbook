@@ -2798,3 +2798,18 @@ Both flow into a single tick 192 commit. Bump v2.293 / build 555.
 - **Version:** v2.293 / build 555 (tandem bump per [[feedback_bump_marketing_and_build_in_tandem]]).
 - **Note:** Android CI fix for tick 191 (FontWeight import) shipped first as 133fd6b. Both ticks in this slot.
 - **Next:** tick 193 = web (cadence 193 % 5 = 3). Pick #4 (format-legality chip) or #3 (glossary tooltips) for web.
+
+### Tick 193 — 2026-05-21 — Web Tournament: Upcoming Events list (closes #8 trio)
+- **Verified Android CI on 133fd6b green** (FontWeight import landed clean).
+- **Web parity for Android tick 191 (#8):** Tournament tab now renders an "UPCOMING EVENTS" section above the existing tournament-formats table, populated from `assets/data/events.json` (same shared file the Android port reads).
+- **Implementation:**
+  - HTML: new `<section class="tournament-section">` with `<div id="tournament-events-list">` + empty-state placeholder fallback.
+  - JS: `hydrateTournamentEvents()` — one-shot fetch + render, gated on `_eventsHydrated` for idempotency. Fires when the Tournament `.play-tab` activates. Silently keeps the empty-state if fetch fails or events array is empty.
+  - Per-event card: kind label (release=cyan / tournament=orange / community=violet, color matches Android port) + date or "Date TBA" + title + description + optional location.
+  - CSS: `.events-list`, `.event-row` (1px brand-tinted border + surface bg), `.event-kind / .event-date / .event-title / .event-desc / .event-loc`.
+- **Verified:** `node -e "new Function(fs.readFileSync('js/app.js'))"` syntax OK.
+- **Punch-list #8:** ✅ Android · ⏳ iOS · ✅ web. iOS port still pending (next iOS tick); but the data file works for it the moment iOS hooks in.
+- **Backlog progress:**
+  - 3 items closed across all 3 platforms (#2, #5, partially #8 needs iOS)
+  - 5 items still need iOS+web (#1 done all 3, #3 #4 #7 ⏳ iOS+web)
+- **Next:** tick 194 = Android (cadence 194 % 5 = 4). Pick a different Android-uncovered surface OR start the multi-platform infra for #6 (Wanted-list sharing) since it's the biggest unscoped backlog.

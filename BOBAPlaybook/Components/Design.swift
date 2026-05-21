@@ -225,6 +225,10 @@ enum HintID: String, CaseIterable {
     /// Surfaces when a play with cost ≥3 is added — coaches use the
     /// "10-points-per-HD" heuristic.
     case hdValueHeuristic        = "hint.hd_value_heuristic"
+    /// First Glossary visit — tells coaches the term rows are tap-to-copy
+    /// (handy for pasting "term — definition" into Discord / game-night
+    /// chat). Mirrors Android tick 84.
+    case glossaryTapToCopy       = "hint.glossary_tap_to_copy"
 }
 
 @Observable

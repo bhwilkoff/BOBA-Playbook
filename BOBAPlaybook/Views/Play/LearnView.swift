@@ -16,6 +16,7 @@
 //
 
 import SwiftUI
+import UIKit  // UIPasteboard + UINotificationFeedbackGenerator for Glossary tap-to-copy
 
 // ════════════════════════════════════════════════════════════════
 // MARK: - Category model
@@ -1630,6 +1631,11 @@ private struct GlossaryView: View {
         var id: String { term }
     }
 
+    /// Tapped term ID briefly highlights green + shows a checkmark
+    /// so the user sees the copy registered. Cleared on a 1.2s
+    /// timer (mirrors the Android Toast feedback window from tick 84).
+    @State private var copiedTermId: String?
+
     private let gameTerms: [Term] = [
         .init(term: "Coach",       definition: "How a BoBA player refers to themselves in any gameplay setting. You lead a squad of heroes into battle — the Heroes bring the power, you bring the strategy."),
         .init(term: "Honors",      definition: "The right to act first in a battle — choose to substitute first, play first, and resolve first. After each battle, Honors passes to the battle winner."),
@@ -1672,11 +1678,35 @@ private struct GlossaryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Design.Spacing.xl) {
+                // First-visit hint banner — same shape as Android tick 84.
+                // Tells coaches the term rows are tap-to-copy.
+                HintBanner(
+                    id: .glossaryTapToCopy,
+                    title: "Tap a term to copy it",
+                    message: "Tap any glossary term to copy the term + definition. Handy when you want to quote it in Discord or a coaching note."
+                )
                 glossarySection(title: "GAME GLOSSARY",    blurb: "Terms you'll hear in rules discussions, deck building, and battle flow.", terms: gameTerms)
                 glossarySection(title: "TRADING GLOSSARY", blurb: "Community shorthand used in the Discord trade room, Whatnot streams, and eBay listings.", terms: tradingTerms)
             }
             .padding(Design.Spacing.lg)
             .padding(.bottom, Design.Spacing.xxl)
+        }
+    }
+
+    /// Copy the term to the system pasteboard, fire a soft haptic, and
+    /// flash the checkmark next to the tapped row for 1.2s. Mirrors
+    /// Android tick 84's Toast-confirmation flow.
+    private func copyTerm(_ t: Term) {
+        UIPasteboard.general.string = "\(t.term) — \(t.definition)"
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation(.easeOut(duration: 0.15)) {
+            copiedTermId = t.id
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            if copiedTermId == t.id {
+                withAnimation(.easeIn(duration: 0.2)) { copiedTermId = nil }
+            }
         }
     }
 
@@ -1689,18 +1719,37 @@ private struct GlossaryView: View {
                 .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
             VStack(spacing: 1) {
                 ForEach(terms) { t in
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(t.term)
-                            .font(Design.Fonts.mono(13, weight: .bold))
-                            .foregroundStyle(Design.Colors.bobaCyan)
-                        Text(t.definition)
-                            .font(Design.Fonts.mono(12))
-                            .foregroundStyle(Design.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                    Button {
+                        copyTerm(t)
+                    } label: {
+                        HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(t.term)
+                                    .font(Design.Fonts.mono(13, weight: .bold))
+                                    .foregroundStyle(Design.Colors.bobaCyan)
+                                Text(t.definition)
+                                    .font(Design.Fonts.mono(12))
+                                    .foregroundStyle(Design.Colors.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer(minLength: 0)
+                            // Inline checkmark flashes for ~1.2s on tap
+                            // so coaches see the copy registered. Mirrors
+                            // the Android Toast feedback window.
+                            if copiedTermId == t.id {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(Color(hex: "4CAF50"))
+                                    .font(.system(size: 16))
+                                    .transition(.opacity)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(Design.Spacing.md)
+                        .background(Design.Colors.surface)
+                        .contentShape(Rectangle())
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(Design.Spacing.md)
-                    .background(Design.Colors.surface)
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Copies the term and definition to your clipboard")
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))

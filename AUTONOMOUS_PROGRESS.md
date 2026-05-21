@@ -76,6 +76,22 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 81 — 2026-05-20 — **Android** — Custom Rainbow editor: full 7-dimension parity
+- **Cadence:** 81 % 5 = 1 → Android.
+- **Picked:** PARITY.md line 111 read "✅ basic (3 dimensions)" for Android Custom Rainbows. Web tick 16 + iOS surface all 7 criterion dimensions; Android editor only had Heroes / Weapons / Treatments + Inspired Ink. The remaining 4 dimensions (Sets / Sub-sets / Releases / Card types) were already in the data layer (`RainbowCriteria` already had them; `toJsonString`/`fromJson` already round-tripped). The editor UI was the gap.
+- **Shipped:**
+  - `CustomRainbowEditorSheet.kt`:
+    - 4 new `rememberSavedSet` state vars (`sets`, `subSets`, `releases`, `cardTypes`) pre-filled from `existing?.criteria` so edit mode round-trips cleanly.
+    - 4 new option-derivation `remember(catalog) { ... }` blocks — pulled from `Card.set` / `Card.subSet` / `Card.release` / `Card.cardType`, distinct + sorted, capped at 40 for sub-sets to keep the picker manageable on phones.
+    - 4 new `BOBASectionHeader + ChipsPicker` sections in the scrollable column body — same shape as the existing Weapons / Heroes / Treatments sections.
+    - Save payload extended to populate all 4 new fields on the `RainbowCriteria` constructor.
+    - Header comment updated to reflect full parity (was "Sets / Sub-sets / Releases land in a polish pass").
+- **Verified:** Card fields confirmed at `core/domain/model/Card.kt:33-39`. RainbowCriteria already had all 8 fields at `CustomRainbowRepository.kt:142`. `toJsonString` already serializes all 8 keys (lines 156-162). `fromJson` already round-trips (line 173+). No schema migration needed — the data layer was always ready.
+- **PARITY.md:** Line 111 flipped from "✅ basic (3 dimensions)" to "✅" with the tick-81 note + the 7-dimension list spelled out.
+- **Next:** tick 82 = iOS; 83 = web; 84 = Android; 85 = opt.
+
+
+
 ### Tick 80 — 2026-05-20 — **OPTIMIZATION TICK (7th 1-in-5)** — Android orphan `onProfileClick` param
 - **Cadence:** opt rotation. Web 4 opt ticks (50/55/70/75). iOS 1 (65). Android 2 (60/75). Bias toward iOS or Android. Picked Android — clean orphan signal.
 - **Shipped:**

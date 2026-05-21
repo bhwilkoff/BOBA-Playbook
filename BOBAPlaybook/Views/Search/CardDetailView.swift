@@ -296,7 +296,9 @@ struct CardDetailView: View {
             // DESIGN.md §6.6 — anchored to the toolbar Add menu's
             // chosen item. Compact width keeps sheet behavior.
             .sheet(isPresented: $showingAddSheet) {
-                AddToCollectionSheet(card: card)
+                AddToCollectionSheet(card: card) { designationLabel in
+                    showAddedToDeckToast("Added to \(designationLabel)")
+                }
                     .presentationCompactAdaptation(.popover)
             }
             .sheet(isPresented: $showingAddToDeck) {

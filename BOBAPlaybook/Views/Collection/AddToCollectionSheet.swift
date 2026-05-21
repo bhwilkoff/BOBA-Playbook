@@ -7,6 +7,12 @@ import SwiftUI
 
 struct AddToCollectionSheet: View {
     let card: Card
+    /// Fires on a successful save (after the addCard write returns).
+    /// Caller is expected to render a confirmation toast — without it
+    /// the user gets only the sheet-dismiss animation, no signal that
+    /// the write actually landed. Parity with the AddToDeckSheet
+    /// callback at CollectionCardDetailView.swift:242.
+    var onAdded: ((_ designationLabel: String) -> Void)? = nil
 
     @Environment(AuthManager.self) private var auth
     @Environment(CollectionStore.self) private var collection
@@ -283,6 +289,11 @@ struct AddToCollectionSheet: View {
         Task {
             do {
                 try await collection.addCard(new)
+                // Fire the callback BEFORE dismiss so the caller can
+                // queue the toast on the host view that owns the
+                // `addedToDeckName`-equivalent state. Swallowed if no
+                // caller passed onAdded.
+                onAdded?(designation.displayName)
                 dismiss()
             } catch {
                 saveError = error.localizedDescription

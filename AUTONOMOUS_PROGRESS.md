@@ -76,6 +76,17 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 125 — 2026-05-20 — **OPTIMIZATION TICK (16th 1-in-5)** — orphan iOS isOwned(cardNumber) overload
+- **Cadence:** opt rotation. Web 5 · iOS 7 · Android 3 across opt ticks. Bias-toward-Android couldn't find a clean orphan; settled on iOS.
+- **Picked:** `CollectionStore.swift::isOwned(_ cardNumber: String)` — 3-line overload that pre-dates the bobaId addition. `grep -rn .isOwned(` across BOBAPlaybook returned only `.isOwned(bobaId:)` calls — the unlabeled `(_ cardNumber:)` overload had zero callers. Confirmed via second grep (`grep .isOwned(` excluding bobaId pattern) — empty.
+- **Shipped:** Removed the 3-line orphan + its 1-line doc comment.
+- **Verified:** Final grep returns 0 hits for non-bobaId `isOwned(...)` calls. `isOwned(bobaId:)` (the canonical method) untouched + still used in 5 call sites across CollectionCardDetailView + CardDetailView.
+- **Line-count delta:** -4 lines.
+- **Cumulative across 16 optimization ticks:** -182 lines (50: -26 · 55: -24 · 60: -9 · 65: -6 · 70: -28 · 75: -8 · 80: -2 · 85: -23 · 90: -19 · 95: -6 · 100: -1 · 105: -2 · 110: -13 · 115: -1 · 120: -10 · 125: -4).
+- **Next:** tick 126 = Android; 127 = iOS; 128 = web; 129 = Android; 130 = opt.
+
+
+
 ### Tick 124 — 2026-05-20 — **Android** — Manage Decks delete: Undo Snackbar (replaces "Can't be undone" copy)
 - **Cadence:** 124 % 5 = 4 → Android.
 - **Picked:** Manage Decks delete dialog said "This removes the deck from every device. Can't be undone." — TRUE for the Supabase row identity (the delete is hard) but FALSE for the data (deck name + cards are recoverable from the SavedDeck snapshot the UI just rendered from). Three-platform parity tick (iOS Decks tick 117 + Android Decks tick 116 + web Decks tick 118 all shipped Undo Snackbars; Manage Decks was the holdout).

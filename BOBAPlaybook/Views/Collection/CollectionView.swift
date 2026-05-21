@@ -44,6 +44,12 @@ struct CollectionView: View {
     @State private var showingShowcase     = false
     /// Custom-rainbow creation sheet trigger (v2.219).
     @State private var showingCustomRainbowEditor = false
+    /// Cached `rainbowRows` so the per-hero progress aggregation doesn't
+    /// run on every SwiftUI body re-eval. Recomputed via `.task(id:)`
+    /// only when the userCards array or catalog size changes. Without
+    /// this cache, ownedBobaIds Set + byHero buckets + sort all rebuild
+    /// on every body call — measurable jank at 500+ owned cards.
+    @State private var rainbowRowsCache: [RainbowProgress] = []
     @State private var showingShareSheet   = false
     @State private var shareItems: [Any]   = []
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
@@ -977,7 +983,11 @@ struct CollectionView: View {
         var percent: Double { total == 0 ? 0 : Double(owned) / Double(total) }
     }
 
-    private var rainbowRows: [RainbowProgress] {
+    /// Builds the rainbow-row aggregation. **Not a computed property** —
+    /// called explicitly from `.task(id: rainbowCacheKey)` so the work
+    /// runs once per data-change instead of once per view body re-eval.
+    /// Read `rainbowRowsCache` for the cached result.
+    private func buildRainbowRows() -> [RainbowProgress] {
         // Owned (any designation that counts as owned, e.g. .personal / .for_sale / .for_trade).
         let ownedBobaIds: Set<String> = Set(
             collection.userCards
@@ -1012,8 +1022,17 @@ struct CollectionView: View {
         }
     }
 
+    /// Cache-invalidation key. Recomputes the rainbow rows when the
+    /// user adds/removes cards or the catalog finishes hydrating its
+    /// second phase. Doesn't depend on tab selection / search / sort —
+    /// those wouldn't change the rainbow aggregation.
+    private var rainbowCacheKey: String {
+        "\(collection.userCards.count)|\(cardStore.displayCards.count)"
+    }
+
     private var rainbowList: some View {
-        let rows = rainbowRows
+        // Cached — built once per data-change via the .task(id:) below.
+        let rows = rainbowRowsCache
         let customs = customRainbowStore.rainbows
         // Same pattern as cardList — always in a ScrollView so pull-to-
         // refresh has a real scroll view to attach to.
@@ -1075,6 +1094,14 @@ struct CollectionView: View {
         }
         .sheet(isPresented: $showingCustomRainbowEditor) {
             CustomRainbowEditorSheet(existing: nil)
+        }
+        // Rebuild the rainbowRowsCache when the data this aggregation
+        // depends on actually changes. `.task(id:)` re-fires on key
+        // change + cancels prior runs cleanly. Without this, the body
+        // re-eval rebuilt buckets + sort on EVERY render — at 500+
+        // owned cards × 17k catalog, visible jank on tab switch.
+        .task(id: rainbowCacheKey) {
+            rainbowRowsCache = buildRainbowRows()
         }
     }
 

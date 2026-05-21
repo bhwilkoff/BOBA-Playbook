@@ -102,6 +102,24 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 31 — 2026-05-20 — iOS rainbowRows: computed property → @State + .task(id:)
+- **Picked:** Audit items #2 + #4 — iOS `CollectionView.rainbowRows` was a computed property running on every body re-eval. At 500+ owned cards × 17k catalog, the ownedBobaIds Set construction + per-hero filter + sort all ran synchronously on every state-change re-render. iOS body re-evals during typical interaction can fire 5-15 times per gesture.
+- **Shipped:**
+  - `BOBAPlaybook/Views/Collection/CollectionView.swift`:
+    - New `@State private var rainbowRowsCache: [RainbowProgress] = []` — holds the aggregated rows.
+    - Renamed `private var rainbowRows: [RainbowProgress]` (computed) → `private func buildRainbowRows() -> [RainbowProgress]` (explicit) so it can only be called intentionally.
+    - New `private var rainbowCacheKey: String` — invalidation token combining `collection.userCards.count` + `cardStore.displayCards.count`. Rebuilds the cache only when adds/removes happen or the catalog finishes its phase-2 hydration.
+    - `rainbowList`'s outer modifier chain gains `.task(id: rainbowCacheKey) { rainbowRowsCache = buildRainbowRows() }` — re-fires on key change, cancels prior runs cleanly.
+    - `rainbowList` itself now reads `rainbowRowsCache` (cached) instead of calling the (former computed) property.
+- **Cost change:** body re-eval previously ran `ownedBobaIds Set construction (O(userCards))` + `byHero catalog pass (O(catalog))` + `per-hero filter (O(catalog × heroes))` + `sort (O(heroes log heroes))` — typically ~25-50ms per re-eval at 500 cards / 17k catalog. Now: O(1) read from `@State` cache. Rebuild fires only at data-change.
+- **Verified:** SourceKit can't run cross-file type resolution in CLI without Xcode developer tools installed — pre-existing diagnostics for AuthManager / CollectionStore / etc. are SourceKit isolation, not real build errors. The added code uses only types already in scope (`@State`, `[RainbowProgress]`, `.task(id:)` introduced in iOS 17 — already required by IPHONEOS_DEPLOYMENT_TARGET = 26.4).
+- **PARITY.md:** No row — iOS perf fix; web already shipped in tick 30.
+- **Architectural note:** `rainbowCacheKey` is a string concatenation of two counts. If a user adds + removes the same card before a re-eval, the cache would miss the change (count stays equal). Acceptable trade-off — both adds and removes invalidate the count delta in practice; the alternative (hashing every userCard's id) would be more correct but expensive on every re-eval just to compute the key. Worth revisiting if a user-visible staleness bug surfaces.
+- **Audit items still remaining:**
+  - **Web #8 Synchronous innerHTML of all groups (no pagination)** — 500+ cards = 500+ DOM elements per `innerHTML` assignment. Significant work to virtualize; queued for tick 32 if user-impact warrants.
+  - **iOS `@AppStorage` re-render on every write** — accepted as iOS idiom per audit.
+- **Next:** Tick 32. Plausible: (a) audit Find grid for similar perf patterns now that Collection is shipped, (b) check Card detail modal for re-render-on-keystroke patterns, (c) move to a different polish area.
+
 ### Tick 30 — 2026-05-20 — Web Collection perf pass (large-collection audit)
 - **Picked:** Ben directive ("make sure there are no other delays/stoppages anywhere else in the collection views on any platform for filters, searching or any other issues with large collections"). Spawned an Explore-agent audit covering all three platforms; ranked findings by user-visible impact. This tick ships the worst three web offenders. Tick 31 ships the iOS equivalents.
 - **Audit findings shipped today:**

@@ -1065,7 +1065,7 @@ struct ShowcaseControlPanel: View {
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .tracking(1.5)
                     .foregroundStyle(.white.opacity(0.6))
-                Text("\(session.rows) rows · \(session.cards.count) cards in pool")
+                Text("\(session.rows) rows · \(session.cards.count) cards showing")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(.white)
             }

@@ -90,6 +90,9 @@ Strip every `.presentationBackground` modifier. Let the system apply inset Liqui
 ### 3.11 Hand-rolled scroll-edge fade overlays
 Use `.scrollEdgeEffectStyle(.soft|.hard, for: .top)` — iOS 26 native. `.hard` for dense scrolls (card grids), `.soft` for reading content.
 
+### 3.12 The word "pool" to describe cards
+**Never.** Card-game jargon collides with BOBA's collector-first audience. The Decks browsing surface is the **card browser** (or **library**, **catalog**, **your collection** depending on scope). UI copy, labels, placeholders, aria-labels, docs, commits — none use "pool" for cards. Internal code identifiers (`dbRenderGrid`, `_dbBrowser`, `.db-browser-grid`) are exempt — they're not user-visible and renaming is more churn than value. Tournament "pools" (groups of teams in round-robin) is a separate canonical sports term and stays.
+
 ---
 
 ## 4. Density rules
@@ -112,7 +115,7 @@ Each is testable in code review.
 3. **Variants mutually exclusive.** `.regular` (default) · `.clear` (only when bg is media-rich, dim doesn't hurt, fg is bold+bright) · `.identity` (toggle off without layout shift).
 4. **Tinting = primary action only.** Save button gets a tint; deck name field doesn't.
 5. **Strip custom presentation backgrounds.** Sheets get inset Liquid Glass automatically. ([WWDC25 323](https://developer.apple.com/videos/play/wwdc2025/323/))
-6. **`scrollEdgeEffectStyle(.hard)` for dense scrolls** (Find / Decks pool / Collection grids — Calendar is the canonical reference). `.soft` for reading. ([createwithswift](https://www.createwithswift.com/define-the-scroll-edge-effect-style-of-a-scroll-view-for-liquid-glass/))
+6. **`scrollEdgeEffectStyle(.hard)` for dense scrolls** (Find / Decks card browser / Collection grids — Calendar is the canonical reference). `.soft` for reading. ([createwithswift](https://www.createwithswift.com/define-the-scroll-edge-effect-style-of-a-scroll-view-for-liquid-glass/))
 7. **Never hard-code glass opacity.** Test all chrome at every iOS 26.1+ Tinted Mode setting; bottom-row grid cells must remain readable when tab bar is near-opaque.
 8. **Test Reduce Transparency / Reduce Motion / Increase Contrast on.** iOS auto-adjusts; don't override — verify content survives.
 9. **Glass over uncontrolled bg (card art) requires `.tint()`** anchored against dominant hue. Without it, material reads muddy.
@@ -125,7 +128,7 @@ Each is testable in code review.
 iOS 26's `Tab(role: .search)` + `.searchable` are the center of every dense view.
 
 1. **Find = `Tab(role: .search)`** (full-screen expansion, tab bar minimizes during search). Don't use plain `.searchable` at the top of a regular tab. ([WWDC25 323](https://developer.apple.com/videos/play/wwdc2025/323/), [nilcoalescing](https://nilcoalescing.com/blog/SwiftUISearchEnhancementsIniOSAndiPadOS26/))
-2. **Every other tab `.searchable` over its own domain.** Decks = decks + pool. Learn = articles + glossary. Collection = owned cards. Purchase = stores + breaks.
+2. **Every other tab `.searchable` over its own domain.** Decks = decks + browser. Learn = articles + glossary. Collection = owned cards. Purchase = stores + breaks.
 3. **`searchScopes` for orthogonal axes** (Cards vs Heroes vs Decks) — appears only when search is active.
 4. **Search tokens for filter narrowing.** `BOBAFilterToken` enum (hero/element/treatment/cost/format/set). Replaces filter-pill rows.
 5. **`searchSuggestions` for partial queries.** "MAVE" → "Maverick"; "RBF-" → "RBF-72 Maverick (Red Battlefoil)".
@@ -191,7 +194,7 @@ iPad ships as first-class. Every new view declares its regular-width adaptation;
 
 **TabView style.** Do NOT apply `.tabViewStyle(.sidebarAdaptable)`. iPadOS 26's sidebar mode (which `.sidebarAdaptable` opts into) puts the tab list in a left sidebar, which then visually competes with our per-tab `NavigationSplitView` sidebars (saved decks, lens picker, mode picker, category list). Floating tab pill stays on every device; iPad gets richer in-tab navigation via per-tab `NavigationSplitView` than the system tab sidebar (which is just 5 tab names) would provide.
 
-**Decks on iPad is canonical:** 3-column `NavigationSplitView` (saved decks | pool | current deck w/ stats+legality+rules inline). Same verb, same components; different spatial arrangement.
+**Decks on iPad is canonical:** 3-column `NavigationSplitView` (saved decks | browser | current deck w/ stats+legality+rules inline). Same verb, same components; different spatial arrangement.
 
 **Don't fork per-platform.** Use `@Environment(\.horizontalSizeClass)`, `NavigationSplitView`/`NavigationStack` swap, `.adaptive` LazyVGrid. One hierarchy, size-class-responsive — never two parallel view hierarchies.
 
@@ -211,7 +214,7 @@ Overlays MUST read `safeAreaInsets` from a GeometryReader at the root. Never har
 
 A corner cell zooming to a 1024pt destination reads as broken — the "slingshot" travels too far and the 200pt thumbnail can't sample 1024pt of detail cleanly. System push lets the wider canvas read as a destination, not the same cell expanded.
 
-Applies to Find / Decks pool / Collection / Learn cell taps and the Decks summary-pill → editor zoom. Not a content choice — a screen-size constraint.
+Applies to Find / Decks card browser / Collection / Learn cell taps and the Decks summary-pill → editor zoom. Not a content choice — a screen-size constraint.
 
 ---
 
@@ -356,22 +359,22 @@ to match. New tabs (if any) follow the same pattern templates.
 
 ### 8.3 Decks — the builder
 
-**Verb:** *build*. Card pool is contextual to current deck, separate from Find's exploration.
+**Verb:** *build*. Card browser is contextual to current deck, separate from Find's exploration.
 
-**Pattern (REVISED 2026-05-04):** Music's mini-player + fullScreenCover with hero zoom. Card pool = canvas; current deck = non-draggable summary pill that zooms into full-screen editor on tap. **The Maps-canvas-with-sheet pattern was abandoned after 12+ iterations of fighting custom-drawer flash** — see §1.0 native first. Drag was the problem; tap → zoom-into-editor is the answer.
+**Pattern (REVISED 2026-05-04):** Music's mini-player + fullScreenCover with hero zoom. Card browser = canvas; current deck = non-draggable summary pill that zooms into full-screen editor on tap. **The Maps-canvas-with-sheet pattern was abandoned after 12+ iterations of fighting custom-drawer flash** — see §1.0 native first. Drag was the problem; tap → zoom-into-editor is the answer.
 
 **Anatomy:**
-- **Canvas:** full-screen card pool grid using `BOBACardGridItem`. `.scrollEdgeEffectStyle(.hard, for: .top)`.
+- **Canvas:** full-screen card browser grid using `BOBACardGridItem`. `.scrollEdgeEffectStyle(.hard, for: .top)`.
 - **Summary pill:** non-draggable `DeckSummaryPill` via `.safeAreaInset(edge: .bottom)`. Shows draft name + section breakdown (`8/8 H · 30/30 P · 6 BP · 10/10 HD`) + format badge. Empty: "Build a deck · Tap to open the editor."
 - **Pill → editor:** `.fullScreenCover` + `.matchedTransitionSource(id:"deck-draft",in:ns)` paired with `.navigationTransition(.zoom(...))`. Photos-app hero zoom.
 - **Editor:** `NavigationStack(path: $editorPath)` — deck header (name + stats), format chip strip, grouped list. Toolbar: Close leading + SAVE/SIGN IN trailing + ⋯ Menu (Manage Decks, Rules, Legality, Clear).
 - **Editor secondary surfaces:** Manage Decks / Rules / Legality push as NavigationLinks within the editor's NavigationStack — NOT stacked sheets. Each sheet struct accepts `wrapInNavStack: Bool = true` so it works as sheet OR destination.
-- **Pool filter:** native `.searchable(text:tokens:suggestedTokens:placement:.navigationBarDrawer(.always))` with `BOBAFilterToken` (weapon/cost/hero). Tap bar → suggested tokens.
+- **Browser filter:** native `.searchable(text:tokens:suggestedTokens:placement:.navigationBarDrawer(.always))` with `BOBAFilterToken` (weapon/cost/hero). Tap bar → suggested tokens.
 - **Card tap:** NavigationLink push to detail + zoom (§8.6). **Long-press:** adds to draft (canonical add gesture).
-- **Pool toolbar:** wordmark principal + ⋯ Menu (1/2/3 columns, Scan, walkthrough). NO Save on pool — Save lives in editor.
+- **Browser toolbar:** wordmark principal + ⋯ Menu (1/2/3 columns, Scan, walkthrough). NO Save in the browser — Save lives in the editor.
 - **Grid density:** `@AppStorage("bp_decksGridColumns_v1")` defaults 3. 1/2-across pulls full-size images.
 - **Empty state:** template gallery in editor.
-- **Scan:** lives in pool ⋯ Menu; results land in active draft via scanStore queue.
+- **Scan:** lives in browser ⋯ Menu; results land in active draft via scanStore queue.
 
 **Anti-patterns:** custom/draggable drawer (iOS 26 has no native one that keeps tab bar visible — use fullScreenCover-from-pill OR standard `.sheet + .presentationDetents` that hides tab bar). Quick-add toggle. Per-tab status banner. Sheets stacked on editor (push as NavigationDestination instead). At most one sheet at a time.
 
@@ -419,7 +422,7 @@ options is within the ≤4 segmented limit.
 
 ### 8.6 Card detail surface — the universal card view
 
-Pushed from Find, Decks (pool tap), Collection (cell tap). Three structs (`CardDetailView`, `BrowserCardDetailSheet`, `CollectionCardDetailView`) share artPanel + toolbar verbatim — only body content below differs.
+Pushed from Find, Decks (browser tap), Collection (cell tap). Three structs (`CardDetailView`, `BrowserCardDetailSheet`, `CollectionCardDetailView`) share artPanel + toolbar verbatim — only body content below differs.
 
 **Pattern:** Music-style hero zoom into NavigationLink-pushed view (NOT sheet). Source uses `.matchedTransitionSource(id:in:)` as OUTERMOST modifier; destination uses `.navigationTransition(.zoom(sourceID:in:))`.
 

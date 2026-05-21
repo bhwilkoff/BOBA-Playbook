@@ -102,6 +102,24 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 36 — 2026-05-20 — "No 'pool' for cards" terminology sweep + binding doc rule
+- **Picked:** Ben directive interrupt: "pool is never the word to use to describe cards. Please make a note and keep on looping." Second time this came up. The codebase + binding docs had ~25 user-facing / doc references to "pool" describing cards (deck-builder browsing surface mostly). Sweep + codify in binding docs + save the rule to memory.
+- **Shipped:**
+  - **Memory:** new `feedback_no_pool_terminology.md` — binding terminology rule across UI / docs / commits. Canonical replacements: "card browser" (deck-builder browsing surface), "library", "catalog", "your collection". Internal code identifiers (function names, var names, CSS classes) exempt. Tournament "pools" (groups of teams) stays — different canonical sports term.
+  - **DESIGN.md:** new anti-pattern §3.12 "The word 'pool' to describe cards." 11 references → 0 across §§1.5, 6, 6.6, 8.3, 8.6.
+  - **WEB-DESIGN.md:** 4 references → 0 across §§7, 14.3.
+  - **ANDROID-DESIGN.md:** 10 references → 0 across §§6.9, 7, 8.3, 8.6, M4 milestone.
+  - **PARITY.md:** §4 row renames "Card pool" → "Card browser" + "Pool search + filter" → "Browser search + filter" + "Long-press add on pool" → "Long-press add on browser" + "3-column tablet layout (saved / pool / editor)" → "(saved / browser / editor)".
+  - **iOS user-facing strings:** `CollectionShowcaseView.swift:1068` "cards in pool" → "cards showing"; `LearnView.swift:1274` "Both draw from the same pool." → "Both come out of the same 10 hot dogs." (HD economy clarification, doesn't lose meaning).
+  - **Android user-facing strings:** `LearnContent.kt:550` "Pools of 4 round-robin" left as-is — tournament "pools" = groups of teams (canonical sports term), not cards.
+  - **SCRATCHPAD.md:** historical commit-summary entries left as-is — revising shipped-tick prose is archive churn.
+- **What stays "pool" (intentional):**
+  - Internal code identifiers (Swift / Kotlin / JS): `_dbBrowser` etc., function names, CSS classes — not user-visible.
+  - Practice mode game-mechanic terms (CPU Play Pool, Hero Pool) — these are technical game-engine vocab, not user-card vocabulary.
+  - Tournament "pools" (groups of teams in round-robin) — canonical sports term.
+- **Tick 36 was originally going to be:** Collection search clear-× button (mid-task interrupt). Re-queued for tick 37.
+- **Next:** Tick 37 — Collection search clear-× button (the original tick 36 plan).
+
 ### Tick 35 — 2026-05-20 — Web Decks pool search debounce
 - **Picked:** Audit continuation. Find search has 280ms debounce, Collection search shipped tick 34 with 220ms. Decks pool search at `js/practice.js:913` had **no debounce** — every keystroke triggered `dbFilterCards(allCards)` (17k catalog linear scan) + `dbRenderGrid` (full DOM rebuild of 180 cells). Fast typists could fire 6+ renders per second.
 - **Shipped:**

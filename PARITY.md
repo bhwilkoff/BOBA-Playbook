@@ -80,8 +80,8 @@ When shipping any user-facing feature:
 
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
-| Card pool (deck builder canvas) | ✅ | ✅ | ✅ | `LazyVerticalGrid` — Android shipped |
-| Pool search + filter | ✅ | ✅ | ✅ | Format chips + weapon/cost/hero |
+| Card browser (deck builder canvas) | ✅ | ✅ | ✅ | `LazyVerticalGrid` — Android shipped |
+| Browser search + filter | ✅ | ✅ | ✅ | Format chips + weapon/cost/hero |
 | Current deck summary | ✅ DeckSummaryPill | ✅ inline | ✅ DeckSummaryBar | Bottom-anchored |
 | Deck editor sheet w/ zoom | ✅ | ⏳ desktop pattern | ⏳ M4 polish | iOS shipped; web desktop split deferred; Android editor sheet shipped, `sharedBounds` zoom is polish |
 | Deck stats (counts + cost curve) | ✅ | ✅ | ✅ | Same canonical layout; Android DBS budget chip shipped overnight |
@@ -89,8 +89,8 @@ When shipping any user-facing feature:
 | Manage saved decks | ✅ | ✅ | ✅ | Android shipped: rename + search + PTR. Web shipped rename + search tick 13 (`deckRename` API + ✎ icon per row + `db-saved-decks-search` filter). Refresh button (web analog of PTR) added tick 14 — `_renderSavedDecksList` extracted so Refresh shares render path with Load; preserves active search filter across refresh. |
 | Rules + Legality push surfaces | ✅ | ✅ | ✅ | Push as destinations (not stacked sheets) |
 | Drag-and-drop add | ✅ iPad only | n/a | ⏳ M4 polish | `dragAndDropSource` + `dragAndDropTarget` |
-| Long-press add on pool | ✅ | n/a | ✅ | Canonical mobile add |
-| 3-column tablet layout (saved / pool / editor) | ✅ iPad | ⏳ desktop | ⏳ M4 polish | `NavigableListDetailPaneScaffold` 3-pane — in v1 from M4 per DECISIONS.md #047 |
+| Long-press add on browser | ✅ | n/a | ✅ | Canonical mobile add |
+| 3-column tablet layout (saved / browser / editor) | ✅ iPad | ⏳ desktop | ⏳ M4 polish | `NavigableListDetailPaneScaffold` 3-pane — in v1 from M4 per DECISIONS.md #047 |
 | Template gallery (empty editor) | ✅ | ✅ | ✅ | Web upgraded tick 11 — card-style 5-archetype gallery with per-archetype accent color (STEEL/ICE/CYAN/GLOW/BRAWL) matching iOS TemplateCard. |
 | Generate deck wall (share image) | ✅ | ✅ | 🔮 | Web shipped tick 9 — db-wall-btn in Decks toolbar reuses the shared canvas Wall pipeline (price overlay disabled for deck context). |
 | Walkthrough | ✅ | 🚫 | 🚫 | Same skip rule |

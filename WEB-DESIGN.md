@@ -321,8 +321,8 @@ Specifics:
   `<button>` that toggles a URL param.
 - **Learn:** in-view search input above the article list filters
   the corpus. URL param `?learn=...` reflects the query.
-- **Decks:** the deck-pool view inherits Find's search shape but
-  scoped to the current format's eligible cards.
+- **Decks:** the deck-builder card-browser view inherits Find's
+  search shape but scoped to the current format's eligible cards.
 - **Collection:** in-view search input filters owned cards.
   Combined with the active designation tab.
 
@@ -576,13 +576,13 @@ Collection.
 
 **Anatomy:**
 - Web does NOT replicate the iOS Music-pattern pill + zoom editor
-  (DESIGN.md §8.3). Web uses a side-by-side pool + slot pattern:
-  - Left column (~60% width on desktop): card pool grid with search
-    + format chips + filter chips.
+  (DESIGN.md §8.3). Web uses a side-by-side browser + deck pattern:
+  - Left column (~60% width on desktop): card-browser grid with
+    search + format chips + filter chips.
   - Right column (~40% width on desktop): current deck list
     grouped by Hero / Plays / Bonus / Hot Dogs with stat counts at
     top.
-- On mobile (<768px): pool and deck stack vertically; deck list
+- On mobile (<768px): browser and deck stack vertically; deck list
   appears in a `position: sticky` summary at the bottom that
   expands on tap into a `<dialog>` (the web analog of the iOS pill
   → fullScreenCover).

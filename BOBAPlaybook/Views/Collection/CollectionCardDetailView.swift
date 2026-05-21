@@ -233,7 +233,9 @@ struct CollectionCardDetailView: View {
             // button; sheet on compact.
             .sheet(isPresented: $showingAddSheet) {
                 if let card = catalogCard {
-                    AddToCollectionSheet(card: card)
+                    AddToCollectionSheet(card: card) { designationLabel in
+                        showAddedToDeckToast("Added to \(designationLabel)")
+                    }
                         .presentationCompactAdaptation(.popover)
                 }
             }

@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 102 — 2026-05-20 — **iOS** — AddToCollectionSheet fires onAdded toast (Android tick 96 parity)
+- **Cadence:** 102 % 5 = 2 → iOS.
+- **Picked:** iOS `AddToCollectionSheet` saved silently — `collection.addCard(new)` returned + the sheet dismissed, but the host view had no signal to fire the green-checkmark toast. Compare with `AddToDeckSheet` at the same call site (CollectionCardDetailView.swift:242 + CardDetailView.swift:303): both pass `{ name in showAddedToDeckToast(name) }` as a closure parameter. AddToCollectionSheet lacked the equivalent callback — by-design oversight from the sheet's original implementation. Android tick 96 just shipped the equivalent Snackbar — iOS parity gap.
+- **Shipped:**
+  - `AddToCollectionSheet.swift`:
+    - New property `var onAdded: ((_ designationLabel: String) -> Void)? = nil` — default-nil so unchanged callers stay source-compatible.
+    - `save()` fires `onAdded?(designation.displayName)` immediately before `dismiss()` on the success path. Failure path unchanged (the existing `saveError` text covers it).
+  - `CollectionCardDetailView.swift::sheet(isPresented: $showingAddSheet)` now passes `{ designationLabel in showAddedToDeckToast("Added to \(designationLabel)") }`. Reuses the existing toast helper (the helper's name says "Deck" but it's a generic green-checkmark renderer — same shape used for shows already at line 296).
+  - `CardDetailView.swift::sheet(isPresented: $showingAddSheet)` got the same wiring.
+- **Verified:** `AddToDeckSheet`'s callback pattern at CollectionCardDetailView.swift:242 + CardDetailView.swift:303 was the canonical reference. SourceKit cross-file noise preexisting.
+- **PARITY.md:** No row — UX polish on already-✅ AddToCollection sheet.
+- **Next:** tick 103 = web; 104 = Android; 105 = opt.
+
+
+
 ### Tick 101 — 2026-05-20 — **Android** — Decks pool grid density picker (iOS @AppStorage parity)
 - **Cadence:** 101 % 5 = 1 → Android.
 - **Picked:** `GridDensityStore.Target.DECKS` was registered in the shared store (alongside FIND + COLLECTION) but `grep -rn Target.DECKS` returned zero callers — the pool grid hardcoded `GridCells.Adaptive(minSize = 110.dp)` and never read the user's preference. iOS DesksView exposes a 1/2/3 column picker via `@AppStorage("bp_decksGridColumns_v1")` — Android gap.

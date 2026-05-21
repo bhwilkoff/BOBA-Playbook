@@ -102,6 +102,14 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 51 — 2026-05-20 — Find multi-select: cards survive filter changes
+- **Picked:** Real bug. `getSelectedCardObjects()` previously returned `filteredCards.filter(c => selectedCardKeys.has(cardKey(c)))`. Scenario: user shift-clicks to select 5 cards → types in search → `filteredCards` shrinks → click "Wall" / "Add to Collection" / "Add to Deck" → only the cards still visible-in-the-filter were included. The other selected cards silently disappeared from the action.
+- **Shipped:**
+  - `js/app.js::getSelectedCardObjects()`: now resolves each key via the canonical `cardsByBobaId.get(key)` lookup, falling back to `cardsByNumber.get(key)?.[0]` for legacy non-bobaId keys. Loops over `selectedCardKeys` directly — independent of the current filter state.
+- **Verified:** node -c clean. Trace: select 5 cards → type "xyz" (filters to 0 matches) → click Wall → wall renders with all 5 originally-selected cards (not 0). Same for bulk Add to Collection / Add to Deck — all selected cards land in the destination regardless of current visibility.
+- **Why this matters:** users often build selections deliberately ("I want these 5 cards as a wall"), then narrow their search to confirm. The prior behavior silently dropped selections at the action moment — wrong UX. Now selection is truly persistent through filter changes.
+- **PARITY.md:** No row — bug fix.
+
 ### Tick 50 — 2026-05-20 — **OPTIMIZATION TICK** dead-code sweep
 - **First 1-in-5 optimization tick per `feedback_one_in_five_optimization_tick.md` (saved tick 47).** Discipline: net line-removal expected.
 - **Shipped:**

@@ -3243,7 +3243,19 @@
     });
   }
   function getSelectedCardObjects() {
-    return filteredCards.filter(c => selectedCardKeys.has(cardKey(c)));
+    // Resolve via the canonical bobaId map, NOT by filtering
+    // filteredCards. A user may select 5 cards, then type a query
+    // that filters the grid down — selectedCardKeys persists, but
+    // the prior pattern only returned the survivors of the new
+    // filter. Now all selected cards round-trip regardless of the
+    // current filter state.
+    const out = [];
+    for (const key of selectedCardKeys) {
+      const card = cardsByBobaId.get(String(key))
+                || cardsByNumber.get(String(key))?.[0];
+      if (card) out.push(card);
+    }
+    return out;
   }
   function openDesignationMenu(e) {
     if (!Auth.isAuthenticated()) {

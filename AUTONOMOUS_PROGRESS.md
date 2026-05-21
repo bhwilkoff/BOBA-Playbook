@@ -102,6 +102,14 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 72 — 2026-05-20 — **iOS** — Wall caller surface tick-67 cap to user
+- **Cadence:** 72 % 5 = 2 → iOS.
+- **Picked:** Tick 67 added `ShowWallComposer.HARD_CAP = 200` as a safety net, with a comment noting "caller is responsible for messaging the user when they pass > HARD_CAP." Today the only Wall caller, `CollectionWallSheet`, doesn't surface the truncation — a user with 500 owned cards who taps "Select all" silently gets a 200-card wall and loses their grails without explanation.
+- **Shipped:**
+  - `CollectionWallSheet.swift::cardSelector`: when `included.count > ShowWallComposer.HARD_CAP`, render a GLOW-yellow `Label` with `info.circle` icon beneath the "N of M · ★ K" line: "Only the first 200 cards will render — narrow the selection for a wall of every card." Mirrors web tick 43 + Android tick 64 truncation notes.
+- **Verified:** SourceKit isolation pre-existing. Color(hex:) helper exists in Design.swift (used elsewhere).
+- **PARITY.md:** No row — informational polish on already-✅ Wall row.
+
 ### Tick 71 — 2026-05-20 — **Android** — Deck save error messaging
 - **Cadence:** 71 % 5 = 1 → Android.
 - **Picked:** `DecksViewModel.save(onResult: (Boolean) -> Unit)` collapsed every failure to a single boolean — the caller's Snackbar said "Couldn't save deck. Check connectivity." regardless of cause. Real causes (sign-out race, empty-name silently slipping past button-disable, Supabase RLS rejection) all merged. Sign-out is especially misleading — user looks for connectivity issues that don't exist.

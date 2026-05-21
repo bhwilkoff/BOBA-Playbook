@@ -269,6 +269,22 @@ struct CollectionWallSheet: View {
                     .font(Design.Fonts.mono(10))
                     .foregroundStyle(Design.Colors.textSecondary)
             }
+            // Honest truncation notice when the user has selected more
+            // cards than the composer will render. Matches web tick 43
+            // + Android tick 64 + iOS tick 67 (HARD_CAP = 200 in
+            // ShowWallComposer). Without this, "Select all" with
+            // 500 owned cards silently produces a wall of the first
+            // 200, leaving the user wondering why their grails are
+            // missing.
+            if included.count > ShowWallComposer.HARD_CAP {
+                Label(
+                    "Only the first \(ShowWallComposer.HARD_CAP) cards will render — narrow the selection for a wall of every card.",
+                    systemImage: "info.circle"
+                )
+                .font(Design.Fonts.mono(10))
+                .foregroundStyle(Color(hex: "D9C566"))  // GLOW-y, informational
+                .padding(.vertical, 2)
+            }
             HStack(spacing: Design.Spacing.sm) {
                 Button("Select all") {
                     included = Set(cards.map(\.id))

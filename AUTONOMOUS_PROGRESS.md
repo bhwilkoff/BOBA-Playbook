@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 92 — 2026-05-20 — **iOS** — DeckBuilder pool empty: search vs filter disambiguation (Android tick 89 parity)
+- **Cadence:** 92 % 5 = 2 → iOS.
+- **Picked:** iOS `DeckBuilderView`'s empty-pool state rendered "Try a different search or filter" for every cause. Same anti-pattern Android tick 89 just fixed. Closes the parity gap on the same surface — iOS user typing "obscurehero" had no signal whether the issue was their query or the catalog scope.
+- **Shipped:**
+  - `DeckBuilderView.swift` browser empty branch:
+    - Split `ContentUnavailableView` on `store.browserSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty`.
+    - **Search-empty**: explicit "No cards match" headline + body quotes the query, "Clear search" button (cyan bordered) wired to `store.browserSearch = ""`. Mirrors web tick 78 + Android tick 89.
+    - **Filter-empty** (no query): "No cards in scope" + "Pick a different tab above, or widen the element filter." No CTA — the tab strip + element filter are visible right above the grid.
+- **Verified:** `store.browserSearch` exists at `DeckBuilderStore.swift:393`. `Design.Colors.bobaCyan` already used elsewhere. SourceKit cross-file noise preexisting.
+- **PARITY.md:** No row — UX polish on already-✅ Decks browser row.
+- **Next:** tick 93 = web; 94 = Android; 95 = opt.
+
+
+
 ### Tick 91 — 2026-05-20 — **Android** — Profile role-request: surface pending state
 - **Cadence:** 91 % 5 = 1 → Android.
 - **Picked:** Android Profile's role-request row said "Request mod or streamer role · Reviewed by Ben within 48h" for every user, even after a user had already submitted a pending request. The only feedback that the request landed was the post-submit Snackbar that disappeared after a few seconds. If the user re-opened Profile a day later they had no signal a request was pending — risk of duplicate submits + the dialog defaulted to "moderator" radio regardless of what they originally requested. iOS Profile already surfaces this state.

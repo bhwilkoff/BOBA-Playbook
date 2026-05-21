@@ -76,6 +76,23 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 156 — 2026-05-21 — **Android** — Custom Rainbow editor: Save success/failure Snackbars
+- **Cadence:** 156 % 5 = 1 → Android.
+- **Picked:** `CustomRainbowEditorSheet`'s Save button called `vm.create(...)` / `vm.update(...)` with a callback `{ ok -> if (ok) onDismiss() }`. On success → silent dismiss; on failure → silent no-op (sheet stays open, no error message). Two real UX gaps:
+  1. **Success path**: dismiss-as-confirmation is the iOS canonical, but Android's `ModalBottomSheet` competes with other backstack surfaces; users need an explicit "Created/Saved X" Snackbar to confirm the persistence call landed.
+  2. **Failure path**: total silent failure. Network drop / RLS rejection / duplicate-name conflict all leave the user staring at the editor with no signal anything went wrong. They might re-tap Save → if it succeeds the second time, they could end up with duplicate "Untitled" rainbows.
+- **Shipped:**
+  - `CustomRainbowEditorSheet.kt`:
+    - New `rememberCoroutineScope` + `LocalAppSnackbar.current` reads.
+    - New imports: `rememberCoroutineScope`, `kotlinx.coroutines.launch`.
+    - Save handler refactored: builds a single shared `cb: (Boolean) -> Unit` callback that branches on success/failure inside a `scope.launch { ... }`:
+      - `ok == true` → `appSnackbar?.showSnackbar("Created \"X\"")` or `"Saved \"X\""` (verb branches on `existing == null`) + `onDismiss()`.
+      - `ok == false` → `appSnackbar?.showSnackbar("Couldn't save — check connectivity and try again.")` (sheet stays open so the user can retry without re-typing the form).
+    - Same callback handed to both `vm.create(...)` and `vm.update(...)` — single source of truth.
+- **Verified:** `LocalAppSnackbar` is the canonical Snackbar host (used by every other Android sheet in tick 119, 121, 124, 136, 139, 144, 149, 151, 154). The "verb" pattern (`"Created"` vs `"Saved"`) matches iOS UX vocabulary.
+- **PARITY.md:** No row — UX polish on already-✅ Custom Rainbow editor.
+- **Next:** tick 157 = iOS; 158 = web; 159 = Android; 160 = opt.
+
 ### Tick 155 — 2026-05-21 — **opt** — Drop 112 lines of iOS dead code (orphan vars + legacy save tab)
 - **Cadence:** 155 % 5 = 0 → opt.
 - **Picked:** Per-file scan for `private var` orphans on iOS Views. Found one substantial dead cluster (the legacy "Save" tab in DeckManagementSheet) plus three smaller orphans.

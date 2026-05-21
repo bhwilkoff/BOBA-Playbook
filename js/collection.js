@@ -3063,6 +3063,7 @@ const Collection = (() => {
         };
 
         try {
+          const captured = _editEntry;  // capture before clearing state below
           const updated = await API.collectionUpdate(_editEntry.id, fields);
           const idx = _cards.findIndex(c => c.id === updated.id);
           if (idx !== -1) _cards[idx] = updated;
@@ -3071,6 +3072,15 @@ const Collection = (() => {
           renderCollectionDetail();
           renderCollectionView();
           renderProfileView();
+          // Confirmation toast — closes 3-platform parity with iOS
+          // dismiss-as-confirmation + Android tick 151's Snackbar.
+          // Without it, web users had no signal the save persisted
+          // (the dismissed edit-state could look the same as an
+          // un-submitted form if the user lost their place).
+          if (typeof window.showToast === 'function') {
+            const label = captured?.hero || captured?.name || 'card';
+            window.showToast(`Saved edits to ${label}`);
+          }
         } catch (err) {
           const errEl = document.getElementById('cedit-error');
           if (errEl) { errEl.textContent = err.message; errEl.hidden = false; }

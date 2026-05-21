@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 153 — 2026-05-21 — **web** — Collection Edit Copy: confirmation toast on save
+- **Cadence:** 153 % 5 = 3 → web.
+- **Picked:** Closes parity with iOS dismiss-as-confirmation + Android tick 151's Snackbar. Web's Collection card detail Edit form submit (collection.js:3050) successfully calls `API.collectionUpdate` then dismisses the edit state — but provides NO toast/banner confirmation. The user sees the form disappear and the updated entry in the detail list, but if they lost their place in the dense form they might wonder if the submit actually went through.
+  - The "decks containing this card" surface is iOS+Android-only — web has no equivalent — so the destructive-overwrite-warning side of tick 152 doesn't apply here.
+- **Shipped:**
+  - `js/collection.js` edit-form submit handler:
+    - Captures `const captured = _editEntry;` BEFORE the `_editEntry = null` reset so the label remains available after state-clearing.
+    - After `renderCollectionDetail/View/ProfileView`, fires `window.showToast("Saved edits to {label}")` where label is `hero || name || "card"`. Same defensive label fallback as tick 123's per-copy Undo toast.
+- **Verified:** `window.showToast` is the canonical helper exposed from app.js (tick 103 fix). Soft-fails behind `typeof === 'function'` for the (unlikely) case the helper isn't loaded yet.
+- **PARITY.md:** No row.
+- **Next:** tick 154 = Android; 155 = opt.
+
 ### Tick 152 — 2026-05-21 — **iOS** — Collection card detail "In your decks": Undo banner on draft overwrite
 - **Cadence:** 152 % 5 = 2 → iOS.
 - **Picked:** iOS mirror of Android tick 149. The Collection card detail's "In your decks" surface (CollectionCardDetailView.swift:614) was already tap-to-load (parity with Android tick 94) but tapping a row silently wiped any in-progress draft via `deckBuilder.loadSavedDeck` → `clearDeck()` internally. The text-only toast `"Loaded "X" into Decks"` didn't acknowledge the destruction. A coach mid-build who taps to peek at a saved deck loses 30+ cards with no recovery path.

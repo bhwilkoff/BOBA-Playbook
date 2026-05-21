@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Themed-icon monochrome layer (Android 13+). System tints from
-     wallpaper / theme. Single-color silhouette of the XOXO mark. -->
+     wallpaper / theme. Single-color silhouette of the iOS XOXO mark. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -9,22 +9,22 @@
 
     <path
         android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="6"
+        android:strokeWidth="11"
         android:strokeLineCap="round"
-        android:pathData="M30,30 L48,48 M48,30 L30,48" />
+        android:pathData="M22,22 L52,52 M52,22 L22,52" />
     <path
         android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="6"
+        android:strokeWidth="11"
         android:strokeLineCap="round"
-        android:pathData="M60,39 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0" />
+        android:pathData="M71,37 m-15,0 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0" />
     <path
         android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="6"
+        android:strokeWidth="11"
         android:strokeLineCap="round"
-        android:pathData="M39,69 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0" />
+        android:pathData="M37,71 m-15,0 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0" />
     <path
         android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="6"
+        android:strokeWidth="11"
         android:strokeLineCap="round"
-        android:pathData="M60,60 L78,78 M78,60 L60,78" />
+        android:pathData="M56,56 L86,86 M86,56 L56,86" />
 </vector>

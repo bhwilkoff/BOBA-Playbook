@@ -102,6 +102,18 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 60 — 2026-05-20 — **OPTIMIZATION TICK (Android, 3rd 1-in-5)** — unused resources
+- **Per platform cadence**: optimization-ticks rotate. Ticks 50 + 55 were both web. Tick 60 = Android per `feedback_one_in_five_optimization_tick.md` + `feedback_platform_cadence.md`.
+- **Shipped:**
+  - `android/app/src/main/res/values/strings.xml`: removed 3 unused string resources (`empty_state_coming_soon_title`, `app_full_name`, `app_tagline`) confirmed via `grep -rE "R\.string\.X|@string/X"` returning 0 across the entire Android tree.
+  - `android/app/src/main/res/values/colors.xml`: removed 3 unused XML color resources (`boba_cyan`, `boba_violet`, `boba_surface`) — Compose code reads these as `BobaBrand.Cyan` / `BobaBrand.Violet` / `BobaBrand.Surface` constants (Kotlin), not as R.color references. The two remaining (`boba_orange` + `boba_near_black`) ARE referenced from adaptive-icon background + theme + splash XML. Added a comment explaining the Kotlin-vs-XML split so a future contributor doesn't re-add the orphans.
+- **Line-count delta:** strings.xml: -7 lines · colors.xml: -3 lines (3 colors removed, 1 comment line added explaining the split). Net **-9 lines** across Android resources.
+- **Verified:** every removed key had `grep -rE` count of 0 outside `/build/`. Strings.xml + colors.xml are still well-formed XML.
+- **Considered + skipped:**
+  - Two near-duplicate `ArtPanel` composables (CardDetailScreen vs CollectionCardDetailScreen) — same iOS drift pattern as tick 48. Could extract to shared, but they diverge in zoom-gesture behavior. Defer.
+  - Unused-import detection — my naive grep script produced false positives on multi-line Compose call sites. Skipped to avoid breakage.
+- **Cumulative across all 3 optimization ticks:** -59 lines (tick 50: -26 · tick 55: -24 · tick 60: -9).
+
 ### Tick 59 — 2026-05-20 — **ANDROID** — CustomRainbow update (rename + criteria edit)
 - **Ben directive ack:** "lots of updates for the web app, but very few for the iOS and Android apps." Saved `feedback_platform_cadence.md` — every tick is fixed by `tick_number % 5`: 0=opt, 1=Android, 2=iOS, 3=web, 4=Android. Android gets 2/5 since it's least mature. 59 % 5 = 4 → Android tick.
 - **Picked:** Android CustomRainbowRepository had `save` (insert) + `delete` but NO `update`. Web shipped update tick 15; iOS has CustomRainbowStore.update. Android couldn't rename or edit-criteria a saved rainbow at all — significant parity gap on the highest-demand Collection feature (Agent C 1,237 community messages on rainbow tracking).

@@ -76,6 +76,19 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 158 — 2026-05-21 — **web** — Custom Rainbow delete: Undo Snackbar replaces blocking confirm
+- **Cadence:** 158 % 5 = 3 → web.
+- **Picked:** `collection.js:3562` still used a blocking `confirm("Delete X? This cannot be undone.")` for Custom Rainbow delete. This is the same anti-pattern tick 123 (Collection per-copy delete) and tick 143 (Clear-deck) replaced. Worse: the dialog wording lied — the deletion CAN be undone by re-creating the rainbow with the same name + criteria via the public API (Supabase generates a new id, but the user-visible data round-trips losslessly).
+- **Shipped:**
+  - `js/collection.js` Custom Rainbow editor delete handler:
+    - Drop the `if (!confirm(...)) return;` guard.
+    - Capture `const captured = { name: _editingRainbow.name, criteria: _editingRainbow.criteria }` BEFORE the delete API call.
+    - On success: `closeCustomRainbowEditor()` + `renderCollectionView()` + fire `window.showUndoToast("Deleted \"X\"", undoCallback)`.
+    - Undo callback: `await API.createCustomRainbow(captured.name, captured.criteria)` + `renderCollectionView()` — same defensive try/catch + secondary toast on re-create failure.
+- **Verified:** `API.createCustomRainbow(name, criteria)` is the canonical create path at `js/api.js:289` (used by the editor's existing save path at line 3543). Same shape, lossless round-trip. `window.showUndoToast` is exposed globally from practice.js (tick 118 + tick 123 fix).
+- **PARITY.md:** No row.
+- **Next:** tick 159 = Android; 160 = opt.
+
 ### Tick 157 — 2026-05-21 — **iOS** — DecksView saveDeck: surface failure banner (was silent on error)
 - **Cadence:** 157 % 5 = 2 → iOS.
 - **Picked:** Mirror of Android tick 154 — same fire-and-forget bug on a different platform. `DecksView.saveDeck()` had `if store.saveError == nil { saveBanner = "Saved X" }` — the failure branch was completely absent. A coach taps Save → server write fails (network / RLS / empty name) → `store.saveError` is set BUT `saveBanner` stays nil so the user sees nothing. They might retry until either it succeeds (creating duplicate decks if retry happens to also work) or give up wondering if the button is broken.

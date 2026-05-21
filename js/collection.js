@@ -3559,7 +3559,16 @@ const Collection = (() => {
     const delBtn = document.getElementById('custom-rainbow-editor-delete');
     delBtn?.addEventListener('click', async () => {
       if (!_editingRainbow) return;
-      if (!confirm(`Delete "${_editingRainbow.name}"? This cannot be undone.`)) return;
+      // Tick 158 — replaces the blocking confirm() with an Undo
+      // Snackbar (parity with tick 123 per-copy delete + tick 143
+      // Clear-deck + iOS tick 152 banner). Capture the full rainbow
+      // (name + criteria) so UNDO can recreate it via the public
+      // createCustomRainbow API; Supabase issues a new id on insert
+      // but the user-visible data is identical.
+      const captured = {
+        name: _editingRainbow.name,
+        criteria: _editingRainbow.criteria,
+      };
       delBtn.disabled = true;
       try {
         await API.deleteCustomRainbow(_editingRainbow.id);
@@ -3567,6 +3576,18 @@ const Collection = (() => {
         // Skip the full `load()` round-trip — same reason as save:
         // user_cards didn't change, only the rainbow list did.
         renderCollectionView();
+        if (typeof window.showUndoToast === 'function') {
+          window.showUndoToast(`Deleted "${captured.name}"`, async () => {
+            try {
+              await API.createCustomRainbow(captured.name, captured.criteria);
+              renderCollectionView();
+            } catch (e) {
+              if (typeof window.showToast === 'function') {
+                window.showToast(`Couldn't restore — ${e?.message || 'try again'}`);
+              }
+            }
+          });
+        }
       } catch (err) {
         const errEl = document.getElementById('custom-rainbow-editor-error');
         errEl.textContent = err?.message || 'Delete failed.';

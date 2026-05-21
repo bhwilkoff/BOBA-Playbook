@@ -28,7 +28,7 @@ import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -119,7 +119,7 @@ fun PurchaseScreen(modifier: Modifier = Modifier) {
                     when {
                         state.isLoadingBreaks && state.upcomingBreaks.isEmpty() -> {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
+                                ContainedLoadingIndicator()
                             }
                         }
                         state.upcomingBreaks.isEmpty() -> {
@@ -348,7 +348,7 @@ private fun StoresList(
 ) {
     if (state.isLoadingStores && state.stores.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            ContainedLoadingIndicator()
         }
         return
     }

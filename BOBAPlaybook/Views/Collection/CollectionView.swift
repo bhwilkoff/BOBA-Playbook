@@ -29,8 +29,9 @@ struct CollectionView: View {
     /// the navigationDestination for String renders
     /// CollectionCardDetailView with .navigationTransition(.zoom(...)).
     @Namespace private var cardZoomNamespace
-    @State private var isRecalculating = false
-    @State private var recalcProgress: (current: Int, total: Int)? = nil
+    // Tick 192 — refresh state lives on CollectionStore now so it
+    // survives view-tree unmount when the user navigates away mid-
+    // refresh. View reads `collection.isRecalculating` directly.
 
     @State private var showingFilters      = false
     /// Native search field — `.searchable` with `.navigationBarDrawer(displayMode: .always)`
@@ -523,12 +524,18 @@ struct CollectionView: View {
             // tradeRoomFAB — hidden until Discord bot is added to server
         }
         .overlay(alignment: .top) {
-            if isRecalculating, let p = recalcProgress {
+            // Tick 192 — banner shows ONLY when refresh was triggered
+            // by the toolbar (not pull-to-refresh). The system pull
+            // spinner is its own affordance; double-stacking with a
+            // banner reads as broken UI. Toolbar-triggered refresh
+            // has no other on-screen feedback, so the banner stays
+            // for that case.
+            if collection.refreshSource == .toolbar, let p = collection.recalcProgress {
                 recalcProgressBanner(current: p.current, total: p.total)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: isRecalculating)
+        .animation(.easeInOut(duration: 0.2), value: collection.refreshSource)
         .sheet(isPresented: $showTradeRoom) {
             TradeRoomSheet(discord: discord)
         }
@@ -637,12 +644,14 @@ struct CollectionView: View {
                 }
 
                 Button {
-                    Task { await recalculateAll() }
+                    // Tick 192 — detached so menu dismiss doesn't
+                    // cancel the work; store owns the task lifecycle.
+                    Task { await collection.recalculateAll(cardStore: cardStore, source: .toolbar) }
                 } label: {
-                    Label(isRecalculating ? "Refreshing prices…" : "Refresh market values",
+                    Label(collection.isRecalculating ? "Refreshing prices…" : "Refresh market values",
                           systemImage: "arrow.clockwise")
                 }
-                .disabled(isRecalculating)
+                .disabled(collection.isRecalculating)
 
                 Button {
                     exportCollectionCSV()
@@ -667,12 +676,15 @@ struct CollectionView: View {
                 Label("Show walkthrough", systemImage: "questionmark.circle")
             }
         } label: {
-            if isRecalculating {
-                ProgressView().tint(Design.Colors.bobaOrange)
-            } else {
-                Image(systemName: "ellipsis.circle")
-                    .foregroundStyle(Design.Colors.bobaOrange)
-            }
+            // Tick 192 — dropped the toolbar ellipsis→spinner swap.
+            // Pull-to-refresh + toolbar both have their own spinners
+            // (system pull-spinner / banner). Replacing the ellipsis
+            // here added a THIRD spinner on top of those, which is
+            // what Ben flagged. Toolbar stays as the always-visible
+            // ellipsis; the menu item label flips to "Refreshing
+            // prices…" when active.
+            Image(systemName: "ellipsis.circle")
+                .foregroundStyle(Design.Colors.bobaOrange)
         }
         .walkthroughAnchor("collection.displayMode")
     }
@@ -712,16 +724,6 @@ struct CollectionView: View {
         .padding(.horizontal, Design.Spacing.md)
         .padding(.vertical, Design.Spacing.xs)
         .background(Design.Colors.surface)
-    }
-
-    private func recalculateAll() async {
-        isRecalculating = true
-        recalcProgress = (0, 0)
-        await collection.recalculateAllValues(cardStore: cardStore) { current, total in
-            recalcProgress = (current, total)
-        }
-        isRecalculating = false
-        recalcProgress = nil
     }
 
     // MARK: - Value summary
@@ -929,29 +931,13 @@ struct CollectionView: View {
                 }
                 .scrollEdgeEffectStyle(.hard, for: .top)  // §5.6 dense scroll
                 .refreshable {
-                    // Pull-to-refresh = recalculate market values
-                    // for every owned card (same work the toolbar's
-                    // "Refresh market values" button kicks off).
-                    //
-                    // CRITICAL: wrap the call in `Task { ... }.value`
-                    // to detach from .refreshable's cancellation. The
-                    // recalc loop's progress callback flips @State
-                    // (recalcProgress, isRecalculating) which causes
-                    // SwiftUI to re-render the host view tree —
-                    // SwiftUI then cancels the .refreshable Task as
-                    // a side effect, which makes URLSession.data and
-                    // Task.sleep fail-fast for every remaining card.
-                    // Result: 20-card recalc "speedran" in <1s with
-                    // no real fetches. Task.init creates an
-                    // unstructured task that doesn't inherit the
-                    // refreshable Task's cancellation, so the work
-                    // runs to completion. The outer await keeps the
-                    // pull spinner attached until it's done.
-                    //
-                    // We deliberately do NOT call loadCollection()
-                    // here either — it flips collection.isLoading
-                    // which would unmount this whole ScrollView.
-                    await Task { await recalculateAll() }.value
+                    // Tick 192 — store owns the task lifecycle now.
+                    // Source = .pullToRefresh suppresses the banner
+                    // (system pull-spinner is the only visible
+                    // affordance during this path). State on the
+                    // store survives view unmount when the user
+                    // nav-switches away mid-refresh.
+                    await collection.recalculateAll(cardStore: cardStore, source: .pullToRefresh)
                 }
             }
         }

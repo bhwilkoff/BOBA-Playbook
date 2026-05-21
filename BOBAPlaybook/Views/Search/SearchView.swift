@@ -688,9 +688,18 @@ struct SearchView: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 36))
                 .foregroundStyle(Design.Colors.textMuted)
-            Text("No cards match your search")
+            Text("No matches")
                 .font(Design.Fonts.display(16))
                 .foregroundStyle(Design.Colors.textSecondary)
+            // Dynamic body line that names the active filters (web tick 29
+            // + Android tick 74 parity). Generic "No cards match" said
+            // nothing when 5 filters were active — user couldn't tell
+            // WHICH filter was producing zero. Now we surface them.
+            Text(emptyBodyText)
+                .font(Design.Fonts.mono(12))
+                .foregroundStyle(Design.Colors.textMuted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Design.Spacing.lg)
             Button("Clear All Filters") {
                 store.clearAllFilters()
             }
@@ -705,6 +714,32 @@ struct SearchView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 80)
+    }
+
+    /// Build the dynamic empty-state body line. Single-filter case
+    /// quotes the filter ("Nothing matches FIRE. Try loosening or
+    /// removing the filter."); multi-filter case lists them with " · ".
+    private var emptyBodyText: String {
+        var active: [String] = []
+        if !store.searchText.isEmpty { active.append("\"\(store.searchText)\"") }
+        active.append(contentsOf: store.selectedElements.sorted())
+        if let s = store.selectedSet       { active.append("Set: \(s)") }
+        if let t = store.selectedTreatment { active.append("Treatment: \(t)") }
+        if let r = store.selectedRelease   { active.append("Release: \(r)") }
+        if let id = store.selectedShowcaseId {
+            active.append("Showcase: \(Showcases.byId(id)?.name ?? id)")
+        }
+        if store.hasImageOnly { active.append("image-only") }
+        if store.powerMin != nil || store.powerMax != nil {
+            let mn = store.powerMin.map(String.init) ?? "0"
+            let mx = store.powerMax.map(String.init) ?? "∞"
+            active.append("power \(mn)–\(mx)")
+        }
+        switch active.count {
+        case 0:  return "Try a different search."
+        case 1:  return "Nothing matches \(active[0]). Try loosening or removing the filter."
+        default: return "Nothing matches all of: \(active.joined(separator: " · ")). Try removing one."
+        }
     }
 }
 

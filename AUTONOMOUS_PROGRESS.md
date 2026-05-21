@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 172 — 2026-05-21 — **iOS** — Profile Reset hints: inline checkmark confirmation
+- **Cadence:** 172 % 5 = 2 → iOS.
+- **Picked:** Tick 162 added the iOS Profile hints section. The "Reset hints" Button calls `HintsManager.shared.resetAll()` silently — user taps and sees nothing visible. Android Profile (line 703 area) surfaces a Snackbar `"Hints reset"`. iOS doesn't have a Snackbar host in Profile but does have transient state-driven inline confirmations (Save Cloud / `saveMessage == "Saved!"` pattern).
+- **Shipped:**
+  - `ProfileView.swift`:
+    - New `@State private var hintsResetConfirm = false`.
+    - Reset hints Button reshaped from a plain `Label` to `HStack { Label … Spacer; if hintsResetConfirm { Image("checkmark.circle.fill") } }`. The checkmark fades in with `.scale.combined(with: .opacity)` transition.
+    - Tap handler sets `hintsResetConfirm = true` + schedules a 2-second `withAnimation(.easeOut)` fade. Matches the cadence the other inline success confirmations in this view use (saveMessage at line 1907-1914 area).
+- **Verified:** `HintsManager.shared.resetAll()` is the same call Android uses (DECISIONS.md #031). The visual signal is now consistent with Apple HIG inline-confirmation patterns (Mail compose's Sent-mailbox flash, etc.).
+- **PARITY.md:** No row — UX polish on already-✅ Profile hints section. Closes parity with Android's Snackbar confirmation.
+- **Next:** tick 173 = web; 174 = Android; 175 = opt.
+
 ### Tick 171 — 2026-05-21 — **Android** — AddToDeckSheet: "Already in deck" visual hint on current-draft row
 - **Cadence:** 171 % 5 = 1 → Android.
 - **Picked:** Carries the tick 161 pool-cell visual indicator into the AddToDeckSheet. The sheet's "Current draft" row showed the same `Icons.Default.Add` icon and offered no visual signal that the card the user is trying to add is ALREADY in the active deck. Tapping the row in that state hits the tick 114 `"already in deck"` Snackbar, but the result is reactive (after tap) — the right UX is proactive (before tap).

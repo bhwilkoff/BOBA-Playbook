@@ -909,10 +909,17 @@ function initDeckBuilder(allCards) {
     });
   });
 
-  // Search
+  // Search — debounced so a fast typist doesn't re-filter the 17k
+  // catalog on every keystroke. 220ms matches the Collection search
+  // debounce; Find uses 280ms.
+  let _dbSearchTimer = null;
   $('db-search')?.addEventListener('input', e => {
-    DB.search = e.target.value;
-    dbRenderGrid(allCards);
+    const next = e.target.value;
+    clearTimeout(_dbSearchTimer);
+    _dbSearchTimer = setTimeout(() => {
+      DB.search = next;
+      dbRenderGrid(allCards);
+    }, 220);
   });
 
   // Quick-add toggle

@@ -3,16 +3,23 @@
   "lastUpdated": "2026-05-21",
   "_schema": {
     "_comment": "Per-event fields. Add real dates as BoBA announces them.",
-    "id":          "string — stable slug for cross-references",
-    "kind":        "release | tournament | community",
-    "title":       "string — user-facing event name",
-    "date":        "YYYY-MM-DD string OR null for 'TBA'",
-    "endDate":     "optional YYYY-MM-DD when the event spans days",
-    "location":    "optional string — venue / city / online",
+    "id": "string — stable slug for cross-references",
+    "kind": "release | tournament | community",
+    "title": "string — user-facing event name",
+    "date": "YYYY-MM-DD string OR null for 'TBA'",
+    "endDate": "optional YYYY-MM-DD when the event spans days",
+    "location": "optional string — venue / city / online",
     "description": "1-3 sentence blurb",
-    "formats":     "optional [string] — formats being played (tournaments only)",
-    "set":         "optional string — set being released (releases only)",
-    "url":         "optional external link"
+    "formats": "optional [string] — formats being played (tournaments only)",
+    "set": "optional string — set being released (releases only)",
+    "url": "optional external link",
+    "_curated": "bool — if true, refresh_events.py preserves this entry across automated runs"
+  },
+  "_refresh": {
+    "script": "scripts/refresh_events.py",
+    "workflow": ".github/workflows/refresh-events.yml",
+    "cadence": "daily — sources: (1) Carde.io official BoBA tournaments via api.carde.io with game-id header, (2) Whatnot upcoming shows via boba-ebay-proxy worker, (3) curated entries preserved across runs.",
+    "edit": "Add hand-curated entries with `_curated: true`; they survive the cron."
   },
   "events": [
     {
@@ -21,7 +28,8 @@
       "title": "Tecmo Bowl Edition release",
       "date": null,
       "description": "Football-themed BoBA set crossing over with the classic Tecmo Bowl arcade aesthetic. 4 sealed product configurations in the catalog; release date TBA.",
-      "set": "Tecmo Bowl Edition"
+      "set": "Tecmo Bowl Edition",
+      "_curated": true
     },
     {
       "id": "okc-thunder-edition-followup",
@@ -29,7 +37,301 @@
       "title": "OKC Thunder Edition (art pending)",
       "date": null,
       "description": "54 OKC Thunder Edition cards in the catalog without final art. Card data is published; art rollout TBA from the BoBA team.",
-      "set": "World Champions - 2025 OKC Thunder"
+      "set": "World Champions - 2025 OKC Thunder",
+      "_curated": true
+    },
+    {
+      "id": "cardeio-fc2ba93f-5531-475c-a9d0-421ef3cd5de5",
+      "kind": "tournament",
+      "title": "SCG CON D.C. - Double Blaster Sealed",
+      "date": "2026-05-29",
+      "description": "Official BoBA event via Carde.io. Status: published.",
+      "url": "https://play.bobattlearena.com/events/fc2ba93f-5531-475c-a9d0-421ef3cd5de5",
+      "endDate": "2026-05-30",
+      "location": "Washington, DC",
+      "formats": [
+        "Playmaker Tournament"
+      ]
+    },
+    {
+      "id": "cardeio-7aec1221-e071-45a3-97b3-c840226cb361",
+      "kind": "tournament",
+      "title": "SCG CON D.C. - SPEC Playmaker 1000 DBS",
+      "date": "2026-05-30",
+      "description": "Official BoBA event via Carde.io. Status: published.",
+      "url": "https://play.bobattlearena.com/events/7aec1221-e071-45a3-97b3-c840226cb361",
+      "endDate": "2026-05-30",
+      "location": "Washington, DC",
+      "formats": [
+        "Playmaker Tournament"
+      ]
+    },
+    {
+      "id": "cardeio-24ca16d7-ef0b-478e-bb88-57b41cf629bd",
+      "kind": "tournament",
+      "title": "SCG CON D.C. - Double Mega Sealed $3K",
+      "date": "2026-05-31",
+      "description": "Official BoBA event via Carde.io. Status: published.",
+      "url": "https://play.bobattlearena.com/events/24ca16d7-ef0b-478e-bb88-57b41cf629bd",
+      "endDate": "2026-05-31",
+      "location": "Washington, DC",
+      "formats": [
+        "Playmaker Tournament"
+      ]
+    },
+    {
+      "id": "cardeio-be2acfac-f3bc-42cd-a4f2-2390a6cc9b6e",
+      "kind": "tournament",
+      "title": "Lake County Cards Friday Bo Jackson Battle Arena",
+      "date": "2026-06-12",
+      "description": "Official BoBA event via Carde.io. Status: published.",
+      "url": "https://play.bobattlearena.com/events/be2acfac-f3bc-42cd-a4f2-2390a6cc9b6e",
+      "endDate": "2026-06-13",
+      "location": "Oconomowoc, WI",
+      "formats": [
+        "Playmaker Tournament"
+      ]
+    },
+    {
+      "id": "cardeio-56b8b5e2-f6ee-49fb-a6b8-0a7cd74f17db",
+      "kind": "tournament",
+      "title": "T-roy's  Bo Jackson Battle Arena Regional",
+      "date": "2026-06-13",
+      "description": "Official BoBA event via Carde.io. Status: published.",
+      "url": "https://play.bobattlearena.com/events/56b8b5e2-f6ee-49fb-a6b8-0a7cd74f17db",
+      "endDate": "2026-06-14",
+      "location": "Galax, VA",
+      "formats": [
+        "Playmaker Tournament"
+      ]
+    },
+    {
+      "id": "cardeio-e6ff339f-83e1-4938-abfb-8eef9d976c09",
+      "kind": "tournament",
+      "title": "SCG CON Las Vegas - Double Blaster Sealed",
+      "date": "2026-06-26",
+      "description": "Official BoBA event via Carde.io. Status: published.",
+      "url": "https://play.bobattlearena.com/events/e6ff339f-83e1-4938-abfb-8eef9d976c09",
+      "endDate": "2026-06-27",
+      "location": "Las Vegas, NV",
+      "formats": [
+        "Playmaker Tournament"
+      ]
+    },
+    {
+      "id": "cardeio-c6fd76da-9add-4bca-bf64-6b2f90cfcc70",
+      "kind": "tournament",
+      "title": "SCG CON Las Vegas - Checklist Vegas Baby!",
+      "date": "2026-06-27",
+      "description": "Official BoBA event via Carde.io. Status: published.",
+      "url": "https://play.bobattlearena.com/events/c6fd76da-9add-4bca-bf64-6b2f90cfcc70",
+      "endDate": "2026-06-27",
+      "location": "Las Vegas, NV",
+      "formats": [
+        "Playmaker Tournament"
+      ]
+    },
+    {
+      "id": "cardeio-6f61aee7-c0ad-42e2-b40d-99182378216c",
+      "kind": "tournament",
+      "title": "SCG CON Las Vegas - Double Mega Sealed $3K",
+      "date": "2026-06-28",
+      "description": "Official BoBA event via Carde.io. Status: published.",
+      "url": "https://play.bobattlearena.com/events/6f61aee7-c0ad-42e2-b40d-99182378216c",
+      "endDate": "2026-06-28",
+      "location": "Las Vegas, NV",
+      "formats": [
+        "Playmaker Tournament"
+      ]
+    },
+    {
+      "id": "cardeio-0eada6dd-5f53-43b9-bd1c-149409a44fe0",
+      "kind": "tournament",
+      "title": "Lake County Cards Friday Bo Jackson Battle Arena",
+      "date": "2026-07-10",
+      "description": "Official BoBA event via Carde.io. Status: published.",
+      "url": "https://play.bobattlearena.com/events/0eada6dd-5f53-43b9-bd1c-149409a44fe0",
+      "endDate": "2026-07-11",
+      "location": "Oconomowoc, WI",
+      "formats": [
+        "Playmaker Tournament"
+      ]
+    },
+    {
+      "id": "whatnot-d923f33b-9525-49a0-9379-5245983e59c9",
+      "kind": "community",
+      "title": "Bo Jackson Battle Arena - Coasters, Singles, Mega Packs",
+      "date": "2026-05-21",
+      "description": "Host: thecardkyyyy · Today 11:00 AM",
+      "url": "https://www.whatnot.com/live/d923f33b-9525-49a0-9379-5245983e59c9"
+    },
+    {
+      "id": "whatnot-ea7c84aa-7b35-441c-be7d-00a15ff09a9b",
+      "kind": "community",
+      "title": "Bo Jackson Battle Arena - Griffey Break!",
+      "date": "2026-05-21",
+      "description": "Host: pullsandpars · Today 3:02 PM",
+      "url": "https://www.whatnot.com/live/ea7c84aa-7b35-441c-be7d-00a15ff09a9b"
+    },
+    {
+      "id": "whatnot-0c404d06-3c39-47ef-a3c2-7b9ef2aeaa22",
+      "kind": "community",
+      "title": "Bo Jackson Battle Arena Double Mega Power Break",
+      "date": "2026-05-21",
+      "description": "Host: kenwmc88 · Today 2:00 PM",
+      "url": "https://www.whatnot.com/live/0c404d06-3c39-47ef-a3c2-7b9ef2aeaa22"
+    },
+    {
+      "id": "whatnot-5651a5c8-d0ff-4b2d-a154-b975111e1cfb",
+      "kind": "community",
+      "title": "Bo Jackson Battle Arena w/ BP",
+      "date": "2026-05-21",
+      "description": "Host: bpcardcompany · Today 1:20 PM",
+      "url": "https://www.whatnot.com/live/5651a5c8-d0ff-4b2d-a154-b975111e1cfb"
+    },
+    {
+      "id": "whatnot-cb0c0fe1-40ce-4b72-85e5-d5ae31d25725",
+      "kind": "community",
+      "title": "Lunch Case Break w/ Krystal: Bo Jackson Battle Arena",
+      "date": "2026-05-21",
+      "description": "Host: bazookavault · Today 9:00 AM",
+      "url": "https://www.whatnot.com/live/cb0c0fe1-40ce-4b72-85e5-d5ae31d25725"
+    },
+    {
+      "id": "whatnot-953753f3-645d-4533-bbaa-37c6bcdb9457",
+      "kind": "community",
+      "title": "PYH Griffey Hobby and Alpha Update Collector Booster Break - Bo Jackson Battle Arena - $1 Starts",
+      "date": "2026-05-21",
+      "description": "Host: daup10 · Today 10:30 AM",
+      "url": "https://www.whatnot.com/live/953753f3-645d-4533-bbaa-37c6bcdb9457"
+    },
+    {
+      "id": "whatnot-60b89415-c359-45aa-b927-96fc61585d8c",
+      "kind": "community",
+      "title": "ShootStrayt BoBA Singles Stream",
+      "date": "2026-05-21",
+      "description": "Host: shootstrayt_bastaton · LIVE NOW · Today 7:00 AM",
+      "url": "https://www.whatnot.com/live/60b89415-c359-45aa-b927-96fc61585d8c"
+    },
+    {
+      "id": "whatnot-4ebba161-7b83-448c-8f4e-1435325e3c5d",
+      "kind": "community",
+      "title": "The Night Shift w/ Dre: Bo Jackson Battle Arena!",
+      "date": "2026-05-21",
+      "description": "Host: bazookavault · Today 4:00 PM",
+      "url": "https://www.whatnot.com/live/4ebba161-7b83-448c-8f4e-1435325e3c5d"
+    },
+    {
+      "id": "whatnot-1f6042e1-9a24-483c-9c73-f7ca63324bb4",
+      "kind": "community",
+      "title": "Bo Jackson Battle Arena Break",
+      "date": "2026-05-22",
+      "description": "Host: doublechampbreaks · Today 7:00 PM",
+      "url": "https://www.whatnot.com/live/1f6042e1-9a24-483c-9c73-f7ca63324bb4"
+    },
+    {
+      "id": "whatnot-ccc012fb-b34a-4d62-8be2-590bc72c711d",
+      "kind": "community",
+      "title": "Bo Jackson Battle Arena Full Case Hobby Break",
+      "date": "2026-05-22",
+      "description": "Host: misterhop · Tomorrow 8:00 AM",
+      "url": "https://www.whatnot.com/live/ccc012fb-b34a-4d62-8be2-590bc72c711d"
+    },
+    {
+      "id": "whatnot-c77757a3-56d1-4122-9b74-f7cfffd813a7",
+      "kind": "community",
+      "title": "Bo Jackson Battle Arena Griffey Edition “TheBoBAccountant End of Week Throwdown”",
+      "date": "2026-05-22",
+      "description": "Host: bigdaddy1130 · Tomorrow 1:00 PM",
+      "url": "https://www.whatnot.com/live/c77757a3-56d1-4122-9b74-f7cfffd813a7"
+    },
+    {
+      "id": "whatnot-9fb14e45-c323-4fe0-873b-8510f600b73c",
+      "kind": "community",
+      "title": "Bo Jackson Battle Arena w/ BP",
+      "date": "2026-05-22",
+      "description": "Host: bpcardcompany · Tomorrow 1:20 PM",
+      "url": "https://www.whatnot.com/live/9fb14e45-c323-4fe0-873b-8510f600b73c"
+    },
+    {
+      "id": "whatnot-1f50c6c1-7028-4d94-9f0f-5281bcb28291",
+      "kind": "community",
+      "title": "Bo Jackson Battle Arena!!! Is that a Pickle? Cactus? Cucumber?",
+      "date": "2026-05-22",
+      "description": "Host: valleyhithouse · Today 5:00 PM",
+      "url": "https://www.whatnot.com/live/1f50c6c1-7028-4d94-9f0f-5281bcb28291"
+    },
+    {
+      "id": "whatnot-efd3247b-4922-4c44-978f-029529fac4fc",
+      "kind": "community",
+      "title": "Bookmark! Future Bo Jackson Battle Arena Hobby Break!",
+      "date": "2026-05-22",
+      "description": "Host: daup10 · Today 10:00 PM",
+      "url": "https://www.whatnot.com/live/efd3247b-4922-4c44-978f-029529fac4fc"
+    },
+    {
+      "id": "whatnot-cf726a26-ce1a-4450-8d6e-b8c040816363",
+      "kind": "community",
+      "title": "Case Break w/ Krystal: Bo Jackson Battle Arena",
+      "date": "2026-05-22",
+      "description": "Host: bazookavault · Tomorrow 8:00 AM",
+      "url": "https://www.whatnot.com/live/cf726a26-ce1a-4450-8d6e-b8c040816363"
+    },
+    {
+      "id": "whatnot-8fdf5d47-bd0a-463b-9229-4b7ac66bd1d2",
+      "kind": "community",
+      "title": "Case Race Week 1- Double Mega Case (8 Boxes) Random Double Hero Break $30 spots Bo Jackson Battle Arena",
+      "date": "2026-05-22",
+      "description": "Host: henhouse_cards · Today 5:00 PM",
+      "url": "https://www.whatnot.com/live/8fdf5d47-bd0a-463b-9229-4b7ac66bd1d2"
+    },
+    {
+      "id": "whatnot-ba866176-8f38-4f85-a1be-fc43c0f2e8b9",
+      "kind": "community",
+      "title": "Double Hobby Case Break: Bo Jackson Battle Arena!",
+      "date": "2026-05-22",
+      "description": "Host: bazookavault · Tomorrow 2:00 PM",
+      "url": "https://www.whatnot.com/live/ba866176-8f38-4f85-a1be-fc43c0f2e8b9"
+    },
+    {
+      "id": "whatnot-093356fd-7cbf-4a87-adb2-91bc48c99ebb",
+      "kind": "community",
+      "title": "Friday BoBA Funday - Singles",
+      "date": "2026-05-22",
+      "description": "Host: shootstrayt_bastaton · Tomorrow 7:30 AM",
+      "url": "https://www.whatnot.com/live/093356fd-7cbf-4a87-adb2-91bc48c99ebb"
+    },
+    {
+      "id": "whatnot-185c09bf-d65d-4308-94c8-8545efb522b4",
+      "kind": "community",
+      "title": "Friday in Space City! Bo Jackson Battle Arena Singles @ $1",
+      "date": "2026-05-22",
+      "description": "Host: spacecityscc · Tomorrow 12:00 PM",
+      "url": "https://www.whatnot.com/live/185c09bf-d65d-4308-94c8-8545efb522b4"
+    },
+    {
+      "id": "whatnot-14c2ad1d-5d6b-42b3-b1c9-25a54decaa91",
+      "kind": "community",
+      "title": "HOBBY ⏰ FEATURED CHASERS 🚀 3 BOX BREAK 🔥 BO JACKSON BATTLE ARENA BOBA",
+      "date": "2026-05-22",
+      "description": "Host: jemmint10 · Today 6:30 PM",
+      "url": "https://www.whatnot.com/live/14c2ad1d-5d6b-42b3-b1c9-25a54decaa91"
+    },
+    {
+      "id": "whatnot-6d82d0e0-a022-46b3-b851-398914aae265",
+      "kind": "community",
+      "title": "LET'S BO! | Bo Jackson Battle Arena",
+      "date": "2026-05-22",
+      "description": "Host: thejmsportscards · Tomorrow 1:00 PM",
+      "url": "https://www.whatnot.com/live/6d82d0e0-a022-46b3-b851-398914aae265"
+    },
+    {
+      "id": "whatnot-7c81782c-fd93-4178-b751-dc8e79983468",
+      "kind": "community",
+      "title": "Quick's Bo Jackson Battle Arena: Griffey Single Hero DOUBLE HOBBY Break (feat. MOOSE)",
+      "date": "2026-05-22",
+      "description": "Host: quickxi117 · Tomorrow 11:08 AM",
+      "url": "https://www.whatnot.com/live/7c81782c-fd93-4178-b751-dc8e79983468"
     }
   ]
 }

@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.launch
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.bobaplaybook.core.domain.model.Card
@@ -89,6 +90,9 @@ fun CollectionCardDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val savedDecks by viewModel.savedDecks.collectAsStateWithLifecycle()
     val catalog by viewModel.catalogCards.collectAsStateWithLifecycle()
+    // Snackbar context for the per-copy "Removed · Undo" flow (tick 119).
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
     val card = remember(state, bobaId) {
         state.entriesByDesignation.values.flatten().firstOrNull { it.card.bobaId == bobaId }?.card
     }
@@ -162,7 +166,33 @@ fun CollectionCardDetailScreen(
                         viewModel.updateDesignation(entry.userCard.id, newDesignation)
                     },
                     onDelete = {
+                        // Capture the user-card fields BEFORE remove so
+                        // Undo re-adds with the same designation +
+                        // purchase / asking / condition / notes (tick 99
+                        // enabled this on the add path). Without this,
+                        // an accidental delete loses provenance metadata
+                        // the user spent time entering.
+                        val captured = entry.userCard
+                        val capturedCard = entry.card
                         viewModel.remove(entry.userCard.id)
+                        scope.launch {
+                            val result = appSnackbar?.showSnackbar(
+                                message = "Removed ${capturedCard.displayName}",
+                                actionLabel = "Undo",
+                                duration = androidx.compose.material3.SnackbarDuration.Short,
+                            )
+                            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                                viewModel.add(
+                                    cardBobaId    = capturedCard.bobaId,
+                                    designation   = captured.designation,
+                                    quantity      = captured.quantity,
+                                    purchasePrice = captured.purchasePrice,
+                                    askingPrice   = captured.askingPrice,
+                                    condition     = captured.condition,
+                                    notes         = captured.notes,
+                                )
+                            }
+                        }
                     },
                     onSaveEdits = { purchase, asking, condition, notes ->
                         viewModel.updateEntry(

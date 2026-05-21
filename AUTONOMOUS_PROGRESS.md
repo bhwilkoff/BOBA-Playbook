@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 119 — 2026-05-20 — **Android** — Collection card detail delete: Snackbar + Undo (preserves form fields)
+- **Cadence:** 119 % 5 = 4 → Android.
+- **Picked:** `CollectionCardDetailScreen::onDelete` fired `viewModel.remove(entry.userCard.id)` silently. No confirmation, no Undo. Particularly painful given that tick 99 enabled rich-data persistence on add — a user who'd spent time entering purchase price + condition + notes lost ALL of it with an accidental tap, with no recovery path. iOS / web have the Decks remove-with-Undo (tick 117 / 118); this is the Collection equivalent.
+- **Shipped:**
+  - `CollectionCardDetailScreen.kt`:
+    - New `import kotlinx.coroutines.launch`.
+    - `scope` + `appSnackbar` resolved at the top of the screen (`LocalAppSnackbar.current` + `rememberCoroutineScope()`).
+    - `onDelete` callback now captures the `entry.userCard` + `entry.card` BEFORE remove, fires `viewModel.remove`, then shows Snackbar "Removed {cardName}" + "Undo" action label.
+    - On `SnackbarResult.ActionPerformed`: re-adds via `viewModel.add(...)` with ALL the captured fields (designation, quantity, purchasePrice, askingPrice, condition, notes). Tick 99's signature expansion makes this work; without it the re-add would lose every optional field.
+- **Verified:** `CollectionViewModel.add` signature confirmed at the file (per tick 99) — accepts all 5 optional fields. `UserCard` data class has the matching getters. `LocalAppSnackbar` provided at theme root.
+- **PARITY.md:** No row — UX polish on already-✅ Collection card detail. 3-platform parity now: iOS Decks banner (117) + web Decks Snackbar+Undo (118) + Android Decks Snackbar+Undo (116) + Android Collection Snackbar+Undo (119, new). iOS Collection Undo + web Collection Undo are open follow-ups.
+- **Next:** tick 120 = opt; 121 = Android; 122 = iOS.
+
+
+
 ### Tick 118 — 2026-05-20 — **web** — Decks remove: Undo Snackbar (iOS 117 + Android 116 parity)
 - **Cadence:** 118 % 5 = 3 → web.
 - **Picked:** Web `DB.removeCard(bobaId, section)` fired silently — no toast, no Undo. iOS tick 117 just shipped "Removed X" banner; Android tick 116 has "Removed X · Undo" Snackbar on both compact + tablet panes. Web was the lone silent surface.

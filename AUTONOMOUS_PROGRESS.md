@@ -2748,3 +2748,12 @@ Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 =
 - **Punch-list status:** #7: ✅ Android · ⏳ iOS · ⏳ web. 8 of 8 backlog items have at least 1 platform shipped now.
 - **iOS request from Ben (queued for tick 192):** "On pull-to-refresh of Collection in iOS, there are 3 separate loading spinners as it refreshes est. market prices — collapse to one."
 - **Next:** tick 190 = opt (190 % 5 = 0). Then tick 191 = Android, tick 192 = iOS (Ben's spinner fix).
+
+## Pending iOS asks for tick 192
+
+Ben's out-of-band asks for the next iOS tick (cadence 192 % 5 = 2 = iOS):
+
+1. **Collapse Collection pull-to-refresh triple spinner.** When you pull-to-refresh Collection on iOS, three separate loading spinners appear as the app refreshes market estimates. Should be a single coordinated spinner — preferably the SwiftUI `.refreshable` system spinner, with pricing-refresh chained into the same Task.
+2. **Make market-price refresh non-blocking.** The ongoing refresh task must continue in the background while the user searches/filters Collection OR navigates elsewhere in the app (Find, Decks, Profile, etc.). Today the refresh appears to be tied to view lifecycle — investigate and decouple. Likely: hoist the refresh Task to `CollectionStore` (or a dedicated `PricingRefresher` actor) with its own state machine + cancellation that survives view transitions; show a top-of-Collection passive progress chip while it runs in the background instead of a modal/blocking spinner.
+
+Both flow into a single tick 192 commit. Bump v2.293 / build 555.

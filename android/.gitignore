@@ -9,6 +9,7 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+.kotlin/
 
 # ------------------------------------------------------------
 # Keystores + private keys — NEVER COMMIT

@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 116 — 2026-05-20 — **Android** — Decks tablet pane remove gets Snackbar+Undo (compact parity)
+- **Cadence:** 116 % 5 = 1 → Android.
+- **Picked:** `DecksTabletScreen`'s inline editor wired `onRemove = deckViewModel::remove` as a bare method reference. No Snackbar, no Undo — tablet users lost the cap-restore signal the compact pane has had since the Undo snackbar shipped overnight 2026-05-20. Tap remove → card disappears → no signal it registered, no way to undo without finding the same card in the pool.
+- **Shipped:**
+  - `DecksScreen.kt::DecksTabletScreen`:
+    - Hoisted `scope` + `appSnackbar` into the function body (already used in compact path; tablet pane was just missing them).
+    - `onRemove = { bobaId -> ... }` lambda mirrors the compact-pane handler at DecksScreen.kt:374 verbatim: capture the card by bobaId, fire `deckViewModel.remove(bobaId)`, then show Snackbar with "Removed {name}" + "Undo" action label. On `SnackbarResult.ActionPerformed` re-add the captured card via `deckViewModel.add(removed)`.
+    - AddResult discarded — the just-removed card always re-adds successfully (no cap conflict, the slot was just freed).
+- **Verified:** Pattern + wording match the compact handler verbatim so cross-screen users see identical Snackbar copy. `LocalAppSnackbar.current` is provided at the BOBAApp theme root (used in CardDetailScreen + the compact handler already).
+- **PARITY.md:** No row — UX polish on already-✅ Decks editor row. Compact + tablet panes now identical on remove feedback.
+- **Next:** tick 117 = iOS; 118 = web; 119 = Android; 120 = opt.
+
+
+
 ### Tick 115 — 2026-05-20 — **OPTIMIZATION TICK (14th 1-in-5)** — orphan iOS DecksView @State
 - **Cadence:** opt rotation. Web 5 · iOS 5 · Android 3 across opt ticks. Bias-toward-Android but couldn't find a clean Android orphan in this pass; picked an iOS @State sweep instead.
 - **Picked:** `DecksView.swift::selectedBrowserCard` declared as `Card? = nil` at line 128. `grep -rn selectedBrowserCard DecksView.swift` returned only the declaration line — never assigned, never read.

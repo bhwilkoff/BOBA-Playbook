@@ -600,6 +600,8 @@ private fun DecksTabletScreen(
     val draft by deckViewModel.draft.collectAsStateWithLifecycle()
     val authState by deckViewModel.authState.collectAsStateWithLifecycle()
     val isSignedIn = authState is com.bobaplaybook.app.auth.AuthState.SignedIn
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
     var wallOpen by remember { mutableStateOf(false) }
 
     if (wallOpen) {
@@ -680,7 +682,26 @@ private fun DecksTabletScreen(
                 draft = draft,
                 isSignedIn = isSignedIn,
                 onRename = deckViewModel::rename,
-                onRemove = deckViewModel::remove,
+                onRemove = { bobaId ->
+                    // Snackbar + Undo on remove — tablet parity with
+                    // the compact-pane flow (DecksScreen.kt:374).
+                    // Without this the tablet user lost the cap-restore
+                    // signal compact users had.
+                    val removed = draft.cards.firstOrNull { it.bobaId == bobaId }
+                    deckViewModel.remove(bobaId)
+                    if (removed != null) {
+                        scope.launch {
+                            val result = appSnackbar?.showSnackbar(
+                                message = "Removed ${removed.displayName}",
+                                actionLabel = "Undo",
+                                duration = androidx.compose.material3.SnackbarDuration.Short,
+                            )
+                            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                                deckViewModel.add(removed)
+                            }
+                        }
+                    }
+                },
                 onSave = { deckViewModel.save { /* tablet pane stays open */ } },
                 onSignInRequest = onSignInRequest,
                 onOpenRules = onOpenRules,

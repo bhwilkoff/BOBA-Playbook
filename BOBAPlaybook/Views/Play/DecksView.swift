@@ -1022,7 +1022,7 @@ struct DecksView: View {
     @ViewBuilder
     private func editorDeckRow(card: Card, role: DeckCardRole) -> some View {
         DeckCardRow(card: card, showRemoveButton: false) {
-            store.removeCard(card, role: role)
+            removeCardWithFeedback(card: card, role: role)
         }
         .contentShape(Rectangle())
         .onTapGesture { editorPath.append(card) }
@@ -1034,12 +1034,30 @@ struct DecksView: View {
         .listRowBackground(Color.clear)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
-                store.removeCard(card, role: role)
+                removeCardWithFeedback(card: card, role: role)
             } label: {
                 Label("Remove", systemImage: "trash")
             }
         }
         .compactZoomSource(id: card.id, in: editorZoomNamespace)
+    }
+
+    /// Remove a card from the editor + surface a "Removed X" banner.
+    /// Mirrors the addCardToDeck feedback path (tick 112) — silent
+    /// remove was a Add/Remove asymmetry the user noticed when
+    /// the swipe gesture fired with no visible confirmation. Android
+    /// tick 116 has the same pattern with Snackbar + Undo.
+    private func removeCardWithFeedback(card: Card, role: DeckCardRole) {
+        store.removeCard(card, role: role)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        let label = card.hero.isEmpty ? card.name : card.hero
+        withAnimation(.easeOut(duration: 0.25)) {
+            addedBanner = "Removed \(label)"
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation(.easeOut(duration: 0.3)) { addedBanner = nil }
+        }
     }
 
     /// Inline section label — same shape as the prior pinning header,

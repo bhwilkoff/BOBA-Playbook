@@ -102,6 +102,12 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 53 — 2026-05-20 — Custom Rainbow editor save / delete: skip redundant load()
+- **Picked:** Perf nit. Custom Rainbow editor save + delete both called `await load()` after closing the dialog — which re-fetches the whole `user_cards` array (potentially hundreds of rows) just to refresh the rainbow list. The user_cards array didn't change; only `user_custom_rainbows` did.
+- **Shipped:** save + delete paths now call `renderCollectionView()` directly. That triggers `hydrateCustomRainbows` (re-fetches rainbows) without re-fetching the unrelated user_cards. Saves a Supabase round-trip per save/delete + cuts the wall-clock latency the user feels after clicking Save.
+- **Verified:** node -c clean. Trace: create rainbow → Save → editor closes → renderCollectionView fires → hydrateCustomRainbows fires → new rainbow appears with correct progress. Same path for delete.
+- **PARITY.md:** No row — perf fix.
+
 ### Tick 52 — 2026-05-20 — Deep-link broken-card-URL: toast + URL cleanup
 - **Picked:** UX gap. Deep-link `?card=FAKE-99999` (or a stale link to a removed card) silently dropped the user on Find with NO feedback that the link was broken. Compounded by `history.replaceState` not running in the not-found branch, so a refresh would silently re-not-find the card forever.
 - **Shipped:**

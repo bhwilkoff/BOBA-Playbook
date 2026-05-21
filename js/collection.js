@@ -3452,9 +3452,11 @@ const Collection = (() => {
           await API.createCustomRainbow(name, _draftCriteria);
         }
         closeCustomRainbowEditor();
-        // Re-render — load() rebuilds the rainbow list including
-        // the new/edited row.
-        await load();
+        // Just re-render the Collection view — `renderCollectionView`
+        // calls `hydrateCustomRainbows` which re-fetches the rainbows.
+        // Skipping the full `load()` saves a redundant user_cards
+        // round-trip (the user_cards array didn't change).
+        renderCollectionView();
       } catch (err) {
         errEl.textContent = err?.message || 'Save failed.';
         errEl.hidden = false;
@@ -3471,7 +3473,9 @@ const Collection = (() => {
       try {
         await API.deleteCustomRainbow(_editingRainbow.id);
         closeCustomRainbowEditor();
-        await load();
+        // Skip the full `load()` round-trip — same reason as save:
+        // user_cards didn't change, only the rainbow list did.
+        renderCollectionView();
       } catch (err) {
         const errEl = document.getElementById('custom-rainbow-editor-error');
         errEl.textContent = err?.message || 'Delete failed.';

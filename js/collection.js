@@ -3220,13 +3220,21 @@ const Collection = (() => {
                 placeholder="Search ${esc(dim.label.toLowerCase())}…"
                 aria-label="Search ${esc(dim.label.toLowerCase())}" />`
       : '';
+    // Per-picker "Clear all" — appears when at least one option is
+    // checked. Matches iOS MultiSelectPicker's destructive button
+    // (CustomRainbowEditorSheet.swift line 304). Lets the user reset
+    // a noisy filter without un-checking each box individually.
+    const clearHtml = selected.size > 0
+      ? `<button type="button" class="rainbow-filter-clear" data-clear-dim="${esc(dim.key)}"
+                 aria-label="Clear all ${esc(dim.label.toLowerCase())}">Clear ${selected.size}</button>`
+      : '';
     const optionsHtml = values.map(v => `
       <label class="rainbow-filter-option" data-search="${esc(v.toLowerCase())}">
         <input type="checkbox" data-value="${esc(v)}" ${selected.has(v.toLowerCase()) ? 'checked' : ''} />
         <span>${esc(v)}</span>
       </label>
     `).join('');
-    bodyEl.innerHTML = `${searchHtml}<div class="rainbow-filter-options">${optionsHtml}</div>`;
+    bodyEl.innerHTML = `${searchHtml}${clearHtml}<div class="rainbow-filter-options">${optionsHtml}</div>`;
     countEl.textContent = selected.size > 0 ? `· ${selected.size}` : '';
     // Wire per-picker search — hides non-matching labels without
     // touching their checked state.
@@ -3241,6 +3249,15 @@ const Collection = (() => {
         });
       });
     }
+    // Wire per-picker "Clear all" — wipes the dimension's selections,
+    // updates the draft criteria, re-renders the picker (to drop the
+    // button + sync the count badge), and refreshes the preview.
+    const clearBtn = bodyEl.querySelector('.rainbow-filter-clear');
+    clearBtn?.addEventListener('click', () => {
+      delete _draftCriteria[dim.key];
+      _renderFilterDim(dim);
+      _renderPreview();
+    });
   }
 
   /// Recompute "X cards match · Y of those owned (Z%)" from the

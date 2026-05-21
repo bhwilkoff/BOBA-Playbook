@@ -2706,3 +2706,12 @@ Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 =
 - **Cadence rule:** opt ticks should net-remove. This tick adds 1 import + memory file (durable, not code). Net change: +1 line of code. Defensive opt — CI was red, fix first, polish next.
 - **Memory index updated.**
 - **Next:** tick 186 = Android (cadence 186 % 5 = 1). Punch-list #3 (glossary tooltips) is ✅ Android — pick #5 or #7 next for Android.
+
+### Tick 186 — 2026-05-21 — Android: contextual DBS sheet + Learn DBS article (punch list #5)
+- **Verified CI on f4aa8a3 green** (`withStyle` import landed clean).
+- **Discord backlog #5 (DBS explainer) — both halves shipped on Android:**
+  - **Part A — Learn → Rules article.** Added "Understanding DBS" to `rulesAppendix` so it surfaces regardless of game-mode picker (DBS comes up in every Playmaker discussion). Three sections: Body explainer + Bullets on how it works + Callout tip pointing to the card-detail chip. Per the Discord §5 ask (15-20% of rules questions are about DBS).
+  - **Part B — Per-card contextual sheet.** `DBSInfoSheet` now takes optional `cardDBS / currentDeckDBS / dbsBudget`. When all three are provided, renders a header `Surface` at top of the sheet: "This card costs +N DBS. Your deck has X/Y DBS used. Adding it brings you to (X+N)/Y." Uses `errorContainer` color when projected total goes over budget. Falls back to static explainer when no active draft.
+  - **Wiring:** `HeroStatRow` injects `DecksViewModel` via `hiltViewModel()` at the `if (dbsInfoOpen)` site, collects state, passes the draft's `totalDBS` + `dbsBudget` only when `enforcesDBS` is true. Sheet falls back to static when format doesn't enforce DBS (Rookie / Substitution / base Playmaker).
+- **Punch-list #5:** ✅ Android · ⏳ iOS (DBSInfoSheet takes no params today; needs same parity) · ⏳ web.
+- **Next:** tick 187 = iOS (cadence 187 % 5 = 2). Port either #4 (format-legality chip) or #5 (contextual DBS sheet) to iOS — #5 is closer to feature parity since #4 needs the bigger UI build.

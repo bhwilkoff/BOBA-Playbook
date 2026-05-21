@@ -844,7 +844,22 @@ private fun HeroStatRow(card: Card) {
         }
     }
     if (dbsInfoOpen) {
-        DBSInfoSheet(onDismiss = { dbsInfoOpen = false })
+        // Tick 186 — Discord backlog #5: pass active draft's DBS context
+        // so the sheet can show the per-card "what does adding this do?"
+        // line. Draft state lives in the screen-scoped DecksViewModel;
+        // if the draft is empty or its format doesn't enforce DBS, the
+        // sheet falls back to the static explainer.
+        val decksVm: com.bobaplaybook.app.feature.decks.DecksViewModel =
+            androidx.hilt.navigation.compose.hiltViewModel()
+        val deckState by decksVm.state.collectAsStateWithLifecycle()
+        val draft = deckState.draft
+        val showContext = draft.enforcesDBS && (draft.cards.isNotEmpty() || true)
+        DBSInfoSheet(
+            onDismiss = { dbsInfoOpen = false },
+            cardDBS    = card.dbs.takeIf { showContext },
+            currentDeckDBS = draft.totalDBS.takeIf { showContext },
+            dbsBudget  = draft.dbsBudget.takeIf { showContext },
+        )
     }
 }
 
@@ -861,7 +876,15 @@ private fun HeroStatRow(card: Card) {
 /// caller needs it.
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-internal fun DBSInfoSheet(onDismiss: () -> Unit) {
+internal fun DBSInfoSheet(
+    onDismiss: () -> Unit,
+    /** This card's DBS cost — surfaces the contextual line if set. */
+    cardDBS: Int? = null,
+    /** Active deck-builder draft's current total DBS, if a draft exists. */
+    currentDeckDBS: Int? = null,
+    /** Active draft's DBS budget (1000 for Nationals formats). */
+    dbsBudget: Int? = null,
+) {
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -872,6 +895,49 @@ internal fun DBSInfoSheet(onDismiss: () -> Unit) {
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            // Tick 186 — Discord backlog #5: contextual line at top
+            // when card detail opens the sheet and a deck draft exists.
+            // Tells coaches "this card is +N DBS; your deck is X/Y;
+            // adding it gets you to (X+N)/Y" — replaces the mental math.
+            if (cardDBS != null && currentDeckDBS != null && dbsBudget != null) {
+                val projected = currentDeckDBS + cardDBS
+                val overCap = projected > dbsBudget
+                androidx.compose.material3.Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = if (overCap)
+                        MaterialTheme.colorScheme.errorContainer
+                    else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            "This card costs +$cardDBS DBS",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = if (overCap)
+                                MaterialTheme.colorScheme.onErrorContainer
+                            else MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            "Your deck has $currentDeckDBS / $dbsBudget DBS used.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            if (overCap)
+                                "Adding it puts you at $projected / $dbsBudget — over budget."
+                            else
+                                "Adding it brings you to $projected / $dbsBudget.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (overCap)
+                                MaterialTheme.colorScheme.onErrorContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
             Text(
                 "What is DBS?",
                 style = MaterialTheme.typography.headlineSmall,

@@ -2678,3 +2678,13 @@ Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 =
 - **Punch-list #2:** ✅ Android · ✅ iOS · ⏳ web. Tick 183 (web) picks this up.
 - **Version:** v2.291.
 - **Next:** tick 183 = web (#2 lens parity).
+
+### Tick 183 — 2026-05-21 — Web: Rainbow lens chips (Discord backlog #2 — closes the trio)
+- **Closes punch-list #2** across all 3 platforms (Android tick 181 + iOS tick 182 + web today).
+- **Implementation:** the web rainbow display is the inline `<details>` row in Collection (not a dedicated detail VIEW like iOS / Android), so the lens needs to live INSIDE the body. Added a 3-chip row above the thumbnail strip with All (N) / Owned (N) / Missing (N). Click → re-renders the thumb strip filtered to that lens, updates the active-state class.
+- **State strategy:** stashed `__matching` + `__ownedKeys` as JS properties on each `.rainbow-row` DOM node after `innerHTML` set (in both `hydrateCustomRainbows` + `hydrateHeroRainbows`) so the lens handler can re-filter without re-running the catalog match (~17k cards × N rainbows on every click would be unworkable).
+- **Re-wiring after innerHTML replacement:** the thumb-tap handlers don't survive the `innerHTML` swap when lens changes, so the lens click handler re-attaches them on the fresh DOM.
+- **Refactor:** extracted `_renderRainbowThumbs(cards, ownedKeys)` as a pure function — called both from the initial row render AND from the lens click handler. Removes duplicate thumb-emit logic.
+- **CSS:** `.rainbow-lens` + `.rainbow-lens-btn` with cyan-active treatment using existing `--boba-cyan` token.
+- **Status:** Punch-list #2: ✅ Android · ✅ iOS · ✅ web. DONE — first item fully shipped across all 3 platforms via the loop.
+- **Next:** tick 184 = Android (cadence). Pick punch-list #3 (glossary tooltips in Learn articles) on Android since the surface is the freshest.

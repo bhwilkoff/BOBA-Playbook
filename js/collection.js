@@ -1006,22 +1006,17 @@ const Collection = (() => {
   /// row's data. Auto-hero rainbows omit `rainbowId` so they're
   /// uneditable.
   function _renderRainbowRow({ name, summary, matching, ownedKeys, rainbowId }) {
-    const visible = matching.slice(0, 24);
-    const ownedMatching = matching.filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber));
+    const ownedMatching   = matching.filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber));
+    const missingMatching = matching.filter(c => !(ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber)));
     const pct = matching.length === 0 ? 0
       : Math.round((ownedMatching.length / matching.length) * 100);
-    const thumbs = visible.map(c => {
-      const isOwned = ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber);
-      const url = API.cardThumbUrl(c) || '';
-      return `<button class="rainbow-thumb${isOwned ? ' owned' : ''}"
-                      type="button" data-detail-num="${esc(c.cardNumber)}"
-                      title="${esc((c.hero || c.name || '') + ' · ' + (c.treatment || ''))}">
-                <img src="${esc(url)}" alt="${esc(c.hero || c.name || '')}" loading="lazy" />
-              </button>`;
-    }).join('');
     const editAffordance = rainbowId
       ? `<button type="button" class="rainbow-edit-btn" data-rainbow-id="${esc(rainbowId)}" aria-label="Edit ${esc(name)}" title="Edit rainbow">✎</button>`
       : '';
+    // Tick 183 — Discord backlog #2 (web parity for iOS tick 182 +
+    // Android tick 181). Lens chips inside the body let the user
+    // narrow the 24-thumb strip to Owned / Missing without leaving
+    // Collection. Default is All. Click handler in _wireRainbowThumbs.
     return `
       <details class="rainbow-row">
         <summary>
@@ -1034,14 +1029,38 @@ const Collection = (() => {
           </span>
           ${editAffordance}
         </summary>
-        <div class="rainbow-thumbs">
-          ${thumbs || '<div class="rainbow-empty">No matching cards in the catalog.</div>'}
-          ${matching.length > visible.length ? `<div class="rainbow-more">+${matching.length - visible.length} more</div>` : ''}
+        <div class="rainbow-lens" role="tablist">
+          <button type="button" class="rainbow-lens-btn active" data-lens="all"     role="tab">All (${matching.length})</button>
+          <button type="button" class="rainbow-lens-btn"        data-lens="owned"   role="tab">Owned (${ownedMatching.length})</button>
+          <button type="button" class="rainbow-lens-btn"        data-lens="missing" role="tab">Missing (${missingMatching.length})</button>
         </div>
+        <div class="rainbow-thumbs">${_renderRainbowThumbs(matching, ownedKeys)}</div>
       </details>`;
   }
 
+  /// Renders the thumbnail strip body for a rainbow row, lens-aware.
+  /// Pure function — emits HTML for the given subset. Called on
+  /// initial row render and on every lens click.
+  function _renderRainbowThumbs(cards, ownedKeys) {
+    if (cards.length === 0) return '<div class="rainbow-empty">No matching cards.</div>';
+    const visible = cards.slice(0, 24);
+    const thumbs = visible.map(c => {
+      const isOwned = ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber);
+      const url = API.cardThumbUrl(c) || '';
+      return `<button class="rainbow-thumb${isOwned ? ' owned' : ''}"
+                      type="button" data-detail-num="${esc(c.cardNumber)}"
+                      title="${esc((c.hero || c.name || '') + ' · ' + (c.treatment || ''))}">
+                <img src="${esc(url)}" alt="${esc(c.hero || c.name || '')}" loading="lazy" />
+              </button>`;
+    }).join('');
+    const more = cards.length > visible.length
+      ? `<div class="rainbow-more">+${cards.length - visible.length} more</div>`
+      : '';
+    return thumbs + more;
+  }
+
   /// Wires thumbnail-tap → card-detail on a freshly-rendered rainbow list.
+  /// Also wires the per-row All/Owned/Missing lens (tick 183).
   function _wireRainbowThumbs(listEl, catalog) {
     listEl.querySelectorAll('[data-detail-num]').forEach(el => {
       el.addEventListener('click', () => {
@@ -1050,6 +1069,44 @@ const Collection = (() => {
           const card = catalog.find(c => c.cardNumber === cn);
           if (card) window.openCardModal(card);
         }
+      });
+    });
+    // Lens click handler — event-delegated on each row so each
+    // rainbow has its own independent lens state.
+    listEl.querySelectorAll('.rainbow-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        const btn = e.target.closest('.rainbow-lens-btn');
+        if (!btn) return;
+        e.preventDefault();
+        const lens = btn.dataset.lens;
+        // Re-render the row's thumbs in the chosen lens
+        const summary = row.querySelector('.rainbow-name')?.textContent || '';
+        // Look up the rainbow's catalog match list. Cached on the
+        // node when the row was rendered.
+        const matching = row.__matching;
+        const ownedKeys = row.__ownedKeys;
+        if (!matching || !ownedKeys) return;
+        const filtered = lens === 'owned'
+          ? matching.filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber))
+          : lens === 'missing'
+          ? matching.filter(c => !(ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber)))
+          : matching;
+        const thumbsEl = row.querySelector('.rainbow-thumbs');
+        if (thumbsEl) thumbsEl.innerHTML = _renderRainbowThumbs(filtered, ownedKeys);
+        // Update active state
+        row.querySelectorAll('.rainbow-lens-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // Re-wire taps on the freshly-rendered thumbs (the originals
+        // are gone with innerHTML replacement).
+        thumbsEl?.querySelectorAll('[data-detail-num]').forEach(el => {
+          el.addEventListener('click', () => {
+            const cn = el.dataset.detailNum;
+            if (window.openCardModal) {
+              const card = catalog.find(c => c.cardNumber === cn);
+              if (card) window.openCardModal(card);
+            }
+          });
+        });
       });
     });
   }
@@ -1114,16 +1171,21 @@ const Collection = (() => {
 
     const groupKeyOf = c => c.boba_id || c.card_number;
     const ownedKeys = new Set(ownedCards.map(groupKeyOf));
-    list.innerHTML = rainbows.map(rainbow => {
-      const matching = _rainbowMatching(rainbow, catalog);
-      return _renderRainbowRow({
-        name: rainbow.name,
-        summary: API.rainbowCriteriaSummary(rainbow.criteria),
-        matching,
-        ownedKeys,
-        rainbowId: rainbow.id,
-      });
-    }).join('');
+    // Compute matching arrays once, render rows, then stash matching+
+    // ownedKeys on each .rainbow-row so the lens handler in
+    // _wireRainbowThumbs can re-filter without recomputing.
+    const matchings = rainbows.map(r => _rainbowMatching(r, catalog));
+    list.innerHTML = rainbows.map((rainbow, i) => _renderRainbowRow({
+      name: rainbow.name,
+      summary: API.rainbowCriteriaSummary(rainbow.criteria),
+      matching: matchings[i],
+      ownedKeys,
+      rainbowId: rainbow.id,
+    })).join('');
+    list.querySelectorAll('.rainbow-row').forEach((row, i) => {
+      row.__matching  = matchings[i];
+      row.__ownedKeys = ownedKeys;
+    });
     _wireRainbowThumbs(list, catalog);
     // Wire edit-pencil clicks to open the editor preloaded.
     list.querySelectorAll('.rainbow-edit-btn').forEach(btn => {
@@ -1200,6 +1262,12 @@ const Collection = (() => {
         ownedKeys,
       });
     }).join('');
+    // Stash matching+ownedKeys per row so the lens handler can re-filter
+    // without recomputing. Tick 183.
+    list.querySelectorAll('.rainbow-row').forEach((row, i) => {
+      row.__matching  = buckets[heroes[i]];
+      row.__ownedKeys = ownedKeys;
+    });
     _wireRainbowThumbs(list, catalog);
   }
 

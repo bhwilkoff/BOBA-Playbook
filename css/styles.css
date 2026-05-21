@@ -2128,6 +2128,11 @@ dialog.modal-overlay[open] {
   color: var(--boba-cyan); text-align: center;
   padding: var(--sp-2) 0;
 }
+.auth-field-hint {
+  font-family: var(--font-mono); font-size: 0.7rem;
+  color: rgba(255,255,255,0.5);
+  margin: 4px 0 0; padding: 0;
+}
 
 /* Nav "signed-in" indicator */
 .sidebar-nav-item.signed-in::after {

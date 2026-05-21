@@ -24,6 +24,11 @@ const Auth = (() => {
     _mode = mode;
     _loading = false;
     renderModal();
+    // Dynamic aria-label — reflects the active mode so screen
+    // readers announce "Create account" vs "Sign in" correctly
+    // when the user tab-switches mid-modal. renderModal() also
+    // updates this on every re-render.
+    _updateAriaLabel();
     // Native <dialog> per WEB-DESIGN.md §13. showModal() handles
     // focus trap + ESC + scroll lock + top-layer rendering. Falls
     // back to the legacy hidden-attribute path if the markup
@@ -35,6 +40,13 @@ const Auth = (() => {
       document.body.style.overflow = 'hidden';
     }
     setTimeout(() => box.querySelector('#auth-email')?.focus(), 60);
+  }
+
+  function _updateAriaLabel() {
+    overlay?.setAttribute(
+      'aria-label',
+      _mode === 'signUp' ? 'Create your BOBA Playbook account' : 'Sign in to BOBA Playbook'
+    );
   }
 
   function close() {
@@ -101,19 +113,25 @@ const Auth = (() => {
             <label class="form-label" for="auth-email">EMAIL</label>
             <input class="form-input" type="email" id="auth-email"
                    autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"
+                   required aria-required="true"
                    placeholder="you@example.com">
           </div>
           <div class="form-field">
             <label class="form-label" for="auth-password">PASSWORD</label>
             <input class="form-input" type="password" id="auth-password"
                    autocomplete="${_mode === 'signIn' ? 'current-password' : 'new-password'}"
+                   required aria-required="true"
+                   ${_mode === 'signUp' ? 'minlength="6" aria-describedby="auth-password-hint"' : ''}
                    placeholder="••••••••">
+            ${_mode === 'signUp' ? '<p id="auth-password-hint" class="auth-field-hint">6 characters minimum.</p>' : ''}
           </div>
           ${_mode === 'signUp' ? `
           <div class="form-field">
             <label class="form-label" for="auth-confirm">CONFIRM PASSWORD</label>
             <input class="form-input" type="password" id="auth-confirm"
-                   autocomplete="new-password" placeholder="••••••••">
+                   autocomplete="new-password"
+                   required aria-required="true" minlength="6"
+                   placeholder="••••••••">
           </div>` : ''}
           <p class="auth-error" id="auth-error" hidden role="alert"></p>
           <p class="auth-info"  id="auth-info"  hidden role="status"></p>
@@ -130,6 +148,7 @@ const Auth = (() => {
       tab.addEventListener('click', () => {
         _mode = tab.dataset.mode;
         renderModal();
+        _updateAriaLabel();
         box.querySelector('#auth-email')?.focus();
       });
     });

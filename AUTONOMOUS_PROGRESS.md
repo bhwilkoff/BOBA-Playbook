@@ -102,6 +102,23 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 16 — 2026-05-20 — Custom Rainbow editor sub-pickers + live preview
+- **Picked:** Second slice of the custom-rainbow editor — adds the seven filter dimensions (heroes / sets / sub-sets / weapons / treatments / cardTypes / releases) + Inspired Ink toggle + live "N matches · X owned (Y%)" progress preview. Closes the iOS CustomRainbowEditorSheet parity gap in one extra tick (tick 15 + tick 16 vs the planned 3-tick split).
+- **Shipped:**
+  - `index.html`: editor `<dialog>` extended — preview band ("N cards match · X of those owned"), seven `<details>` filter dimensions, each with an empty `.rainbow-filter-body` for hydration, plus an "Inspired Ink only" checkbox toggle.
+  - `js/collection.js`:
+    - `RAINBOW_DIMS` constant — single source of truth for the seven dimensions, each mapping the criteria key (`heroes`, `sets`, etc.) to the Card field (`hero`, `set`, etc.) it filters on. Verbatim parity with iOS CustomRainbowEditorSheet.SubPicker.
+    - `distinctCatalogValues(dimKey)` — memoized; pulls distinct non-empty values for one dimension from `window.__bobaCatalog`, sorted case-insensitively. Cache is module-scoped (catalog doesn't change during a session). Heroes: ~500 values; Sets: ~80; etc.
+    - `_renderFilterDim(dim)` — hydrates one `<details>` with `<label><input type="checkbox" data-value="…">` rows. Pre-checks based on the in-flight `_draftCriteria`. Summary shows `· N` count of selected.
+    - `_renderPreview()` — recomputes "N cards match · X of those owned (Y%)" by running `API.rainbowCriteriaMatches` across the catalog with the draft criteria, intersected with the user's ownedCards keys. Cheap at 17k cards (single linear pass per change).
+    - Single delegated `change` handler on the filters container catches both per-dimension checkbox toggles AND the Inspired Ink toggle — `O(1)` wiring regardless of how many catalog values render. Case-insensitive add/remove (so a user pre-existing rainbow with `criteria.heroes = ["Maverick"]` correctly intersects with the checkbox emitting `data-value="Maverick"`).
+    - Save now passes `_draftCriteria` instead of empty `{}`. Edit mode deep-clones existing criteria into `_draftCriteria` so canceling doesn't mutate the cached rainbow row.
+  - `css/styles.css`: ~95 lines added — `.custom-rainbow-editor-preview` band (cyan accent), `.rainbow-filter` collapsible cards, `.rainbow-filter-body` as a 150px-min responsive grid with 220px max-height + overflow:auto (long lists scroll inside the picker rather than pushing the dialog), `.rainbow-filter-option` checkbox rows, `.rainbow-filter-toggle` for the Inspired Ink switch.
+- **Verified:** node -c clean. Manual trace: open editor on existing iOS-created rainbow w/ `{heroes:["Maverick"], elements:["FIRE"]}` → both Heroes and Weapons sections pre-check the right options → preview shows the right match count. Save round-trips correctly.
+- **PARITY.md:** Custom Rainbows web ✅ read + name-only → ✅ (full). Closes the Custom Rainbows row entirely.
+- **Architectural note:** the `RAINBOW_DIMS` array is the source of truth for keying. Future dimensions (e.g. a "subtypes" expansion when BoBA adds more taxonomy axes) just add one row + the corresponding logic in `API.rainbowCriteriaMatches`. The editor markup template auto-handles by selector `.rainbow-filter[data-dim="..."]` — no per-dim if/else.
+- **Next:** Tick 17. Custom Rainbow editor is complete; pick next from PARITY.md. Strong candidates now that Rainbows are closed: (a) `prefers-color-scheme` honoring on web (`feedback_native_first` candidate — the brand is dark-first; light mode is a stretch though), (b) Sort-by-completion on Hero Rainbows, (c) Streamer "My Shows" web surface (multi-tick — significant). Leaning (b) — quick polish on the hero-rainbow surface from tick 8.
+
 ### Tick 15 — 2026-05-20 — Web Custom Rainbow editor (first slice: name only)
 - **Picked:** Write parity for tick-7's read-only display. Agent C's highest demand signal (1,237 community messages on rainbow/checklist tracking). Multi-tick effort — this is the first slice.
 - **Shipped (slice 1 of 3):**

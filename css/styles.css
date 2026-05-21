@@ -4058,6 +4058,106 @@ dialog.modal-overlay[open] {
   gap: 0.5rem;
   margin-top: 0.4rem;
 }
+
+/* Live preview: card-match count + owned subset. */
+.custom-rainbow-editor-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: rgba(0,245,255,0.06);
+  border: 1px solid rgba(0,245,255,0.25);
+  border-radius: 8px;
+}
+.custom-rainbow-editor-preview-count {
+  font-family: var(--font-mono, 'Chakra Petch', monospace);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #00F5FF;
+}
+.custom-rainbow-editor-preview-owned {
+  font-family: var(--font-mono, 'Chakra Petch', monospace);
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.6);
+}
+
+/* Filter dimension picker — one <details> per dimension with a
+   scrollable checkbox grid inside. Long lists (Heroes ~500, Sets
+   ~80) get a max-height cap + overflow:auto. */
+.custom-rainbow-editor-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.rainbow-filter {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+}
+.rainbow-filter > summary {
+  cursor: pointer;
+  font-family: var(--font-mono, 'Chakra Petch', monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  padding: 8px 12px;
+  color: rgba(255,255,255,0.85);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rainbow-filter > summary::-webkit-details-marker { display: none; }
+.rainbow-filter > summary::before {
+  content: '▸';
+  display: inline-block;
+  color: rgba(255,255,255,0.45);
+  font-size: 0.7rem;
+  transition: transform 0.15s;
+}
+.rainbow-filter[open] > summary::before { transform: rotate(90deg); }
+.rainbow-filter-name { font-weight: 700; }
+.rainbow-filter-count {
+  font-size: 0.7rem;
+  color: #00F5FF;
+  font-weight: 700;
+}
+.rainbow-filter-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 4px 12px;
+  padding: 6px 12px 12px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.rainbow-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono, 'Chakra Petch', monospace);
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.85);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rainbow-filter-option input[type="checkbox"] {
+  flex: 0 0 auto;
+  accent-color: #00F5FF;
+}
+.rainbow-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono, 'Chakra Petch', monospace);
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.85);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.rainbow-filter-toggle input[type="checkbox"] { accent-color: #00F5FF; }
 .rainbow-row {
   background: var(--boba-surface);
   border: 1px solid var(--boba-border);

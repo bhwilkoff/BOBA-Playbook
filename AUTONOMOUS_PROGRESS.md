@@ -76,6 +76,19 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 127 — 2026-05-20 — **iOS** — Glossary contextMenu: Share alongside tap-to-copy (Android tick 126 parity)
+- **Cadence:** 127 % 5 = 2 → iOS.
+- **Picked:** Tick 87 shipped tap-to-copy on iOS Glossary rows. Tick 126 just added Android's long-press → ACTION_SEND chooser. iOS canon is `.contextMenu` (long-press surfaces a menu instead of immediately invoking the action). Without contextMenu, iOS coaches who wanted to share a definition had to copy → switch to Discord → paste — 3 steps where 1 would do.
+- **Shipped:**
+  - `LearnView.swift::GlossaryView` term Button — gained `.contextMenu { ... }` after the existing accessibility-hint modifier:
+    - `Button { copyTerm(t) }` with `Label("Copy", systemImage: "doc.on.doc")` — duplicates the default tap action for users who arrived via long-press first.
+    - `ShareLink(item: "{term} — {definition}", subject: "BOBA Glossary: {term}")` with `Label("Share", systemImage: "square.and.arrow.up")` — opens the iOS system share sheet (routes to Messages / Discord / Mail / etc.).
+- **Verified:** `ShareLink` is the modern iOS (15+) share API. Subject text becomes the share sheet's preview subject (used by Mail / Discord). Tap on the row still copies (the contextMenu doesn't change the default-tap behavior).
+- **PARITY.md:** No row — UX polish on already-✅ Glossary surface. 2-platform parity (Android tick 126 + iOS tick 127) on the long-press-to-share affordance.
+- **Next:** tick 128 = web; 129 = Android; 130 = opt.
+
+
+
 ### Tick 126 — 2026-05-20 — **Android** — Glossary: long-press to share (tap-to-copy companion)
 - **Cadence:** 126 % 5 = 1 → Android.
 - **Picked:** Tick 84 shipped tap-to-copy on Glossary rows. Coaches often want to push a definition DIRECTLY into Discord without the copy + paste round-trip. Long-press → Intent.ACTION_SEND chooser is the canonical Android pattern for "share this text to any installed app." iOS doesn't have an equivalent (UIPasteboard tap-to-copy is the iOS canon), so this is Android-specific polish.

@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 104 — 2026-05-20 — **Android** — Collection grid density picker (iOS @AppStorage parity)
+- **Cadence:** 104 % 5 = 4 → Android.
+- **Picked:** Same gap tick 101 closed for Decks — `GridDensityStore.Target.COLLECTION` was registered but `grep -rn Target.COLLECTION` returned zero callers. CollectionGrid hardcoded `Adaptive(minSize = 110.dp)`. iOS exposes per-collection `@AppStorage("bp_collectionGridColumns_v1")` — Android lagged.
+- **Shipped:**
+  - `CollectionGrid` signature gained `columns: Int = 0` param. 0 → adaptive default; non-zero → `GridCells.Fixed(columns)`.
+  - `CollectionScreen` injects `GridDensityViewModel`, reads `storedGridColumns` from `Target.COLLECTION` Flow, threads `storedGridColumns` into the GRID-mode CollectionGrid call site only (List + Wall ignore the picker).
+  - Overflow `DropdownMenu` gained a "Grid columns" mini-section between Display-mode picker + Sort. Only rendered when `displayMode == DisplayMode.GRID` (List/Wall don't have variable columns). Three `DropdownMenuItem`s (1/2/3) with active row showing `Icons.Default.Check` leadingIcon and inactive rows getting a 24dp Spacer for layout consistency.
+  - Fully-qualified `androidx.compose.foundation.layout.Spacer(...)` to match the file's existing convention (Spacer isn't imported at top).
+- **Verified:** `Target.COLLECTION` enum case at GridDensityStore.kt:46. ViewModel pattern + setColumns flow identical to the Decks tick 101 + Find pattern. Existing CollectionList + CollectionWall callers unchanged — default columns=0 preserves their behavior.
+- **PARITY.md:** Per-tab grid density row at PARITY.md:99 was claiming ✅ for both Decks + Collection on Android — really only Find was wired pre-tick-101. Now 3-of-3 tabs honor their per-tab DataStore preference (Find / Decks / Collection).
+- **Next:** tick 105 = opt; 106 = Android; 107 = iOS; 108 = web.
+
+
+
 ### Tick 103 — 2026-05-20 — **web** — AddSheet toast + expose window.showToast (uncovers + fixes silent fallback bug)
 - **Cadence:** 103 % 5 = 3 → web.
 - **Picked:** Web `openAddSheet` save path called `API.collectionAdd(card)`, closed sheet, re-rendered Collection + Profile — but NO confirmation toast. Same anti-pattern iOS tick 102 just fixed. Also discovered a **silent bug**: collection.js wrote `window.showToast('Avatar updated.')` (tick 68) + practice.js wrote `window.showToast('Add some cards…')` — both guarded with `if (typeof window.showToast === 'function')` checks that **always returned false** because app.js's `showToast` function was defined inside an IIFE and never exposed on window. Every "toast" call from sibling modules silently fell through to nothing.

@@ -102,6 +102,13 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 57 — 2026-05-20 — Cached user role: clear on SIGNED_OUT
+- **Picked:** Real bug. `_userRole` (module-scope in api.js) was set on SIGN_IN via `fetchUserRole()` but NOT cleared on SIGNED_OUT. User A signs in as admin → _userRole = 'admin' → signs out → _session = null BUT _userRole still 'admin' → any post-sign-out UI render that calls `API.getCachedRole()` sees the wrong (stale-admin) role. Practice tab admin-gate at app.js:475, mod-edit affordances at app.js:2987, etc.
+- **Real-user impact:** during the brief window between SIGNED_OUT firing and any subsequent SIGNED_IN completing `fetchUserRole`, the UI could flash admin-only content. Worst case: user signs out and stays signed-out — `_userRole` keeps the prior admin value forever.
+- **Shipped:** `js/auth.js` SIGNED_OUT branch now calls `await API.fetchUserRole().catch(() => {})` BEFORE dispatching auth-change. `fetchUserRole` with no signed-in user sets `_userRole = 'user'` (line 375 in api.js). Brief await blocks the auth-change event until role-state is consistent.
+- **Verified:** node -c clean. Trace: sign in as admin → _userRole = 'admin' → sign out → fetchUserRole called → sees no user → _userRole = 'user' → auth-change fires with the corrected state.
+- **PARITY.md:** No row — security-flavored bug fix.
+
 ### Tick 56 — 2026-05-20 — public-collection: duplicate fetchPublicProfile + honest empty-state
 - **Two bug fixes in one tick:**
   1. **Duplicate function** — `fetchPublicProfile` was declared twice in api.js (lines 830 + 870) AND exported twice in the same object literal (lines 995 + 1008). JS uses the second declaration (silent override) so the first was unreachable dead code; the duplicate export key was no-op. Removed the orphan declaration + duplicate export.

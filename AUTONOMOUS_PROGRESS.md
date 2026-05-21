@@ -76,6 +76,25 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 113 — 2026-05-20 — **web** — Decks add: surface no-op reason (iOS tick 112 parity)
+- **Cadence:** 113 % 5 = 3 → web.
+- **Picked:** Web `DB.addCard(card)` had the same silent-skip pattern iOS tick 112 just fixed — early `return` on duplicate / cap-reached with no signal to the caller. Quick-Add path + popup Add path both fired the call and immediately re-rendered; user saw the deck list unchanged + no clue why.
+- **Shipped:**
+  - `js/practice.js::DB.addCard` — now returns `{ ok: boolean, reason?: string }`:
+    - Success → `{ ok: true }`
+    - Hero violation → `{ ok: false, reason: 'already in deck' or 'rule violation' }` (uses `isInDeck` to disambiguate vs other wouldHeroViolate causes)
+    - Play duplicate → `{ ok: false, reason: 'already in deck' }`
+    - Play cap reached → `{ ok: false, reason: 'plays full (30)' }`
+    - Bonus duplicate / cap → `'already in deck'` / `'bonus plays full (15)'`
+    - HotDog cap → `'hot dogs full (10)'`
+    - Unknown tab → `'unknown tab'` (defensive)
+  - Both grid-tap and popup-Add callers now capture the result + fire `window.showToast(result.ok ? "Added X" : "X — ${reason}")`. Tick 103's `window.showToast` exposure makes this work without falling through to silent alert().
+- **Verified:** `node -c js/practice.js` clean. Only 2 callers in the codebase per `grep -rn DB.addCard` — both updated. Reasons strings verbatim with iOS tick 112 so cross-platform users see the same wording.
+- **PARITY.md:** No row — UX polish on already-✅ Decks add row. 2-platform parity (iOS tick 112 + web tick 113).
+- **Next:** tick 114 = Android; 115 = opt.
+
+
+
 ### Tick 112 — 2026-05-20 — **iOS** — Decks long-press add: surface no-op reason
 - **Cadence:** 112 % 5 = 2 → iOS.
 - **Picked:** `DecksView::addCardToDeck` (the long-press handler) had a silent no-op path — `guard afterCount > beforeCount else { return }`. When the user long-pressed a card that was already in the deck OR pushed a section over its cap (15 bonus plays, 10 hot dogs), the haptic + banner never fired. User got no feedback that the gesture registered. Same gap Android tick 89 closed for the pool empty state on a different axis (search vs filter); this is the long-press equivalent.

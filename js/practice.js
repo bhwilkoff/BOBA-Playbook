@@ -200,21 +200,47 @@ const DB = {
         || (p.htdPlaysEnabled ?? true)     !== o.htdPlaysEnabled;
   },
 
+  /// Add a card to the active section. Returns a structured outcome
+  /// the caller uses to surface feedback (tick 113 parity with iOS
+  /// tick 112). `{ ok: true }` on success; `{ ok: false, reason: ... }`
+  /// on silent-skip so the user sees WHY the add no-opped.
   addCard(card) {
     const tab = this.browserTab;
     if (tab === 'hero') {
-      if (this.wouldHeroViolate(card)) return;
+      if (this.wouldHeroViolate(card)) {
+        // Hero violation could be a duplicate, power-cap miss, or
+        // format-specific bar. wouldHeroViolate is the source of
+        // truth but doesn't disambiguate; "skipped" is honest.
+        return { ok: false, reason: this.isInDeck(card) ? 'already in deck' : 'rule violation' };
+      }
       this.heroes.push(card);
+      return { ok: true };
     } else if (tab === 'play') {
-      if (this.plays.some(c => c.bobaId === card.bobaId)) return;
-      if (this.plays.length < (this.currentFormat.playsTarget || 30)) this.plays.push(card);
+      if (this.plays.some(c => c.bobaId === card.bobaId)) {
+        return { ok: false, reason: 'already in deck' };
+      }
+      if (this.plays.length >= (this.currentFormat.playsTarget || 30)) {
+        return { ok: false, reason: `plays full (${this.currentFormat.playsTarget || 30})` };
+      }
+      this.plays.push(card);
+      return { ok: true };
     } else if (tab === 'bonus') {
-      if (this.bonusPlays.some(c => c.bobaId === card.bobaId)) return;
-      if (this.bonusPlays.length >= 15) return;  // BoBA rule: 15 bonus play cap
+      if (this.bonusPlays.some(c => c.bobaId === card.bobaId)) {
+        return { ok: false, reason: 'already in deck' };
+      }
+      if (this.bonusPlays.length >= 15) {
+        return { ok: false, reason: 'bonus plays full (15)' };
+      }
       this.bonusPlays.push(card);
+      return { ok: true };
     } else if (tab === 'hotdog') {
-      if (this.hotDogs.length < 10) this.hotDogs.push(card);
+      if (this.hotDogs.length >= 10) {
+        return { ok: false, reason: 'hot dogs full (10)' };
+      }
+      this.hotDogs.push(card);
+      return { ok: true };
     }
+    return { ok: false, reason: 'unknown tab' };
   },
 
   removeCard(bobaId, section) {
@@ -1003,9 +1029,15 @@ function initDeckBuilder(allCards) {
     if (!card) return;
 
     if (DB.quickAdd) {
-      // Immediate add
-      DB.addCard(card);
+      // Immediate add — surface the outcome so silent no-ops
+      // (already in deck / cap reached) become visible. Parity with
+      // iOS tick 112's "X — already in deck" banner.
+      const result = DB.addCard(card);
       dbRender(allCards);
+      const label = card.hero || card.name || 'card';
+      if (window.showToast) {
+        window.showToast(result.ok ? `Added ${label}` : `${label} — ${result.reason}`);
+      }
     } else {
       // Show card detail popup
       dbShowCardPopup(card, allCards);
@@ -1018,10 +1050,14 @@ function initDeckBuilder(allCards) {
     if (!bobaId) return;
     const card = allCards.find(c => c.bobaId === bobaId);
     if (!card) return;
-    DB.addCard(card);
+    const result = DB.addCard(card);
     dbRender(allCards);
     // Close popup immediately after adding
     dbHideCardPopup();
+    const label = card.hero || card.name || 'card';
+    if (window.showToast) {
+      window.showToast(result.ok ? `Added ${label}` : `${label} — ${result.reason}`);
+    }
   });
 
   // Card popup — close

@@ -102,6 +102,14 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 41 — 2026-05-20 — Find filter badge + empty-state count showcase picks
+- **Picked:** Audit gap. `filters.showcaseId` (WOBA / Basketball / etc. curated subsets) was missing from BOTH the filter-button badge count AND the empty-state body line. A user with WOBA showcase active + zero results saw "0 filters" badge + a generic empty-state message — invisible filter.
+- **Shipped:**
+  - `js/app.js::updateFilterBadge`: added `showcaseId` to the count. Sort intentionally not counted (reorders, doesn't filter).
+  - `js/app.js::updateEmptyStateBody`: appends `showcase: WOBA` (or whatever the showcase id is) to the active-filter list so the tick-29 refinement-hint surfaces it.
+- **Verified:** node -c clean. Trace: pick WOBA showcase chip → badge shows "1" + Filters button gets `has-filters` class. Filter to empty results → body reads "Nothing matches showcase: WOBA. Try loosening or removing the filter."
+- **PARITY.md:** No row — bug fix on already-✅ filter row.
+
 ### Tick 40 — 2026-05-20 — Decks browser: at-cap visual marker across all tabs
 - **Picked:** UX gap. The `.violates` class (opacity 0.3 + pointer-events: none) was only set for `browserTab === 'hero'` when `wouldHeroViolate(card)` was true. For plays / bonus / hotdog tabs, at-cap cells were fully interactive but `DB.addCard` silently returned without adding — looked broken to the user.
 - **Shipped:**

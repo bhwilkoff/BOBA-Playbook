@@ -199,6 +199,11 @@
     if (filters.release)                                count++;
     if (filters.powerMin !== null || filters.powerMax !== null) count++;
     if (filters.hasImage)                               count++;
+    // Showcase pick (WOBA / Basketball / etc.) was missing from the
+    // badge count — a user with WOBA active saw "0 filters" while
+    // results were clearly narrowed. Sort is intentionally NOT counted
+    // (reorders, doesn't filter).
+    if (filters.showcaseId)                             count++;
     if (filterBadge) {
       filterBadge.textContent = String(count);
       filterBadge.hidden = count === 0;
@@ -1805,6 +1810,10 @@
       const max = filters.powerMax ?? '∞';
       active.push(`power ${min}–${max}`);
     }
+    // Surface showcase pick so the user knows WOBA / Basketball / etc.
+    // is narrowing the result set. Was missing from the empty-state
+    // body line; pairs with tick-41's badge-count fix.
+    if (filters.showcaseId)                       active.push(`showcase: ${filters.showcaseId}`);
     if (active.length === 0) {
       bodyEl.textContent = 'Try a different search.';
     } else if (active.length === 1) {

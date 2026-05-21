@@ -599,6 +599,27 @@ private fun BadgeRow(card: Card) {
                 )
             }
         }
+        // Tick 189 — Discord backlog #7: print-run / SSP / "/N" badge
+        // for serialized + super-short-print cards. Null for the typical
+        // Base Set / Battlefoil card.
+        card.printRunLabel?.let { label ->
+            val accent = if (label == "SSP")
+                com.bobaplaybook.core.ui.theme.BobaBrand.Orange
+            else com.bobaplaybook.core.ui.theme.BobaBrand.Cyan
+            androidx.compose.material3.Surface(
+                shape = MaterialTheme.shapes.small,
+                color = accent.copy(alpha = 0.18f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.45f)),
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = accent,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+        }
     }
 }
 

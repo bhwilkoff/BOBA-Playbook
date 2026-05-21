@@ -620,13 +620,29 @@ private fun SignedInContent(
 
         item("role-header") { BOBASectionHeader(title = "Role") }
         item("role-request") {
+            // Surface pending-request state so users who submitted a
+            // request earlier see "Pending: moderator" instead of
+            // re-submitting blind. iOS Profile already shows this; the
+            // Android gap meant the only feedback was the post-submit
+            // Snackbar that disappeared after a few seconds.
+            val pendingRole = profile?.requestedRole?.takeIf { it.isNotBlank() }
             ListItem(
                 headlineContent = { Text("Request mod or streamer role") },
-                supportingContent = { Text("Reviewed by Ben within 48h", style = MaterialTheme.typography.labelMedium) },
+                supportingContent = {
+                    if (pendingRole != null) {
+                        Text(
+                            "Pending: ${pendingRole.replaceFirstChar { it.uppercase() }} · Ben reviews within 48h",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = BobaBrand.Cyan,
+                        )
+                    } else {
+                        Text("Reviewed by Ben within 48h", style = MaterialTheme.typography.labelMedium)
+                    }
+                },
                 leadingContent = { Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 trailingContent = {
                     TextButton(onClick = { roleRequestOpen = true }) {
-                        Text("Request")
+                        Text(if (pendingRole != null) "Update" else "Request")
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -832,11 +848,17 @@ private fun SignedInContent(
     }
 
     if (roleRequestOpen) {
-        var requestedRole by remember { mutableStateOf("moderator") }
+        // Pre-fill the radio with the user's current pending role (if
+        // any) so "Update" reads the existing state instead of always
+        // defaulting to "moderator." Keyed on profile?.requestedRole so
+        // opening for a different profile resets correctly.
+        val initialRole = profile?.requestedRole?.takeIf { it.isNotBlank() } ?: "moderator"
+        var requestedRole by remember(initialRole) { mutableStateOf(initialRole) }
         var reason by remember { mutableStateOf("") }
+        val isUpdate = profile?.requestedRole?.isNotBlank() == true
         AlertDialog(
             onDismissRequest = { roleRequestOpen = false },
-            title = { Text("Request role") },
+            title = { Text(if (isUpdate) "Update role request" else "Request role") },
             text = {
                 Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                     Text("Which role?", style = MaterialTheme.typography.bodyMedium)

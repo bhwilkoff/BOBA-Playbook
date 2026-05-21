@@ -43,6 +43,12 @@ const Collection = (() => {
 
   function clear() {
     _cards = [];
+    // Reset per-user caches so a stale previous-user record can't
+    // leak into the next session. Mirrors the Android pattern in
+    // `feedback_viewmodel_reset_on_auth_change`.
+    _customRainbowsById = {};
+    _editingRainbow = null;
+    _draftCriteria = {};
     renderCollectionView();
     renderProfileView();
   }

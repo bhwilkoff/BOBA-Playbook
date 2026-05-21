@@ -2644,3 +2644,11 @@ Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 =
 - **UI:** New `FormatLegalityStrip` composable in `CardDetailScreen.kt` — Row of `AssistChip`s above the existing `FormatRestrictionsBlock`. Each chip has a colored leading dot (green/amber/red) + format name. Click → `TooltipBox` with the reason or `"Spec: legal"` for the happy case. Most cards show 4 green chips at a glance — the at-a-glance reassurance is the point.
 - **Punch-list status:** #4 now ✅ Android · ⏳ iOS · ⏳ web. Future ticks pick up iOS + web parity.
 - **Next:** tick 180 = opt; tick 181 = iOS picks #4 (port `legalFormats` to Swift + add chip strip to `CardDetailView.swift`).
+
+### Tick 180 — 2026-05-21 — opt: CI fix for tick 179's TooltipBox / PlainTooltip
+- **CI failure on 5dedf82** (run 26228183877): `Unresolved reference 'PlainTooltip'` ×2 + smart-cast across-module-boundary error.
+- **Root cause:** `PlainTooltip` is `fun TooltipScope.PlainTooltip(...)` — a TooltipScope extension. Calling `androidx.compose.material3.PlainTooltip` via fully-qualified path doesn't resolve the extension; you have to IMPORT it and call directly so Kotlin can find it via the lambda's TooltipScope receiver.
+- **Smart-cast fix:** `chip.reason` lives in :core:domain, so Kotlin won't smart-cast across the module boundary even after a `!= null` check. Bound it to a local `val reason = chip.reason` and used `reason ?: "${chip.format}: legal"` in the elvis path. Collapses the if/else into 1 line — net -3 lines from the original buggy form.
+- **Cadence-rule note:** opt ticks ideally net-remove. This one net-adds 2 lines (import) but removes the dead if/else branch — call it neutral. No other orphans found across the 5 files modified in tick 176.
+- **Lesson added:** see [[feedback_compose_transformable_centroid_order]] for the kind-of-related "extension function via FQN doesn't dispatch" gotcha. The wavy/centroid pair are both Compose-API gotchas worth keeping at top-of-mind.
+- **Next:** tick 181 = Android (cadence). Punch-list item #2 (Rainbow completion + missing list) is the cleanest Android-next since #4 just shipped Android.

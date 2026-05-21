@@ -50,6 +50,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
@@ -713,15 +714,17 @@ private fun FormatLegalityChip(chip: com.bobaplaybook.core.domain.model.FormatLe
     }
     val tooltipState = androidx.compose.material3.rememberTooltipState()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+    // `PlainTooltip` is a TooltipScope extension — must be called from
+    // inside `tooltip = { ... }` whose receiver is TooltipScope. The
+    // fully-qualified path doesn't resolve the extension dispatch.
+    // Local val for `reason` works around the cross-module smart-cast
+    // limitation (FormatLegality lives in :core:domain).
+    val reason = chip.reason
     androidx.compose.material3.TooltipBox(
         positionProvider = androidx.compose.material3.TooltipDefaults
             .rememberPlainTooltipPositionProvider(),
         tooltip = {
-            if (chip.reason != null) {
-                androidx.compose.material3.PlainTooltip { Text(chip.reason) }
-            } else {
-                androidx.compose.material3.PlainTooltip { Text("${chip.format}: legal") }
-            }
+            PlainTooltip { Text(reason ?: "${chip.format}: legal") }
         },
         state = tooltipState,
     ) {

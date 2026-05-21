@@ -206,6 +206,29 @@ object LearnCorpus {
 
     /** Always-visible appendix below the mode-specific body. */
     val rulesAppendix: List<LearnSection> = listOf(
+        // Tick 186 — Discord backlog #5: "Understanding DBS" article.
+        // Discord §5 finding: 15-20% of rules questions are about DBS.
+        // Lives in the always-visible appendix because DBS comes up in
+        // every Playmaker discussion regardless of game-mode picker.
+        LearnSection.Body(
+            heading = "Understanding DBS (Deck Balancing System)",
+            text = "DBS is a per-Play cost system used in Nationals-style formats to keep individually powerful plays from crowding out the rest of a deck. Every Play has a DBS score and your deck's total must stay under the format's cap (1,000 for all Playmaker divisions at 2026 Nationals).",
+        ),
+        LearnSection.Bullets(
+            heading = "How DBS works",
+            items = listOf(
+                "Every Play card has a DBS value (Low 1-20 / Medium 21-40 / High 41-60 / Very High 67+)",
+                "Your 30 Plays sum to a total DBS; deck-builder shows it live",
+                "Stay ≤ deck's budget (typically 1,000) — over-cap decks fail legality check",
+                "Non-Nationals formats (Rookie, Substitution, Playmaker base) ignore DBS entirely",
+                "Bonus Plays count toward DBS in formats that include both",
+                "High-DBS plays are powerful but force you to fill the rest of the deck with low-DBS plays",
+            ),
+        ),
+        LearnSection.Callout(
+            heading = "Quick DBS tip",
+            text = "Tap the DBS chip on any Play card to see how adding it changes your active deck's total. The chip is purple and lives next to Power / Cost on the card detail.",
+        ),
         LearnSection.Bullets(
             heading = "Card zones",
             items = listOf(

@@ -602,7 +602,12 @@ struct DeckBuilderView: View {
     // MARK: - Card Browser
 
     private var cardBrowser: some View {
-        VStack(spacing: 0) {
+        // Bindable rebind — `@Environment(DeckBuilderStore.self)` (tick 135)
+        // doesn't expose `$store` projection by default. Local @Bindable
+        // promotes the observable into a binding-capable handle so the
+        // TextField below can two-way-bind `$store.browserSearch`.
+        @Bindable var store = store
+        return VStack(spacing: 0) {
             // Browser tab pills + Quick-Add toggle
             HStack {
                 browserTabPicker
@@ -904,7 +909,10 @@ struct DeckBuilderView: View {
     // MARK: - Deck Panel
 
     private var deckPanel: some View {
-        VStack(spacing: 0) {
+        // Bindable rebind for `$store.deckName` — same rationale as
+        // cardBrowser. @Environment doesn't project Bindings.
+        @Bindable var store = store
+        return VStack(spacing: 0) {
             // Deck header — always visible
             VStack(spacing: 2) {
                 // Section label + clear-deck button + collapsible toggle.

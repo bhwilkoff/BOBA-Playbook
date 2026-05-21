@@ -2652,3 +2652,16 @@ Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 =
 - **Cadence-rule note:** opt ticks ideally net-remove. This one net-adds 2 lines (import) but removes the dead if/else branch — call it neutral. No other orphans found across the 5 files modified in tick 176.
 - **Lesson added:** see [[feedback_compose_transformable_centroid_order]] for the kind-of-related "extension function via FQN doesn't dispatch" gotcha. The wavy/centroid pair are both Compose-API gotchas worth keeping at top-of-mind.
 - **Next:** tick 181 = Android (cadence). Punch-list item #2 (Rainbow completion + missing list) is the cleanest Android-next since #4 just shipped Android.
+
+### Tick 181 — 2026-05-21 — Android: Rainbow completion + missing-list lens (punch list #2)
+- **Verified CI 1a5bf0b green** (PlainTooltip + smart-cast fix held).
+- **Punch-list #2 (Rainbow shopping list):** Android RainbowDetailScreen previously showed `X / Y owned` + progress bar but no explicit `NN%`, and the grid mixed owned + missing with a dim "Missing" overlay on un-owned cells. Discord §11 called out the missing **shopping list** view.
+- **Added:**
+  - **Percentage label** trailing the "X / Y owned" header — cyan green (`#4CAF50`) when N==total ("you did it" moment), brand primary otherwise.
+  - **3-option SegmentedButton lens** (All / Owned / Missing) with per-bucket counts in the label (`Missing (12)`).
+  - **Filtered grid** via `remember(allCards, ownedBobaIds, lens)` derivative — no extra fetches.
+  - **Context-aware empty state:** when Missing is empty → "🎉 Complete — every card collected." When Owned is empty → "You don't own any of these yet."
+  - **Dynamic section header:** changes between "Every printing" / "Owned" / "Still to collect" so the user always knows what scope they're seeing.
+- **Punch-list status:** #2 now ✅ Android · ⏳ iOS (need same lens + % label) · ⏳ web.
+- **Files:** `android/app/.../collection/RainbowDetailScreen.kt` (+100 / -15).
+- **Next:** tick 182 = iOS (cadence). Pick punch-list #4 (format-legality chips) port to iOS — port the Kotlin `legalFormats()` to Swift + new chip strip in CardDetailView.

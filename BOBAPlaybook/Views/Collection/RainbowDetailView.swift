@@ -31,34 +31,23 @@ struct RainbowDetailView: View {
     @Binding var navigationPath: NavigationPath
     @State private var showingEditor = false
 
+    /// Tick 182 — Discord backlog #2 (Android tick 181 parity). Splits
+    /// the same rainbow grid into a shopping-list view. Persists via
+    /// @SceneStorage so toggling lens survives backgrounding the app.
+    enum Lens: String, CaseIterable, Identifiable {
+        case all     = "All"
+        case owned   = "Owned"
+        case missing = "Missing"
+        var id: String { rawValue }
+    }
+    @SceneStorage("rainbowLens_v1") private var lensRaw: String = Lens.all.rawValue
+    private var lens: Lens { Lens(rawValue: lensRaw) ?? .all }
+
     var body: some View {
         let context = self.context
         Group {
             if let context {
-                let cards   = matchingCards(for: context.criteria)
-                let owned   = ownedIds()
-                let ownedN  = cards.filter { owned.contains($0.id) }.count
-
-                ScrollView {
-                    header(name: context.title, summary: context.summary,
-                           owned: ownedN, total: cards.count)
-                    if cards.isEmpty {
-                        empty
-                    } else {
-                        LazyVGrid(
-                            columns: Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm), count: 3),
-                            spacing: Design.Spacing.md
-                        ) {
-                            ForEach(cards, id: \.id) { card in
-                                cell(card: card, isOwned: owned.contains(card.id))
-                                    .onTapGesture { navigationPath.append(card.id) }
-                            }
-                        }
-                        .padding(.horizontal, Design.Spacing.md)
-                        .padding(.vertical, Design.Spacing.lg)
-                    }
-                }
-                .scrollEdgeEffectStyle(.hard, for: .top)
+                resolvedScroll(context: context)
             } else {
                 ProgressView()
                     .tint(Design.Colors.bobaOrange)
@@ -179,6 +168,92 @@ struct RainbowDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: 300)
+        .padding(.top, Design.Spacing.xl)
+    }
+
+    /// Tick 182 — full ScrollView body extracted out of `body` so the
+    /// outer if-let-context conditional + the inner Picker / LazyVGrid
+    /// chain don't trip SwiftUI's type-inference timeout. The body
+    /// itself stays a tiny dispatch.
+    @ViewBuilder
+    private func resolvedScroll(context: Context) -> some View {
+        let cards    = matchingCards(for: context.criteria)
+        let owned    = ownedIds()
+        let ownedN   = cards.filter { owned.contains($0.id) }.count
+        let missingN = cards.count - ownedN
+        let visible  = filtered(cards: cards, owned: owned, lens: lens)
+        ScrollView {
+            header(name: context.title, summary: context.summary,
+                   owned: ownedN, total: cards.count)
+            if cards.isEmpty {
+                empty
+            } else {
+                // Lens picker — All (N) / Owned (N) / Missing (N).
+                // Missing IS the shopping-list affordance Discord §11 called out.
+                Picker("View", selection: $lensRaw) {
+                    Text("All (\(cards.count))").tag(Lens.all.rawValue)
+                    Text("Owned (\(ownedN))").tag(Lens.owned.rawValue)
+                    Text("Missing (\(missingN))").tag(Lens.missing.rawValue)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, Design.Spacing.md)
+                .padding(.top, Design.Spacing.xs)
+
+                if visible.isEmpty {
+                    lensEmpty(for: lens)
+                } else {
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm), count: 3),
+                        spacing: Design.Spacing.md
+                    ) {
+                        ForEach(visible, id: \.id) { card in
+                            cell(card: card, isOwned: owned.contains(card.id))
+                                .onTapGesture { navigationPath.append(card.id) }
+                        }
+                    }
+                    .padding(.horizontal, Design.Spacing.md)
+                    .padding(.vertical, Design.Spacing.lg)
+                }
+            }
+        }
+        .scrollEdgeEffectStyle(.hard, for: .top)
+    }
+
+    /// Tick 182 — extracted out of the body so SwiftUI's type inference
+    /// doesn't time out on a complex switch-expression inside the View.
+    private func filtered(cards: [Card], owned: Set<String>, lens: Lens) -> [Card] {
+        switch lens {
+        case .all:     return cards
+        case .owned:   return cards.filter { owned.contains($0.id) }
+        case .missing: return cards.filter { !owned.contains($0.id) }
+        }
+    }
+
+    /// Tick 182 — lens-specific empty state. "🎉 Complete" when Missing
+    /// is empty is the moment of bragging-rights for a finished rainbow.
+    @ViewBuilder
+    private func lensEmpty(for lens: Lens) -> some View {
+        VStack(spacing: Design.Spacing.sm) {
+            switch lens {
+            case .owned:
+                Image(systemName: "tray")
+                    .font(.system(size: 32))
+                    .foregroundStyle(Design.Colors.textMuted)
+                Text("You don't own any of these yet.")
+                    .font(Design.Fonts.mono(13))
+                    .foregroundStyle(Design.Colors.textMuted)
+            case .missing:
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(Color(hex: "4CAF50"))
+                Text("Complete — every card collected.")
+                    .font(Design.Fonts.display(14))
+                    .foregroundStyle(Color(hex: "4CAF50"))
+            case .all:
+                EmptyView()
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 240)
         .padding(.top, Design.Spacing.xl)
     }
 

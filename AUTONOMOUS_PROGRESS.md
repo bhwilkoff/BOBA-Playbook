@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 171 — 2026-05-21 — **Android** — AddToDeckSheet: "Already in deck" visual hint on current-draft row
+- **Cadence:** 171 % 5 = 1 → Android.
+- **Picked:** Carries the tick 161 pool-cell visual indicator into the AddToDeckSheet. The sheet's "Current draft" row showed the same `Icons.Default.Add` icon and offered no visual signal that the card the user is trying to add is ALREADY in the active deck. Tapping the row in that state hits the tick 114 `"already in deck"` Snackbar, but the result is reactive (after tap) — the right UX is proactive (before tap).
+- **Shipped:**
+  - `AddToDeckSheet.kt` "Current draft" row:
+    - New `val alreadyInDraft = draft.cards.any { it.bobaId == card.bobaId }` derived from the sheet's prop card + draft.
+    - Supporting content prepends a primary-colored hint line when `alreadyInDraft`: *"Already in this deck — tap to surface duplicate-warning"*.
+    - Trailing icon swaps from `Icons.Default.Add` to `Icons.Default.Check` (cyan/primary tint) when `alreadyInDraft`. Visual = same affordance pattern as tick 161's pool-cell badge.
+- **Verified:** the existing tap behavior is preserved — tap still hits `decksViewModel.add(card)` which returns `AddResult.Skipped("already in deck")` (tick 114), surfaced via the existing Snackbar. The visual hint is purely advisory; doesn't gate the tap (some users WANT the Snackbar reminder; others learn to skip the row).
+- **PARITY.md:** No row.
+- **Next:** tick 172 = iOS; 173 = web; 174 = Android; 175 = opt.
+
 ### Tick 170 — 2026-05-21 — **opt** — Drop 6 orphan iOS Store methods (53 lines)
 - **Cadence:** 170 % 5 = 0 → opt.
 - **Picked:** Module-wide scan of iOS Store/Networking/Components/Models for `func` definitions with zero in-tree call sites. Six confirmed orphans, all left over from earlier refactor cycles (Practice executor decompositions, Collection consolidations). False-positives correctly excluded: `viewForZooming` + `scrollViewDidZoom` are `UIScrollViewDelegate` protocol witnesses dispatched dynamically by the runtime — kept.

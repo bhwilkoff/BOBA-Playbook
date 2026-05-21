@@ -91,10 +91,22 @@ fun AddToDeckSheet(
             val overHD = projectedHD > draft.hdCap
             val overPlays = projectedPlays > draft.playCap
             val overDBS = draft.enforcesDBS && projectedDBS > draft.dbsBudget
+            // Tick 171 — Decks pool got the cyan-border + checkmark
+            // indicator in tick 161; AddToDeckSheet's "Current draft"
+            // row should also signal that the card's already in this
+            // deck so the user doesn't tap "Add" expecting a fresh add.
+            val alreadyInDraft = draft.cards.any { it.bobaId == card.bobaId }
             ListItem(
                 headlineContent = { Text(draft.name) },
                 supportingContent = {
                     Column {
+                        if (alreadyInDraft) {
+                            Text(
+                                "Already in this deck — tap to surface duplicate-warning",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                         Text(
                             "${draft.heroCount} heroes · $projectedPlays/${draft.playCap} plays · $projectedHD/${draft.hdCap} HD",
                             style = MaterialTheme.typography.labelMedium,
@@ -115,7 +127,15 @@ fun AddToDeckSheet(
                     Icon(Icons.Default.ViewModule, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 },
                 trailingContent = {
-                    Icon(Icons.Default.Add, contentDescription = "Add")
+                    if (alreadyInDraft) {
+                        Icon(
+                            androidx.compose.material.icons.Icons.Default.Check,
+                            contentDescription = "Already in deck",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    } else {
+                        Icon(Icons.Default.Add, contentDescription = "Add")
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()

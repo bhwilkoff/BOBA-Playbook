@@ -203,11 +203,39 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
             title = { Text("Delete \"${deck?.name ?: "deck"}\"?") },
-            text = { Text("This removes the deck from every device. Can't be undone.") },
+            // Copy updated tick 124 — Undo Snackbar now provides a
+            // brief recovery window after delete. The original
+            // "Can't be undone" hint is no longer accurate (Undo
+            // re-creates the deck server-side with a new id but
+            // identical name + cards).
+            text = { Text("This removes the deck from every device. You'll have a few seconds to undo.") },
             confirmButton = {
                 TextButton(onClick = {
+                    // Capture the deck BEFORE delete so Undo can re-
+                    // save with the same name + cards via the new
+                    // restoreDeletedDeck ViewModel path.
+                    val captured = deck
                     vm.deleteDeck(id)
                     pendingDelete = null
+                    if (captured != null) {
+                        scope.launch {
+                            val result = appSnackbar?.showSnackbar(
+                                message = "Deleted \"${captured.name}\"",
+                                actionLabel = "Undo",
+                                duration = androidx.compose.material3.SnackbarDuration.Short,
+                            )
+                            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                                vm.restoreDeletedDeck(captured) { newId ->
+                                    scope.launch {
+                                        appSnackbar?.showSnackbar(
+                                            if (newId != null) "Restored \"${captured.name}\""
+                                            else "Couldn't restore — check connectivity."
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {

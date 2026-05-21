@@ -113,4 +113,30 @@ class DecksViewModel @Inject constructor(
     fun deleteDeck(deckId: String) {
         viewModelScope.launch { repo.deleteDeck(deckId) }
     }
+
+    /// Restore a just-deleted saved deck (Undo path from the Manage
+    /// Decks delete Snackbar — tick 124). Bypasses the draft-state
+    /// path used by `save(...)`; calls repo.saveDeck directly with
+    /// the captured SavedDeck's data. Returns the NEW deck id (not
+    /// the captured original — Supabase issues a fresh UUID on insert).
+    fun restoreDeletedDeck(saved: com.bobaplaybook.core.data.decks.SavedDeck, onResult: (String?) -> Unit) {
+        viewModelScope.launch {
+            val auth = authManager.authState.first()
+            val userId = (auth as? AuthState.SignedIn)?.userId ?: run { onResult(null); return@launch }
+            // Expand the SavedDeck's quantity-rows back into a flat
+            // cardNumber list. saveDeck takes a flat list (one entry
+            // per copy) — quantities are inferred server-side.
+            val flatCardNumbers = buildList {
+                saved.cards.forEach { row ->
+                    repeat(row.quantity) { add(row.cardNumber) }
+                }
+            }
+            val newId = repo.saveDeck(
+                userId = userId,
+                name = saved.name,
+                cardNumbers = flatCardNumbers,
+            )
+            onResult(newId)
+        }
+    }
 }

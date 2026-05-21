@@ -29,7 +29,9 @@ struct DeckBuilderView: View {
     @Environment(CollectionStore.self) private var collection
     @Environment(AuthManager.self) private var auth
     @Environment(ScanStore.self) private var scanStore
-    @State private var store = DeckBuilderStore()
+    /// Hoisted tick 135 — was @State, now @Environment so
+    /// CollectionCardDetailView's tap-to-load actually propagates.
+    @Environment(DeckBuilderStore.self) private var store
     /// Set true to present the scanner full-screen-cover. Configured
     /// against `scanStore` (source = .deckBuilder, current deck label,
     /// saved-decks snapshot) right before flipping the flag so the

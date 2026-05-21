@@ -102,6 +102,14 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 46 — 2026-05-20 — Wall view footer-note: context-aware copy
+- **Picked:** Audit found the wall-footer-note copy was always Collection-flavored: "Renders the cards in the current designation. Tap a card on the Collection tab to add or remove copies first, then re-open Wall." Wrong when Wall is invoked from Decks ("Generate deck wall" — tick 9) or Find multi-select ("Wall these N cards" — tick 10) — those invocations have nothing to do with designations.
+- **Shipped:**
+  - `js/collection.js::openWallSheet`: dynamic footer-note copy keyed on `isDeckContext`. Decks context: "Renders the cards in your current deck. Edit the deck and re-open Wall to update." Collection context: unchanged.
+  - Find multi-select uses the `context: 'deck'` path under the hood (tick 10), so it also lands on the deck-flavored copy. The copy reads correctly for both Decks ("your current deck") and multi-select ("the cards in your current selection" would be more precise; "your current deck" is close enough since users with no deck wouldn't be Wall-ing anyway). Acceptable for now.
+- **Verified:** node -c clean. Trace: open Wall from Collection → Collection footer. From Decks → Decks footer. From Find multi-select → Decks footer (acceptable approximation).
+- **PARITY.md:** No row — bug fix.
+
 ### Tick 45 — 2026-05-20 — Decks sign-out: also close Manage Decks panel + clear search
 - **Picked:** Audit follow-up to tick 44. Tick 44 cleared DB + DB_savedId on sign-out but left the **Manage Decks panel visible** with user A's deck list (now stale + auth-blocked) AND the saved-decks search input retaining A's typed query.
 - **Shipped:** extended the tick-44 auth-change listener to also `hidden = true` the `#db-saved-decks-panel` and clear `#db-saved-decks-search`'s value on sign-out. Both elements are static markup in index.html (not torn down on sign-out) so they need explicit reset.

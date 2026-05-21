@@ -102,6 +102,20 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 66 — 2026-05-20 — **Android** — Hero Auto Rainbows: catalog total + completion sort
+- **Cadence:** 66 % 5 = 1 → Android.
+- **Picked:** Android Hero Auto Rainbows row showed "5 treatments · 8 copies" — the user couldn't tell if 5 was complete or 5 of 50. iOS + web show owned/total ("5 of 15 treatments"). Real parity gap. Also: Android sorted by raw treatment count, not by completion %, so heroes with many treatments (Maverick / Cupid) crowded out almost-complete cheap heroes (a 5/5 Joe Greene rainbow ranked below 8/40 Maverick).
+- **Shipped:**
+  - `RainbowsScreen.kt`:
+    - New `catalog by viewModel.catalogCards.collectAsStateWithLifecycle()` for catalog access.
+    - New `totalTreatmentsByHero: Map<String, Int>` computed via `remember(catalog)` — single O(catalog) pass groups catalog cards by hero + counts distinct treatments. Memoized so the pass only re-runs when the catalog changes (rare — only first hydration).
+    - `AutoRainbow` data class gains `totalTreatments: Int` field.
+    - heroRainbows map populates `totalTreatments` from the new lookup.
+    - Sort comparator swapped from `sortedByDescending { it.treatmentCount }` to `sortedWith(compareByDescending { ratio }.thenBy { hero })` — completion-% sort matches iOS + web tick 8.
+    - Row supportingContent renders "5 of 15 treatments · 33% · 8 copies" instead of "5 treatments · 8 copies."
+- **Verified:** edits are additive — existing fields preserved.
+- **PARITY.md:** Per-hero Auto Rainbows Android `⏳ M2 polish` → `✅ read-only`. Now matches iOS + web feature set (sort + total + completion).
+
 ### Tick 65 — 2026-05-20 — **OPTIMIZATION TICK (iOS, 4th 1-in-5)** — HoB cardPool console flood
 - **Per platform-cadence rotation:** ticks 50+55 were web opts, 60 was Android. Tick 65 = iOS to balance.
 - **Picked:** `HouseOfCardsView.cardPool` computed property had THREE `print("[HoB] cardPool: ...")` statements that fired on every body re-eval — every time the view re-evaluated (which can be 5-15 times per gesture in SwiftUI), all three prints fired. Floods every HoB user's Xcode/device console.

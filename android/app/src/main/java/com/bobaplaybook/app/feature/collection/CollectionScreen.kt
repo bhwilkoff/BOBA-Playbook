@@ -614,6 +614,17 @@ private fun CollectionWall(
     //
     // Capture-on-tap path: a GraphicsLayer records the rendered grid so
     // the share button can export a PNG to FileProvider + Intent.ACTION_SEND.
+
+    // Cap render at 200 cards to prevent bitmap-capture OOM on low-end
+    // devices. At 1080-wide × ~9000 tall (500 cards at adaptive 90dp on
+    // a 480-dpi screen), the captured bitmap is ~39 MB. iOS / web cap
+    // to the same 200 number (web tick 43 for canvas-height limit).
+    // Cap is unrelated to LazyVerticalGrid's viewport-only rendering;
+    // it bounds the bitmap memory cost on share.
+    val HARD_CAP = 200
+    val truncated = entries.size > HARD_CAP
+    val rendered = if (truncated) entries.take(HARD_CAP) else entries
+
     val graphicsLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -664,6 +675,19 @@ private fun CollectionWall(
                 Text("Share Wall as image")
             }
         }
+        if (truncated) {
+            // GLOW-yellow informational note (matches web tick 43).
+            // Honest signal that what the user is about to share isn't
+            // every card in the designation.
+            Text(
+                "Showing the first $HARD_CAP of ${entries.size} cards — capture caps at $HARD_CAP for safe bitmap memory. Narrow the scope (e.g. switch designation) for a wall of every card.",
+                style = MaterialTheme.typography.bodySmall,
+                color = androidx.compose.ui.graphics.Color(0xFFD9C566),  // GLOW-y, informational
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+        }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 90.dp),
             contentPadding = PaddingValues(2.dp),
@@ -677,7 +701,7 @@ private fun CollectionWall(
                     drawLayer(graphicsLayer)
                 },
         ) {
-            items(items = entries, key = { it.userCard.id }) { entry ->
+            items(items = rendered, key = { it.userCard.id }) { entry ->
                 Box(
                     modifier = Modifier
                         .cardSharedBounds(entry.card.bobaId)

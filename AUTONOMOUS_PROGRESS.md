@@ -102,6 +102,16 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 64 — 2026-05-20 — **Android** — Wall view cap at 200 cards (parity with web tick 43)
+- **Cadence:** 64 % 5 = 4 → Android.
+- **Picked:** Web shipped a 200-card cap on Wall view tick 43 to avoid Safari (16,384px) / Chrome (32,767px) canvas-height limits. Android has the same family of risk via `graphicsLayer.toImageBitmap()` capturing the rendered grid — at 500 cards × adaptive 90dp on a 480-dpi screen, the captured bitmap is ~39 MB. Low-end Android devices could OOM during share, blowing the share intent silently.
+- **Shipped:**
+  - `CollectionScreen.kt::CollectionWall`:
+    - New `HARD_CAP = 200` constant + `rendered = if (truncated) entries.take(HARD_CAP) else entries`. LazyVerticalGrid now binds to `rendered` instead of the unbounded `entries`.
+    - New truncation note above the grid when `truncated == true`: GLOW-yellow `bodySmall` text — "Showing the first 200 of {N} cards — capture caps at 200 for safe bitmap memory. Narrow the scope (e.g. switch designation) for a wall of every card." Matches web tick 43's copy + intent.
+- **Verified:** edits are additive; existing wall flow unchanged for collections under 200 cards.
+- **PARITY.md:** No row — internal-cap parity polish on the already-✅ Wall row.
+
 ### Tick 63 — 2026-05-20 — **web** — Scan camera error messaging
 - **Cadence:** 63 % 5 = 3 → web. Found a UX gap audit-style.
 - **Picked:** Scan view's camera-failure path generically reported "Camera access denied. Enable camera permissions and refresh." regardless of the actual failure mode. The Web Camera API throws named exceptions (`NotAllowedError`, `NotFoundError`, `NotReadableError`, `OverconstrainedError`, `SecurityError`) — each has a distinct fix. A user whose camera is busy in another app or whose device lacks a rear camera couldn't tell what to fix from the generic message.

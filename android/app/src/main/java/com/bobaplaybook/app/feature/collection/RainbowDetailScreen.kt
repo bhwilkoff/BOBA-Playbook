@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,13 +24,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -107,6 +115,18 @@ fun RainbowDetailScreen(
 
     val ownedCount = allCards.count { it.bobaId in ownedBobaIds }
     val pctOwned = if (allCards.isEmpty()) 0f else ownedCount.toFloat() / allCards.size
+    val pctLabel = if (allCards.isEmpty()) "0%" else "${(pctOwned * 100).toInt()}%"
+
+    // Tick 181 — Discord backlog #2: "Missing list" as a quick shopping
+    // view. Lens splits the same grid 3 ways without re-fetching.
+    var lens by rememberSaveable { mutableStateOf(RainbowLens.ALL) }
+    val visibleCards = remember(allCards, ownedBobaIds, lens) {
+        when (lens) {
+            RainbowLens.ALL     -> allCards
+            RainbowLens.OWNED   -> allCards.filter { it.bobaId in ownedBobaIds }
+            RainbowLens.MISSING -> allCards.filter { it.bobaId !in ownedBobaIds }
+        }
+    }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     Scaffold(
@@ -151,27 +171,82 @@ fun RainbowDetailScreen(
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    "$ownedCount / ${allCards.size} owned",
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                // Header row: "X / Y owned" + percent on the trailing edge
+                // (percent is cyan when complete, brand-orange otherwise —
+                // a small but real "you did it" moment when N==total).
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "$ownedCount / ${allCards.size} owned",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        pctLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (ownedCount > 0 && ownedCount == allCards.size)
+                            androidx.compose.ui.graphics.Color(0xFF4CAF50)
+                        else MaterialTheme.colorScheme.primary,
+                    )
+                }
                 LinearProgressIndicator(
                     progress = { pctOwned },
                     modifier = Modifier.fillMaxWidth(),
                 )
+                // Lens: All / Owned / Missing. Missing is the shopping list
+                // the Discord audit (§11) explicitly called out as missing.
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    RainbowLens.entries.forEachIndexed { idx, l ->
+                        val count = when (l) {
+                            RainbowLens.ALL     -> allCards.size
+                            RainbowLens.OWNED   -> ownedCount
+                            RainbowLens.MISSING -> allCards.size - ownedCount
+                        }
+                        SegmentedButton(
+                            selected = lens == l,
+                            onClick = { lens = l },
+                            shape = SegmentedButtonDefaults.itemShape(idx, RainbowLens.entries.size),
+                        ) {
+                            Text("${l.label} ($count)", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
             }
-            BOBASectionHeader(title = if (isCustom) "Cards matching your filter" else "Every printing")
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 110.dp),
-                contentPadding = PaddingValues(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                items(items = allCards, key = { it.bobaId }) { card ->
-                    RainbowTile(card = card, owned = card.bobaId in ownedBobaIds, onClick = { onCardClick(card.bobaId) })
+            BOBASectionHeader(title = when (lens) {
+                RainbowLens.ALL     -> if (isCustom) "Cards matching your filter" else "Every printing"
+                RainbowLens.OWNED   -> "Owned"
+                RainbowLens.MISSING -> "Still to collect"
+            })
+            if (visibleCards.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        when (lens) {
+                            RainbowLens.OWNED   -> "You don't own any of these yet."
+                            RainbowLens.MISSING -> "🎉 Complete — every card collected."
+                            RainbowLens.ALL     -> "No cards match this rainbow's criteria."
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 110.dp),
+                    contentPadding = PaddingValues(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(items = visibleCards, key = { it.bobaId }) { card ->
+                        RainbowTile(card = card, owned = card.bobaId in ownedBobaIds, onClick = { onCardClick(card.bobaId) })
+                    }
                 }
             }
         }
@@ -203,6 +278,16 @@ private fun RainbowTile(card: Card, owned: Boolean, onClick: () -> Unit) {
             }
         }
     }
+}
+
+/**
+ * Lens for the rainbow detail grid. Owned / Missing carries the
+ * Discord shopping-list use case (#2 backlog).
+ */
+private enum class RainbowLens(val label: String) {
+    ALL("All"),
+    OWNED("Owned"),
+    MISSING("Missing"),
 }
 
 /**

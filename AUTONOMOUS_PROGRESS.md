@@ -102,6 +102,21 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 24 — 2026-05-20 — Profile Delete Account: type-to-confirm
+- **Picked:** From tick-23 "Next" — highest-stakes destructive web flow. Prior version had a single `confirm()` with the warning text. Single-click confirm is sufficient for "are you sure?" but not for "permanent + cascading + can't undo." iOS uses a multi-step + type-to-confirm pattern; web matches now.
+- **Shipped:**
+  - `js/collection.js` `#profile-delete-btn` handler:
+    - Step 1 (unchanged): `confirm()` listing what gets removed — added "custom rainbows" to the cascade list since tick 7 shipped them.
+    - **Step 2 (new): type-to-confirm.** `prompt()` requires the user to type their `@username` exactly. Pulled live from `API.fetchProfile()`. Case-insensitive compare (username is lowercased server-side anyway).
+    - **Fallback:** if the user's profile has no username (edge case — fresh signup that hasn't completed username derivation), the prompt asks for "DELETE" instead, exact-match compare.
+    - If the typed value doesn't match → `alert()` says "Confirmation didn't match — your account was NOT deleted." and returns without calling the Worker.
+    - Cancel at step 2 → silent no-op.
+- **Verified:** node -c clean. Logic trace: click Delete → step-1 confirm → cancel returns; OK proceeds → step-2 prompt with `@{username}` → cancel returns; mismatched type returns with notice; matched type → Worker call → signOut + alert.
+- **PARITY.md:** No row change — destructive-flow polish on an already-✅ row (Account deletion §9).
+- **Architectural note:** the type-to-confirm pattern is iOS-equivalent in safety without needing a custom `<dialog>` — native `confirm()` + `prompt()` cover both gates with zero new chrome. WEB-DESIGN.md §2.1 native-first.
+- **Why this matters:** account deletion cascades to user_cards / decks / shows / custom_rainbows / user_profile / auth.users via FK CASCADE. No undo, no recovery beyond a fresh signup. A type-to-confirm gate is the right friction for that blast radius.
+- **Next:** Tick 25. Plausible: (a) Find Quick Add audit, (b) destructive Discord-unlink flow if it exists, (c) other admin-panel actions.
+
 ### Tick 23 — 2026-05-20 — Web Decks Clear: confirmation guard
 - **Picked:** From tick-22 "Next" list. Found real bug: clicking the ✕ Clear button in the deck-builder toolbar destroyed the entire deck (heroes + plays + bonus + hot dogs) with **zero confirmation**. One misclick on the small icon could nuke an hour of work. iOS DECISIONS.md mentions the Clear confirm dialog; web had no equivalent.
 - **Shipped:**

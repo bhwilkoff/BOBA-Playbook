@@ -1265,14 +1265,46 @@ const Collection = (() => {
     // the user out locally so the stale JWT stops getting sent.
     view.querySelector('#profile-delete-btn')
       ?.addEventListener('click', async () => {
+        // Two-step destructive confirm — parity with iOS's
+        // type-to-confirm pattern for high-stakes destructive
+        // actions. Step 1: reads the danger surface. Step 2: requires
+        // the user to actually type their username (or DELETE as
+        // fallback if no username) so a misclick or hovering pet
+        // can't trigger account loss.
         const ok = confirm(
           'Delete your account?\n\n' +
           'This permanently removes your collection, decks, shared ' +
-          'links, and account from BOBA Playbook. This cannot be ' +
-          'undone.\n\n' +
+          'links, custom rainbows, and account from BOBA Playbook. ' +
+          'This cannot be undone.\n\n' +
           'Continue?'
         );
         if (!ok) return;
+
+        // Look up the user's username for the type-to-confirm prompt.
+        // Fall back to literal "DELETE" if their profile has no
+        // username (edge case, but possible for fresh accounts).
+        let username = null;
+        try {
+          const profile = await API.fetchProfile();
+          username = profile?.username || null;
+        } catch { /* offline — fall back to DELETE */ }
+        const expected = username || 'DELETE';
+        const promptMsg = username
+          ? `Type your username (@${username}) to confirm. This action is final.`
+          : 'Type DELETE in capital letters to confirm. This action is final.';
+        const typed = prompt(promptMsg, '');
+        if (typed == null) return;  // user cancelled the type-confirm
+        // Case-insensitive compare on username (it's lowercased
+        // server-side anyway); exact-match compare on the DELETE
+        // fallback so a casual typo doesn't proceed.
+        const ok2 = username
+          ? typed.trim().toLowerCase() === expected.toLowerCase()
+          : typed.trim() === 'DELETE';
+        if (!ok2) {
+          alert(`Confirmation didn't match — your account was NOT deleted.`);
+          return;
+        }
+
         try {
           await API.deleteAccount();
           await Auth.signOut();

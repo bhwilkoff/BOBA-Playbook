@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 83 — 2026-05-20 — **web** — Decks saved-decks search-empty: brand-voice + Clear button
+- **Cadence:** 83 % 5 = 3 → web.
+- **Picked:** Manage Decks search-empty rendered a single line "No saved decks match that name." with no productive action. Same anti-pattern that tick 78 fixed for Collection empty states. Universal-feature-states skill: empty states must invite action.
+- **Shipped:**
+  - `js/practice.js::applyDeckSearchFilter` — replaced the single `<div>` hint with a structured empty-state block:
+    - `<p class="db-saved-decks-empty-headline">` quotes the user's search query so they can confirm it matched what they typed.
+    - `<button class="btn-ghost-sm" data-action="clear-deck-search">Clear search</button>` wipes the input + refocuses it + re-runs `applyDeckSearchFilter` so the full list reappears.
+    - Query string HTML-escaped inline (no DOM helper available in scope).
+  - `css/styles.css::.db-saved-decks-search-empty` — flex column with brand-voice headline (`rgba(255,255,255,0.6)` for slightly more contrast than the default 0.3-muted), button below with 1rem padding.
+- **Verified:** `node -c js/practice.js` clean. The handler wiring uses `addEventListener` (not `{once:true}`) because the hint element is recreated on every re-filter cycle so the listener doesn't leak.
+- **PARITY.md:** No row — UX polish on already-✅ Manage Decks row.
+- **Next:** tick 84 = Android; 85 = opt.
+
+
+
 ### Tick 82 — 2026-05-20 — **iOS** — Collection per-designation empty states (3-platform parity)
 - **Cadence:** 82 % 5 = 2 → iOS.
 - **Picked:** Web tick 78 + Android tick 79 both shipped per-designation brand-voice empty states with productive next-action copy. iOS was the last platform with the generic "Add cards from any card detail view." line. Closes the 3-platform parity gap on the same surface.

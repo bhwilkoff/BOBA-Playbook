@@ -76,6 +76,26 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 114 — 2026-05-20 — **Android** — Decks add: enforce caps + dup-checks + outcome feedback (real bug + 3-platform parity)
+- **Cadence:** 114 % 5 = 4 → Android.
+- **Picked:** Android `DeckStore.add(card)` was fully permissive — `_draft.value = _draft.value.adding(card)` and nothing else. Letting the user add 8 copies of the same Hero or push the bonus-play count past the 7-card cap. iOS tick 112 + web tick 113 just shipped no-op-reason feedback for their already-enforcing stores; Android needed BOTH the enforcement AND the feedback to catch up. **Real bug not just UX polish.**
+- **Shipped:**
+  - `DeckStore.kt::add` now returns sealed `AddResult` (Added / Skipped(reason)):
+    - **Heroes / Plays / Coaches** → reject duplicate (`"already in deck"`)
+    - **Hero** at heroCap → `"hero cap reached (8)"`
+    - **Play** at playCap (plays + bonus combined) → `"plays full (30)"`
+    - **Bonus** at bonusCap → `"bonus plays full (7)"`
+    - **HotDog** — the DeckDraft model doesn't separate hotdogs; iOS treats them in the existing flat-list. Add succeeds (HotDog count is enforced at the editor's display level, not at add-time).
+  - `AddResult` sealed class at the bottom of DeckStore.kt — Added object + Skipped(reason) data class.
+  - `DecksScreen.kt::onCardLongClick` reads the AddResult: success path keeps the existing soft-cap HD / DBS warning; skipped path surfaces `"{cardName} — {reason}"`.
+  - `AddToDeckSheet.kt` current-draft + saved-deck rows both honor the AddResult: success keeps the existing "Added X to {deck}" / "Loaded {deck} and added X" wording; skipped surfaces the reason ("X — already in deck") or appends to the loaded-deck message ("Loaded \"Speed\" — but X already in deck").
+  - Permissive call sites (CSV import at line 848, Undo at line 388) discard the result — those flows want best-effort batch behavior, not per-row snackbars.
+- **Verified:** Reason strings verbatim with iOS tick 112 + web tick 113. Hero / Play / Bonus routing uses the same predicates DeckDraft already uses (isHero / isPlay / isBonus + BPL prefix). All 4 `deckViewModel.add` call sites accounted for.
+- **PARITY.md:** No row — bug fix on already-✅ Decks add. 3-platform parity (iOS 112 + web 113 + Android 114) on cap-enforcement + outcome-feedback.
+- **Next:** tick 115 = opt; 116 = Android; 117 = iOS.
+
+
+
 ### Tick 113 — 2026-05-20 — **web** — Decks add: surface no-op reason (iOS tick 112 parity)
 - **Cadence:** 113 % 5 = 3 → web.
 - **Picked:** Web `DB.addCard(card)` had the same silent-skip pattern iOS tick 112 just fixed — early `return` on duplicate / cap-reached with no signal to the caller. Quick-Add path + popup Add path both fired the call and immediately re-rendered; user saw the deck list unchanged + no clue why.

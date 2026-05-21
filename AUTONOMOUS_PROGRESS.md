@@ -102,6 +102,22 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 69 — 2026-05-20 — **Android** — Watch feed: error-vs-empty disambiguation + safe failure
+- **Cadence:** 69 % 5 = 4 → Android.
+- **Two real bugs found in WatchViewModel:**
+  1. **Stuck-loading on exception** — `service.loadAll()` had no try/catch. Worker offline / parse error / timeout would propagate as an unhandled coroutine exception, leaving `state.isLoading = true` forever. User saw infinite spinner with no recovery path.
+  2. **Misleading "couldn't load" on empty feed** — the prior logic treated "loaded successfully but all three categories empty" the same as "fetch failed." A BoBA YouTube channel with no current content briefly would surface "Couldn't load the YouTube feed. Pull to retry."
+- **Shipped:**
+  - `WatchViewModel.kt`:
+    - `runCatching { service.loadAll() }` + `.fold(onSuccess, onFailure)` — exceptions now resolve to a proper error state with `isLoading = false`.
+    - Success path NO LONGER sets `error` when the bundle is empty — instead sets new `isEmpty: Boolean = true` field on `WatchUiState`.
+    - `error` is now reserved for actual fetch failures.
+  - `WatchPage.kt::emptyBundle` branch:
+    - Headline now branches on `state.error != null` — "Couldn't load videos" only fires on real fetch error; otherwise "No videos right now."
+    - Body line same — uses `state.error` when present, falls back to "Check back soon — the BoBA channel updates frequently." for the legitimate empty case.
+- **Verified:** changes are additive on WatchUiState (new field with default = false); no destructuring breaks.
+- **PARITY.md:** No row — Android-side bug fixes on already-✅ Watch row.
+
 ### Tick 68 — 2026-05-20 — **web** — Avatar upload: friendly errors + size guard + success toast
 - **Cadence:** 68 % 5 = 3 → web.
 - **Picked:** Avatar upload error path used blocking `alert('Could not upload avatar: ' + e.message)` — same anti-pattern as tick 54's multi-select alerts, and the raw error message was often unfriendly ("HTTP 401" or "TypeError: failed to fetch"). Also no client-side size check despite the Worker's 2MB cap, so a too-large image would fail with a server error after the upload trip.

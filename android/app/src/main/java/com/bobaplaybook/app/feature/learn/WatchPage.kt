@@ -79,10 +79,15 @@ internal fun WatchPageContent() {
             }
         }
         emptyBundle -> {
+            // Distinguish "fetch failed" from "loaded but the channel
+            // has no current content." Prior copy ("Couldn't load
+            // videos") fired on both cases — misleading when the
+            // YouTube channel just temporarily has nothing new.
+            val isFetchError = state.error != null
             BOBAEmptyState(
                 icon = Icons.Default.PlayArrow,
-                headline = "Couldn't load videos",
-                body = state.error ?: "Tap retry to try again.",
+                headline = if (isFetchError) "Couldn't load videos" else "No videos right now",
+                body = state.error ?: "Check back soon — the BoBA channel updates frequently.",
                 actionLabel = "Retry",
                 onAction = { vm.refresh() },
                 modifier = Modifier.fillMaxSize(),

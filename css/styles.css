@@ -6764,6 +6764,31 @@ dialog.modal-overlay[open] {
 .db-saved-deck-delete { font-family: var(--font-mono, monospace); font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.3); cursor: pointer; transition: all 0.15s; }
 .db-saved-deck-delete:hover { color: #ff6b55; border-color: rgba(192,57,43,0.3); }
 
+/* Manage Decks header actions cluster (refresh + close). */
+.db-saved-decks-header-actions { display: flex; align-items: center; gap: 4px; }
+.db-saved-decks-refresh {
+  background: transparent;
+  border: 1px solid rgba(0,245,255,0.18);
+  border-radius: 4px;
+  color: rgba(0,245,255,0.7);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 5px;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.db-saved-decks-refresh:hover { color: #00F5FF; border-color: rgba(0,245,255,0.45); background: rgba(0,245,255,0.06); }
+.db-saved-decks-refresh:disabled { opacity: 0.6; cursor: wait; }
+.db-saved-decks-refresh.spinning svg { animation: db-refresh-spin 0.8s linear infinite; }
+@keyframes db-refresh-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .db-saved-decks-refresh.spinning svg { animation: none; }
+}
+
 /* Manage Decks search input — same shape as the Find search field
    but scoped to the saved-decks panel. */
 .db-saved-decks-search {

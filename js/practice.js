@@ -1152,6 +1152,38 @@ function initDeckBuilder(allCards) {
     if (panel) panel.hidden = true;
   });
 
+  // Fetch + render the saved-decks list. Extracted from the Load
+  // button's click handler so the Refresh button can call it
+  // independently without re-toggling the panel visibility.
+  async function refreshSavedDecksList() {
+    const list = $('db-saved-decks-list');
+    if (!list) return;
+    list.innerHTML = '<div class="db-saved-decks-empty">Loading…</div>';
+    try {
+      const decks = await API.deckList();
+      _renderSavedDecksList(decks);
+    } catch (err) {
+      console.error('Deck list failed:', err);
+      list.innerHTML = '<div class="db-saved-decks-empty">Could not load decks.</div>';
+    }
+  }
+
+  $('db-saved-decks-refresh')?.addEventListener('click', async () => {
+    const btn = $('db-saved-decks-refresh');
+    if (btn) {
+      btn.classList.add('spinning');
+      btn.disabled = true;
+    }
+    try {
+      await refreshSavedDecksList();
+    } finally {
+      if (btn) {
+        btn.classList.remove('spinning');
+        btn.disabled = false;
+      }
+    }
+  });
+
   // Load saved decks
   $('db-load-btn')?.addEventListener('click', async () => {
     const panel = $('db-saved-decks-panel');
@@ -1165,41 +1197,35 @@ function initDeckBuilder(allCards) {
     }
 
     panel.hidden = false;
-    const list = $('db-saved-decks-list');
-    if (list) list.innerHTML = '<div class="db-saved-decks-empty">Loading…</div>';
-
-    try {
-      const decks = await API.deckList();
-      if (!decks.length) {
-        if (list) list.innerHTML = '<div class="db-saved-decks-empty">No saved decks yet.</div>';
-        return;
-      }
-      if (list) {
-        const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
-          ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c]));
-        list.innerHTML = decks.map(d => `
-          <div class="db-saved-deck-row" data-deck-id="${esc(d.id)}" data-deck-name="${esc(d.name)}">
-            <div class="db-saved-deck-info">
-              <span class="db-saved-deck-name">${esc(d.name)}</span>
-              <span class="db-saved-deck-meta">${esc((d.format || 'playmaker').toUpperCase())} · ${esc(new Date(d.updated_at).toLocaleDateString())}</span>
-            </div>
-            <div class="db-saved-deck-actions">
-              <button class="db-saved-deck-load" data-deck-id="${esc(d.id)}" data-deck-name="${esc(d.name)}" data-deck-format="${esc(d.format || 'playmaker')}">Load</button>
-              <button class="db-saved-deck-rename" data-deck-id="${esc(d.id)}" aria-label="Rename ${esc(d.name)}" title="Rename">✎</button>
-              <button class="db-saved-deck-delete" data-deck-id="${esc(d.id)}" aria-label="Delete ${esc(d.name)}">✕</button>
-            </div>
-          </div>
-        `).join('');
-        // Reset any prior search filter so the freshly-loaded list
-        // shows in full. The input itself keeps focus / value, but
-        // the row-level hide is wiped because we just re-rendered.
-        applyDeckSearchFilter();
-      }
-    } catch (err) {
-      console.error('Deck list failed:', err);
-      if (list) list.innerHTML = '<div class="db-saved-decks-empty">Could not load decks.</div>';
-    }
+    await refreshSavedDecksList();
   });
+
+  function _renderSavedDecksList(decks) {
+    const list = $('db-saved-decks-list');
+    if (!list) return;
+    if (!decks || !decks.length) {
+      list.innerHTML = '<div class="db-saved-decks-empty">No saved decks yet.</div>';
+      return;
+    }
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+      ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c]));
+    list.innerHTML = decks.map(d => `
+      <div class="db-saved-deck-row" data-deck-id="${esc(d.id)}" data-deck-name="${esc(d.name)}">
+        <div class="db-saved-deck-info">
+          <span class="db-saved-deck-name">${esc(d.name)}</span>
+          <span class="db-saved-deck-meta">${esc((d.format || 'playmaker').toUpperCase())} · ${esc(new Date(d.updated_at).toLocaleDateString())}</span>
+        </div>
+        <div class="db-saved-deck-actions">
+          <button class="db-saved-deck-load" data-deck-id="${esc(d.id)}" data-deck-name="${esc(d.name)}" data-deck-format="${esc(d.format || 'playmaker')}">Load</button>
+          <button class="db-saved-deck-rename" data-deck-id="${esc(d.id)}" aria-label="Rename ${esc(d.name)}" title="Rename">✎</button>
+          <button class="db-saved-deck-delete" data-deck-id="${esc(d.id)}" aria-label="Delete ${esc(d.name)}">✕</button>
+        </div>
+      </div>
+    `).join('');
+    // Re-apply the user's active search filter (if any) so a refresh
+    // doesn't blow away their typed query.
+    applyDeckSearchFilter();
+  }
 
   // Search filter — hides saved-deck rows whose name doesn't match
   // the typed query (case-insensitive substring). Doesn't refetch.

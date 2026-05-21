@@ -76,6 +76,19 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 132 — 2026-05-20 — **iOS** — Cmd+/ jumps to Find tab (Android tick 131 parity)
+- **Cadence:** 132 % 5 = 2 → iOS.
+- **Picked:** iOS has Cmd+1..5 tab shortcuts via `TabSwitchShortcuts` hidden-buttons surface. Android tick 131 added `/` (no modifier) → Find tab. iOS canonical equivalent is `Cmd+/` (Cmd+/ is widely used as "open keyboard shortcuts cheatsheet" but BOBA doesn't ship one, so this binding is free). Adds a sixth hidden-button to the existing TabSwitchShortcuts View.
+- **Shipped:**
+  - `ContentView.swift::TabSwitchShortcuts`:
+    - Sixth `Button { selectedTab = 0 } label: { EmptyView() }.keyboardShortcut("/", modifiers: .command)` appended to the existing Group.
+    - Doc-comment updated to call out the new shortcut + the cross-platform parity rationale.
+- **Verified:** Existing pattern (`keyboardShortcut("1", modifiers: .command)`) works on iPad w/ hardware keyboard; iPhone-w/o-keyboard ignores. Adding `"/"` follows the same shape exactly. The `selectedTab = 0` action matches Find's index per the existing line 104.
+- **PARITY.md:** No row — hardware-keyboard polish. 2-platform parity (iOS Cmd+/ + Android `/`) on the "go to search" idiom. Web doesn't have a `/` shortcut (browser owns it for page-find legacy).
+- **Next:** tick 133 = web; 134 = Android; 135 = opt.
+
+
+
 ### Tick 131 — 2026-05-20 — **Android** — `/` keyboard shortcut jumps to Find tab (Chromebook polish)
 - **Cadence:** 131 % 5 = 1 → Android.
 - **Picked:** Android has Ctrl+1..5 tab shortcuts (per scratchpad overnight 2026-05-20 commit) but no `/` to jump to search — the canonical "go to search" hardware-keyboard pattern across GitHub, YouTube, Wikipedia, and most Chromebook-friendly web apps. Ben specifically uses Chromebook for testing per DECISIONS.md #047 so this is a real ergonomics polish.

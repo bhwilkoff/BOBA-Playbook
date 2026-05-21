@@ -76,6 +76,23 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 170 — 2026-05-21 — **opt** — Drop 6 orphan iOS Store methods (53 lines)
+- **Cadence:** 170 % 5 = 0 → opt.
+- **Picked:** Module-wide scan of iOS Store/Networking/Components/Models for `func` definitions with zero in-tree call sites. Six confirmed orphans, all left over from earlier refactor cycles (Practice executor decompositions, Collection consolidations). False-positives correctly excluded: `viewForZooming` + `scrollViewDidZoom` are `UIScrollViewDelegate` protocol witnesses dispatched dynamically by the runtime — kept.
+- **Shipped:**
+  - `CollectionStore.swift`:
+    - Drop `updateDesignation(id:designation:)` (5 lines) — `updateCard(id:fields:)` with `UpdateUserCard(designation: ...)` does the same work; every actual caller uses `updateCard` directly.
+    - Drop `uniqueCardNumbers(for:)` (8 lines) — superseded by `uniqueBobaIds(for:)` (10 lines lower) which is the live "list distinct cards by designation" path; the card-number-only version had no callers post-bobaId migration.
+  - `ScanStore.swift`: drop `replaceLastInQueue(with:)` (6 lines) — was an early "OCR refined the last card" path; the live `ScanCoordinator` does in-place replacement via QueuedCard rebuild instead.
+  - `PracticeStore.swift` (3 orphans):
+    - `triggerCpuSub()` (5 lines) — early "player-starts-sub triggers CPU decision" wrapper; replaced by phase-driven `cpuTakeSubstitutionTurn()` direct calls inside the phase transition handler.
+    - `isWeaponTransformed(card:side:)` (5 lines + 3-line docstring) — playmat-side weapon-transform check; the playmat now reads `effectiveWeapon(of:side:)` directly + compares inline.
+    - `resetMatch()` (15 lines) — bulk-state reset; the live "new match" path uses `startMatch(mode:)` which sets the same fields via its setup pipeline rather than wiping first.
+- **Why these accumulated:** PracticeStore is 5247 lines through multi-week DECISIONS.md #030 + #033 engine work. The Card / Designation / UpdateUserCard split happened later than CollectionStore's first version, leaving older single-purpose methods as orphans. Each func grep-verified zero non-definition references in the whole codebase.
+- **Net:** −53 lines across 3 files.
+- **PARITY.md:** No row.
+- **Next:** tick 171 = Android.
+
 ### Tick 169 — 2026-05-21 — **Android** — Profile sign-out: confirm dialog (iOS + web parity)
 - **Cadence:** 169 % 5 = 4 → Android.
 - **Picked:** Android Profile's "Sign out" button fired `authManager.signOut() + onDismiss()` immediately on tap — no confirmation. iOS uses `.alert("Sign out?", isPresented:)`. Web uses `confirm('Sign out? Your collection data is saved and will sync back...')`. Android was the only platform without a confirm. A stray tap on the Profile sheet's outlined Sign Out button kicks the user out of every personal surface (Collection, Decks, Custom Rainbows, Shows) — sync layer is durable so no data loss, but the re-sign-in friction (especially for OAuth users) warrants protection.

@@ -2249,12 +2249,6 @@ final class PracticeStore {
         cpuSubCallout = nil
     }
 
-    /// Trigger CPU substitution decision (called when player starts sub phase interaction)
-    func triggerCpuSub() {
-        guard !cpuSubstituted else { return }
-        cpuTakeSubstitutionTurn()
-    }
-
     // MARK: - Substitution (Player)
 
     func playerSubstitute(benchIndex: Int) {
@@ -3730,14 +3724,6 @@ final class PracticeStore {
         return ctx.weapon(of: card, as: side)
     }
 
-    /// True when the resolved weapon differs from the card's printed
-    /// element — i.e., a transform is currently active on this hero.
-    /// Used by the playmat to render the "transformed" indicator.
-    func isWeaponTransformed(card: Card?, side: PlayExecContext.Side) -> Bool {
-        guard let card else { return false }
-        return effectiveWeapon(of: card, side: side) != card.element
-    }
-
     /// Public, ordered list of currently-active persistent + weapon
     /// transforms with display info. The on-mat banner reads this and
     /// re-renders on every store mutation. Filters out anything not in
@@ -4361,23 +4347,6 @@ final class PracticeStore {
         }
         let cost = card.playCost ?? 0
         return "+\(cost * 6 + 5) Power"
-    }
-
-    // MARK: - Reset
-
-    func resetMatch() {
-        battles = []
-        currentBattle = 0
-        phase = .reveal
-        playerScore = 0; cpuScore = 0
-        playerHeroDeck = []; cpuHeroDeck = []
-        playerBench = []; cpuBench = []
-        playerHand = []; cpuHand = []
-        playerHotDogDeckCards = []; cpuHotDogDeckCards = []
-        playerPlayDeck = []; playerPlayDiscard = []
-        playerHotDogs = 10; cpuHotDogs = 10
-        matchOver = false; matchWinner = nil
-        Self.deleteSavedMatch()
     }
 
     // MARK: - Persistence

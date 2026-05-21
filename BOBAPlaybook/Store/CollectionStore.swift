@@ -41,11 +41,6 @@ final class CollectionStore {
 
     // MARK: - Update
 
-    func updateDesignation(id: UUID, designation: UserCard.Designation) async throws {
-        let updated = try await client.updateUserCard(id: id, fields: UpdateUserCard(designation: designation))
-        apply(updated)
-    }
-
     func updateCard(id: UUID, fields: UpdateUserCard) async throws {
         let updated = try await client.updateUserCard(id: id, fields: fields)
         apply(updated)
@@ -234,15 +229,6 @@ final class CollectionStore {
             ($0.bobaId == identifier || ($0.bobaId == nil && $0.cardNumber == identifier))
             && !$0.designation.isOwned
         }
-    }
-
-    /// Unique card numbers grouped by designation (for collection list views).
-    func uniqueCardNumbers(for designation: UserCard.Designation) -> [String] {
-        Array(Set(
-            userCards
-                .filter { $0.designation == designation }
-                .map { $0.cardNumber }
-        )).sorted()
     }
 
     /// Unique card identifiers (bobaId when available, cardNumber for legacy entries)

@@ -56,10 +56,21 @@ class DecksViewModel @Inject constructor(
      * Returns true on success so the caller can dismiss the editor.
      */
     fun save(onResult: (Boolean) -> Unit) {
+        save { reason -> onResult(reason == null) }
+    }
+
+    /**
+     * Save with a richer error result. `null` = success; otherwise a
+     * user-facing message explaining why save failed. The blanket
+     * "Couldn't save deck. Check connectivity." snackbar was misleading
+     * when the actual cause was sign-out or empty-name — this surface
+     * disambiguates so the user knows what to fix.
+     */
+    fun save(onComplete: (errorMessage: String?) -> Unit) {
         viewModelScope.launch {
             val userId = (authManager.authState.first() as? AuthState.SignedIn)?.userId
             if (userId == null) {
-                onResult(false)
+                onComplete("Sign in to save your deck.")
                 return@launch
             }
             val draft = store.draft.value
@@ -68,7 +79,11 @@ class DecksViewModel @Inject constructor(
             // an un-findable deck in Manage / AddToDeck.
             val cleanName = draft.name.trim()
             if (cleanName.isEmpty()) {
-                onResult(false)
+                onComplete("Give your deck a name before saving.")
+                return@launch
+            }
+            if (draft.cards.isEmpty()) {
+                onComplete("Add at least one card before saving.")
                 return@launch
             }
             val cardNumbers = draft.cards.map { it.cardNumber }
@@ -79,9 +94,9 @@ class DecksViewModel @Inject constructor(
             )
             if (newId != null) {
                 store.clear()
-                onResult(true)
+                onComplete(null)
             } else {
-                onResult(false)
+                onComplete("Couldn't save. Check connectivity and try again.")
             }
         }
     }

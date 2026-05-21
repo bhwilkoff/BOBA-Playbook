@@ -332,15 +332,18 @@ private fun DecksCompactScreen(
                 }
             },
             onSave = {
-                deckViewModel.save { success ->
-                    if (success) {
+                // Use the richer save signature (tick 71) — error message
+                // disambiguates sign-out / empty-name / network so the
+                // user knows what to fix.
+                deckViewModel.save { errorMessage: String? ->
+                    if (errorMessage == null) {
                         editorOpen = false
                         scope.launch {
                             appSnackbar?.showSnackbar("Saved \"${draft.name}\"")
                         }
                     } else {
                         scope.launch {
-                            appSnackbar?.showSnackbar("Couldn't save deck. Check connectivity.")
+                            appSnackbar?.showSnackbar(errorMessage)
                         }
                     }
                 }

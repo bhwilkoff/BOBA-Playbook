@@ -102,6 +102,14 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 52 — 2026-05-20 — Deep-link broken-card-URL: toast + URL cleanup
+- **Picked:** UX gap. Deep-link `?card=FAKE-99999` (or a stale link to a removed card) silently dropped the user on Find with NO feedback that the link was broken. Compounded by `history.replaceState` not running in the not-found branch, so a refresh would silently re-not-find the card forever.
+- **Shipped:**
+  - `js/app.js`: card-not-found branch now shows `showToast(\`Couldn't find card "..."\`)` AND strips the bad `card` / `hero` / `treatment` params from the URL via `replaceState` so refresh doesn't re-trigger the toast loop.
+- **Verified:** node -c clean. Trace: visit `/?card=FAKE-99999` → page loads on Find → toast shows "Couldn't find card \"FAKE-99999\"" → URL cleaned to `/`. Refresh → no toast (param is gone). Real card → unchanged.
+- **Not fixed this tick:** the popstate handler at line 625 still silently no-ops on a broken card param — but that path is back/forward navigation, not deep-link landing. Less critical; deferred.
+- **PARITY.md:** No row.
+
 ### Tick 51 — 2026-05-20 — Find multi-select: cards survive filter changes
 - **Picked:** Real bug. `getSelectedCardObjects()` previously returned `filteredCards.filter(c => selectedCardKeys.has(cardKey(c)))`. Scenario: user shift-clicks to select 5 cards → types in search → `filteredCards` shrinks → click "Wall" / "Add to Collection" / "Add to Deck" → only the cards still visible-in-the-filter were included. The other selected cards silently disappeared from the action.
 - **Shipped:**

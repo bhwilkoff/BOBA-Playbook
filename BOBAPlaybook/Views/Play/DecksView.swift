@@ -773,7 +773,11 @@ struct DecksView: View {
     /// removed because the format chip strip below already shows the
     /// active format prominently.
     private var sheetHeaderRow: some View {
-        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+        // @Environment(DeckBuilderStore.self) (tick 135) doesn't project
+        // `$store`. Local @Bindable promotes the observable so the
+        // TextField below can two-way-bind to $store.deckName.
+        @Bindable var store = store
+        return VStack(alignment: .leading, spacing: Design.Spacing.sm) {
             HStack(spacing: Design.Spacing.sm) {
                 TextField("Deck name", text: $store.deckName)
                     .font(Design.Fonts.display(20))

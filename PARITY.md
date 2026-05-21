@@ -102,17 +102,17 @@ When shipping any user-facing feature:
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
 | Designation: Personal / Sale / Trade / Wanted / Grails | ✅ | ✅ | ✅ | `SegmentedButton` — Android shipped |
-| In-collection search | ✅ | ✅ | ⏳ M2 polish | iOS `.searchable` with `.navigationBarDrawer(.always)`. Web shipped tick 34 — `<input type="search">` in the Collection toolbar, 220ms debounce, matches hero / name / cardNumber / treatment / notes. Persists across tab switches; cleared on sign-out. |
+| In-collection search | ✅ | ✅ | ✅ | iOS `.searchable` with `.navigationBarDrawer(.always)`. Web shipped tick 34. Android `CollectionScreen` compact search pill at line 1007 (`TextField` w/ `CardSearch.matchesFields` filter, audit tick 196). |
 | Designation badge per cell | ✅ | ✅ | ✅ | Corner overlay |
-| Display modes: Grid / List / Wall | ✅ | ✅ | ⏳ M2 polish — Wall pending | Grid + List shipped on Android; Wall is M2 polish |
+| Display modes: Grid / List / Wall | ✅ | ✅ | ✅ | All three modes shipped on Android (audit tick 196 found `CollectionWall` at CollectionScreen.kt:690 — was marked ⏳ in error). |
 | Grid density picker (1/2/3 cols) | ✅ | ✅ | ✅ | DataStore-backed on Android via `CollectionPrefsStore` |
 | Value summary | ✅ | ✅ | ✅ | `user_cards.estimated_value` |
 | Value history chart | 🔮 | 🔮 | 🔮 | **Not built anywhere.** Both DESIGN.md §8.4 and ANDROID-DESIGN.md §8.4 describe it ("tap value summary → chart") but no implementation has landed on any platform. Was marked ✅ iOS in error; audit 2026-05-20 (tick 12) corrected. |
 | Custom Rainbows | ✅ | ✅ | ✅ | Per-user filter goals; Supabase `user_custom_rainbows`. Web shipped tick 7 read-only display + tick 15 name editor + tick 16 full 7-dimension filter sub-pickers + Inspired Ink toggle + live progress preview. Android: read + create + delete + tick 61 edit/rename + **tick 81 full 7-dimension parity** — Heroes / Weapons / Treatments / Sets / Sub-sets / Releases / Card types + Inspired Ink toggle, all surfaced in CustomRainbowEditorSheet with chip pickers derived from the live catalog. |
 | Per-hero Auto Rainbows | ✅ | ✅ read-only | ✅ read-only | Web synthesizes one row per owned hero × catalog, sorted by completion % desc (tick 8). Android shipped owned-treatments + per-hero label + chevron previously; tick 66 added total-treatments-from-catalog (so users see "5 of 15 treatments · 33% · 8 copies" not just "5 treatments") + completion-% sort. iOS-equivalent rendering. |
-| My Shows (streamer-only) | ✅ | 🔮 | ⏳ M2 polish | iOS ships ShowsListView + ShowDetailView + show_cards table. Web has no streamer Shows surface (only Whatnot tile read on Purchase). Audit 2026-05-20 (tick 12) corrected the prior ✅ web claim. |
-| Wall view (display mode + share) | ✅ | ✅ canvas-render | ⏳ M2 polish | Web shipped canvas-rendered PNG (download + clipboard + Web Share) tick 5. Lifted from streamer-only per DECISIONS.md #036. |
-| Price Overlay (in Wall view) | ✅ | ✅ | ⏳ M2 polish | Per-designation defaults (For Sale ON / My price · For Trade ON / Market · Wanted ON / Market w/ WTB · Personal/Grails OFF) + source override dropdown. Live re-render on toggle (no image reload). |
+| My Shows (streamer-only) | ✅ | 🔮 | ✅ | iOS ships ShowsListView + ShowDetailView + show_cards table. Web has no streamer Shows surface (only Whatnot tile read on Purchase). Android shipped `ShowsListScreen.kt` (audit tick 196). |
+| Wall view (display mode + share) | ✅ | ✅ canvas-render | ✅ | Web shipped canvas-rendered PNG (download + clipboard + Web Share) tick 5. Android Wall mode + share-as-PNG via `WallShareHelper` + graphicsLayer capture (CollectionScreen.kt:690, audit tick 196). |
+| Price Overlay (in Wall view) | ✅ | ✅ | ✅ | Per-designation defaults (For Sale / Trade / Wanted ON; Personal / Grails OFF). Android FilterChip toggle at CollectionScreen.kt:726 (audit tick 196). |
 | Personal Showcase (iTunes-style screensaver) | ✅ | 🚫 | 🚫 v1 §12 | Android: Cast SDK port deferred |
 | AirPlay-Video for Showcase | ✅ | 🚫 | 🚫 v1 §12 | Android Cast SDK is the parallel |
 | Public collection URL (`/u/{username}`) | n/a (toggle only) | ✅ | ⏳ M7 | Web renders; Android sets the toggle |
@@ -134,13 +134,13 @@ When shipping any user-facing feature:
 
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
-| Live single-card scan | ✅ | 🚫 | ⏳ M3 | CameraX + ML Kit Text Recognition v2 |
-| Card-number regex match | ✅ | 🚫 | ⏳ M3 | Reuse iOS regex verbatim |
-| Hero-name veto | ✅ | 🚫 | ⏳ M3 | Per DECISIONS.md #035 |
+| Live single-card scan | ✅ | 🚫 | ✅ | CameraX + ML Kit Text Recognition v2 — ScanScreen.kt shipped (audit tick 196). |
+| Card-number regex match | ✅ | 🚫 | ✅ | iOS regex ported (ScanScreen.kt). |
+| Hero-name veto | ✅ | 🚫 | ✅ | Per DECISIONS.md #035. |
 | Image-fingerprint matching | ✅ | 🚫 | 🔮 v2 | MediaPipe Image Embedder; parallel `feature-prints-android.bin` |
 | Multi-card grid scan | ✅ | 🚫 | 🔮 v2 | OpenCV port |
-| Scan queue / review surface | ✅ | n/a | ⏳ M3 | `BottomAppBar` action slot when active |
-| Per-tab destination routing (Find/Decks/Collection) | ✅ | n/a | ⏳ M3 | Single `ScanCoordinator` |
+| Scan queue / review surface | ✅ | n/a | ⏳ M3 polish | `BottomAppBar` action slot when active |
+| Per-tab destination routing (Find/Decks/Collection) | ✅ | n/a | ⏳ M3 polish | Single `ScanCoordinator` |
 
 Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan results when iOS/Android users share them.
 

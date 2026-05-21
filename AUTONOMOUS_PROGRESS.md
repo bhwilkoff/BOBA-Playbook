@@ -2843,3 +2843,27 @@ Both flow into a single tick 192 commit. Bump v2.293 / build 555.
 - **Version:** v2.294 / build 556 (tandem bump per [[feedback_bump_marketing_and_build_in_tandem]] since opt touched iOS code).
 - **Cadence rule:** opt tick should net-remove. ✓
 - **Next:** tick 196 = Android (cadence 196 % 5 = 1). Backlog items still needing Android-side polish? Most have Android done — pick #6 (Wanted-list public sharing) which needs cross-platform infra, OR cycle iOS+web parity for the still-pending items (#3 glossary tooltips, #4 format-legality chip, #7 print-run badge) — those need iOS+web. Per platform cadence, tick 196 = Android = no obvious ship; consider opening a NEW Discord-mining pass since the original 8-item punch list is heavily shipped (5 of 8 closed across all 3 platforms).
+
+### Tick 196 — 2026-05-21 — PARITY audit: 8 Android rows shipped-but-undocumented
+- **Verified CI green** on tick 195 (185ca13) + tick 194 (00bf35d).
+- **Tick rationale:** going into the tick I picked Discord-backlog candidates for Android, then discovered that the things I'd considered shipping (in-collection search, Wall view, Price Overlay, My Shows, live scan…) were ALREADY in Android — PARITY.md had been lying. Pivoted to a parity-audit tick: trust the matrix instead of the source code = future ticks pick "polish" items that are already shipped + write duplicates. Real cost. Audit is the value.
+- **Verified-shipped on Android, corrected ⏳ → ✅:**
+  - `In-collection search` — `CollectionScreen.kt:1007` compact TextField pill (CardSearch.matchesFields filter).
+  - `Display modes: Grid / List / Wall` — all 3, `CollectionWall` at line 690.
+  - `My Shows (streamer-only)` — `ShowsListScreen.kt` shipped.
+  - `Wall view (display mode + share)` — `CollectionWall` w/ graphicsLayer capture + `WallShareHelper`.
+  - `Price Overlay (in Wall view)` — `FilterChip` "Prices" toggle at line 726 with per-designation defaults.
+  - `Live single-card scan` — `ScanScreen.kt` with CameraX + MLKit.
+  - `Card-number regex match` — ported from iOS.
+  - `Hero-name veto` — per DECISIONS.md #035.
+- **Genuinely-pending Android items confirmed:**
+  - Drag-and-drop on Decks (`dragAndDropSource`/`Target` not present)
+  - sharedBounds hero zoom on Decks editor
+  - 3-column tablet layout on Decks
+  - Google Maps Compose for Find a Store
+  - Scan queue review surface + per-tab destination routing
+  - Image-fingerprint matching (v2 per DECISIONS.md #043)
+  - Multi-card grid scan (v2)
+  - Public collection toggle on Profile (M7 polish)
+- **No code changes this tick.** PARITY.md table 8-row sweep.
+- **Next:** tick 197 = iOS (cadence 197 % 5 = 2). Pick from genuine iOS-pending backlog items (#3 glossary tooltips, #4 format-legality chip, #7 print-run badge).

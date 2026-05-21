@@ -76,6 +76,24 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 135 — 2026-05-20 — **OPTIMIZATION TICK** repurposed as **real bug fix** — DeckBuilderStore was never injected (tick-97 latent crash)
+- **Cadence:** opt rotation. Found a load-bearing bug instead: `CollectionCardDetailView` reads `@Environment(DeckBuilderStore.self) private var deckBuilder` (tick 97), but `BOBAPlaybookApp` NEVER calls `.environment(deckBuilderStore)`. Tapping a deck row in "IN YOUR DECKS" would crash at runtime with "missing environment value." `DecksView` + `DeckBuilderView` each had their own `@State private var store = DeckBuilderStore()` — multiple disconnected instances. Even if env was injected, the load wouldn't propagate to the visible DecksView.
+- **Shipped:**
+  - `BOBAPlaybookApp.swift`:
+    - Added `@State private var deckBuilderStore = DeckBuilderStore()` (line 22ish).
+    - Added `.environment(deckBuilderStore)` to the WindowGroup chain.
+  - `DecksView.swift`:
+    - `@State private var store = DeckBuilderStore()` → `@Environment(DeckBuilderStore.self) private var store`.
+  - `DeckBuilderView.swift`:
+    - Same `@State` → `@Environment` swap so the editor renders from the same instance.
+- **Verified:** `grep -rn @Environment(DeckBuilderStore` returns 3 reads (CollectionCardDetailView + DecksView + DeckBuilderView) all pointing at the single app-root injection. `tempStore = DeckBuilderStore()` in AddToDeckSheet stays — that's a deliberately ephemeral store for the sheet-local "would this card fit?" projection.
+- **PARITY.md:** No row — bug fix on existing tap-to-load row.
+- **Real impact:** Tick 97's CollectionCardDetailView "IN YOUR DECKS" tap-to-load goes from "crashes on first tap" → "actually loads into the Decks tab editor as advertised." iOS feature now ships honestly.
+- **Cumulative across 18 opt ticks:** -182 lines (unchanged — this was a bug-fix tick, +5 lines net).
+- **Next:** tick 136 = Android; 137 = iOS; 138 = web.
+
+
+
 ### Tick 134 — 2026-05-20 — **Android** — Decks editor DBS chip tap → explainer sheet (iOS Card-detail parity)
 - **Cadence:** 134 % 5 = 4 → Android.
 - **Picked:** The Decks editor's DBS chip ("DBS 750/1000") was a passive display — new Playmaker-format coaches see a number bound to a cap with no in-app path to learn what DBS means. `DBSInfoSheet` already exists on Card detail (tick around launch); making the Decks-editor chip tappable + routing to the same sheet is single-screen polish that unblocks the learning path. iOS DeckBuilder DBS chip has had this since the practice executor shipped; Android had the chip without the routing.

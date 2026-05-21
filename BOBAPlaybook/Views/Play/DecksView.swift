@@ -37,8 +37,11 @@ struct DecksView: View {
     @Environment(AuthManager.self)      private var auth
     @Environment(ScanStore.self)        private var scanStore
     @Environment(ScanCoordinator.self)  private var scanCoordinator
-
-    @State private var store = DeckBuilderStore()
+    /// App-root singleton (hoisted tick 135) so loadSavedDeck calls
+    /// from CollectionCardDetailView land in the SAME instance this
+    /// view renders from. Previously @State private — per-DecksView
+    /// instance; cross-tab load was a no-op.
+    @Environment(DeckBuilderStore.self) private var store
 
     // MARK: - Sheet + UI state
 

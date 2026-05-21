@@ -18,6 +18,13 @@ struct BOBAPlaybookApp: App {
     @State private var scanCoordinator = ScanCoordinator()
     @State private var showsStore = ShowsStore()
     @State private var customRainbowStore = CustomRainbowStore()
+    /// Hoisted to app-root tick 135 (fixes tick-97 bug — CollectionCardDetailView
+    /// read DeckBuilderStore from @Environment but no parent injected it,
+    /// crashing on the per-deck tap-to-load action). DecksView / DeckBuilderView
+    /// switched to @Environment too so they read the same instance — the
+    /// load-saved-deck call in CollectionCardDetailView now actually
+    /// propagates to the Decks tab.
+    @State private var deckBuilderStore = DeckBuilderStore()
     @State private var selectedTab = 0
 
     /// Set of known Learn category slugs — gates the
@@ -47,6 +54,7 @@ struct BOBAPlaybookApp: App {
                 .environment(scanCoordinator)
                 .environment(showsStore)
                 .environment(customRainbowStore)
+                .environment(deckBuilderStore)
                 .preferredColorScheme(.dark)
                 .task(id: authManager.userId) {
                     // v2.280 — image overrides apply globally (every

@@ -76,6 +76,23 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 84 — 2026-05-20 — **Android** — Glossary tap-to-copy + wire orphan hint
+- **Cadence:** 84 % 5 = 4 → Android.
+- **Picked:** `HintsStore.Ids.LEARN_LONG_PRESS_GLOSSARY` was registered as a hint ID but had zero rendering sites — `grep -rn LEARN_LONG_PRESS_GLOSSARY` found only the definition + `all` array entry. Orphan UX scaffolding. The natural use case for a glossary hint is "tap-to-copy" — coaches frequently quote definitions verbatim in Discord and game-night chat, so a clipboard affordance is genuinely useful.
+- **Shipped:**
+  - `LearnArticleScreen.kt::GlossaryPage`:
+    - Hilt-injected `HintsViewModel` + collected dismissal state for `LEARN_LONG_PRESS_GLOSSARY`.
+    - `BOBAHintBanner` at top of the page (above the search field) with brand-voice copy: "Tap a term to copy it" + "Tap any glossary term to copy the term + definition. Handy when you want to quote it in Discord or a coaching note." Dismiss writes to DataStore + the hint never reappears on that device.
+    - `LocalClipboardManager` + `LocalContext` resolved once at composable root.
+  - `TermRow` signature gained `onCopy: () -> Unit` callback and `Modifier.clickable(onClickLabel = "Copy term")`. Click-label is the a11y string TalkBack will announce.
+  - New `copyTermToClipboard(clipboard, context, section)` helper writes `"{term} — {definition}"` as plain text + fires a short Toast "Copied "{term}"" so users see the action register.
+  - Both call sites (Game glossary + Trading glossary) updated to pass the lambda.
+- **Verified:** `HintsViewModel.dismiss` + `isDismissed` already wired in CollectionScreen / ScanScreen / DecksScreen / CardDetailScreen — same pattern used here. `LocalClipboardManager` is the Compose-native canonical pattern (no `androidx.core.content.ClipData` needed for a simple text copy). Toast import inlined via `android.widget.Toast` so no new top-of-file import.
+- **PARITY.md:** No row — informational hint + new in-screen action; the Glossary surface stays ✅.
+- **Next:** tick 85 = opt; 86 = Android; 87 = iOS; 88 = web.
+
+
+
 ### Tick 83 — 2026-05-20 — **web** — Decks saved-decks search-empty: brand-voice + Clear button
 - **Cadence:** 83 % 5 = 3 → web.
 - **Picked:** Manage Decks search-empty rendered a single line "No saved decks match that name." with no productive action. Same anti-pattern that tick 78 fixed for Collection empty states. Universal-feature-states skill: empty states must invite action.

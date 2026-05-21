@@ -474,6 +474,17 @@ private fun GlossaryPage() {
         androidx.compose.runtime.mutableStateOf("")
     }
     val needle = query.trim().lowercase()
+    val context = LocalContext.current
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    // First-run hint banner — was registered in HintsStore.Ids as
+    // LEARN_LONG_PRESS_GLOSSARY but had no rendering site until tick
+    // 84. Tells users the rows are tap-to-copy (useful for Discord +
+    // game-night chats where coaches quote definitions verbatim).
+    val hintsVm: com.bobaplaybook.app.hints.HintsViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val glossaryHintDismissed by hintsVm
+        .isDismissed(com.bobaplaybook.app.hints.HintsStore.Ids.LEARN_LONG_PRESS_GLOSSARY)
+        .collectAsStateWithLifecycle(initialValue = true)
     val gameFiltered = remember(needle) {
         if (needle.isEmpty()) LearnCorpus.glossaryGame
         else LearnCorpus.glossaryGame.filter {
@@ -489,6 +500,13 @@ private fun GlossaryPage() {
         }
     }
     Column(modifier = Modifier.fillMaxSize()) {
+        if (!glossaryHintDismissed) {
+            com.bobaplaybook.core.ui.components.BOBAHintBanner(
+                title = "Tap a term to copy it",
+                body = "Tap any glossary term to copy the term + definition. Handy when you want to quote it in Discord or a coaching note.",
+                onDismiss = { hintsVm.dismiss(com.bobaplaybook.app.hints.HintsStore.Ids.LEARN_LONG_PRESS_GLOSSARY) },
+            )
+        }
         // In-corpus filter — iOS DESIGN.md §6 (Search is the universal
         // navigator) + the Glossary's high term density justify a
         // persistent search field over the OutlinedTextField shape.
@@ -529,7 +547,10 @@ private fun GlossaryPage() {
             if (gameFiltered.isNotEmpty()) {
                 item("game-head") { BOBASectionHeader(title = "Game glossary") }
                 items(items = gameFiltered, key = { "game-${it.term}" }) { term ->
-                    TermRow(term)
+                    TermRow(
+                        section = term,
+                        onCopy = { copyTermToClipboard(clipboard, context, term) },
+                    )
                 }
             }
             if (gameFiltered.isNotEmpty() && tradingFiltered.isNotEmpty()) {
@@ -540,7 +561,10 @@ private fun GlossaryPage() {
             if (tradingFiltered.isNotEmpty()) {
                 item("trading-head") { BOBASectionHeader(title = "Trading glossary") }
                 items(items = tradingFiltered, key = { "trade-${it.term}" }) { term ->
-                    TermRow(term)
+                    TermRow(
+                        section = term,
+                        onCopy = { copyTermToClipboard(clipboard, context, term) },
+                    )
                 }
             }
         }
@@ -548,10 +572,14 @@ private fun GlossaryPage() {
 }
 
 @Composable
-private fun TermRow(section: LearnSection.Term) {
+private fun TermRow(
+    section: LearnSection.Term,
+    onCopy: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClickLabel = "Copy term") { onCopy() }
             .padding(horizontal = 16.dp, vertical = 4.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -567,6 +595,18 @@ private fun TermRow(section: LearnSection.Term) {
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
+}
+
+private fun copyTermToClipboard(
+    clipboard: androidx.compose.ui.platform.ClipboardManager,
+    context: android.content.Context,
+    section: LearnSection.Term,
+) {
+    val payload = "${section.term} — ${section.definition}"
+    clipboard.setText(androidx.compose.ui.text.AnnotatedString(payload))
+    android.widget.Toast
+        .makeText(context, "Copied “${section.term}”", android.widget.Toast.LENGTH_SHORT)
+        .show()
 }
 
 // ════════════════════════════════════════════════════════════════

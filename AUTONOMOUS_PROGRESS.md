@@ -76,6 +76,23 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 96 — 2026-05-20 — **Android** — AddToDeckSheet: Snackbar confirmations on add
+- **Cadence:** 96 % 5 = 1 → Android.
+- **Picked:** Android `AddToDeckSheet` had two silent action paths:
+  1. **"Current draft" row** — `decksViewModel.add(card)` + dismiss. User sees nothing. Did the add register? Did the cap-check warn? Silent.
+  2. **"Saved decks" row** — `loadSaved(saved, catalog)` + `add(card)` + dismiss. This SWAPS the user's current draft to the loaded saved deck. If they had unsaved draft work, it's gone with no warning. **Real UX hazard.**
+- **Shipped:**
+  - `AddToDeckSheet.kt`:
+    - New imports: `rememberCoroutineScope`, `LocalAppSnackbar`, `kotlinx.coroutines.launch`.
+    - Resolve `appSnackbar` + `scope` at composable root.
+    - **Current-draft click**: now fires `appSnackbar?.showSnackbar("Added ${card.displayName} to ${draft.name}")` after the add. Cause-and-effect anchored.
+    - **Saved-deck click**: snackbar names BOTH actions — `"Loaded \"${saved.name}\" and added ${card.displayName}"`. User sees the draft swap explicitly, not as a silent side-effect. The two ops can race (loadSaved is a Flow update; add follows) but the existing call-order was already established — the snackbar just makes the user aware.
+- **Verified:** `LocalAppSnackbar` is provided at the BOBAApp theme root (used by CardDetailScreen + others). `rememberCoroutineScope` + `launch` are stdlib.
+- **PARITY.md:** No row — UX polish on already-✅ AddToDeck flow.
+- **Next:** tick 97 = iOS; 98 = web; 99 = Android; 100 = opt.
+
+
+
 ### Tick 95 — 2026-05-20 — **OPTIMIZATION TICK (10th 1-in-5)** — orphan iOS HintIDs
 - **Cadence:** opt rotation. Bias-toward-iOS-or-Android since web had 4. Picked iOS.
 - **Picked:** `Design.swift::HintID` enum had 5 cases but only 3 had rendering sites in the codebase. `deckCompositionTriad` ("hint.deck_composition_triad") + `hdValueHeuristic` ("hint.hd_value_heuristic") were never wired — `grep -rn deckCompositionTriad BOBAPlaybook` + same for `hdValueHeuristic` returned only the enum definitions. Both were documented for a future "first build" + "high-cost play added" hint, but they shipped on neither iOS surface. Verified the same audit on the Android side — `HintsStore.Ids` is fully wired (CARD_DETAIL_TAP_PRICE / SCAN_HOLD_STEADY / DECKS_LONG_PRESS_TO_ADD / COLLECTION_DISPLAY_MODES / LEARN_LONG_PRESS_GLOSSARY — last one wired in tick 84).

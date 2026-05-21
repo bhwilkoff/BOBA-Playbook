@@ -102,6 +102,23 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 61 — 2026-05-20 — **ANDROID** — CustomRainbow editor: edit mode wired to UI
+- **Cadence:** 61 % 5 = 1 → Android. Direct follow-up to tick 59 (which added the data-layer update method).
+- **Picked:** the editor UI was create-only — pressing the FAB opened a blank editor, but tapping an existing rainbow row had no Edit affordance. Repo had `update()`; UI didn't use it.
+- **Shipped:**
+  - `CustomRainbowEditorSheet.kt`:
+    - New optional `existing: CustomRainbow?` parameter. When non-null: title swaps to "Edit custom rainbow"; state (name, heroes, elements, treatments, inspiredInkOnly) pre-fills from `existing.criteria`.
+    - `rememberSavedField` / `rememberSavedSet` helpers gained optional `reKey: Any?` so opening the editor for a different rainbow id correctly resets the rememberSaveable state (otherwise editing rainbow A then editing rainbow B in the same session would leak A's values).
+    - Save button branches: `existing == null` → `vm.create(...)`; else → `vm.update(existing.id, ...)`.
+  - `RainbowsScreen.kt`:
+    - New `editorTarget: String?` rememberSaveable state — tracks which rainbow id is being edited (null = create-new via FAB).
+    - New Edit icon (✎) on each rainbow row, between the Delete icon and the trailing chevron → sets `editorTarget = rainbow.id; editorOpen = true`.
+    - FAB onClick now explicitly clears `editorTarget` to ensure create-mode.
+    - The editor render at the bottom looks up the target by id from `customRainbows` and passes it to the sheet.
+    - Added `import ... Icons.filled.Edit`.
+- **Verified:** edits are additive; existing FAB → create flow unchanged. The reKey on `rememberSavedField` ensures clean state transitions between targets.
+- **PARITY.md:** Custom Rainbows Android row note updated — now "✅ basic (3 dimensions)" reflecting that the editor UI exposes only 3 of 8 criterion dimensions (Heroes / Weapons / Treatments + Inspired Ink toggle); the other 5 are polish.
+
 ### Tick 60 — 2026-05-20 — **OPTIMIZATION TICK (Android, 3rd 1-in-5)** — unused resources
 - **Per platform cadence**: optimization-ticks rotate. Ticks 50 + 55 were both web. Tick 60 = Android per `feedback_one_in_five_optimization_tick.md` + `feedback_platform_cadence.md`.
 - **Shipped:**

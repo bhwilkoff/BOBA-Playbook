@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -71,6 +72,10 @@ fun RainbowsScreen(
     var editorOpen by androidx.compose.runtime.saveable.rememberSaveable {
         androidx.compose.runtime.mutableStateOf(false)
     }
+    // Edit target — null means create-new (the FAB path).
+    var editorTarget by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf<String?>(null)
+    }
 
 
     // Group owned cards by hero for auto rainbows
@@ -103,7 +108,10 @@ fun RainbowsScreen(
             // is a dead-click. The signed-out empty state already
             // surfaces the sign-in CTA.
             if (state.isSignedIn) {
-                FloatingActionButton(onClick = { editorOpen = true }) {
+                FloatingActionButton(onClick = {
+                    editorTarget = null  // FAB = create-mode; clear any prior edit target
+                    editorOpen = true
+                }) {
                     Icon(Icons.Default.Add, contentDescription = "New custom rainbow")
                 }
             }
@@ -150,6 +158,15 @@ fun RainbowsScreen(
                         },
                         trailingContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = {
+                                    editorTarget = rainbow.id
+                                    editorOpen = true
+                                }) {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = "Edit custom rainbow",
+                                    )
+                                }
                                 IconButton(onClick = { pendingDeleteId = rainbow.id }) {
                                     Icon(
                                         Icons.Default.Delete,
@@ -224,7 +241,14 @@ fun RainbowsScreen(
     }
 
     if (editorOpen) {
-        CustomRainbowEditorSheet(onDismiss = { editorOpen = false })
+        val target = editorTarget?.let { id -> customRainbows.firstOrNull { it.id == id } }
+        CustomRainbowEditorSheet(
+            existing = target,
+            onDismiss = {
+                editorOpen = false
+                editorTarget = null
+            },
+        )
     }
 }
 

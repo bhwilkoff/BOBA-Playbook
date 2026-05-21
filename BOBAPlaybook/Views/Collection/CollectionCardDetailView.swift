@@ -13,6 +13,7 @@ struct CollectionCardDetailView: View {
     @Environment(CollectionStore.self) private var collection
     @Environment(CardStore.self) private var cardStore
     @Environment(AuthManager.self) private var auth
+    @Environment(DeckBuilderStore.self) private var deckBuilder
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -580,32 +581,62 @@ struct CollectionCardDetailView: View {
                 sectionHeader("IN YOUR DECKS (\(decks.count))")
                 VStack(spacing: 6) {
                     ForEach(decks) { deck in
-                        HStack(spacing: Design.Spacing.md) {
-                            Image(systemName: "rectangle.stack")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Design.Colors.bobaCyan)
-                                .frame(width: 22)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(deck.name)
-                                    .font(Design.Fonts.mono(13, weight: .bold))
-                                    .foregroundStyle(Design.Colors.textPrimary)
-                                if !deck.format.isEmpty {
-                                    Text(deck.format.uppercased())
-                                        .font(Design.Fonts.mono(9))
-                                        .foregroundStyle(Design.Colors.textMuted)
-                                        .tracking(1.2)
+                        // Tap-to-load row — parity with Android tick 94.
+                        // Loads the saved deck into the draft + fires the
+                        // green-checkmark toast so the user sees the
+                        // action register. Without this, the row was
+                        // read-only and a real coaching workflow ("oh,
+                        // that deck has this card — let me open it")
+                        // required opening Decks tab and finding the
+                        // deck manually.
+                        Button {
+                            Task {
+                                do {
+                                    _ = try await deckBuilder.loadSavedDeck(deck, cards: cardStore.displayCards)
+                                    showAddedToDeckToast("Loaded “\(deck.name)” into Decks")
+                                } catch {
+                                    // Silent failure — Snackbar would
+                                    // overlay the green-checkmark toast.
+                                    // Stay quiet; user can retry.
                                 }
                             }
-                            Spacer()
+                        } label: {
+                            HStack(spacing: Design.Spacing.md) {
+                                Image(systemName: "rectangle.stack")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Design.Colors.bobaCyan)
+                                    .frame(width: 22)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(deck.name)
+                                        .font(Design.Fonts.mono(13, weight: .bold))
+                                        .foregroundStyle(Design.Colors.textPrimary)
+                                    if !deck.format.isEmpty {
+                                        Text(deck.format.uppercased())
+                                            .font(Design.Fonts.mono(9))
+                                            .foregroundStyle(Design.Colors.textMuted)
+                                            .tracking(1.2)
+                                    }
+                                }
+                                Spacer()
+                                // Trailing chevron — universal "tappable"
+                                // affordance. Same shape as the row
+                                // already had visually, just now actionable.
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(Design.Colors.textMuted)
+                            }
+                            .padding(Design.Spacing.sm)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                    .fill(Design.Colors.bobaCyan.opacity(0.08))
+                                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                        .strokeBorder(Design.Colors.bobaCyan.opacity(0.25), lineWidth: 1))
+                            )
+                            .contentShape(Rectangle())
                         }
-                        .padding(Design.Spacing.sm)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: Design.Radius.sm)
-                                .fill(Design.Colors.bobaCyan.opacity(0.08))
-                                .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
-                                    .strokeBorder(Design.Colors.bobaCyan.opacity(0.25), lineWidth: 1))
-                        )
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Loads this deck into the Decks editor")
                     }
                 }
             }

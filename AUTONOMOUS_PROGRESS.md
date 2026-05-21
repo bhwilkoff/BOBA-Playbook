@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 155 — 2026-05-21 — **opt** — Drop 112 lines of iOS dead code (orphan vars + legacy save tab)
+- **Cadence:** 155 % 5 = 0 → opt.
+- **Picked:** Per-file scan for `private var` orphans on iOS Views. Found one substantial dead cluster (the legacy "Save" tab in DeckManagementSheet) plus three smaller orphans.
+- **Shipped:**
+  - **`DeckBuilderView.swift` legacy Save-tab purge (~90 lines)**: `DeckManagementSheet` has an enum `Tab: String, CaseIterable { case load, share }` with two cases. But the file still carried a third `private var saveTab: some View` (57 lines), plus `@State isSaving`, `@State saveMessage`, and `private func saveDeck() async` (15 lines) — leftover from an earlier 3-tab design where Save was a separate sub-screen. The current architecture saves via the in-editor SAVE toolbar button (DeckBuilderView line 138-217), not via a "save tab." All four were truly orphan (zero in-file refs and zero external refs).
+  - **`DeckBuilderView.swift` per-cell `borderColor` (~5 lines)**: defined on a card-pool cell struct but no `.strokeBorder(borderColor)` call site — superseded by inline border color computation in the cell's body. Two other `borderColor` definitions in Design.swift + LearnView.swift survive (they ARE used by their respective parents).
+  - **`SearchView.swift` private var `filterButton` (~17 lines)**: an alternate filter-button shape with badge logic. Superseded by the toolbar Menu's filter affordance + `BOBASearchBar`'s integrated filter chip. Two other `filterButton` definitions across the project (CollectionView, etc.) survive.
+  - **`ReactionPickerView.swift` `filteredEmoji` (~9 lines)**: never referenced; the emoji grid renders directly from `discordEmojiCategories[selectedCategory].emoji`.
+- **Why these accumulated:** the iOS app shipped 280+ versions through massive Decks refactors (Maps-pattern → Music-pattern → fullScreenCover) and SearchView/CollectionView re-orgs. Old computed-property helpers get displaced but the original definitions linger silently until a sweep catches them. Tick 145 caught HouseOfCards orphans; this round catches the Decks/Search/ReactionPicker pile.
+- **Verified:** every removed symbol grep-confirmed zero in-file refs and (for cross-file safety on filterButton/borderColor) zero project-wide refs that resolved to the dropped definition. SourceKit indexer noise on @MainActor @Observable files is pre-existing.
+- **Net:** −112 lines across 3 files.
+- **PARITY.md:** No row.
+- **Next:** tick 156 = Android.
+
 ### Tick 154 — 2026-05-21 — **Android** — Decks tablet-pane Save: Snackbar feedback (was fire-and-forget)
 - **Cadence:** 154 % 5 = 4 → Android.
 - **Picked:** Real UX gap. `DecksScreen.kt:718` had `onSave = { deckViewModel.save { /* tablet pane stays open */ } }` — the trailing-lambda comment was actually consuming the save-result callback as a no-op, so the tablet-pane Save button fired the save then provided NO UI feedback. The compact-screen path at line 391 already used the richer save signature (tick 71) with Snackbar success/error feedback. Tablet path was the lone fire-and-forget.

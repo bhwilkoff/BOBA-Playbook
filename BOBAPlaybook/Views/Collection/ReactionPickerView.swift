@@ -9,17 +9,6 @@ struct ReactionPickerView: View {
     @State private var selectedCategory = "quick"
     @State private var searchText = ""
 
-    private var filteredEmoji: [String] {
-        if searchText.isEmpty {
-            return discordEmojiCategories.first { $0.id == selectedCategory }?.emoji ?? []
-        }
-        return discordEmojiCategories.flatMap { $0.emoji }.filter { emoji in
-            // Basic search: check if the emoji name contains the search text
-            // In production you'd have a name map; here we just return all
-            return true
-        }
-    }
-
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {

@@ -1311,11 +1311,6 @@ struct BrowserCardCell: View {
         }
     }
 
-    private var borderColor: Color {
-        if inDeck { return Design.Colors.bobaCyan }
-        if wouldViolate { return Color(hex: "C0392B").opacity(0.6) }
-        return Design.Colors.element(card.element).opacity(0.4)
-    }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1585,8 +1580,6 @@ struct DeckManagementSheet: View {
     @State private var isLoadingList = true
     @State private var loadError: String? = nil
     @State private var busyDeckId: UUID? = nil
-    @State private var isSaving = false
-    @State private var saveMessage: String? = nil
 
     // Export state
     @State private var copied = false
@@ -1629,64 +1622,6 @@ struct DeckManagementSheet: View {
         }
         .toolbarBackground(.regularMaterial, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-    }
-
-    // MARK: - Save Tab
-
-    private var saveTab: some View {
-        VStack(spacing: Design.Spacing.lg) {
-            Spacer()
-            if store.heroes.isEmpty && store.plays.isEmpty {
-                ContentUnavailableView("No deck to save", systemImage: "tray", description: Text("Add cards to your deck first"))
-                    .frame(maxWidth: .infinity)
-            } else {
-                VStack(spacing: Design.Spacing.md) {
-                    VStack(spacing: 6) {
-                        Text("DECK NAME")
-                            .font(Design.Fonts.mono(10, weight: .bold))
-                            .foregroundStyle(Design.Colors.textMuted)
-                        TextField("Untitled", text: Binding(
-                            get: { store.deckName },
-                            set: { store.deckName = $0 }
-                        ))
-                        .font(Design.Fonts.display(18))
-                        .foregroundStyle(Design.Colors.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Design.Spacing.md)
-                        .padding(.vertical, Design.Spacing.sm)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Design.Colors.surface))
-                        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
-                        .padding(.horizontal, Design.Spacing.xl)
-                    }
-
-                    Text("\(store.heroes.count) Heroes · \(store.plays.count) Plays")
-                        .font(Design.Fonts.mono(12))
-                        .foregroundStyle(Design.Colors.textMuted)
-
-                    Button {
-                        Task { await saveDeck() }
-                    } label: {
-                        HStack {
-                            if isSaving {
-                                ProgressView().tint(.white)
-                            } else {
-                                Image(systemName: "icloud.and.arrow.up")
-                            }
-                            Text(saveMessage ?? "Save to Cloud")
-                                .font(Design.Fonts.mono(14, weight: .bold))
-                        }
-                        .foregroundStyle(saveMessage == "Saved!" ? Color(hex: "4CAF50") : Design.Colors.nearBlack)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(
-                            saveMessage == "Saved!" ? Color(hex: "4CAF50") : Design.Colors.bobaOrange))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, Design.Spacing.xl)
-                }
-            }
-            Spacer()
-        }
     }
 
     // MARK: - Load Tab
@@ -1929,23 +1864,6 @@ struct DeckManagementSheet: View {
             loadError = "Couldn't load decks"
         }
         isLoadingList = false
-    }
-
-    @MainActor
-    private func saveDeck() async {
-        guard !store.heroes.isEmpty else { return }
-        isSaving = true
-        saveMessage = nil
-        defer { isSaving = false }
-        do {
-            try await SupabaseClient.shared.saveDeck(store)
-            saveMessage = "Saved!"
-            // Refresh the list
-            await fetchDecks()
-            Task { try? await Task.sleep(nanoseconds: 2_000_000_000); saveMessage = nil }
-        } catch {
-            saveMessage = "Failed"
-        }
     }
 
     private func deleteDeck(_ deck: SavedDeck) async {

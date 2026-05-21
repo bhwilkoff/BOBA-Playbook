@@ -1690,25 +1690,6 @@ struct CollectionView: View {
                               scanStore: scanStore)
     }
 
-    /// Per DESIGN.md §8.4 — share the active designation as a deep link
-    /// to the web fallback (`bobaplaybook.com/u/{username}/{designation}`)
-    /// plus the existing CSV export. iOS share sheet lets the user pick
-    /// destination (Messages / Mail / AirDrop / Notes / Files).
-    private func presentShareDeepLink() {
-        var items: [Any] = []
-        if let userId = auth.userId {
-            // Public-designation deep link. Web fallback honors the same
-            // bobaplaybook.com/u/{username}/{designation} URL contract.
-            // For now we don't have usernames; fall back to user UUID
-            // until the public-profile feature lands.
-            let url = URL(string: "https://bobaplaybook.com/u/\(userId)/\(selectedDesignation.rawValue)")!
-            items.append(url)
-        }
-        items.append("My \(selectedDesignation.displayName) on BOBA Playbook")
-        shareItems = items
-        showingShareSheet = true
-    }
-
     private func exportCollectionCSV() {
         // When the user has Collection filters active, scope the export
         // to only the rows that pass the filter — matches the visible

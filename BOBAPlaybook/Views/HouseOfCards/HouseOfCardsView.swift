@@ -529,7 +529,6 @@ private final class HouseOfCardsCoordinator: NSObject {
     /// every card; card-front texture is loaded async per
     /// card from the R2 CDN.
     private var backTexture: TextureResource?
-    private var edgeMaterial: PhysicallyBasedMaterial?
 
     /// Box mesh template — shared across all cards.
     /// `cardThick` 0.4mm → 3mm: per Apple physics docs, paper-thin
@@ -1261,13 +1260,6 @@ private final class HouseOfCardsCoordinator: NSObject {
         return belowCenter + Self.minClearance
     }
 
-    /// Fallback when no card is available (called from 2-finger
-    /// pan .lift before a selection is established). Uses a
-    /// conservative vertical-card extent.
-    private func minCardYConservative() -> Float {
-        return Self.cardHeight * 0.5 + Self.minClearance
-    }
-
     // MARK: Surface snap (v2.172)
     //
     // Cast a ray straight down from the card's bottom-edge
@@ -1324,62 +1316,6 @@ private final class HouseOfCardsCoordinator: NSObject {
     }
 
     /// Probe points for surfaceYBelow's multi-point raycast: the
-    /// orientation-aware downward face's center plus its 4 corners.
-    /// For a vertical card the "downward face" is the bottom edge
-    /// strip (cardWidth × cardThick); for a horizontal card it's
-    /// the broad bottom face (cardWidth × cardHeight). Either way
-    /// we probe the full extent so any corner over a supporting
-    /// card pulls the whole card to that support's level.
-    private func downwardFaceProbePoints(of entity: Entity) -> [SIMD3<Float>] {
-        // Identify which of the 6 local-frame face centers has the
-        // lowest world Y. That's the downward face.
-        let faceLocalCenters: [SIMD3<Float>] = [
-            SIMD3<Float>( Self.cardWidth  / 2, 0, 0),
-            SIMD3<Float>(-Self.cardWidth  / 2, 0, 0),
-            SIMD3<Float>(0,  Self.cardThick / 2, 0),
-            SIMD3<Float>(0, -Self.cardThick / 2, 0),
-            SIMD3<Float>(0, 0,  Self.cardHeight / 2),
-            SIMD3<Float>(0, 0, -Self.cardHeight / 2),
-        ]
-        var bestIdx = 0
-        var bestY = Float.greatestFiniteMagnitude
-        for (i, faceCenter) in faceLocalCenters.enumerated() {
-            let world = entity.convert(position: faceCenter, to: nil as Entity?)
-            if world.y < bestY {
-                bestY = world.y
-                bestIdx = i
-            }
-        }
-        let bestFaceCenter = faceLocalCenters[bestIdx]
-        // The downward face is perpendicular to whichever axis has
-        // bestFaceCenter's nonzero coordinate. The corners vary the
-        // other two axes by ±extent.
-        let halfExtents = SIMD3<Float>(
-            Self.cardWidth  / 2,
-            Self.cardThick  / 2,
-            Self.cardHeight / 2
-        )
-        var perpAxis = 0
-        if abs(bestFaceCenter.y) > 0 { perpAxis = 1 }
-        if abs(bestFaceCenter.z) > 0 { perpAxis = 2 }
-        let otherAxes = [0, 1, 2].filter { $0 != perpAxis }
-        var probes: [SIMD3<Float>] = [entity.convert(position: bestFaceCenter, to: nil as Entity?)]
-        for sa: Float in [-1, 1] {
-            for sb: Float in [-1, 1] {
-                var corner = bestFaceCenter
-                let ax0 = otherAxes[0], ax1 = otherAxes[1]
-                if ax0 == 0 { corner.x = sa * halfExtents.x }
-                else if ax0 == 1 { corner.y = sa * halfExtents.y }
-                else { corner.z = sa * halfExtents.z }
-                if ax1 == 0 { corner.x = sb * halfExtents.x }
-                else if ax1 == 1 { corner.y = sb * halfExtents.y }
-                else { corner.z = sb * halfExtents.z }
-                probes.append(entity.convert(position: corner, to: nil as Entity?))
-            }
-        }
-        return probes
-    }
-
     // v2.183: orientation-aware face centers. For sit-on-top
     // snapping, we want the face that's currently facing UP on
     // the supporting card (and DOWN on our card), not the
@@ -3279,129 +3215,6 @@ private final class HouseOfCardsCoordinator: NSObject {
         print("[HoC] Spawned \(newHeld.count) vertical cards at \(location); held=\(heldCards.count)")
     }
 
-    // Legacy stub — kept to avoid breaking call sites mid-refactor.
-    // Pair-spawn: tap-from-strip consumes TWO cards from the
-    // deck and spawns them as a TENT at the table center.
-    //
-    // Tent geometry (v3 — proper house-of-cards "tent"):
-    //   - Main axis along world Z (depth). User views from +Z+X+Y
-    //     corner (default 3/4 camera).
-    //   - Card 1 at (0, centerY, -baseHalfZ) tilted by -π/4 around
-    //     world X axis. Its top swings toward +Z (apex at z=0); its
-    //     front face ends up pointing -Z direction (OUTWARD).
-    //   - Card 2 at (0, centerY, +baseHalfZ) = (180° around Y) ∘
-    //     card-1 rotation. Top toward -Z, front toward +Z (outward).
-    //   - Lean axis is world X, which is parallel to both cards'
-    //     bottom edges (along world X). The whole bottom edge
-    //     rests on the table — not just a corner.
-    //   - Front faces OUTWARD (away from apex), backs face INWARD
-    //     (toward each other inside the tent) — what a real tent
-    //     does, what the user asked for.
-    //   - 45° lean; bottom-edge spacing ~63mm (sin(45)*H + apex
-    //     gap); apex height ~31mm.
-    private func spawnHeldPair(takingFrom deck: inout [Card]) {
-        guard let root = anchor else { return }
-        guard deck.count >= 1 else { return }
-        let card1 = deck.removeFirst()
-        let card2 = deck.count > 0 ? deck.removeFirst() : card1
-
-        if !heldCards.isEmpty { commitHeldCards() }
-
-        // 30° lean per user feedback — 45° was "too wide to
-        // actually keep the cards upright." leanAngle here is
-        // the angle FROM VERTICAL: 0 = upright, π/2 = lying flat.
-        let leanAngle: Float = .pi / 6   // 30° from vertical
-        let halfH = Self.cardHeight * 0.5
-
-        // ROTATION FORMULA (v2.162 correction):
-        // To stand the card and tilt it θ from vertical, rotate
-        // by (θ - π/2) around the world X axis. At θ=0 this is
-        // -π/2 (pure standUp). At θ=π/2 this is 0 (lying flat).
-        //
-        // v2.161 used `-leanAngle` which only worked at exactly
-        // 45° because cos(π/4)=sin(π/4). At 30° lean, that bug
-        // produced 60° lean instead of 30° — what the user
-        // described as "even more extreme (wide)."
-        //
-        // After the correct rotation, for card 1:
-        //   local +Z (height) → world (0, cos(θ), +sin(θ))
-        //     i.e. mostly up, slightly toward +Z (apex)
-        //   local +Y (front normal) → world (0, sin(θ), -cos(θ))
-        //     i.e. mostly outward toward -Z, slightly up
-        //
-        // Card 2 mirrors across the YZ plane: 180° around Y.
-        let lean1 = simd_quatf(angle: leanAngle - .pi / 2,
-                               axis: SIMD3<Float>(1, 0, 0))
-        let flipY = simd_quatf(angle: .pi,
-                               axis: SIMD3<Float>(0, 1, 0))
-        let lean2 = flipY * lean1
-
-        // v2.164: positions account for the now-3mm collider.
-        // With non-trivial thickness, the LOWEST world-Y point of
-        // a leaned card is not just at the center of the bottom
-        // edge — it's at the inner-bottom corner. Similarly the
-        // apex contact is at the inner-top corner, not the center
-        // of the top edge.
-        let halfT = Self.cardThick * 0.5
-
-        // centerY: the lowest point (inner-bottom corner of the
-        // collider) has world Y offset = -(halfT*sin(θ) +
-        // halfH*cos(θ)) from the entity center. To put that
-        // point on the table (Y=0):
-        //   centerY = halfT*sin(θ) + halfH*cos(θ)
-        let centerY = halfT * sin(leanAngle)
-                    + halfH * cos(leanAngle)
-                    + max(0.001, targetMaxY)
-                    + 0.001  // 1mm air gap so cards drop into place
-
-        // baseHalfZ: the apex contact point is the INNER-TOP corner
-        // of each card's collider. For card 1 at entity z =
-        // -baseHalfZ, this corner is at world Z = -baseHalfZ +
-        // (halfT*cos(θ) + halfH*sin(θ)). For colliders to meet at
-        // world Z = 0:
-        //   baseHalfZ = halfT*cos(θ) + halfH*sin(θ)
-        // Per the research, spawn cards with a small interpene-
-        // tration (~0.5mm overlap each side) so PhysX MUST resolve
-        // the contact — establishes real apex normal force.
-        let apexOverlap: Float = 0.0005
-        let baseHalfZ = halfT * cos(leanAngle)
-                      + halfH * sin(leanAngle)
-                      - apexOverlap
-
-        let leftEntity  = buildCardEntity(for: card1,
-                                          position: SIMD3<Float>(0, centerY, -baseHalfZ),
-                                          rotation: lean1)
-        let rightEntity = buildCardEntity(for: card2,
-                                          position: SIMD3<Float>(0, centerY,  baseHalfZ),
-                                          rotation: lean2)
-
-        for entity in [leftEntity, rightEntity] {
-            if var body = entity.components[PhysicsBodyComponent.self] {
-                body.isContinuousCollisionDetectionEnabled = false
-                body.mode = .kinematic
-                entity.components.set(body)
-            }
-            root.addChild(entity)
-        }
-
-        heldCards = [
-            CardEntity(entity: leftEntity,  card: card1),
-            CardEntity(entity: rightEntity, card: card2)
-        ]
-
-        print("[HoC] Spawned A-frame pair '\(card1.cardNumber)' + '\(card2.cardNumber)' at center")
-
-        // Async art load for both cards. Each callback finds the
-        // named child plane on its own entity. Explicit self
-        // capture is required by Swift's escaping-closure rules.
-        loadFrontArt(for: card1) { [weak self, weak leftEntity] tex in
-            self?.applyArt(to: leftEntity, texture: tex)
-        }
-        loadFrontArt(for: card2) { [weak self, weak rightEntity] tex in
-            self?.applyArt(to: rightEntity, texture: tex)
-        }
-    }
-
     @MainActor
     private func applyArt(to entity: ModelEntity?, texture: TextureResource) {
         guard let entity else { return }
@@ -3583,16 +3396,6 @@ private final class HouseOfCardsCoordinator: NSObject {
         _ = radiusRatio  // shared helper uses the canonical 0.045 — only
                          // value HouseOfCards ever passed.
         return BOBACardEntity.roundedCorners(image, applyRotation: applyRotation)
-    }
-
-    private func makeEdgeMaterial() -> PhysicallyBasedMaterial {
-        if let m = edgeMaterial { return m }
-        var m = PhysicallyBasedMaterial()
-        m.baseColor = .init(tint: UIColor(white: 0.92, alpha: 1))
-        m.roughness = .init(floatLiteral: 0.6)
-        m.metallic  = .init(floatLiteral: 0.0)
-        edgeMaterial = m
-        return m
     }
 
     // MARK: Async art loading

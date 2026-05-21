@@ -130,21 +130,6 @@ struct CardDetailView: View {
         showingShare = true
     }
 
-    private func navigateCard(by offset: Int) {
-        let i = navIndex + offset
-        guard i >= 0, i < navigationCards.count else { return }
-        withAnimation(.easeInOut(duration: 0.2)) {
-            card = navigationCards[i]
-            scale = 1.0
-            self.offset = .zero
-        }
-        // Pull the live imageFile from the catalog whenever the
-        // displayed card changes — navigationCards may carry stale
-        // snapshots if it was prepared before the override map
-        // landed.
-        syncFromCardStore()
-    }
-
     /// v2.280 — refresh the local @State `card` from the live
     /// CardStore entry. Used on appear and whenever the runtime
     /// override map changes, so an admin's just-uploaded image

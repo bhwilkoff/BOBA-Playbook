@@ -2813,3 +2813,23 @@ Both flow into a single tick 192 commit. Bump v2.293 / build 555.
   - 3 items closed across all 3 platforms (#2, #5, partially #8 needs iOS)
   - 5 items still need iOS+web (#1 done all 3, #3 #4 #7 ⏳ iOS+web)
 - **Next:** tick 194 = Android (cadence 194 % 5 = 4). Pick a different Android-uncovered surface OR start the multi-platform infra for #6 (Wanted-list sharing) since it's the biggest unscoped backlog.
+
+### Tick 194 — 2026-05-21 — Events auto-refresh: Carde.io + Whatnot + curated → daily cron
+- **Ben asked for regular auto-refresh of events.json.** Built the refresh in two passes this tick.
+- **Pass 1 — initial refresh script + cron (Whatnot only):** `scripts/refresh_events.py` pulled Whatnot upcoming shows (`boba-ebay-proxy /whatnot/upcoming`), filtered to the next 7 days, preserved `_curated: true` entries. `.github/workflows/refresh-events.yml` runs daily 04:13 UTC. Marked Tecmo + OKC entries as `_curated: true`. Test run wrote 25 events (2 curated + 23 Whatnot).
+- **Pass 2 — Ben pointed at bobattlearena.com/events as the official source.** The /events page itself is a landing hub that links to `play.bobattlearena.com` for community events and `scgcon.starcitygames.com` for competitive. Reverse-engineered play.bobattlearena.com:
+  - It's a Next.js client using axios with `baseURL: https://api.carde.io`.
+  - Events endpoint: `GET /api/play/events?limit=N&page=N`.
+  - Required header: `game-id: e30530dd-73f7-45be-bfe3-1044edec034a` (BoBA's gameId in Carde.io's platform — discovered in the page's bootstrap JSON).
+  - Returns rich event objects: `id`, `name`, `startsAt`/`endsAt`, `status`, `public`, `address` (city/state), `activities` (sub-tournament names → formats).
+- **Updated `refresh_events.py`** with a `fetch_cardeio_events()` + `cardeio_to_event()` source. Filters to `public !== false`, `status not in {complete, cancelled}`, dates within 6 months. Each event maps to a `tournament` kind entry with `url: https://play.bobattlearena.com/events/{id}` so users tap straight through.
+- **Live test result:** 33 events total = 2 curated + **9 real Carde.io tournaments** (SCG CON D.C., SCG CON Las Vegas, T-roy's Regional, Lake County Cards weekly, etc.) + 22 Whatnot community shows. The 9 tournaments are the SHIP-CHANGING addition — Ben's audience was missing this view entirely.
+- **Files:**
+  - NEW `scripts/refresh_events.py` (~190 lines)
+  - NEW `.github/workflows/refresh-events.yml` (daily 04:13 UTC cron)
+  - UPDATED `assets/data/events.json` — now has 33 events, lastUpdated 2026-05-21
+  - UPDATED Android `app/src/main/assets/data/events.json` (sync ran)
+- **Lessons:**
+  - Memory of Carde.io game-id discovery saved as part of script comments (`BOBA_GAME_ID = "e30530dd-..."`).
+  - Reverse-engineering a Next.js client API: `baseURL` in axios config + `fetch` URL strings together give the full URL; required headers found via `interceptors.request.use` block.
+- **Next:** tick 195 = opt (195 % 5 = 0). Verify CI on the refresh + iOS tick 192 builds.

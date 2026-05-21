@@ -82,6 +82,41 @@ class CustomRainbowRepository @Inject constructor(
             .getOrNull()
     }
 
+    /**
+     * Patch an existing rainbow's name and/or criteria. RLS scopes
+     * the update to own-row; PostgREST UPDATE with id=eq filter
+     * targets the single row. Mirrors web (api.js updateCustomRainbow,
+     * tick 15) and iOS (SupabaseClient.updateCustomRainbow).
+     *
+     * Optimistically patches the in-memory _rainbows StateFlow so the
+     * UI updates immediately; reverts via refresh() on failure.
+     */
+    suspend fun update(id: String, name: String, criteria: RainbowCriteria): Boolean {
+        // Optimistic local update — UI reflects the change immediately.
+        val previous = _rainbows.value
+        _rainbows.value = previous.map {
+            if (it.id == id) it.copy(name = name, criteria = criteria) else it
+        }
+        return runCatching {
+            supabase.postgrest.from("user_custom_rainbows")
+                .update(
+                    mapOf(
+                        "name" to name,
+                        "criteria" to criteria.toJsonString(),
+                        // updated_at is auto-set by the RPC default but
+                        // explicit write keeps the row consistent w/ web.
+                        "updated_at" to java.time.Instant.now().toString(),
+                    ),
+                ) { filter { eq("id", id) } }
+            true
+        }.onFailure { e ->
+            Log.e(TAG, "Failed to update rainbow $id", e)
+            // Revert by re-fetching authoritative state.
+            _rainbows.value = previous
+            refresh()
+        }.getOrDefault(false)
+    }
+
     suspend fun delete(id: String) {
         _rainbows.value = _rainbows.value.filterNot { it.id == id }
         runCatching {

@@ -76,6 +76,17 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 100 — 2026-05-20 — **OPTIMIZATION TICK (11th 1-in-5)** — collapse duplicate CDN_FULL const
+- **Cadence:** opt rotation. Web hadn't had a tick since 80 (3 ago); pick web.
+- **Picked:** `js/practice.js` declared TWO consts holding the same R2 CDN URL: `CDN_BASE` at line 17 and `CDN_FULL` at line 1477. `CDN_FULL` was introduced when `fullUrl` was added, but the values are byte-identical — `'https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev'`. Pure duplication.
+- **Shipped:** `fullUrl` now reads `CDN_BASE`, `CDN_FULL` declaration removed.
+- **Verified:** `node -c js/practice.js` clean. `grep -n CDN_FULL js/practice.js` returns nothing post-edit. (api.js has its own `CDN_BASE` scoped inside its IIFE — leaving as-is, classic-script modules without a bundler share consts via duplication.)
+- **Line-count delta:** -1 line.
+- **Cumulative across 11 optimization ticks:** -152 lines (50: -26 · 55: -24 · 60: -9 · 65: -6 · 70: -28 · 75: -8 · 80: -2 · 85: -23 · 90: -19 · 95: -6 · 100: -1).
+- **Next:** tick 101 = Android; 102 = iOS; 103 = web; 104 = Android; 105 = opt.
+
+
+
 ### Tick 99 — 2026-05-20 — **Android** — AddToCollection actually persists form fields (real bug fix)
 - **Cadence:** 99 % 5 = 4 → Android.
 - **Picked:** Audited Android AddToCollectionSheet → CardDetailScreen call path. The sheet's form collects **quantity, purchasePriceUsd, askingPriceUsd, condition, notes, grade** into an `AddToCollectionInput` data class — but `onSubmit` only called `collectionViewModel.add(input.cardBobaId, input.designation)`, silently discarding every other field. User would fill out condition + purchase price + notes, hit Save, and only the bobaId + designation actually landed in Supabase. **Real bug, not just polish.**

@@ -1474,8 +1474,7 @@ function initDeckBuilder(allCards) {
 
 // ── Card popup helpers ───────────────────────────────────────────
 
-const CDN_FULL = 'https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev';
-function fullUrl(file) { return file ? `${CDN_FULL}/full/${file}` : null; }
+function fullUrl(file) { return file ? `${CDN_BASE}/full/${file}` : null; }
 
 function dbShowCardPopup(card, allCards) {
   const popup  = $('db-card-popup');

@@ -1098,29 +1098,39 @@ function initDeckBuilder(allCards) {
   // Deck name
   $('db-deck-name')?.addEventListener('input', e => { DB.deckName = e.target.value; });
 
-  // Clear deck
+  // Clear deck — tick 143 closes the 3-platform parity loop on
+  // Clear-deck Undo (iOS tick 142, Android tick 139). Replaces the
+  // blocking confirm() with a Snackbar that surfaces an Undo action
+  // within the recovery window. Matches the per-copy delete pattern
+  // tick 123 already established for Collection.
   $('db-clear-btn')?.addEventListener('click', () => {
-    // Empty deck → clearing is a no-op; no confirm needed.
+    // Empty deck → clearing is a no-op; bail before touching the DOM.
     const totalCards = DB.heroes.length + DB.plays.length + DB.bonusPlays.length + DB.hotDogs.length;
-    if (totalCards > 0) {
-      // iOS parity: DeckBuilderView's Clear action shows a confirm
-      // dialog. Web's prior behavior nuked the deck on a single click
-      // of the ✕ icon — easy misclick destroying user work.
-      const heroLabel  = DB.heroes.length === 1   ? '1 hero'    : `${DB.heroes.length} heroes`;
-      const playLabel  = DB.plays.length === 1    ? '1 play'    : `${DB.plays.length} plays`;
-      const bonusLabel = DB.bonusPlays.length;
-      const hdLabel    = DB.hotDogs.length === 1  ? '1 hot dog' : `${DB.hotDogs.length} hot dogs`;
-      const parts = [heroLabel, playLabel];
-      if (bonusLabel > 0) parts.push(`${bonusLabel} bonus`);
-      parts.push(hdLabel);
-      if (!confirm(`Clear this deck (${parts.join(', ')})? Your deck name and format settings stay.`)) {
-        return;
-      }
-    }
+    if (totalCards === 0) return;
+    // Snapshot pre-clear state. Arrays only — DB.clear() preserves
+    // format + activePreset + ruleOverrides, so we don't need them.
+    const snapshot = {
+      heroes:     DB.heroes.slice(),
+      plays:      DB.plays.slice(),
+      bonusPlays: DB.bonusPlays.slice(),
+      hotDogs:    DB.hotDogs.slice(),
+      deckName:   DB.deckName,
+    };
     DB.clear();
     const nameEl = $('db-deck-name');
     if (nameEl) nameEl.value = 'New Deck';
     dbRender(allCards);
+    if (typeof window.showUndoToast === 'function') {
+      window.showUndoToast('Draft cleared', () => {
+        DB.heroes     = snapshot.heroes;
+        DB.plays      = snapshot.plays;
+        DB.bonusPlays = snapshot.bonusPlays;
+        DB.hotDogs    = snapshot.hotDogs;
+        DB.deckName   = snapshot.deckName;
+        if (nameEl) nameEl.value = snapshot.deckName;
+        dbRender(allCards);
+      });
+    }
   });
 
   // Templates — load from pre-computed template-decks.json

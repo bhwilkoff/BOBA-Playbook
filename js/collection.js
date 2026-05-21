@@ -239,11 +239,20 @@ const Collection = (() => {
           ${tabsHtml}
         </div>
         <div class="collection-toolbar">
-          <input type="search" class="collection-search-input" id="collection-search"
-                 placeholder="Search your collection…"
-                 autocomplete="off" autocorrect="off" spellcheck="false"
-                 aria-label="Search this designation"
-                 value="${esc(_collectionSearchText)}" />
+          <div class="collection-search-wrap">
+            <input type="search" class="collection-search-input" id="collection-search"
+                   placeholder="Search your collection…"
+                   autocomplete="off" autocorrect="off" spellcheck="false"
+                   aria-label="Search this designation"
+                   value="${esc(_collectionSearchText)}" />
+            <button type="button" class="collection-search-clear" id="collection-search-clear"
+                    aria-label="Clear collection search" ${_collectionSearchText ? '' : 'hidden'}>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                   stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
           <label class="collection-sort-label" for="collection-sort">Sort</label>
           <select class="collection-sort-select" id="collection-sort" aria-label="Sort collection">
             <option value="added_desc"${_collectionSort==='added_desc'?' selected':''}>Recently Added</option>
@@ -327,14 +336,20 @@ const Collection = (() => {
     // interrupted. Selection range survives via the input's value
     // round-trip + a manual setSelectionRange.
     const searchEl = view.querySelector('#collection-search');
+    const searchClearEl = view.querySelector('#collection-search-clear');
     if (searchEl) {
       // Restore focus if the user was typing across a render (e.g.
       // a previous keystroke triggered re-render before the next).
       if (document.activeElement?.id === 'collection-search-prev-focus') {
         searchEl.focus();
       }
+      // Toggle the clear-× immediately on every keystroke so the
+      // affordance feels instant even though the search filter is
+      // debounced. Hidden when the input is empty.
       searchEl.addEventListener('input', (e) => {
-        const next = (e.target.value || '').trim().toLowerCase();
+        const raw  = e.target.value || '';
+        const next = raw.trim().toLowerCase();
+        if (searchClearEl) searchClearEl.hidden = !raw;
         clearTimeout(_collectionSearchTimer);
         _collectionSearchTimer = setTimeout(() => {
           if (next === _collectionSearchText) return;
@@ -353,6 +368,22 @@ const Collection = (() => {
             }
           }
         }, _COLLECTION_SEARCH_DEBOUNCE);
+      });
+      // Clear-× wires immediate clear + re-render (no debounce — the
+      // user explicitly asked to clear). Refocuses the input so the
+      // user can keep typing without re-tapping.
+      searchClearEl?.addEventListener('click', () => {
+        searchEl.value = '';
+        searchClearEl.hidden = true;
+        clearTimeout(_collectionSearchTimer);
+        if (_collectionSearchText) {
+          _collectionSearchText = '';
+          renderCollectionView();
+          // After re-render, refocus the new input element by id.
+          document.getElementById('collection-search')?.focus();
+        } else {
+          searchEl.focus();
+        }
       });
     }
 

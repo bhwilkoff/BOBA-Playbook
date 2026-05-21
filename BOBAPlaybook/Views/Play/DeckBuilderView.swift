@@ -638,8 +638,27 @@ struct DeckBuilderView: View {
             // Card grid
             let filtered = filteredCards
             if filtered.isEmpty {
-                ContentUnavailableView("No cards found", systemImage: "rectangle.stack", description: Text("Try a different search or filter"))
+                // Disambiguate: search-driven empty vs filter-driven
+                // empty. When the user typed a query we offer a one-tap
+                // Clear; otherwise the tab + element-filter controls
+                // are right above the grid so no extra CTA needed.
+                // Parity with Android tick 89.
+                let trimmedSearch = store.browserSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmedSearch.isEmpty {
+                    ContentUnavailableView {
+                        Label("No cards match", systemImage: "magnifyingglass")
+                    } description: {
+                        Text("Nothing in the catalog matches “\(trimmedSearch)”. Try a different term or clear the search.")
+                    } actions: {
+                        Button("Clear search") { store.browserSearch = "" }
+                            .buttonStyle(.bordered)
+                            .tint(Design.Colors.bobaCyan)
+                    }
                     .foregroundStyle(Design.Colors.textMuted)
+                } else {
+                    ContentUnavailableView("No cards in scope", systemImage: "rectangle.stack", description: Text("Pick a different tab above, or widen the element filter."))
+                        .foregroundStyle(Design.Colors.textMuted)
+                }
             } else {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100, maximum: 130), spacing: Design.Spacing.sm)],

@@ -102,6 +102,19 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 22 — 2026-05-20 — Web Decks save: empty-deck guard + inline feedback
+- **Picked:** Audit triggered by tick-21b "Next" plan. Found three issues with the current Save flow: (1) zero-card decks could be saved, writing junk rows to Supabase. (2) Empty / whitespace deck name was accepted unchanged. (3) Errors went to `alert()` instead of the existing inline `db-import-banner` (used by import + every other deck-builder transient feedback).
+- **Shipped:**
+  - `js/practice.js` `db-save-btn` handler:
+    - Empty-deck guard: refuse to save when `cards.length === 0`; show "Add at least one card before saving." inline via `db-import-banner` (3s auto-hide). Mirrors iOS DeckBuilderStore which refuses save at totalCardCount == 0.
+    - Name guard: `(DB.deckName || '').trim() || 'New Deck'` — accepts whitespace as a typo and silently defaults rather than fighting the user with an error.
+    - Success path: inline `Saved "{deckName}".` (2.5s auto-hide) in addition to the existing green-flash on the button.
+    - Failure path: inline `Save failed: {message}` (persistent until next user action) instead of the prior `alert()`. Falls back to alert() only if the banner element is missing.
+- **Verified:** node -c clean. Logic trace: click Save with 0 cards → banner says "Add at least one card before saving." + button NOT disabled (returns early). Click Save with cards → existing flow + new success banner. Server error → inline banner with err.message, no alert.
+- **PARITY.md:** No row change — this is a polish + correctness fix on an already-✅ row.
+- **Architectural note:** the `db-import-banner` is now used by Import + Save + future Decks transient feedback. Worth promoting to a generic `.db-banner` class in a future refactor if more callers appear.
+- **Next:** Tick 23. Plausible: (a) audit save flow on Find Quick Add (similar single-card add path), (b) audit the deck-builder "Clear" button confirmation (might already exist), (c) random-card affordance on Find.
+
 ### Tick 21b — 2026-05-20 — Rollback: remove Twitter Card meta + add binding "never" docs
 - **Picked:** Ben directive. Twitter / X is owned by a fascist; BOBA will not integrate. Same-day rollback of tick 21's Twitter Card additions.
 - **Shipped:**

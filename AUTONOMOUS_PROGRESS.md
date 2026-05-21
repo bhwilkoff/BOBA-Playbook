@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 95 — 2026-05-20 — **OPTIMIZATION TICK (10th 1-in-5)** — orphan iOS HintIDs
+- **Cadence:** opt rotation. Bias-toward-iOS-or-Android since web had 4. Picked iOS.
+- **Picked:** `Design.swift::HintID` enum had 5 cases but only 3 had rendering sites in the codebase. `deckCompositionTriad` ("hint.deck_composition_triad") + `hdValueHeuristic` ("hint.hd_value_heuristic") were never wired — `grep -rn deckCompositionTriad BOBAPlaybook` + same for `hdValueHeuristic` returned only the enum definitions. Both were documented for a future "first build" + "high-cost play added" hint, but they shipped on neither iOS surface. Verified the same audit on the Android side — `HintsStore.Ids` is fully wired (CARD_DETAIL_TAP_PRICE / SCAN_HOLD_STEADY / DECKS_LONG_PRESS_TO_ADD / COLLECTION_DISPLAY_MODES / LEARN_LONG_PRESS_GLOSSARY — last one wired in tick 84).
+- **Shipped:**
+  - `BOBAPlaybook/Components/Design.swift::HintID` — dropped the 2 orphan cases + their 4 doc-comment lines (2 doc lines per case).
+- **Verified:** `grep -rn deckCompositionTriad BOBAPlaybook` post-edit returns nothing. `grep -rn hdValueHeuristic BOBAPlaybook` returns nothing.
+- **Line-count delta:** -6 lines.
+- **Cumulative across 10 optimization ticks:** -151 lines (50: -26 · 55: -24 · 60: -9 · 65: -6 · 70: -28 · 75: -8 · 80: -2 · 85: -23 · 90: -19 · 95: -6).
+- **Next:** tick 96 = Android; 97 = iOS; 98 = web; 99 = Android; 100 = opt.
+
+
+
 ### Tick 94 — 2026-05-20 — **Android** — Card detail "Decks with this card": tap-affordance + Snackbar
 - **Cadence:** 94 % 5 = 4 → Android.
 - **Picked:** `CardDetailScreen.kt` at line 367+ rendered "Decks with this card (N)" with each deck row already `Modifier.clickable { decksVmHere.loadSaved(deck, catalog) }` — but the row had NO visual affordance signaling it was tappable (no chevron, no trailing icon), and the loadSaved call gave NO feedback. The comment on the section even called the tap-through "a future iteration" — stale, since it already worked. Result: users likely never realized the row was tappable, and even when they tried it, the deck would silently load into the Decks editor (visible only when they switched tabs) with zero confirmation.

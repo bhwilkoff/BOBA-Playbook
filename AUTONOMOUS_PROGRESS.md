@@ -102,6 +102,13 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 54 — 2026-05-20 — Multi-select Add-to-Deck: alert() → showToast()
+- **Picked:** Small UX consistency win. Four `alert()` calls in the Find multi-select Add-to-Deck flow blocked the user with native browser dialogs for transient errors / hints — inconsistent with the rest of the app which uses non-blocking `showToast()`. The destructive flows (Delete Account, Confirm delete rainbow) keep `alert/confirm` correctly; this swap is only for the non-destructive "Could not load decks" / "No saved decks yet" / "Could not save deck" cases.
+- **Shipped:**
+  - `js/app.js`: four `alert(...)` → `showToast(...)` in `openDeckPicker` (deck-list fetch error + empty-list hint) and `bulkAddToDeck` (deckLoad error + deckSave error).
+- **Verified:** node -c clean.
+- **PARITY.md:** No row.
+
 ### Tick 53 — 2026-05-20 — Custom Rainbow editor save / delete: skip redundant load()
 - **Picked:** Perf nit. Custom Rainbow editor save + delete both called `await load()` after closing the dialog — which re-fetches the whole `user_cards` array (potentially hundreds of rows) just to refresh the rainbow list. The user_cards array didn't change; only `user_custom_rainbows` did.
 - **Shipped:** save + delete paths now call `renderCollectionView()` directly. That triggers `hydrateCustomRainbows` (re-fetches rainbows) without re-fetching the unrelated user_cards. Saves a Supabase round-trip per save/delete + cuts the wall-clock latency the user feels after clicking Save.

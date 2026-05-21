@@ -76,6 +76,24 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 91 — 2026-05-20 — **Android** — Profile role-request: surface pending state
+- **Cadence:** 91 % 5 = 1 → Android.
+- **Picked:** Android Profile's role-request row said "Request mod or streamer role · Reviewed by Ben within 48h" for every user, even after a user had already submitted a pending request. The only feedback that the request landed was the post-submit Snackbar that disappeared after a few seconds. If the user re-opened Profile a day later they had no signal a request was pending — risk of duplicate submits + the dialog defaulted to "moderator" radio regardless of what they originally requested. iOS Profile already surfaces this state.
+- **Shipped:**
+  - `ProfileSheet.kt::item("role-request")`:
+    - Reads `profile?.requestedRole` (already exposed on `UserProfile.requestedRole` at `ProfileService.kt:243`).
+    - When pending: supporting text becomes "Pending: {Role} · Ben reviews within 48h" in cyan; button label becomes "Update" instead of "Request".
+    - When not pending: original copy preserved verbatim.
+  - `if (roleRequestOpen)` dialog:
+    - `initialRole` derived from `profile?.requestedRole` (falls back to "moderator" when none).
+    - `var requestedRole by remember(initialRole) { mutableStateOf(initialRole) }` — `remember` keyed on initialRole so opening the dialog for a different pending role resets the radio correctly.
+    - Title flips to "Update role request" when `isUpdate` (mirrors the row's "Update" button label).
+- **Verified:** UserProfile field exists at `ProfileService.kt:243` — `val requestedRole: String?`. BobaBrand.Cyan already imported (line 83). The existing `vm.requestRole(role, reason)` call site unchanged — the SQL RPC handles both "first submit" and "update existing" idempotently.
+- **PARITY.md:** No row — UX polish on already-✅ Profile role-request row.
+- **Next:** tick 92 = iOS; 93 = web; 94 = Android; 95 = opt.
+
+
+
 ### Tick 90 — 2026-05-20 — **OPTIMIZATION TICK (9th 1-in-5)** — drop iOS submitModRequest shims
 - **Cadence:** opt rotation. Web 4 ticks (50/55/70/75). Android 3 (60/75/80). iOS now 3 (65/85/90).
 - **Picked:** Tick 85 left `AuthManager.submitModRequest(reason:)` (3-line shim → `requestRole("moderator", ...)`) AND `SupabaseClient.submitModRequest(reason:)` (15-line REST writer) in place because removing them would touch ModRequestSheet. Trivial caller migration — `ModRequestSheet.swift::submitButton` is the only iOS site that called the AuthManager shim.

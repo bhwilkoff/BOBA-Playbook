@@ -946,9 +946,6 @@
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       const { cardNumber, rawText } = data;
 
-      console.log('[scan] rawText:', rawText);
-      console.log('[scan] cardNumber:', cardNumber);
-
       // Primary: card number match — exact, no ambiguity
       const numberMatches = cardNumber
         ? (cardsByNumber.get(String(cardNumber).toUpperCase()) ?? [])
@@ -3087,7 +3084,6 @@
     document.body.classList.add('selection-mode');
     syncSelectModeToggle();
     syncSelectionToolbar();
-    console.log('[multi-select] entered selection mode');
   }
   function exitSelectionMode() {
     selectionMode = false;
@@ -3113,7 +3109,6 @@
     const el = cardGrid.querySelector(`.card-item[data-card-id="${cssEscape(key)}"]`);
     el?.classList.toggle('card-item--selected', !wasSelected);
     syncSelectionToolbar();
-    console.log(`[multi-select] ${wasSelected ? 'unselected' : 'selected'} ${key} (now ${selectedCardKeys.size} total)`);
   }
   function selectRange(fromIdx, toIdx) {
     const lo = Math.min(fromIdx, toIdx), hi = Math.max(fromIdx, toIdx);

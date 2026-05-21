@@ -2568,20 +2568,9 @@ dialog.modal-overlay[open] {
   border-radius: 100px;
 }
 
-.ccard-meta {
-  font-family: var(--font-mono); font-size: 0.72rem;
-  color: var(--boba-text-muted);
-}
-
 .ccard-price {
   font-family: var(--font-mono); font-size: 0.78rem;
   color: var(--boba-cyan);
-}
-
-.ccard-notes {
-  font-family: var(--font-mono); font-size: 0.68rem;
-  color: var(--boba-text-dim);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 .ccard-delete-btn {
@@ -4177,13 +4166,6 @@ dialog.modal-overlay[open] {
   outline: none;
   border-color: rgba(0,245,255,0.5);
   background: rgba(0,245,255,0.05);
-}
-.custom-rainbow-editor-hint {
-  font-family: var(--font-mono, monospace);
-  font-size: 0.7rem;
-  color: rgba(255,255,255,0.5);
-  margin: 0;
-  line-height: 1.4;
 }
 .custom-rainbow-editor-error {
   font-family: var(--font-mono, monospace);

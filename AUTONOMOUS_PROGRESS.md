@@ -102,6 +102,24 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 50 — 2026-05-20 — **OPTIMIZATION TICK** dead-code sweep
+- **First 1-in-5 optimization tick per `feedback_one_in_five_optimization_tick.md` (saved tick 47).** Discipline: net line-removal expected.
+- **Shipped:**
+  - `css/styles.css`: removed orphan `.custom-rainbow-editor-hint` (left over from tick 16's removal of the old "Filters land in a later release" hint paragraph; tick 16 deleted the HTML but left the CSS). Removed orphan `.ccard-meta` + `.ccard-notes` (unreferenced anywhere in HTML or JS).
+  - `js/collection.js`: removed unused `getCollectionSort()` wrapper function + the `setSortOrder` + `getSortOrder` exports on the public Collection API (never called from any sibling module — internal `setCollectionSort` is the only consumer).
+  - `js/app.js`: removed three dev-time `console.log` statements that shipped to every user's console — `[scan] rawText:`, `[scan] cardNumber:` (the rawText is still functionally used at line 955 for findCardsByOCRText, just no longer logged), `[multi-select] entered selection mode`, `[multi-select] selected/unselected X`. Real `console.warn`s + `console.error`s kept (bug-indicator value).
+- **Line-count delta:**
+  - collection.js: 3549 → 3546 (-3)
+  - app.js: 4314 → 4309 (-5)
+  - styles.css: 10983 → 10965 (-18)
+  - **Net: -26 lines, +0 added.**
+- **Verified:** node -c clean on both edited JS files. Visual: nothing visibly changed for users (all removals were either CSS-orphans or dev-only console logs).
+- **What I considered but didn't ship this tick:**
+  - **`.desig-personal` / `.desig-for_sale` / etc.** — looked orphaned but are constructed dynamically (`desig-${esc(first.designation)}`). False positive in my naive grep.
+  - **Other `.ccard-*` classes** — most are heavily used; only meta + notes were orphan.
+  - **`window.bobaSearchTarget` / older dialog migration leftovers** — held off, would need a deeper audit pass.
+- **Architectural note:** the 1-in-5 cadence keeps the codebase from drifting "every tick adds, none subtract." Net-removal in this single tick was modest (-26) but cumulative across 10 such ticks = -260 lines, meaningful at the JS / CSS bundle scale that ships to every page-load.
+
 ### Tick 49 — 2026-05-20 — Custom Rainbows empty-state shows even before catalog hydrates
 - **Picked:** Latency edge case. `hydrateCustomRainbows` early-returned when `window.__bobaCatalog` was empty (initial sign-in, catalog still in phase-2 load). A signed-in user with ZERO rainbows but on a fresh page load saw the section heading + "+ New rainbow" button + **nothing else** — no empty-state hint to explain why. Looked like a layout bug.
 - **Shipped:**

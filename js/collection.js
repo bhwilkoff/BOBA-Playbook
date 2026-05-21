@@ -49,6 +49,8 @@ const Collection = (() => {
     _customRainbowsById = {};
     _editingRainbow = null;
     _draftCriteria = {};
+    _rainbowMatchCache.clear();
+    _rainbowMatchCacheCatalogLen = 0;
     renderCollectionView();
     renderProfileView();
   }
@@ -73,22 +75,43 @@ const Collection = (() => {
       return;
     }
 
-    const tabCount   = key => _cards.filter(c => c.designation === key).length;
-    const ownedCards = _cards.filter(c => ['personal','for_sale','for_trade'].includes(c.designation));
-    // v2.272 — totals respect _totalsMode. 'collection' aggregates across
-    // owned designations (default); 'filter' uses just the active tab.
-    // Matches iOS @AppStorage("bp_collectionTotalsMode_v1") behavior.
-    const statsScope = _totalsMode === 'filter'
-      ? _cards.filter(c => c.designation === _activeTab)
-      : ownedCards;
-    const totalCostBasis = statsScope
-      .filter(c => c.purchase_price)
-      .reduce((sum, c) => sum + Number(c.purchase_price), 0);
-    const totalEstimatedValue = statsScope
-      .filter(c => c.estimated_value)
-      .reduce((sum, c) => sum + Number(c.estimated_value), 0);
-    const uniqueNums = new Set(statsScope.map(c => c.boba_id || c.card_number)).size;
-    const scopeCount = statsScope.length;
+    // Single-pass aggregation: counts per designation + cost/value
+    // totals for the chosen stats scope. Replaces 4+ separate
+    // .filter() passes over _cards on every render — meaningful at
+    // 500+ rows, brutal at 5000+. See audit 2026-05-20 tick 30.
+    const isOwned = c => c.designation === 'personal'
+                      || c.designation === 'for_sale'
+                      || c.designation === 'for_trade';
+    const tabCounts = Object.create(null);
+    let ownedCount = 0;
+    let activeCount = 0;
+    let activeCost = 0, activeValue = 0;
+    let ownedCost  = 0, ownedValue  = 0;
+    const activeKeys = new Set();
+    const ownedKeys  = new Set();
+    for (const c of _cards) {
+      tabCounts[c.designation] = (tabCounts[c.designation] || 0) + 1;
+      const isActive = c.designation === _activeTab;
+      const owned    = isOwned(c);
+      if (isActive) {
+        activeCount++;
+        if (c.purchase_price)  activeCost  += Number(c.purchase_price);
+        if (c.estimated_value) activeValue += Number(c.estimated_value);
+        activeKeys.add(c.boba_id || c.card_number);
+      }
+      if (owned) {
+        ownedCount++;
+        if (c.purchase_price)  ownedCost  += Number(c.purchase_price);
+        if (c.estimated_value) ownedValue += Number(c.estimated_value);
+        ownedKeys.add(c.boba_id || c.card_number);
+      }
+    }
+    const tabCount = key => tabCounts[key] || 0;
+    const ownedCards = _cards.filter(isOwned);  // still need this array for rainbow hydration below
+    const totalCostBasis      = _totalsMode === 'filter' ? activeCost  : ownedCost;
+    const totalEstimatedValue = _totalsMode === 'filter' ? activeValue : ownedValue;
+    const uniqueNums          = (_totalsMode === 'filter' ? activeKeys  : ownedKeys).size;
+    const scopeCount          = _totalsMode === 'filter' ? activeCount : ownedCount;
     const isFilter = _totalsMode === 'filter';
     const ownedLabel = isFilter ? 'In Filter' : 'Owned';
     const valueLabel = isFilter ? 'Filter Est. Value' : 'Est. Value';
@@ -782,6 +805,29 @@ const Collection = (() => {
   // hydrateCustomRainbows.
   let _customRainbowsById = {};
 
+  // Memoized "catalog cards matching this rainbow's criteria" cache.
+  // Key: rainbow.id + JSON-stringified criteria (so changes to criteria
+  // invalidate). Without this, every Collection re-render re-filters
+  // 17k catalog × N rainbows on every keystroke. Cleared on clear()
+  // (sign-out) + on catalog change (catalogVersion bump).
+  const _rainbowMatchCache = new Map();
+  let _rainbowMatchCacheCatalogLen = 0;
+
+  function _rainbowMatching(rainbow, catalog) {
+    // Invalidate the whole cache if the catalog grew/shrunk (rare —
+    // only at first-load progressive hydration).
+    if (catalog.length !== _rainbowMatchCacheCatalogLen) {
+      _rainbowMatchCache.clear();
+      _rainbowMatchCacheCatalogLen = catalog.length;
+    }
+    const key = `${rainbow.id}|${JSON.stringify(rainbow.criteria || {})}`;
+    let cached = _rainbowMatchCache.get(key);
+    if (cached) return cached;
+    cached = catalog.filter(c => API.rainbowCriteriaMatches(c, rainbow.criteria));
+    _rainbowMatchCache.set(key, cached);
+    return cached;
+  }
+
   async function hydrateCustomRainbows(ownedCards) {
     const section = document.getElementById('custom-rainbows-section');
     const list    = document.getElementById('custom-rainbows-list');
@@ -810,7 +856,7 @@ const Collection = (() => {
     }
     if (empty) empty.hidden = true;
     list.innerHTML = rainbows.map(rainbow => {
-      const matching = catalog.filter(c => API.rainbowCriteriaMatches(c, rainbow.criteria));
+      const matching = _rainbowMatching(rainbow, catalog);
       return _renderRainbowRow({
         name: rainbow.name,
         summary: API.rainbowCriteriaSummary(rainbow.criteria),
@@ -866,12 +912,22 @@ const Collection = (() => {
       (buckets[c.hero] = buckets[c.hero] || []).push(c);
     }
 
-    // Sort heroes by completion descending — heroes the user is
-    // closest to finishing surface first.
+    // Pre-compute completion ratio per hero in a single pass per
+    // bucket, then sort by the cached ratio. Without this, the sort
+    // comparator filters both buckets on every comparison —
+    // ~O(catalog × log heroes) on the comparator versus
+    // O(catalog) single-pass + O(heroes log heroes) sort.
+    const ratios = {};
+    for (const hero of Object.keys(buckets)) {
+      const bucket = buckets[hero];
+      let owned = 0;
+      for (const c of bucket) {
+        if (ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber)) owned++;
+      }
+      ratios[hero] = owned / bucket.length;
+    }
     const heroes = Object.keys(buckets).sort((a, b) => {
-      const ar = buckets[a].filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber)).length / buckets[a].length;
-      const br = buckets[b].filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber)).length / buckets[b].length;
-      if (ar !== br) return br - ar;
+      if (ratios[a] !== ratios[b]) return ratios[b] - ratios[a];
       return a.localeCompare(b);
     });
 

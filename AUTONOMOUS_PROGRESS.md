@@ -102,6 +102,29 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 30 — 2026-05-20 — Web Collection perf pass (large-collection audit)
+- **Picked:** Ben directive ("make sure there are no other delays/stoppages anywhere else in the collection views on any platform for filters, searching or any other issues with large collections"). Spawned an Explore-agent audit covering all three platforms; ranked findings by user-visible impact. This tick ships the worst three web offenders. Tick 31 ships the iOS equivalents.
+- **Audit findings shipped today:**
+  - **#1 Web Profile stats — 4+ separate `.filter()` passes per render → single-pass.** Was: `tabCount(key)` repeated 5× inside the tab-button template + separate filters for `ownedCards` / `statsScope` / cost-basis / estimated-value / unique-keys. At 500 user_cards that's ~2500 comparisons per render; at 5000 it's 25k. Now: ONE `for` loop builds `tabCounts` object + ownedCount + activeCount + activeCost/Value + ownedCost/Value + activeKeys/ownedKeys Sets in a single pass. `tabCount(key)` is now O(1) dictionary lookup.
+  - **#3 Custom rainbows: memoized matching cache.** Was: `catalog.filter(c => API.rainbowCriteriaMatches(c, rainbow.criteria))` ran on every Collection re-render — 5 rainbows × 17,974 catalog = 89k matches per re-render. Now: `_rainbowMatchCache` Map keyed by `rainbow.id + JSON.stringify(criteria)`. Cache cleared on catalog-length change (rare) + on sign-out. Re-renders are O(rainbows) lookup, not O(rainbows × catalog).
+  - **#5 Hero auto-rainbows sort comparator.** Was: `.sort((a, b) => buckets[a].filter(...) / buckets[a].length - buckets[b].filter(...) / buckets[b].length)` re-filtered both buckets per comparison. With 20 heroes × ~5000 owned cards × ~log₂20 = ~22 comparisons, that's ~110k iterations on the sort alone. Now: pre-compute `ratios[hero]` ONCE per hero (single pass per bucket) + sort by precomputed value (just comparisons).
+- **Shipped:**
+  - `js/collection.js`:
+    - Single-pass aggregation in `renderCollectionView` replacing the four separate `.filter()` passes.
+    - `_rainbowMatchCache` Map + `_rainbowMatching(rainbow, catalog)` helper. Used by `hydrateCustomRainbows`.
+    - Pre-computed `ratios` for the hero-auto-rainbow sort comparator.
+    - `clear()` wipes both new caches on sign-out (matches the `feedback_viewmodel_reset_on_auth_change` discipline).
+- **Verified:** node -c clean. Trace: 500-user-card session opening the Collection tab → previously ~3500 comparisons → now ~500 (single pass). Custom rainbows re-render → previously 5×17k = 85k → now 5 lookups. Hero sort comparator → previously O(n×c) → now O(n log n).
+- **Other audit items not shipped this tick (queued for ticks 31-32):**
+  - **iOS #2 + #4 (CollectionView rainbowRows computed property)**: rebuilds ownedBobaIds Set + sorts heroes from scratch on every body re-eval. Fix: move to `@State` + `.onChange(of: collection.userCards)`. Multi-file edit; queued for tick 31.
+  - **Web #8 Synchronous innerHTML of all groups (no pagination)**: 500+ cards = 500+ DOM elements in one `innerHTML` assignment. Significant work to virtualize; queued for tick 32 if user impact warrants.
+  - **iOS dictionaries**: confirmed correct per `feedback_derived_arrays_must_rebuild` memory.
+  - **iOS search debounce**: confirmed correct (120ms).
+  - **Android `Flow` + `associateBy`**: confirmed correct (uses persistent collections, O(1) joins).
+- **PARITY.md:** No row — performance fix.
+- **Architectural note:** the memoization keys use `JSON.stringify(criteria)` — fine for the 8-key criteria objects (5-30ms total per call typically). If criteria balloon (more dimensions), revisit with a structural hash.
+- **Next:** Tick 31 — iOS Collection rainbowRows computed-property → @State pattern. Same audit findings, different platform.
+
 ### Tick 29 — 2026-05-20 — Find empty-state: icon + dynamic body
 - **Picked:** Per the `universal-feature-states` skill, every empty state should carry brand-voice copy + productive next-action. Web Find's was just "No cards match your search." + Clear button — generic, didn't tell the user WHY there were no matches. iOS DESIGN.md §6.7 ships `ContentUnavailableView.search` with refinement suggestions; web parity now.
 - **Shipped:**

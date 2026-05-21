@@ -1441,12 +1441,18 @@ struct DecksView: View {
     private func saveDeck() async {
         guard auth.isAuthenticated, !deckIsEmpty else { return }
         await store.saveDeck()
-        if store.saveError == nil {
+        if let err = store.saveError {
+            // Tick 157 — surface save failures. Was silent before, so a
+            // network drop / RLS rejection left the user wondering if
+            // their tap registered. Mirrors Android tick 154's tablet-
+            // pane fix.
+            saveBanner = "Couldn't save — \(err)"
+        } else {
             saveBanner = "Saved \(store.deckName)"
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(2))
-                withAnimation(.easeOut(duration: 0.3)) { saveBanner = nil }
-            }
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(store.saveError == nil ? 2 : 4))
+            withAnimation(.easeOut(duration: 0.3)) { saveBanner = nil }
         }
     }
 

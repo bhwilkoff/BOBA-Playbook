@@ -3017,6 +3017,23 @@
       </div>`;
   }
 
+  /// Tick 198 — Discord backlog #7. Print-run / SSP label for cards.
+  /// Mirrors iOS Card.printRunLabel + Android CardFormatEligibility.
+  /// Returns null for the typical 99% card.
+  function printRunLabelFor(card) {
+    if (card.isInspiredInk) {
+      switch ((card.element || '').toUpperCase()) {
+        case 'HEX':  return '/5';
+        case 'GLOW': return '/10';
+        case 'FIRE': return '/25';
+        case 'ICE':  return '/50';
+        default:     return 'Serial';
+      }
+    }
+    if ((card.treatment || '').toLowerCase().includes('superfoil')) return 'SSP';
+    return null;
+  }
+
   function getCardRarity(card) {
     const t = (card.treatment || '').toLowerCase();
     if (t.includes('kanji'))      return { label: 'Kanjifoil',    tier: 5 };
@@ -3065,10 +3082,16 @@
       : null;
     const weaponVal = (card.element && card.element !== 'NONE') ? card.element : (isSealed ? null : '—');
 
+    // Tick 198 — Discord backlog #7 web parity. Print-run / SSP chip
+    // computed inline (matches iOS Card.printRunLabel + Android
+    // CardFormatEligibility logic). Renders inside the Treatment
+    // stat cell when set, as a small accent capsule.
+    const printRun = printRunLabelFor(card);
+
     const statDefs = [
       { label: 'Card #',    val: card.cardNumber,                 full: false },
       { label: 'Type',      val: card.cardType,                   full: false },
-      !isSealed ? { label: 'Treatment', val: treatmentVal, full: false } : null,
+      !isSealed ? { label: 'Treatment', val: treatmentVal, full: false, extraChip: printRun } : null,
       !isSealed ? { label: 'Weapon',    val: weaponVal,    full: false } : null,
       { label: 'Set',       val: card.set,                        full: false },
       { label: 'Sub-set',   val: card.subSet || (isSealed ? null : '—'), full: false },
@@ -3076,12 +3099,15 @@
       isPlay ? { label: 'Cost', val: card.playCost === 0 ? 'FREE' : `${card.playCost} Hot Dog${card.playCost !== 1 ? 's' : ''}`, full: false } : null,
     ].filter(s => s !== null && s.val !== null && s.val !== undefined);
 
-    let statCells = statDefs.map(s =>
-      `<div class="stat-cell${s.full ? ' full' : ''}">
+    let statCells = statDefs.map(s => {
+      const chip = s.extraChip
+        ? `<span class="print-run-chip print-run-${s.extraChip === 'SSP' ? 'ssp' : 'numbered'}">${escHtml(s.extraChip)}</span>`
+        : '';
+      return `<div class="stat-cell${s.full ? ' full' : ''}">
          <div class="stat-label-sm">${escHtml(s.label)}</div>
-         <div class="stat-val">${escHtml(s.val ?? '—')}</div>
-       </div>`
-    ).join('');
+         <div class="stat-val">${escHtml(s.val ?? '—')}${chip}</div>
+       </div>`;
+    }).join('');
 
     // DBS cell (Plays only) — parity with iOS + Android. Tappable;
     // opens an explainer dialog. Color-tinted by tier matches iOS

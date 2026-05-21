@@ -2876,3 +2876,16 @@ Both flow into a single tick 192 commit. Bump v2.293 / build 555.
 - **Punch-list #7:** ✅ Android · ✅ iOS · ⏳ web. Tick 198 (web) closes the trio.
 - **Version:** v2.295 / build 557 (tandem bump per [[feedback_bump_marketing_and_build_in_tandem]]).
 - **Next:** tick 198 = web (#7 print-run badge on web Card detail modal).
+
+### Tick 198 — 2026-05-21 — Web card detail: print-run / SSP chip (closes #7 trio)
+- **Closes punch-list #7** across all 3 platforms (Android tick 189 + iOS tick 197 + web today). 3rd backlog item to close all 3 platforms.
+- **Implementation:** card-detail modal's Treatment stat-cell now appends a chip when `printRunLabelFor(card)` returns non-null.
+  - New `printRunLabelFor(card)` helper at line ~3022 — same logic as iOS `Card.printRunLabel` / Android `Card.printRunLabel`. HEX→`/5`, GLOW→`/10`, FIRE→`/25`, ICE→`/50` for Inspired Ink; `"Serial"` for other Inspired Ink elements; `"SSP"` for Superfoil; `null` otherwise.
+  - `statDefs` Treatment row gets a new optional `extraChip` field. Render path emits a `<span class="print-run-chip">` after the value when set.
+  - CSS: `.print-run-chip` + `.print-run-numbered` (cyan) / `.print-run-ssp` (orange) using existing `--boba-*` tokens. Matches iOS+Android accent (0.15 fill / 0.45 border).
+- **Verified:** `node -e "new Function(fs.readFileSync('js/app.js'))"` syntax OK.
+- **Punch-list status:**
+  - ✅ across all 3 platforms: #1 (power-range, was already there), #2 (rainbow lens), #5 (DBS), #7 (print-run), partial #8 (Tournament calendar — iOS port still pending).
+  - Still need iOS+web: #3 (glossary tooltips), #4 (format-legality chip).
+  - Still need iOS: #8 Tournament events list.
+- **Next:** tick 199 = Android (cadence 199 % 5 = 4). Pick from truly-pending Android items per tick 196 audit: Decks drag-and-drop, sharedBounds zoom on deck editor, 3-column tablet layout, scan queue review surface, or Public-collection toggle (M7).

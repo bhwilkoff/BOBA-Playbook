@@ -3171,6 +3171,13 @@ const Collection = (() => {
       closeAddSheet();
       renderCollectionView();
       renderProfileView();
+      // Toast confirmation — parity with iOS tick 102 + Android tick 96.
+      // Per-designation label so user sees WHERE the add landed (the
+      // sheet defaults to Personal but the user may have switched).
+      const desigLabel = (DESIGNATIONS.find(d => d.key === card.designation)?.label) || card.designation;
+      if (typeof window.showToast === 'function') {
+        window.showToast(`Added to ${desigLabel}`);
+      }
       // If collection detail is open for this card, refresh it with the new copy
       const addedId = _addCard.bobaId ? String(_addCard.bobaId) : String(_addCard.cardNumber);
       if (_detailNum === addedId) renderCollectionDetail();

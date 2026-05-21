@@ -3487,6 +3487,11 @@
     clearTimeout(showToast._timer);
     showToast._timer = setTimeout(() => t.classList.remove('visible'), 2500);
   }
+  // Expose for sibling modules (collection.js, practice.js). Without
+  // this, `window.showToast` was undefined and the tick-68 +
+  // tick-104 wirings silently fell through to alert(). Tick 103
+  // discovered the missing export.
+  window.showToast = showToast;
   // Escape from selection mode via the keyboard.
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && selectionMode) exitSelectionMode();

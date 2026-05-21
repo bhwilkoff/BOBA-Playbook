@@ -3325,11 +3325,11 @@
     const anchor = e.currentTarget;
     let decks;
     try { decks = await API.deckList(); } catch (err) {
-      alert('Could not load your decks. ' + (err?.message || ''));
+      showToast('Could not load your decks. ' + (err?.message || ''));
       return;
     }
     if (!decks.length) {
-      alert('No saved decks yet. Build one in the Decks tab first.');
+      showToast('No saved decks yet. Build one in the Decks tab first.');
       return;
     }
     showPopoverMenu({
@@ -3345,7 +3345,7 @@
   async function bulkAddToDeck(cards, deck) {
     let existing;
     try { existing = await API.deckLoad(deck.id); } catch (e) {
-      alert('Could not load that deck. ' + (e?.message || '')); return;
+      showToast('Could not load that deck. ' + (e?.message || '')); return;
     }
     const existingIds = new Set(existing.map(r => r.boba_id));
     const merged = existing.map(r => ({ bobaId: r.boba_id, cardType: r.card_type }));
@@ -3367,7 +3367,7 @@
       showToast(`Added ${added} card${added===1?'':'s'} to ${deck.name}${skipped?` · ${skipped} duplicate${skipped===1?'':'s'} skipped`:''}`);
       exitSelectionMode();
     } catch (e) {
-      alert('Could not save deck. ' + (e?.message || ''));
+      showToast('Could not save deck. ' + (e?.message || ''));
     }
   }
   // Reuse the existing toast helper if present, else fall back to alert.

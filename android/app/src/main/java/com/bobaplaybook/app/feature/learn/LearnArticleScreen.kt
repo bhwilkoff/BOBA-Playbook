@@ -124,7 +124,7 @@ fun LearnCategoryScreen(
                 LearnCategoryId.COLLECT    -> FlatSectionsPage(LearnCorpus.collect)
                 LearnCategoryId.WATCH      -> WatchPage()
                 LearnCategoryId.GLOSSARY   -> GlossaryPage()
-                LearnCategoryId.TOURNAMENT -> FlatSectionsPage(LearnCorpus.tournament)
+                LearnCategoryId.TOURNAMENT -> TournamentPage()
             }
         }
     }
@@ -463,6 +463,99 @@ private fun FlatSectionsPage(sections: List<LearnSection>) {
     ) {
         itemsIndexed(items = sections, key = { i, _ -> i }) { _, section ->
             SectionRenderer(section)
+        }
+    }
+}
+
+/**
+ * Tournament page — Discord backlog #8 (tick 191). Renders the
+ * live "Upcoming Events" list from `assets/data/events.json` at
+ * the top, then the static tournament reference content below.
+ */
+@Composable
+private fun TournamentPage() {
+    val context = LocalContext.current
+    val events = remember { EventsLoader.load(context) }
+    val sections = LearnCorpus.tournament
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item("events-head") { BOBASectionHeader(title = "Upcoming events") }
+        if (events.isEmpty()) {
+            item("events-empty") {
+                Text(
+                    text = "No events scheduled yet. Check back as the BoBA team announces dates.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+        } else {
+            items(events, key = { it.id }) { EventRow(it) }
+        }
+        itemsIndexed(items = sections, key = { i, _ -> "section-$i" }) { _, section ->
+            SectionRenderer(section)
+        }
+    }
+}
+
+@Composable
+private fun EventRow(event: EventEntry) {
+    val accent = when (event.kind.lowercase()) {
+        "release"    -> com.bobaplaybook.core.ui.theme.BobaBrand.Cyan
+        "tournament" -> com.bobaplaybook.core.ui.theme.BobaBrand.Orange
+        else         -> com.bobaplaybook.core.ui.theme.BobaBrand.Violet
+    }
+    val dateLabel = event.date?.takeIf { it.isNotBlank() } ?: "Date TBA"
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.45f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = event.kind.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = accent,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "·",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = dateLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = event.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = event.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 18.sp,
+            )
+            event.location?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = "Location: $it",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

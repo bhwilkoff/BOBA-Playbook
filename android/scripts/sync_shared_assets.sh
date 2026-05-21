@@ -34,6 +34,7 @@ mkdir -p "${DEST_ASSETS}" "${DEST_FONTS}"
 SHARED_FILES=(
     "${SRC_DATA}/cards-slim.json     ${DEST_ASSETS}/cards.json"
     "${SRC_DATA}/categories.json     ${DEST_ASSETS}/categories.json"
+    "${SRC_DATA}/events.json         ${DEST_ASSETS}/events.json"
 )
 
 # Fonts — copy AND rename to Android's required snake_case naming.

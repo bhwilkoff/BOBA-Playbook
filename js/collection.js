@@ -1260,7 +1260,6 @@ const Collection = (() => {
     try { localStorage.setItem('bp_collectionSort_v1', value); } catch (_) { /* noop */ }
     renderCollectionView();
   }
-  function getCollectionSort() { return _collectionSort; }
 
   function setTotalsMode(value) {
     if (value !== 'collection' && value !== 'filter') return;
@@ -3537,8 +3536,6 @@ const Collection = (() => {
     setCardLookup:    fn => { _cardLookup    = fn; },
     setBobaIdLookup:  fn => { _bobaIdLookup  = fn; },
     setVariantLookup: fn => { _variantLookup = fn; },
-    setSortOrder:     setCollectionSort,
-    getSortOrder:     getCollectionSort,
   };
 })();
 

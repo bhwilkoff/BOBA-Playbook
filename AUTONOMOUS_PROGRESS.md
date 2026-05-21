@@ -102,6 +102,20 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 18 — 2026-05-20 — Web sealed-product CDN routing bug fix (Collection)
+- **Picked:** Audit triggered by PARITY.md/tick-12 reference to the Android CDN sealed-routing memory + the tick-1 missing-sealed surfacing. Confirmed Find grid + Wall + variant-tile all correctly route via `API.cardThumbUrl`. **Found three Collection-side bugs** where the code called raw `API.thumbUrl(imageFile)` / `API.fullUrl(imageFile)` instead of the sealed-aware `API.cardThumbUrl(card)` / `API.cardFullUrl(card)`.
+- **Real-user impact:** sealed products live at `/sealed/thumbs/` + `/sealed/optimized/` on R2. Any sealed product in a user's Collection (designation = personal/for_sale/for_trade/wanted/grails) would 404 in the Collection grid, the variant-tile picker, AND the collection card-detail view. The user would see a broken-image icon for every sealed box / blaster they own. iOS shipped sealed routing per `feedback_ios_sealed_products` memory; Android shipped via `reference_android_cdn_sealed_routing` (overnight 2026-05-20); web had been silently broken.
+- **Shipped:**
+  - `js/collection.js`:
+    - `buildCollectionCardHtml` (the main collection grid cell) — replaced raw `API.thumbUrl(imageFile)` + `API.fullUrl(imageFile)` with `API.cardThumbUrl(catalogCard)` + `API.cardFullUrl(catalogCard)`. Reads from the resolved `catalogCard` so the `cardType === 'Sealed Product'` check fires. srcset pair updated to match.
+    - Collection card-detail header image (`cdetail-card-img`) — same fix.
+    - Variation tile (`cdetail-var-img` in the "Other Versions" strip) — same fix.
+  - **No new bugs introduced:** the `API.cardThumbUrl(card)` signature takes the FULL card record (needs `imageFile` + `cardType`); the prior code was calling `API.thumbUrl(string)` which takes only the filename. Verified all three rewrites pass the catalog record (`catalogCard` / `card`) not the filename.
+- **Verified:** node -c clean. `grep -rn "API.thumbUrl\|API.fullUrl"` returns zero hits across `js/` — every web image render path now goes through the sealed-aware helpers. `cards.json` confirmed to have `cardType: 'Sealed Product'` on all 45 sealed entries.
+- **PARITY.md:** No row addition — this is a bug fix, not a parity story. But it does close the "Verify sealed-image fix on web + Android" P0 from the original autonomous-loop backlog (Android was confirmed shipped overnight; web is now verified + fixed).
+- **Architectural note:** the cleanest fix would be to inline a `cardType` check directly inside `API.thumbUrl(filename)` + `API.fullUrl(filename)` so any caller is automatically safe. But that would require passing the cardType alongside (or guessing from filename prefix), and the existing `cardThumbUrl(card)` / `cardFullUrl(card)` already exist for exactly this. Better discipline going forward: PR review for any new `API.thumbUrl(` or `API.fullUrl(` raw call.
+- **Next:** Tick 19. Plausible: (a) audit Find grid for the same kind of "rendered without sealed routing" issue (already confirmed clean), (b) public-collection page sealed routing check, (c) Decks editor improvements.
+
 ### Tick 17 — 2026-05-20 — Custom Rainbow editor polish + drift fix
 - **Picked:** With ~500 distinct heroes and ~80 distinct sets in the tick-16 sub-pickers, scrolling to find "Maverick" was painful. Web has the keyboard + a wider canvas — adding a search-within-picker is a natural web-only polish that improves the tick-16 work meaningfully. Also Enter-to-save shortcut + PARITY.md drift fix (Card detail swipe nav web — was n/a but actually shipped).
 - **Shipped:**

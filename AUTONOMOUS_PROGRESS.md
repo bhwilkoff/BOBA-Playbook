@@ -2867,3 +2867,12 @@ Both flow into a single tick 192 commit. Bump v2.293 / build 555.
   - Public collection toggle on Profile (M7 polish)
 - **No code changes this tick.** PARITY.md table 8-row sweep.
 - **Next:** tick 197 = iOS (cadence 197 % 5 = 2). Pick from genuine iOS-pending backlog items (#3 glossary tooltips, #4 format-legality chip, #7 print-run badge).
+
+### Tick 197 — 2026-05-21 — iOS: print-run / SSP chip on card detail (Discord backlog #7, Android tick 189 parity)
+- **Discord §7 ask:** users want at-a-glance SP/SSP/serial scarcity indicator on cards.
+- **iOS port of Android tick 189:**
+  - `Card.swift`: new `printRunLabel: String?` computed property — same logic as Android `:core:domain` version. HEX→`/5`, GLOW→`/10`, FIRE→`/25`, ICE→`/50` for Inspired Ink with documented weapon-tied print runs (DECISIONS.md #028); `"Serial"` for other Inspired Ink elements where print run isn't public; `"SSP"` for Superfoil; `nil` for typical 99% cards.
+  - `CardDetailView.swift`: print-run capsule chip rendered alongside the existing INSPIRED INK violet pill in the athlete row. SSP→orange, numbered→cyan. Same accent pattern as Android (0.15 opacity fill + 0.45 border).
+- **Punch-list #7:** ✅ Android · ✅ iOS · ⏳ web. Tick 198 (web) closes the trio.
+- **Version:** v2.295 / build 557 (tandem bump per [[feedback_bump_marketing_and_build_in_tandem]]).
+- **Next:** tick 198 = web (#7 print-run badge on web Card detail modal).

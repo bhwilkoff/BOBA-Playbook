@@ -3581,6 +3581,24 @@
     });
     gridEl.appendChild(fragment);
 
+    // Wall button — visitor renders the resolved catalog cards
+    // through the shared canvas Wall pipeline (collection.js
+    // openCardsWallSheet). Requires the catalog cards which are
+    // local to this render, so wire HERE not at header-mount time.
+    const wallBtn = document.getElementById('public-collection-wall');
+    if (wallBtn) {
+      const cards = resolved.map(r => r.card).filter(c => c?.imageFile);
+      wallBtn.hidden = cards.length === 0;
+      wallBtn.onclick = () => {
+        if (window.Collection?.openCardsWallSheet) {
+          window.Collection.openCardsWallSheet({
+            title: `@${handle} on BOBA Playbook`,
+            cards,
+          });
+        }
+      };
+    }
+
     // Unauth visitor CTA — gentle "make your own BOBA collection"
     // pitch below the grid. Hidden for signed-in users (they
     // already have BOBA Playbook). Wired once per render so a

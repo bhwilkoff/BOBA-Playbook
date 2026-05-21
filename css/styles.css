@@ -2886,6 +2886,13 @@ dialog.modal-overlay[open] {
   display: flex; flex-direction: column; gap: 2px; min-width: 0;
   flex: 1 1 auto;
 }
+.public-collection-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: center;
+  flex: 0 0 auto;
+}
 .public-collection-share {
   display: inline-flex;
   align-items: center;
@@ -2902,11 +2909,13 @@ dialog.modal-overlay[open] {
   padding: 5px 12px;
   text-transform: uppercase;
   transition: background 0.15s, border-color 0.15s, transform 0.05s;
-  flex: 0 0 auto;
-  align-self: center;
+  white-space: nowrap;
 }
 .public-collection-share:hover { background: rgba(0,245,255,0.16); border-color: rgba(0,245,255,0.6); }
 .public-collection-share:active { transform: translateY(1px); }
+@media (min-width: 640px) {
+  .public-collection-actions { flex-direction: row; }
+}
 #public-collection-title {
   margin: 0;
   color: var(--boba-orange);

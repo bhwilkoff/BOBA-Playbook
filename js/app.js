@@ -117,11 +117,18 @@
   // explainer — card-detail modal DBS stat cells AND the Decks
   // editor DBS budget chip (tick 148, closing the 3-platform parity
   // loop with iOS tick 147 + Android tick 134).
+  //
+  // Tick 188 — Discord backlog #5: if the trigger carries a
+  // data-card-dbs attribute AND the active draft enforces DBS, inject
+  // a contextual block at the top of the dialog showing "this card
+  // costs +N · deck is X/Y · adding brings to (X+N)/Y." Mirrors iOS
+  // DBSInfoSheet.contextBlock + Android DBSInfoSheet header.
   const dbsInfoOverlay = $('dbs-info-overlay');
   document.addEventListener('click', (e) => {
     const trigger = e.target.closest('[data-action="open-dbs-info"]');
     if (trigger) {
       e.preventDefault();
+      maybeInjectDBSContext(trigger);
       dbsInfoOverlay?.showModal();
     }
   });
@@ -132,6 +139,44 @@
       dbsInfoOverlay.close();
     }
   });
+  dbsInfoOverlay?.addEventListener('close', () => {
+    document.getElementById('dbs-info-context')?.remove();
+  });
+
+  function maybeInjectDBSContext(trigger) {
+    // Clear any prior block so successive opens stay accurate.
+    document.getElementById('dbs-info-context')?.remove();
+    const cardDBS = parseInt(trigger.dataset.cardDbs, 10);
+    if (!Number.isFinite(cardDBS)) return;
+    // DB is a top-level const in practice.js (same classic-script
+    // global scope as app.js). When DB isn't loaded yet (rare — page
+    // didn't reach the deck builder), skip the contextual block.
+    if (typeof DB !== 'object' || !DB) return;
+    if (!DB.effectiveEnforceDBS) return;
+    const used      = DB.totalDBS || 0;
+    const budget    = DB.effectiveDBSBudget || 1000;
+    const projected = used + cardDBS;
+    const overCap   = projected > budget;
+    const box = dbsInfoOverlay?.querySelector('.dbs-info-box');
+    if (!box) return;
+    const block = document.createElement('div');
+    block.id = 'dbs-info-context';
+    block.className = 'dbs-info-context' + (overCap ? ' dbs-info-context-over' : '');
+    block.innerHTML = `
+      <div class="dbs-info-context-head">This card costs +${cardDBS} DBS</div>
+      <div class="dbs-info-context-body">Your deck has ${used} / ${budget} DBS used.</div>
+      <div class="dbs-info-context-body">
+        ${overCap
+          ? `Adding it puts you at ${projected} / ${budget} — over budget.`
+          : `Adding it brings you to ${projected} / ${budget}.`}
+      </div>`;
+    // Insert after the close button so the explainer body still owns
+    // its own scroll. The title (#dbs-info-title) is the natural
+    // anchor.
+    const title = box.querySelector('#dbs-info-title');
+    if (title) box.insertBefore(block, title);
+    else box.prepend(block);
+  }
 
   // Index into filteredCards for the currently open modal (-1 = no modal or card not in list)
   let currentModalIndex = -1;
@@ -2998,9 +3043,14 @@
     if (isPlay && card.dbs != null) {
       const tier = (card.dbsTier || '').toLowerCase();
       const tierClass = tier ? `dbs-tier-${tier.replace(/\s+/g, '-')}` : '';
+      // Tick 188 — Discord backlog #5 web parity: emit data-card-dbs so
+      // the click handler can build a contextual block ("this costs +N
+      // DBS; deck is X/Y; adding brings to (X+N)/Y") when the active
+      // draft enforces DBS.
       statCells += `
         <button class="stat-cell stat-cell-dbs ${tierClass}" type="button"
                 data-action="open-dbs-info"
+                data-card-dbs="${escHtml(String(card.dbs))}"
                 aria-label="What is DBS? Open explainer">
           <div class="stat-label-sm">
             DBS <span class="dbs-help" aria-hidden="true">?</span>

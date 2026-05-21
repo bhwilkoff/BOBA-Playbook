@@ -2889,3 +2889,10 @@ Both flow into a single tick 192 commit. Bump v2.293 / build 555.
   - Still need iOS+web: #3 (glossary tooltips), #4 (format-legality chip).
   - Still need iOS: #8 Tournament events list.
 - **Next:** tick 199 = Android (cadence 199 % 5 = 4). Pick from truly-pending Android items per tick 196 audit: Decks drag-and-drop, sharedBounds zoom on deck editor, 3-column tablet layout, scan queue review surface, or Public-collection toggle (M7).
+
+### Tick 199 — 2026-05-21 — Android Profile: hydrate publicCollection + matchAlerts toggles from server
+- **Audit-driven find.** Profile sheet had `var publicCollection by rememberSaveable { mutableStateOf(false) }` and `var matchAlerts by rememberSaveable { mutableStateOf(false) }` at lines 375-376 — both HARDCODED to false with NO LaunchedEffect to hydrate from `profile?.publicCollectionEnabled` / `matchAlertsEnabled`. An account with sharing or alerts enabled would see the switch in the OFF position on profile open. Classic [[feedback_state_from_prop_antipattern]] — exactly the same shape as the prior username-seed bug fixed at line 391.
+- **Fix:** added a `togglesSeededFor` rememberSaveable + LaunchedEffect mirroring the existing username pattern. Seeds both toggles when a fresh server profile arrives; doesn't clobber an in-flight optimistic update mid-tap (key check via `togglesSeededFor != serverName`).
+- **Edge cases handled:** sign-out + sign-in-as-different-user → username changes → re-seed. Optimistic toggle that the server later confirms → re-fire keys but inner condition rejects re-seed (state stays in sync). Server rejection → local state reverts (existing onResult path), LaunchedEffect doesn't undo it because server value didn't change.
+- **PARITY note:** the audit at tick 196 marked `Public collection URL → toggle on Android` as ⏳ M7. The toggle exists; what was broken was the HYDRATION. Bumping it to ✅ Android now that this gap is closed.
+- **Next:** tick 200 = opt (200 % 5 = 0). Verify CI + look for net-removal opportunities.

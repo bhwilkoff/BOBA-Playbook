@@ -372,8 +372,26 @@ private fun SignedInContent(
             vm.captureDiscordIdentity(authState.providerUserId, authState.providerAvatarUrl)
         }
     }
+    // Tick 199 — seeded from server. Prior to this both toggles were
+    // hardcoded `mutableStateOf(false)` with no LaunchedEffect to
+    // hydrate, so an account with sharing/alerts already enabled would
+    // see the switch in the OFF position on profile open. Classic
+    // [[feedback_state_from_prop_antipattern]]. `togglesSeededFor`
+    // matches the username-seed pattern at line 391: avoid clobbering
+    // an in-flight optimistic update from the user.
     var publicCollection by rememberSaveable { mutableStateOf(false) }
     var matchAlerts by rememberSaveable { mutableStateOf(false) }
+    var togglesSeededFor by rememberSaveable { mutableStateOf<String?>(null) }
+    androidx.compose.runtime.LaunchedEffect(profile?.username,
+        profile?.publicCollectionEnabled,
+        profile?.matchAlertsEnabled) {
+        val serverName = profile?.username
+        if (!serverName.isNullOrBlank() && togglesSeededFor != serverName) {
+            publicCollection = profile?.publicCollectionEnabled == true
+            matchAlerts      = profile?.matchAlertsEnabled == true
+            togglesSeededFor = serverName
+        }
+    }
     var deleteConfirmOpen by rememberSaveable { mutableStateOf(false) }
     /// Tick 169 — confirm before signing out. iOS uses .alert, web
     /// uses confirm(). Android was the only platform that signed

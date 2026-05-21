@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 164 — 2026-05-21 — **Android** — Decks empty-state template tap: confirmation Snackbar
+- **Cadence:** 164 % 5 = 4 → Android.
+- **Picked:** `DeckEditorSheet.EmptyDeckCTA` (line 530) is the inline template gallery shown when the draft is empty. Tapping a template fires `decksVm.clear() + rename + cards.forEach add` then... silently returns. The visual flip from empty-state → populated editor IS the signal, but it lacks the "Loaded X" Snackbar confirmation that `TemplateGallerySheet` (tick 136) added to the standalone template picker. A coach who hasn't built decks before — exactly the audience of the empty-state CTA — benefits most from explicit verbal feedback that the tap registered.
+- **Shipped:**
+  - `DeckEditorSheet.kt`:
+    - New `import kotlinx.coroutines.launch` (avoiding the tick-159 CI-failure shape — defensive add upfront).
+    - New `scope = rememberCoroutineScope()` + `appSnackbar = LocalAppSnackbar.current` in `EmptyDeckCTA`.
+    - Tap handler appends `scope.launch { appSnackbar?.showSnackbar("Loaded \"${template.name}\"") }` after the existing `decksVm.add(...)` loop. No destructive-overwrite warning needed (the EmptyDeckCTA only renders when `draft.cards.isEmpty()`).
+- **Verified:** the EmptyDeckCTA's `if (draft.cards.isEmpty())` gate (line 474) guarantees no overwrite case. Same Snackbar copy as `TemplateGallerySheet`'s success branch (tick 136).
+- **PARITY.md:** No row — UX polish.
+- **Next:** tick 165 = opt.
+
 ### Tick 163 — 2026-05-21 — **web** — Profile error paths: 3 blocking alerts → non-blocking toasts
 - **Cadence:** 163 % 5 = 3 → web.
 - **Picked:** WEB-DESIGN.md §1 (native first, no blocking modals for routine errors). Three remaining `alert('Could not …')` call sites in `collection.js` covered routine error paths:

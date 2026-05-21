@@ -649,10 +649,19 @@ v2.067 — codified here).
 - **Web Share API** — `shareTarget({title,text,url})` helper / `window.bobaShareTarget`. `navigator.share` when available, `clipboard.writeText` + "Link copied!" fallback. AbortError silenced.
 - **Profile picture upload** — DECISIONS.md #040.
 
+### Shipped 2026-05-20 (autonomous parity loop)
+
+- **Wall view** (§14.4 / DESIGN.md §8.8) — canvas-rendered share image (1080×1080) of any Collection scope. Per-designation overlay defaults match iOS (For Sale / Trade / Wanted ON · Personal / Grails OFF). Web Share API + clipboard fallback. R2 CORS configured for `crossOrigin='anonymous'` so `toBlob` doesn't taint the canvas. Tick 5.
+- **Price Overlay** in Wall view — live re-renders on toggle without image reload via `drawWall({showPrices, source})` closure. Tick 6.
+- **Custom Rainbows** (read-only display) — `fetchCustomRainbows()` + `rainbowCriteriaMatches()` verbatim port of iOS RainbowCriteria. Render shared with auto-rainbows via `_renderRainbowRow`. Tick 7.
+- **Per-hero Auto Rainbows** — synthesized one-row-per-owned-hero × catalog, sorted by completion % desc. Tick 8.
+- **Decks "Generate deck wall"** — `db-wall-btn` in deck-builder toolbar reuses the canvas Wall pipeline via a deck-context branch on `openWallSheet` (catalog Cards directly, no user-card-row resolution, price overlay disabled). Tick 9. **Also fixed** `window.Collection` exposure — classic-script `const` at top level doesn't auto-promote to the global object, which made `window.Collection.quickAdd` in app.js silently broken too.
+- **Find multi-select → "Wall these N cards"** — closes the §8.8 wall trio. New `multiselect-wall` action in the bulk-select toolbar calls the same shared `openCardsWallSheet({ title, cards })`. Selection mode stays active so the user can continue without re-selecting. Tick 10.
+- **Card-style deck-template gallery** (§14.3 empty-state — parity with iOS DeckBuilderView.TemplateCard) — 44×60 monogram tile with per-archetype accent color (STEEL / ICE / CYAN / GLOW / BRAWL) + name + description + format pill + chevron. Replaces the prior row of plain text buttons. Click handler accepts both the new `.db-template-card` and legacy `.db-template-btn` selectors so cached pages don't break. Tick 11.
+
 ### P2 (when a feature requires it)
 
 - **Decks side-by-side desktop layout** (§14.3) — refactor when Decks gets touched substantively.
-- **Collection Wall display mode** (§14.4) — parity with iOS §8.8.
 
 ### Deferred (see §17)
 

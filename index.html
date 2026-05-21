@@ -1943,7 +1943,16 @@
               <button class="db-btab" data-btype="hotdog">Hot Dogs</button>
               <button class="db-quick-add-toggle" id="db-quick-add-toggle" title="Quick-add mode: click cards to add instantly without preview">Quick-Add</button>
             </div>
-            <input type="search" class="db-search" id="db-search" placeholder="Search cards..." aria-label="Search cards">
+            <div class="db-search-wrap">
+              <input type="search" class="db-search" id="db-search" placeholder="Search cards…" aria-label="Search cards" autocomplete="off" autocorrect="off" spellcheck="false">
+              <button type="button" class="db-search-clear" id="db-search-clear"
+                      aria-label="Clear card-browser search" hidden>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 6 6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
             <div class="db-grid" id="db-card-grid" role="list" aria-label="Available cards"></div>
           </div>
           <!-- Deck List -->

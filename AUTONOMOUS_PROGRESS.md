@@ -102,7 +102,14 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 45 — 2026-05-20 — Decks sign-out: also close Manage Decks panel + clear search
+- **Picked:** Audit follow-up to tick 44. Tick 44 cleared DB + DB_savedId on sign-out but left the **Manage Decks panel visible** with user A's deck list (now stale + auth-blocked) AND the saved-decks search input retaining A's typed query.
+- **Shipped:** extended the tick-44 auth-change listener to also `hidden = true` the `#db-saved-decks-panel` and clear `#db-saved-decks-search`'s value on sign-out. Both elements are static markup in index.html (not torn down on sign-out) so they need explicit reset.
+- **Verified:** node -c clean. Trace: user A signs in → opens Manage Decks → types "lockdown" in search → signs out → panel hides + search clears. User B signs in → opens Manage Decks → starts from clean state.
+- **PARITY.md:** No row.
+
 ### Tick 44 — 2026-05-20 — Decks sign-out: clear DB draft + DB_savedId
+- See commit 16d15e7. Real bug — practice.js had no auth-change listener, so user A's in-memory deck draft (heroes/plays/bonus/hot dogs/deckName) AND DB_savedId pointer lingered into user B's session in the same browser tab. Now: auth-change listener wipes DB + DB_savedId + format + re-renders empty draft on sign-out. Sign-in path is intentionally a no-op. Matches Collection.clear() per `feedback_viewmodel_reset_on_auth_change`.
 - **Picked:** Real bug found while auditing `resetFilters` (false-positive there — `setElementFilter('')` tail-calls applyFilters, so Find Clear-all is fine; comment added so future-Claude doesn't re-flag). Found a real one in practice.js: the deck-builder had **no `auth-change` listener at all**. When user A signed out, their in-memory deck draft (heroes / plays / bonus / hot dogs / deck name) AND `DB_savedId` (the Supabase row pointer for A's loaded saved deck) lingered into user B's session.
 - **Real-user impact:** if user B signed in on the same browser tab and tried to Save, the save would attempt to overwrite user A's saved row. RLS would block, so no data leak — but the user would get a confusing failure, AND if user B had Discord OAuth'd into B's own row (same email path), the pointer could point at A's deck id with B's RLS pass-through. Worst case: confusion. Best case: silently broken Save flow.
 - **Shipped:**

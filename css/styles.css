@@ -7078,6 +7078,7 @@ dialog.modal-overlay[open] {
 
 .db-stats {
   display: flex;
+  align-items: center;  /* tick 148: DBS chip is now a <button>; keep its height aligned with sibling <span> chips */
   gap: 1rem;
   padding: 0.5rem 1.25rem;
   background: rgba(255,255,255,0.03);
@@ -10112,9 +10113,17 @@ body.practice-active:not(.practice-rotate-dismissed) .practice-rotate-hint {
 
 .db-stat-dbs {
   background: rgba(255, 77, 0, 0.08);
-  border-color: rgba(255, 77, 0, 0.35);
+  border: 1px solid rgba(255, 77, 0, 0.35);
   color: var(--boba-orange);
+  /* Element changed from <span> to <button> in tick 148 so taps
+     open the DBS explainer (parity with iOS + Android). Neutralize
+     UA button chrome — keep visuals identical to the prior span. */
+  font: inherit;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
 }
+.db-stat-dbs:hover { background: rgba(255, 77, 0, 0.14); }
 .db-stat-dbs.over {
   background: rgba(217, 48, 32, 0.12);
   border-color: rgba(217, 48, 32, 0.5);

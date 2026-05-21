@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -352,10 +353,10 @@ private fun CardDetailBody(
         PricingPanels(state = state, onRefresh = onRefreshPricing)
 
         // Decks with this card — iOS CollectionCardDetailView parity.
-        // Surfaces when the user has saved decks that include this
-        // card. v1 renders read-only; tap-through to load is a future
-        // iteration (the deck-load flow already exists via Saved decks
-        // sheet but a direct tap is nice-to-have polish).
+        // Tap a row → loadSaved swaps the current draft to the saved
+        // deck. Snackbar confirms (the load triggers a Flow update that
+        // re-renders all Decks surfaces, but a confirmation toast
+        // anchors the cause-and-effect for the user).
         val decksVmHere: com.bobaplaybook.app.feature.decks.DecksViewModel =
             androidx.hilt.navigation.compose.hiltViewModel()
         val savedDecksForCard by decksVmHere.savedDecks.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -381,9 +382,13 @@ private fun CardDetailBody(
                         .fillMaxWidth()
                         .clickable {
                             decksVmHere.loadSaved(deck, catalog)
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Loaded \"${deck.name}\" into the Decks editor")
+                            }
                         }
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(deck.name, style = MaterialTheme.typography.titleSmall)
@@ -403,6 +408,14 @@ private fun CardDetailBody(
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
+                    // Trailing chevron — signals the row is tappable
+                    // (without it the row reads as a list display).
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }

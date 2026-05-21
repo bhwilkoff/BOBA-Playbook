@@ -2725,3 +2725,16 @@ Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 =
 - **Punch-list #5:** ✅ Android · ✅ iOS · ⏳ web. Closes all 3 platforms next tick if web cooperates.
 - **Version:** v2.292 / build 554 (tandem bump per [[feedback_bump_marketing_and_build_in_tandem]]).
 - **Next:** tick 188 = web (#5 contextual DBS + Learn DBS explainer).
+
+### Tick 188 — 2026-05-21 — Web DBS: contextual injection + Learn explainer (closes #5 trio)
+- **Punch-list #5 closes across all 3 platforms** (Android tick 186, iOS tick 187, web today).
+- **Contextual injection (web):**
+  - Card-detail's DBS button now emits `data-card-dbs="N"`.
+  - `maybeInjectDBSContext(trigger)` (in app.js) reads it, peeks at `DB.effectiveEnforceDBS` + `DB.totalDBS` + `DB.effectiveDBSBudget` (top-level const in practice.js, accessible in same classic-script global scope), and injects a `<div id="dbs-info-context">` before the dialog's title. Removed on `close` event.
+  - Over-budget treatment: red surface + red stroke + red projected-total line. Mirrors iOS+Android's errorContainer styling.
+- **Learn → Rules article on web:** new `<div class="rules-section">` with "Understanding DBS (Deck Balancing System)" article inside `#play-panel-rules`. Same explainer + bullets + chip-pointer tip as Android `rulesAppendix`.
+- **CSS:** `.dbs-info-context` + `.dbs-info-context-over` + heading/body styles using existing `--boba-*` tokens.
+- **Verified:** `node -e "new Function(fs.readFileSync('js/app.js'))"` syntax OK.
+- **Punch-list #5:** ✅ Android · ✅ iOS · ✅ web. **DONE.**
+- **Backlog status:** 2 of 8 items closed across all 3 platforms (#2 + #5). 6 items remain.
+- **Next:** tick 189 = Android (cadence). Pick #4 (format-legality chip) iOS+web parity OR #3 (glossary tooltips) iOS+web parity OR a new punch-list item. #4 is ✅ Android, ⏳ iOS+web → tick 190+ picks up. For tick 189 (Android), pick #7 (print-run / SP / SSP indicator) since #1-5 are all at least partial Android.

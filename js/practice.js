@@ -789,22 +789,38 @@ function dbRenderDeckList() {
 // frequency analysis of community top-tier decks under the post-patch
 // DBS budget. Old keys (fire-aggro / ice-control / etc.) are gone.
 const DB_TEMPLATES = [
-  { id: 'lockdown', key: 'lockdown-locker', name: 'Lockdown Locker', desc: 'Steel-anchored disruption — high-DBS lockouts close out mid-game.' },
-  { id: 'frozen',   key: 'frozen-tempo',    name: 'Frozen Tempo',    desc: 'Ice synergy + Substitution control + economy denial.' },
-  { id: 'draw',     key: 'draw-and-adapt',  name: 'Draw and Adapt',  desc: 'Engine-first. Maximum draw and situational answers.' },
-  { id: 'glow',     key: 'glow-sacrifice',  name: 'Glow Sacrifice',  desc: 'Spec format: discard-fuel + Glow synergy.' },
-  { id: 'brawl',    key: 'brawl-beatdown',  name: 'Brawl Beatdown',  desc: 'Aggro tempo. Win the first 3–4 battles.' },
+  // accent = matches the per-archetype color in iOS TemplateCard.accentColor
+  { id: 'lockdown', key: 'lockdown-locker', name: 'Lockdown Locker', desc: 'Steel-anchored disruption — high-DBS lockouts close out mid-game.', accent: 'STEEL' },
+  { id: 'frozen',   key: 'frozen-tempo',    name: 'Frozen Tempo',    desc: 'Ice synergy + Substitution control + economy denial.',           accent: 'ICE' },
+  { id: 'draw',     key: 'draw-and-adapt',  name: 'Draw and Adapt',  desc: 'Engine-first. Maximum draw and situational answers.',           accent: 'CYAN' },
+  { id: 'glow',     key: 'glow-sacrifice',  name: 'Glow Sacrifice',  desc: 'Spec format: discard-fuel + Glow synergy.',                     accent: 'GLOW' },
+  { id: 'brawl',    key: 'brawl-beatdown',  name: 'Brawl Beatdown',  desc: 'Aggro tempo. Win the first 3–4 battles.',                       accent: 'BRAWL' },
 ];
 
 // Fetched once at initDeckBuilder time; keyed by template key
 let dbTemplateData = null;
 
+/// Card-style template gallery — parity with iOS DeckBuilderView's
+/// TemplateCard (DESIGN.md §8.3 empty-state). Monogram tile colored
+/// by archetype + name + description + chevron. Replaces the prior
+/// row of plain text buttons.
 function dbRenderTemplates() {
   const el = $('db-templates');
   if (!el) return;
-  el.innerHTML = DB_TEMPLATES.map(t =>
-    `<button class="db-template-btn" data-template="${t.id}" title="${t.desc}">${t.name}</button>`
-  ).join('');
+  el.innerHTML = DB_TEMPLATES.map(t => {
+    const initial = (t.name[0] || '?').toUpperCase();
+    return `<button class="db-template-card" data-template="${t.id}" data-accent="${t.accent}" title="${t.desc}" type="button" aria-label="Load ${t.name} template">
+      <span class="db-template-mono" aria-hidden="true">${initial}</span>
+      <span class="db-template-text">
+        <span class="db-template-name">${t.name}</span>
+        <span class="db-template-desc">${t.desc}</span>
+        <span class="db-template-format">PLAYMAKER</span>
+      </span>
+      <svg class="db-template-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+    </button>`;
+  }).join('');
 }
 
 function dbRender(allCards) {
@@ -932,7 +948,7 @@ function initDeckBuilder(allCards) {
 
   // Templates — load from pre-computed template-decks.json
   $('db-templates')?.addEventListener('click', e => {
-    const btn = e.target.closest('.db-template-btn');
+    const btn = e.target.closest('.db-template-card, .db-template-btn');
     if (!btn) return;
     const meta = DB_TEMPLATES.find(t => t.id === btn.dataset.template);
     if (!meta) return;

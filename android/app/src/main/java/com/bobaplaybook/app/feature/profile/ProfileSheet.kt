@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 
 package com.bobaplaybook.app.feature.profile
 
@@ -146,7 +146,7 @@ private fun LoadingState() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        androidx.compose.material3.CircularProgressIndicator()
+        androidx.compose.material3.ContainedLoadingIndicator()
         Text(
             "Loading profile…",
             style = MaterialTheme.typography.bodyMedium,

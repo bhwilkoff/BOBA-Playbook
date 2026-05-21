@@ -2589,3 +2589,15 @@ When each agent returns, its findings populate the backlog above.
 - **Agent C (Discord export JSON inventory):** locates the Claude research dir + parses Discord export JSONs for user-requested features
 
 Status of each: queued / running / complete + findings folded back into Backlog.
+
+### Tick 176 — 2026-05-21 — Android: M3 Expressive wavy progress + fix CI break
+- **CI fix first.** Run 26226352152 failed: tick-167 centroid-aware `rememberTransformableState` had the lambda params in wrong order. Read `foundation-android-1.12.0-alpha02-sources.jar` → confirmed new signature is `(centroid: Offset, zoomChange: Float, panChange: Offset, rotationChange: Float)` — centroid FIRST. Swapped lambda from `{ zoom, pan, _, _ -> ... }` to `{ _, zoom, pan, _ -> ... }`. Wrong-order compiled silently (param names are positional aliases); failed at use sites where `offset += panChange` saw Float instead of Offset.
+- **Android M3 Expressive wavy indicators** (ANDROID-DESIGN.md §6.11) — first adoption pass. Five files:
+  - FindScreen.kt: `LinearProgressIndicator` → `LinearWavyProgressIndicator` (catalog search loading)
+  - WatchPage.kt: `CircularProgressIndicator` → `ContainedLoadingIndicator` (YouTube feed fetch)
+  - PurchaseScreen.kt: `CircularProgressIndicator` → `ContainedLoadingIndicator` (Whatnot breaks + Stores fetch, 2 sites)
+  - CardDetailScreen.kt: `CircularProgressIndicator` → `ContainedLoadingIndicator` (pricing fetch)
+  - ProfileSheet.kt: `CircularProgressIndicator` → `ContainedLoadingIndicator` (sign-in / profile load)
+- **Saved lessons:** [[feedback_compose_transformable_centroid_order]] (centroid order), added #9 to [[feedback_autonomous_loop_failure_modes]].
+- **Verified:** ran the diff carefully; can't compile locally (no JVM on this Mac at /usr/libexec/java_home). CI will validate.
+- **Next:** tick 177 = iOS (177 % 5 = 2).

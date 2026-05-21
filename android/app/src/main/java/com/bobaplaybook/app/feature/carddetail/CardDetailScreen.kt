@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 
 package com.bobaplaybook.app.feature.carddetail
 
@@ -39,7 +39,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -916,12 +917,12 @@ private fun ArtPanel(card: Card) {
     var scale by remember { mutableStateOf(1f) }
     var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
     // Centroid-aware variant — `_` ignores rotation + centroid since
-    // we only react to zoom + pan. The 3-arg overload is deprecated
-    // per the M3 Compose API audit (Android Studio warning, May '26):
-    // the centroid argument lets gestures rotate / zoom around the
-    // pinch focal point. We don't use it (no rotation; pan is the
-    // user's drag delta) but the new signature is the supported one.
-    val transformState = androidx.compose.foundation.gestures.rememberTransformableState { zoomChange, panChange, _, _ ->
+    // we only react to zoom + pan. The 3-arg overload is deprecated;
+    // the new centroid-aware signature takes the lambda in the order
+    // (centroid: Offset, zoomChange: Float, panChange: Offset,
+    // rotationChange: Float) — centroid FIRST, then zoom/pan/rotation.
+    // We discard centroid + rotation; keep zoom + pan.
+    val transformState = androidx.compose.foundation.gestures.rememberTransformableState { _, zoomChange, panChange, _ ->
         scale = (scale * zoomChange).coerceIn(1f, 6f)
         if (scale > 1f) {
             offset += panChange
@@ -989,7 +990,7 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
                 .padding(32.dp),
             contentAlignment = Alignment.Center,
         ) {
-            CircularProgressIndicator()
+            ContainedLoadingIndicator()
         }
         return
     }

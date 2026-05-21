@@ -76,6 +76,26 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 78 — 2026-05-20 — **web** — Collection empty states: brand-voice + productive CTA
+- **Cadence:** 78 % 5 = 3 → web.
+- **Picked:** Per-designation Collection empty states said only "No cards in {Personal/Sale/Trade/Wanted/Grails} yet." with no next-action button. The universal-feature-states skill requires brand-voice copy + a productive next-action — what the user is most likely to want to do RIGHT NOW. Search-empty branch added the same anti-pattern: "No cards match 'xyz'" with no way out other than re-tapping the toolbar's clear-× button.
+- **Shipped:**
+  - `js/collection.js::renderCollectionView` — replaced single `<p class="collection-empty">` with a structured empty-state block:
+    - **Per-designation copy table** (`emptyCopyByDesig`): headlines + bodies tuned to what the user is most likely to do next:
+      - Personal: "No personal cards yet" + "Scan a card or use Quick Add from the Find tab to start your stack."
+      - For Sale: "Nothing for sale yet" + "Mark a card from your Personal stack to start moving it."
+      - For Trade: "Nothing for trade yet" + "Flag a card to find a trading partner once trading launches."
+      - Wanted: "No wanted cards yet" + "Flag the cards you're chasing — start with the ones at the top of your list."
+      - Grails: "No grails yet" + "Mark the cards you'd cross a state line for."
+    - **Productive CTA**: "Browse Find" button (`data-action="go-to-find"`) routes to the Find tab via `window.showView('find')`. Wired in the same render path that wires the existing wall + search-clear handlers.
+    - **Search-empty branch**: distinct copy + a "Clear search" button (`data-action="clear-collection-search"`) that wipes `_collectionSearchText` + re-renders + refocuses the new input.
+  - `css/styles.css::.collection-empty` — restructured to a flex column with brand-display headline (`--font-display`, `var(--boba-text-secondary)`), mono body line (`--font-mono`, muted), and CTA button spacing. Bounds body line at `max-width: 32ch` for readability.
+- **Verified:** `node -c js/collection.js` clean. `window.showView` confirmed at app.js:631 (definition at line 517).
+- **PARITY.md:** No row — UX polish on already-✅ Collection row.
+- **Next:** tick 79 = Android; 80 = opt.
+
+
+
 ### Tick 77 — 2026-05-20 — **iOS** — Find empty-state dynamic body (3-platform parity)
 - **Cadence:** 77 % 5 = 2 → iOS.
 - **Picked:** iOS Find emptyState rendered a static "No cards match your search" with no indication WHICH filter was producing zero results. Web tick 29 + Android tick 74 both shipped a dynamic line that names the active filters. Three-platform parity gap.

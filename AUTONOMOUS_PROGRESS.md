@@ -102,6 +102,21 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 17 — 2026-05-20 — Custom Rainbow editor polish + drift fix
+- **Picked:** With ~500 distinct heroes and ~80 distinct sets in the tick-16 sub-pickers, scrolling to find "Maverick" was painful. Web has the keyboard + a wider canvas — adding a search-within-picker is a natural web-only polish that improves the tick-16 work meaningfully. Also Enter-to-save shortcut + PARITY.md drift fix (Card detail swipe nav web — was n/a but actually shipped).
+- **Shipped:**
+  - `js/collection.js`:
+    - `_renderFilterDim` now emits a `<input type="search" class="rainbow-filter-search">` at the top of any picker with ≥20 options. Per-picker input handler hides non-matching `.rainbow-filter-option` labels via `style.display = 'none'`. Hiding (vs re-rendering) preserves the checked state of items the user has already toggled.
+    - Option labels carry a `data-search="<lowercased value>"` attribute for the substring match — case-insensitive, single-comparison.
+    - Editor dialog `keydown` handler: Enter in the name field saves; Cmd/Ctrl+Enter anywhere in the dialog saves (matches iOS DESIGN.md §7 keyboard-shortcut affordance). ESC is handled natively by `<dialog>`.
+  - `css/styles.css`: split `.rainbow-filter-body` into `.rainbow-filter-search` (sticky-ish search input) + `.rainbow-filter-options` (the existing 150px-min grid moved inside) so the search input sits above the scrolling grid.
+  - `index.html`: no markup change — the search input is generated in JS so it's only present where it's useful.
+- **Drift fix (PARITY.md):** Card detail swipe nav (left/right) was marked `n/a (no nav)` for web but web has had it since the modal was built — `ArrowLeft/Right` keys + touch-swipe (>60px horizontal threshold + dx > 1.5×dy) wired to `navigateModal(±1)` in app.js. Corrected to ✅ with audit note.
+- **Verified:** node -c clean. UX trace: open editor → Heroes section shows ~500 entries with search → type "Maver" → only Maverick visible → check → search wiped → re-open Heroes → all heroes visible, Maverick still checked. Enter from anywhere in dialog → Save fires.
+- **PARITY.md:** Card detail swipe nav web `n/a` → ✅.
+- **Architectural note:** the search input is conditional (`values.length >= 20`) so it doesn't dead-chrome the smaller pickers (Weapons = 9, Card types = ~5). The threshold can be tuned but 20 is the natural inflection where scroll-fatigue starts.
+- **Next:** Tick 18. Plausible: (a) Find — multi-select-clear-all keyboard shortcut OR Esc-to-clear (web has Escape→exitSelection per app.js line 3273; verify), (b) Audit Sealed product handling on web for the missing-sealed surfacing from tick 1 (visibility check), (c) Polish for Decks card-detail flow (cross-deck warnings, format compatibility hints).
+
 ### Tick 16 — 2026-05-20 — Custom Rainbow editor sub-pickers + live preview
 - **Picked:** Second slice of the custom-rainbow editor — adds the seven filter dimensions (heroes / sets / sub-sets / weapons / treatments / cardTypes / releases) + Inspired Ink toggle + live "N matches · X owned (Y%)" progress preview. Closes the iOS CustomRainbowEditorSheet parity gap in one extra tick (tick 15 + tick 16 vs the planned 3-tick split).
 - **Shipped:**

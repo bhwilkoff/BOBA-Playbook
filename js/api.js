@@ -283,6 +283,57 @@ const API = (() => {
     }));
   }
 
+  /// Insert a new custom rainbow. Returns the created row (id +
+  /// timestamps) so the caller can splice it into the local list
+  /// without a refetch. Mirrors iOS `SupabaseClient.createCustomRainbow`.
+  async function createCustomRainbow(name, criteria) {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) throw new Error('Name cannot be empty');
+    const { data: { user } } = await supa().auth.getUser();
+    if (!user) throw new Error('Not signed in');
+    const { data, error } = await supa()
+      .from('user_custom_rainbows')
+      .insert({ user_id: user.id, name: trimmed, criteria: criteria || {} })
+      .select('id, user_id, name, criteria, created_at, updated_at')
+      .single();
+    if (error) throw new Error(error.message);
+    return {
+      id: data.id,
+      name: data.name,
+      criteria: data.criteria || {},
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+  }
+
+  /// Patch an existing rainbow's name and/or criteria. The RLS
+  /// policy scopes the update to own-row by default. Mirrors iOS
+  /// `SupabaseClient.updateCustomRainbow`.
+  async function updateCustomRainbow(id, { name, criteria }) {
+    const patch = {};
+    if (typeof name === 'string') {
+      const trimmed = name.trim();
+      if (!trimmed) throw new Error('Name cannot be empty');
+      patch.name = trimmed;
+    }
+    if (criteria !== undefined) patch.criteria = criteria || {};
+    patch.updated_at = new Date().toISOString();
+    const { error } = await supa()
+      .from('user_custom_rainbows')
+      .update(patch)
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  /// Hard-delete a custom rainbow. RLS gates by own-row.
+  async function deleteCustomRainbow(id) {
+    const { error } = await supa()
+      .from('user_custom_rainbows')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
   /// Match a Card against a RainbowCriteria object. Mirrors iOS
   /// RainbowCriteria.matches verbatim — each non-empty dimension's
   /// values OR-combine, dimensions AND-combine.
@@ -872,6 +923,9 @@ const API = (() => {
     cardFullUrl,
     cardImageSrcset,
     fetchCustomRainbows,
+    createCustomRainbow,
+    updateCustomRainbow,
+    deleteCustomRainbow,
     rainbowCriteriaMatches,
     rainbowCriteriaSummary,
     loadCards,

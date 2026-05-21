@@ -3939,15 +3939,125 @@ dialog.modal-overlay[open] {
   padding-top: 1rem;
   border-top: 1px solid var(--boba-border);
 }
+.custom-rainbows-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+}
 .custom-rainbows-heading {
   font-family: var(--font-display);
   font-size: 1.1rem;
   color: var(--boba-text);
-  margin: 0 0 0.75rem;
+  margin: 0;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
+.custom-rainbow-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0,245,255,0.08);
+  border: 1px solid rgba(0,245,255,0.35);
+  border-radius: 999px;
+  color: #00F5FF;
+  font-family: var(--font-mono, 'Chakra Petch', monospace);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 4px 10px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+}
+.custom-rainbow-new-btn:hover { background: rgba(0,245,255,0.16); border-color: rgba(0,245,255,0.6); }
+.custom-rainbow-new-btn:active { transform: translateY(1px); }
+.custom-rainbows-empty {
+  font-family: var(--font-mono, 'Chakra Petch', monospace);
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.02);
+  border: 1px dashed rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 14px 16px;
+  text-align: center;
+}
 .custom-rainbows-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.rainbow-edit-btn {
+  background: transparent;
+  border: 1px solid rgba(0,245,255,0.25);
+  border-radius: 4px;
+  color: rgba(0,245,255,0.75);
+  cursor: pointer;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  margin-left: 6px;
+  padding: 2px 6px;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  line-height: 1;
+}
+.rainbow-edit-btn:hover { color: #00F5FF; border-color: rgba(0,245,255,0.55); background: rgba(0,245,255,0.08); }
+
+/* Custom Rainbow editor <dialog> — name input + save/delete first
+   slice. Sub-pickers + progress preview land in later ticks. */
+.custom-rainbow-editor-box {
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.custom-rainbow-editor-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  margin: 0 0 0.25rem;
+  color: var(--boba-text);
+  letter-spacing: 0.04em;
+}
+.custom-rainbow-editor-label {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.65);
+  text-transform: uppercase;
+}
+.custom-rainbow-editor-input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: var(--boba-text);
+  font-family: var(--font-mono, 'Chakra Petch', monospace);
+  font-size: 0.95rem;
+  padding: 9px 12px;
+}
+.custom-rainbow-editor-input:focus {
+  outline: none;
+  border-color: rgba(0,245,255,0.5);
+  background: rgba(0,245,255,0.05);
+}
+.custom-rainbow-editor-hint {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.5);
+  margin: 0;
+  line-height: 1.4;
+}
+.custom-rainbow-editor-error {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  color: #ff6b55;
+  background: rgba(192,57,43,0.12);
+  border: 1px solid rgba(192,57,43,0.35);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.custom-rainbow-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
 .rainbow-row {
   background: var(--boba-surface);
   border: 1px solid var(--boba-border);

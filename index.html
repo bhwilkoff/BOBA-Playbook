@@ -2421,6 +2421,40 @@
     </div>
   </dialog>
 
+  <!-- CUSTOM RAINBOW EDITOR — native <dialog>. Create + edit form
+       for a user-defined rainbow. Tick 15 (first slice): name field
+       + save/delete; sub-pickers for catalog filter dimensions land
+       in later ticks. Parity with iOS CustomRainbowEditorSheet. -->
+  <dialog class="modal-overlay" id="custom-rainbow-editor"
+          aria-labelledby="custom-rainbow-editor-title">
+    <form method="dialog" class="auth-modal-box custom-rainbow-editor-box">
+      <button type="button" class="modal-close" data-action="close-rainbow-editor"
+              aria-label="Close rainbow editor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+      <h2 id="custom-rainbow-editor-title" class="custom-rainbow-editor-title">New Rainbow</h2>
+      <label class="custom-rainbow-editor-label" for="custom-rainbow-editor-name">Name</label>
+      <input type="text" id="custom-rainbow-editor-name"
+             class="custom-rainbow-editor-input"
+             placeholder="e.g. Cupid Griffey Chase, Glow Hunt…"
+             maxlength="60" required />
+      <p class="custom-rainbow-editor-hint" id="custom-rainbow-editor-hint">
+        Filters land in a later release. For now, create a named rainbow as a checklist anchor — open it from the Collection tab to mark cards as you go.
+      </p>
+      <div class="custom-rainbow-editor-error" id="custom-rainbow-editor-error" hidden></div>
+      <div class="custom-rainbow-editor-actions">
+        <button type="button" class="btn-ghost-sm" id="custom-rainbow-editor-delete" hidden>
+          Delete
+        </button>
+        <span style="flex:1"></span>
+        <button type="button" class="btn-ghost-sm" id="custom-rainbow-editor-cancel">Cancel</button>
+        <button type="button" class="btn-primary" id="custom-rainbow-editor-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- DBS EXPLAINER — native <dialog>. Tapped from the DBS stat cell
        on Play cards. Parity with iOS DBSInfoSheet (Card detail). -->
   <dialog class="modal-overlay" id="dbs-info-overlay"

@@ -14,7 +14,6 @@
     <!-- Find tab -->
     <string name="find_search_placeholder">Search 17,974 cards</string>
     <string name="find_no_results_title">No matches</string>
-    <string name="find_no_results_body">Try a different search, or remove a filter.</string>
 
     <!-- Generic actions -->
     <string name="action_back">Back</string>

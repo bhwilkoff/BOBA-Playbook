@@ -3114,10 +3114,12 @@
   function initMultiselectToolbar() {
     const addColl = document.getElementById('multiselect-add-collection');
     const addDeck = document.getElementById('multiselect-add-deck');
+    const wall    = document.getElementById('multiselect-wall');
     const clear   = document.getElementById('multiselect-clear');
     const toggle  = document.getElementById('multiselect-toggle');
     addColl?.addEventListener('click', openDesignationMenu);
     addDeck?.addEventListener('click', openDeckPicker);
+    wall?.addEventListener('click', openWallFromSelection);
     clear?.addEventListener('click', exitSelectionMode);
     // Explicit "Select" pill — for users who don't discover the
     // shift-click / drag-marquee / long-press gestures.
@@ -3179,6 +3181,21 @@
     showToast(`Added ${added} card${added===1?'':'s'} to ${designation.replace('_',' ')}${failed?` · ${failed} failed`:''}`);
     exitSelectionMode();
   }
+  /// Wall the currently-selected catalog cards. No auth required —
+  /// rendering doesn't write anywhere. Title defaults to count.
+  function openWallFromSelection() {
+    const cards = getSelectedCardObjects();
+    if (!cards.length) return;
+    if (!window.Collection?.openCardsWallSheet) return;
+    window.Collection.openCardsWallSheet({
+      title: `${cards.length} card${cards.length === 1 ? '' : 's'}`,
+      cards,
+    });
+    // Don't exit selection mode — the user might want to download
+    // the wall AND continue selecting / adding to collection. They
+    // can hit Clear when done.
+  }
+
   async function openDeckPicker(e) {
     if (!Auth.isAuthenticated()) {
       Auth.open();

@@ -2907,3 +2907,13 @@ Both flow into a single tick 192 commit. Bump v2.293 / build 555.
 - **Cadence rule:** opt tick should net-remove. ✓ -44.
 - **Status snapshot:** 4 of 8 Discord-backlog items fully shipped across all 3 platforms (#1 power-range, #2 rainbow lens, #5 DBS, #7 print-run). #3 (glossary tooltips), #4 (format-legality chip) need iOS+web. #6 (Wanted-list public sharing) and #8 (events calendar — needs iOS port) remain.
 - **Next:** tick 201 = Android. Look at remaining Android backlog or fresh Discord-mining pass.
+
+### Tick 201 — 2026-05-21 — Android Shows: real fetch + render (was a 59-line stub)
+- **Tick 196 audit was over-generous.** Marked Android `My Shows` as ✅ but the ShowsListScreen was a 59-line BOBAEmptyState placeholder with no data path. Tick 201 makes the screen actually do its job.
+- **Implementation:**
+  - NEW `:core:data/shows/ShowRepository.kt` (88 lines). Auth-aware StateFlow<List<Show>>; mirrors `DeckRepository` pattern (sessionStatus listener that calls refresh on Authenticated, clears on NotAuthenticated). Reads `shows` table sorted by updated_at descending. Per-show CRUD deferred to M2 polish.
+  - NEW `:app/feature/collection/ShowsViewModel.kt` (40 lines). Hilt-injected, exposes `shows: StateFlow<List<Show>>` + idempotent `refresh()`.
+  - REWROTE `ShowsListScreen.kt` to collect VM state. Empty-state copy refines: "No shows yet. … Use the iOS app or web to create a show; Android creation lands in M2 polish." When `shows.isNotEmpty()`, renders a LazyColumn of `ListItem`s (LiveTv icon + show name + "Updated YYYY-MM-DD").
+- **Verified supabase-kt 3.0.2 API:** `Order.DESCENDING` exists; `select(columns) { order(column = "...", order = Order.DESCENDING) }` is the right shape (SelectRequestBuilder extends PostgrestRequestBuilder which exposes `order(...)`).
+- **PARITY:** keeping ✅ Android (the row functionally shows the user's shows now), but the note will need an honest update — show creation + per-show wall on Android is still M2 polish.
+- **Next:** tick 202 = iOS (cadence). Pick #4 (format-legality chip) or #3 (glossary tooltips) for iOS to keep the cross-platform parity sweep going.

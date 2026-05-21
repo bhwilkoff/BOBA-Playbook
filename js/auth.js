@@ -361,6 +361,11 @@ const Auth = (() => {
       } else if (event === 'SIGNED_OUT') {
         _session = null;
         updateNavUI();
+        // Reset cached role to 'user' so any UI that reads
+        // getCachedRole() after sign-out doesn't see the prior
+        // user's admin/mod role. fetchUserRole with no session
+        // sets _userRole = 'user'.
+        await API.fetchUserRole().catch(() => {});
         document.dispatchEvent(new CustomEvent('auth-change', { detail: { event, session: null } }));
 
       } else if (event === 'INITIAL_SESSION') {

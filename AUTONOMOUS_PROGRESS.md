@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 90 — 2026-05-20 — **OPTIMIZATION TICK (9th 1-in-5)** — drop iOS submitModRequest shims
+- **Cadence:** opt rotation. Web 4 ticks (50/55/70/75). Android 3 (60/75/80). iOS now 3 (65/85/90).
+- **Picked:** Tick 85 left `AuthManager.submitModRequest(reason:)` (3-line shim → `requestRole("moderator", ...)`) AND `SupabaseClient.submitModRequest(reason:)` (15-line REST writer) in place because removing them would touch ModRequestSheet. Trivial caller migration — `ModRequestSheet.swift::submitButton` is the only iOS site that called the AuthManager shim.
+- **Shipped:**
+  - `BOBAPlaybook/Views/Profile/ModRequestSheet.swift::submitButton` — replaced `await auth.submitModRequest(reason: ...)` with `await auth.requestRole("moderator", reason: ...)`. Same call shape, same behavior.
+  - `BOBAPlaybook/Networking/AuthManager.swift` — dropped the 3-line `submitModRequest(reason:)` shim. Doc comment on `requestRole` cleaned up too.
+  - `BOBAPlaybook/Networking/SupabaseClient.swift` — dropped the 15-line `submitModRequest(reason:)` REST writer (used PATCH to write directly to `user_profiles.mod_request_*` columns — the legacy path bypassed the `request_role` RPC). Doc comment on `requestRole` rewritten to call out the compat shim in the SQL layer (not the old Swift fn).
+- **Verified:** `grep -rn submitModRequest BOBAPlaybook` returns only the new doc comments (legitimate breadcrumbs). `grep -rn \\.submitModRequest` returns zero hits — all method calls cleaned.
+- **Line-count delta:** -19 net lines (counting the new doc-comment additions).
+- **Cumulative across 9 optimization ticks:** -145 lines (50: -26 · 55: -24 · 60: -9 · 65: -6 · 70: -28 · 75: -8 · 80: -2 · 85: -23 · 90: -19).
+- **Next:** tick 91 = Android; 92 = iOS; 93 = web; 94 = Android; 95 = opt.
+
+
+
 ### Tick 89 — 2026-05-20 — **Android** — Decks pool empty: disambiguate search-empty vs filter-empty
 - **Cadence:** 89 % 5 = 4 → Android.
 - **Picked:** `CardPoolGrid` rendered the same "Tweak the search above or use Filters in the Find tab to widen the catalog scope." message for ALL empty-pool causes, whether the user typed a search query or the Find-tab filters constrained the catalog. Users typing in the pool search couldn't see they'd typed too narrowly + had no one-tap clear. Web tick 78 + 83 + 88 established the pattern of disambiguating search-empty from structural-empty with brand-voice copy + productive CTA.

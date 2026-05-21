@@ -102,6 +102,24 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 20 — 2026-05-20 — Per-view browser tab title (WEB-DESIGN.md §4.1)
+- **Picked:** Documented anti-pattern in WEB-DESIGN.md §4.1 ("Pages that aren't pages") — `document.title` was static "BOBA Playbook" across all 10 routable views. Bookmarks, tab switchers, and shared-link previews all showed the same name. Long-standing UX gap; cheap to ship.
+- **Shipped:**
+  - `js/app.js`:
+    - `VIEW_TITLES` constant — single source of truth mapping each routable view name (`search`, `scan`, `rules`, `decks`, `practice`, `stores`, `collection`, `purchase`, `profile`, `public-collection`) to a display title (`Find`, `Scan`, `Learn`, …). Format: `{viewTitle} · BOBA Playbook`.
+    - `applyView(name)` now writes `document.title` from the table after the view-switch. Inside the View Transitions API callback so the title flip aligns with the visual cross-fade.
+    - `openModal(card)` updates `document.title` to `${cardLabel} · BOBA Playbook` when a card detail opens. Restored by `closeModal()` from `VIEW_TITLES[currentView]`.
+    - `renderPublicCollection(handle)` overrides to `@${handle} · BOBA Playbook` so bookmarks of someone's public page read as their handle, not the generic view name.
+- **Verified:** node -c clean. Trace: load page (`?view=collection`) → applyView('collection') → tab title = "Collection · BOBA Playbook". Click card → openModal → "Maverick · BOBA Playbook". ESC → closeModal → "Collection · BOBA Playbook". Navigate to public collection → renderPublicCollection('ben') → "@ben · BOBA Playbook". Back to Find → applyView('search') → "Find · BOBA Playbook".
+- **PARITY.md:** No row change — quality-of-life fix on the web platform; iOS/Android handle this via system nav-bar titles.
+- **Why this matters:**
+  - Multi-tab browsing: users opening Find + Collection + Decks in separate tabs can now tell them apart in the tab switcher and Cmd+Shift+A search.
+  - Bookmarks: pinned `/u/ben` reads as `@ben · BOBA Playbook` instead of `BOBA Playbook` — meaningful for users who share or save URLs.
+  - Browser history: back/forward navigation in the back-history dropdown shows distinct labels per view (Chrome / Edge / Safari all read `document.title` for the history entry label, not `history.state`).
+  - OG: a future `<meta property="og:title">` update would land cleanly here.
+- **Architectural note:** the `VIEW_TITLES` map is the single source for view titles on web. Other call sites that need a view's display title (sidebar, breadcrumb if we ever add one, share-target preview) should read from this map, not hardcode strings.
+- **Next:** Tick 21. Continue picking from PARITY.md gaps + WEB-DESIGN.md polish items. Strong candidates: (a) Open Graph meta tags for `/u/{username}` pages so Discord / Twitter link previews work (would need to be at fetch-time since GitHub Pages is static; could be approximated via `<meta>` swap on render), (b) audit Decks Save flow for empty-deck rejection, (c) audit Find search for off-by-one in suggestion-popover positioning.
+
 ### Tick 19 — 2026-05-20 — Auth-state cache reset + post-tick-18 audit
 - **Picked:** Bring web in line with the `feedback_viewmodel_reset_on_auth_change` discipline shipped on Android. Two scenarios to guard against: (1) signed-in user A signs out → some cached state survives → user B signs in same tab → A's state briefly visible. (2) The window between sign-out and Auth.open() showing a stale rainbow's name in an open editor dialog.
 - **Audit done:** verified `public-collection` page (`buildCardElement` already routes through `API.cardThumbUrl`), Watch tab (wired to `boba-youtube-feed` Worker), Profile public-URL copy (working), Decks card popup (deck cards never sealed, no CDN issue). No more bugs in the same family as tick 18.

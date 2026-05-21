@@ -494,6 +494,22 @@
   /// either directly (no-transition path) or inside a
   /// startViewTransition callback. Pure side-effect; do not call
   /// directly from app code, always go through showView.
+  // Display-titles for each routable view, used both for the
+  // browser-tab `document.title` and for shareable URL previews.
+  // Closes WEB-DESIGN.md §4.1 "Pages that aren't pages" anti-pattern.
+  const VIEW_TITLES = {
+    search:             'Find',
+    scan:               'Scan',
+    rules:              'Learn',
+    decks:              'Decks',
+    practice:           'Practice',
+    stores:             'Find a Store',
+    collection:         'Collection',
+    purchase:           'Purchase',
+    profile:            'Profile',
+    'public-collection': 'Public Collection',
+  };
+
   function applyView(name) {
     currentView = name;
     viewIds.forEach(id => {
@@ -508,6 +524,11 @@
       btn.setAttribute('aria-current', active ? 'page' : 'false');
     });
     closeSidebar();
+    // Update browser tab title so bookmarks + tab switchers reflect
+    // the active view. Card-detail modal updates the title further
+    // (see openModal) — we set the per-view fallback here.
+    const viewTitle = VIEW_TITLES[name];
+    document.title = viewTitle ? `${viewTitle} · BOBA Playbook` : 'BOBA Playbook';
     if (name === 'scan') {
       initScanView();
     } else {
@@ -2090,6 +2111,11 @@
     modalCloseBtn.focus();
     initZoom();
 
+    // Update browser tab title to reflect the open card. Restored
+    // to the view's title in closeModal().
+    const cardLabel = card.name || card.hero || card.cardNumber || 'Card';
+    document.title = `${cardLabel} · BOBA Playbook`;
+
     // Track position in filteredCards for prev/next navigation
     currentModalIndex = index >= 0 ? index : filteredCards.findIndex(c => c.cardNumber === card.cardNumber && c.hero === card.hero);
     modalNavPrev.hidden = currentModalIndex <= 0;
@@ -2610,6 +2636,11 @@
     // Replace URL with the current search/filter state (no card param) so the
     // address bar stays accurate and forward doesn't re-open the closed card.
     history.replaceState({ view: currentView }, '', buildSearchURL());
+    // Restore the view's tab title (set by applyView at the last
+    // navigation). Bookmarks / tab switchers shouldn't keep showing
+    // a stale card name after the modal closes.
+    const viewTitle = VIEW_TITLES[currentView];
+    document.title = viewTitle ? `${viewTitle} · BOBA Playbook` : 'BOBA Playbook';
   }
 
   function buildVersionsSection(card) {
@@ -3433,6 +3464,9 @@
 
     titleEl.textContent = `@${handle}`;
     subtitleEl.textContent = 'Loading…';
+    // Per-handle tab title so a bookmarked /u/ben page reads as
+    // "@ben · BOBA Playbook" not the generic "Public Collection".
+    document.title = `@${handle} · BOBA Playbook`;
     gridEl.innerHTML = '';
     emptyEl.hidden = true;
 

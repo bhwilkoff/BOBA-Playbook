@@ -102,6 +102,15 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 48 — 2026-05-20 — iOS card-detail artPanel sealed-orange drift sync
+- **Picked:** DESIGN.md §8.6: "All three detail structs share these blocks — drift is the bug." Audit found drift. `CardDetailView.artPanel` (Search/Find) had the sealed-product orange gradient handling (line 491): `card.isSealed ? Design.Colors.bobaOrange : Design.Colors.element(card.element)`. `CollectionCardDetailView.artPanel` (line 341) and `BrowserCardDetailSheet.artPanel` (DeckBuilderView.swift:1971) did NOT — they always used the element color, even for sealed products which have no element. Sealed boxes opened from Collection got a muddy transparent gradient instead of the orange brand accent.
+- **Shipped:**
+  - `BOBAPlaybook/Views/Collection/CollectionCardDetailView.swift::artPanel`: synced the sealed-orange branch into the LinearGradient + the drop-shadow color. Comment notes the 2026-05-20 sync per DESIGN.md §8.6.
+  - `BOBAPlaybook/Views/Play/DeckBuilderView.swift::BrowserCardDetailSheet.artPanel`: same sealed-orange branch added. Note acknowledges deck-browser cards are never sealed in practice (the pool excludes sealed) but the check costs nothing and keeps the three artPanel impls aligned. Drift discipline matters as much as the immediate user impact.
+- **Visible user impact:** users opening a Sealed Product card detail from the Collection grid will now see the BoBA-orange brand-accent gradient instead of a muddy transparent gradient. Mild but visible.
+- **Verified:** SourceKit can't run cross-file resolution in CLI without Xcode dev tools; pre-existing diagnostics are SourceKit isolation, not real build errors. The added expression uses only types in scope (Design.Colors.bobaOrange, card.isSealed) which exist in both files.
+- **PARITY.md:** No row — iOS-internal drift fix.
+
 ### Tick 47 — 2026-05-20 — Wall context sub-tags (deck / selection / public) + 1-in-5 optimization directive
 - **Ben directive ack:** "Add in one tick for every five that focuses upon optimization and streamlining instead of just adding more features or introducing bloat." Saved as `feedback_one_in_five_optimization_tick.md`. Going forward, ticks 50 / 55 / 60 / 65 / … are reserved for perf / dead-code removal / simplification / file-size shrinkage — net line-removal expected.
 - **Picked (this tick's feature work):** Refinement of tick 46. The Wall context was binary (`'deck'` or default-Collection). Three different catalog-cards callers all shared the deck-flavored footer copy: Decks Wall (correct), Find multi-select ("your current deck" is wrong — it's not a deck), public-collection page ("your current deck" is doubly wrong — it's someone else's collection).

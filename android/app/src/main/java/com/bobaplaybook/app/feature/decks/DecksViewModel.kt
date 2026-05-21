@@ -53,16 +53,6 @@ class DecksViewModel @Inject constructor(
         store.loadFromSaved(saved, catalog)
 
     /**
-     * Persist the current draft. No-op when signed out — the UI should
-     * route the user to sign-in before calling this.
-     *
-     * Returns true on success so the caller can dismiss the editor.
-     */
-    fun save(onResult: (Boolean) -> Unit) {
-        save(onComplete = { reason: String? -> onResult(reason == null) })
-    }
-
-    /**
      * Save with a richer error result. `null` = success; otherwise a
      * user-facing message explaining why save failed. The blanket
      * "Couldn't save deck. Check connectivity." snackbar was misleading

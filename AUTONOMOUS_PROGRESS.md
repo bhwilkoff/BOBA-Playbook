@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 80 — 2026-05-20 — **OPTIMIZATION TICK (7th 1-in-5)** — Android orphan `onProfileClick` param
+- **Cadence:** opt rotation. Web 4 opt ticks (50/55/70/75). iOS 1 (65). Android 2 (60/75). Bias toward iOS or Android. Picked Android — clean orphan signal.
+- **Shipped:**
+  - `CollectionScreen.kt::CollectionScreen` — dropped `onProfileClick: () -> Unit` param. The comment "unused per feedback_profile_only_on_find; kept for nav signature symmetry" was a weak justification — Profile button is iOS+Android-only on Find tab; CollectionScreen has no use for the callback. -1 line.
+  - `BOBAApp.kt:452` — dropped the matching `onProfileClick = onProfileClick` wiring on the only call site. -1 line.
+- **Verified:** Single call site at BOBAApp.kt:450 (`grep -rn CollectionScreen(`). FindScreen still receives + uses `onProfileClick` (`IconButton(onClick = onProfileClick)` at FindScreen.kt:188) — unchanged. No other Compose callers to break.
+- **Line-count delta:** -2 lines (Android).
+- **Cumulative across 7 optimization ticks:** -103 lines (50: -26 · 55: -24 · 60: -9 · 65: -6 · 70: -28 · 75: -8 · 80: -2).
+- **Next:** tick 81 = Android; 82 = iOS; 83 = web; 84 = Android; 85 = opt.
+
+
+
 ### Tick 79 — 2026-05-20 — **Android** — Collection per-designation empty states (web tick 78 parity)
 - **Cadence:** 79 % 5 = 4 → Android.
 - **Picked:** Android Collection's empty state was generic — every designation rendered "No {designation} cards yet · Scan a card or browse Find to add your first one." Tick 78 just shipped tuned per-designation copy on web; Android lagged. Real cross-platform parity gap on the same surface.

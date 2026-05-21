@@ -59,7 +59,7 @@ class DecksViewModel @Inject constructor(
      * Returns true on success so the caller can dismiss the editor.
      */
     fun save(onResult: (Boolean) -> Unit) {
-        save { reason -> onResult(reason == null) }
+        save(onComplete = { reason: String? -> onResult(reason == null) })
     }
 
     /**

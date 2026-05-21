@@ -76,6 +76,26 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 112 — 2026-05-20 — **iOS** — Decks long-press add: surface no-op reason
+- **Cadence:** 112 % 5 = 2 → iOS.
+- **Picked:** `DecksView::addCardToDeck` (the long-press handler) had a silent no-op path — `guard afterCount > beforeCount else { return }`. When the user long-pressed a card that was already in the deck OR pushed a section over its cap (15 bonus plays, 10 hot dogs), the haptic + banner never fired. User got no feedback that the gesture registered. Same gap Android tick 89 closed for the pool empty state on a different axis (search vs filter); this is the long-press equivalent.
+- **Shipped:**
+  - `DecksView.swift::addCardToDeck`:
+    - The success path is unchanged (medium impact haptic + "Added X" banner).
+    - The no-op path now fires `UINotificationFeedbackGenerator.notificationOccurred(.warning)` haptic + a "X — already in deck" or "X — bonus plays full (15)" banner that explains the cause.
+    - 1.5s auto-clear timer reused — no per-branch timing logic.
+  - New `noAddReasonFor(card:role:)` helper mirrors the silent-skip branches in `DeckBuilderStore.addCard`:
+    - Hero: "already in deck" or "skipped"
+    - Play: "already in deck" / "bonus plays full (15)" / "skipped"
+    - BonusPlay: same as Play
+    - HotDog: "hot dogs full (10)" / "skipped"
+    - Sideboard: "skipped" (no cap)
+- **Verified:** `store.heroes.contains` + `store.plays.contains` + `store.bonusPlays.count` all match the exact predicates in DeckBuilderStore.swift:806-822. Warning haptic distinguishes from the success-add medium-impact haptic so the user feels the difference before reading.
+- **PARITY.md:** No row — UX polish on already-✅ Decks long-press add.
+- **Next:** tick 113 = web; 114 = Android; 115 = opt.
+
+
+
 ### Tick 111 — 2026-05-20 — **Android** — Custom Rainbow row shows owned/total progress (iOS parity)
 - **Cadence:** 111 % 5 = 1 → Android.
 - **Picked:** Android Custom Rainbow rows showed only WHICH filter dimensions were active ("3 heroes · 5 treatments") but NO progress info — user had to tap into each rainbow to learn whether they were 2/30 or 28/30 done. iOS + web Custom Rainbows surface "5 of 30 owned · 17%" inline; Android lagged.

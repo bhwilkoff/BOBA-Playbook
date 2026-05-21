@@ -282,6 +282,11 @@ private fun DecksCompactScreen(
             )
             CardPoolGrid(
                 cards = findState.results,
+                searchQuery = poolQuery,
+                onClearSearch = {
+                    poolQuery = ""
+                    findViewModel.onEvent(com.bobaplaybook.app.feature.find.FindEvent.QueryChanged(""))
+                },
                 onCardClick = onCardClick,
                 onCardLongClick = { card ->
                     deckViewModel.add(card)
@@ -402,14 +407,32 @@ private fun CardPoolGrid(
     onCardClick: (bobaId: String) -> Unit,
     onCardLongClick: (Card) -> Unit,
     modifier: Modifier = Modifier,
+    searchQuery: String = "",
+    onClearSearch: (() -> Unit)? = null,
 ) {
     if (cards.isEmpty()) {
-        BOBAEmptyState(
-            icon = Icons.Default.SearchOff,
-            headline = "No cards match",
-            body = "Tweak the search above or use Filters in the Find tab to widen the catalog scope.",
-            modifier = modifier,
-        )
+        // Disambiguate: search-driven empty vs filter-driven empty.
+        // When the user typed a query we can offer a one-tap Clear;
+        // when no query is active the catalog is being filtered by
+        // Find tab state (which the user can't manipulate from here
+        // without context-switching) so we just point them there.
+        if (searchQuery.isNotBlank()) {
+            BOBAEmptyState(
+                icon = Icons.Default.SearchOff,
+                headline = "No cards match",
+                body = "Nothing in the catalog matches \"$searchQuery\". Try a different term or clear the search.",
+                actionLabel = onClearSearch?.let { "Clear search" },
+                onAction = onClearSearch,
+                modifier = modifier,
+            )
+        } else {
+            BOBAEmptyState(
+                icon = Icons.Default.SearchOff,
+                headline = "No cards in scope",
+                body = "Filters set on the Find tab are constraining the catalog. Open Find → Filters and widen or clear them.",
+                modifier = modifier,
+            )
+        }
         return
     }
     LazyVerticalGrid(

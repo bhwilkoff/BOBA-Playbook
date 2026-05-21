@@ -76,6 +76,22 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 89 — 2026-05-20 — **Android** — Decks pool empty: disambiguate search-empty vs filter-empty
+- **Cadence:** 89 % 5 = 4 → Android.
+- **Picked:** `CardPoolGrid` rendered the same "Tweak the search above or use Filters in the Find tab to widen the catalog scope." message for ALL empty-pool causes, whether the user typed a search query or the Find-tab filters constrained the catalog. Users typing in the pool search couldn't see they'd typed too narrowly + had no one-tap clear. Web tick 78 + 83 + 88 established the pattern of disambiguating search-empty from structural-empty with brand-voice copy + productive CTA.
+- **Shipped:**
+  - `DecksScreen.kt::CardPoolGrid` signature gained `searchQuery: String = ""` + `onClearSearch: (() -> Unit)? = null` (defaults preserve source-compat for the tablet pane caller).
+  - Empty-state branch splits on `searchQuery.isNotBlank()`:
+    - **Search-empty**: headline "No cards match", body quotes the user's query, action button "Clear search" wired to `onClearSearch` callback.
+    - **Filter-empty** (no query but Find filters constraining the catalog): headline "No cards in scope", body "Filters set on the Find tab are constraining the catalog. Open Find → Filters and widen or clear them." No CTA — the Find tab is one tap away in the NavigationBar.
+  - Compact caller passes `searchQuery = poolQuery` + `onClearSearch = { poolQuery = ""; findViewModel.onEvent(FindEvent.QueryChanged("")) }`. The QueryChanged event ensures Find's results state matches, so the pool re-populates on the next recomposition.
+  - Tablet caller unchanged — defaults kick in (no in-pool search field on tablet, so the "filter-empty" branch always fires).
+- **Verified:** All three `CardPoolGrid(` call sites accounted for (compact + tablet only; the third match is the function declaration). `BOBAEmptyState` signature accepts nullable `actionLabel` + `onAction` (signature confirmed earlier).
+- **PARITY.md:** No row — UX polish on already-✅ Decks pool row.
+- **Next:** tick 90 = opt; 91 = Android; 92 = iOS; 93 = web; 94 = Android.
+
+
+
 ### Tick 88 — 2026-05-20 — **web** — Glossary tab + tap-to-copy (3-platform parity)
 - **Cadence:** 88 % 5 = 3 → web.
 - **Picked:** PARITY.md line 72 read "Glossary lookup (inline definitions) | ✅ | ✅ | ✅" but a `grep -rn Glossary` across `index.html` returned zero matches. Web has Rules / Strategy / Browse / Collect / Tournament panels but no Glossary. Real content-parity gap that PARITY.md misstated. Ticks 84 (Android) + 87 (iOS) both shipped tap-to-copy on their Glossary surfaces, so web needed both the surface itself AND the tap-to-copy.

@@ -19,6 +19,11 @@ struct AddToDeckSheet: View {
     @State private var busyDeckId: UUID?
     @State private var isCreatingNew = false
     @State private var errorMessage: String?
+    /// Tick 177 — bobaIds in each saved deck so the row can show an
+    /// "Already in deck" hint (Android parity, tick 174). Lazy-loaded
+    /// in parallel after the deck list lands so the sheet isn't slow
+    /// to first-paint.
+    @State private var deckBobaIds: [UUID: Set<String>] = [:]
 
     var body: some View {
         NavigationStack {
@@ -115,14 +120,22 @@ struct AddToDeckSheet: View {
     // MARK: - Row
 
     private func deckRow(_ deck: SavedDeck) -> some View {
-        Button {
+        let alreadyIn = deckBobaIds[deck.id]?.contains(card.bobaId) == true
+        return Button {
             Task { await add(to: deck) }
         } label: {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(deck.name)
-                        .font(Design.Fonts.display(16))
-                        .foregroundStyle(Design.Colors.textPrimary)
+                    HStack(spacing: Design.Spacing.xs) {
+                        Text(deck.name)
+                            .font(Design.Fonts.display(16))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                        if alreadyIn {
+                            Text("· Already in deck")
+                                .font(Design.Fonts.mono(11))
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                        }
+                    }
                     Text(deck.format.uppercased())
                         .font(Design.Fonts.mono(11))
                         .foregroundStyle(Design.Colors.textMuted)
@@ -130,6 +143,9 @@ struct AddToDeckSheet: View {
                 Spacer()
                 if busyDeckId == deck.id {
                     ProgressView().tint(Design.Colors.bobaCyan)
+                } else if alreadyIn {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Design.Colors.bobaCyan)
                 } else {
                     Image(systemName: "plus.circle")
                         .foregroundStyle(Design.Colors.bobaOrange)
@@ -137,7 +153,14 @@ struct AddToDeckSheet: View {
             }
             .padding(.vertical, Design.Spacing.sm)
             .padding(.horizontal, Design.Spacing.md)
-            .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface))
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.md)
+                    .fill(Design.Colors.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Design.Radius.md)
+                            .stroke(alreadyIn ? Design.Colors.bobaCyan.opacity(0.4) : .clear, lineWidth: 1)
+                    )
+            )
         }
         .buttonStyle(.plain)
         .disabled(busyDeckId != nil || isCreatingNew)
@@ -152,6 +175,23 @@ struct AddToDeckSheet: View {
             decks = try await SupabaseClient.shared.fetchDecks()
         } catch {
             loadError = "Couldn't load decks"
+            return
+        }
+        // Tick 177 — prefetch each deck's bobaIds in parallel so the
+        // "Already in deck" hint renders without blocking the row list.
+        // Typical user has 3–10 saved decks; N+1 is fine at this scale.
+        // Failures per-deck are silent — the hint just doesn't show
+        // for that row.
+        await withTaskGroup(of: (UUID, Set<String>?).self) { group in
+            for deck in decks {
+                group.addTask {
+                    let rows = try? await SupabaseClient.shared.fetchDeckCards(deckId: deck.id)
+                    return (deck.id, rows.map { Set($0.map(\.bobaId)) })
+                }
+            }
+            for await (id, ids) in group {
+                if let ids { deckBobaIds[id] = ids }
+            }
         }
     }
 

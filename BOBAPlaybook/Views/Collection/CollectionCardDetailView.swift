@@ -337,12 +337,18 @@ struct CollectionCardDetailView: View {
     /// across Find / Decks / Collection per user request. Any
     /// difference between the three card-detail surfaces should live
     /// in the body BELOW this panel, never in the panel itself.
-    /// Matches CardDetailView.artPanel.
+    /// Matches CardDetailView.artPanel. Sealed-product gradient uses
+    /// `Design.Colors.bobaOrange` accent instead of the element color
+    /// (sealed products have no element) — without this, sealed
+    /// boxes / blasters in the Collection grid open with a muddy
+    /// transparent gradient. Synced with CardDetailView 2026-05-20
+    /// per DESIGN.md §8.6 "All three detail structs share these
+    /// blocks — drift is the bug."
     private func artPanel(for card: Card) -> some View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Design.Colors.element(card.element).opacity(0.25),
+                    (card.isSealed ? Design.Colors.bobaOrange : Design.Colors.element(card.element)).opacity(0.25),
                     Design.Colors.nearBlack
                 ],
                 startPoint: .top, endPoint: .bottom
@@ -353,7 +359,7 @@ struct CollectionCardDetailView: View {
                 .aspectRatio(5.0/7.0, contentMode: .fit)
                 .frame(height: Design.CardDetailMetrics.imageHeight(for: horizontalSizeClass))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
-                .shadow(color: Design.Colors.element(card.element).opacity(0.4), radius: 16, y: 6)
+                .shadow(color: (card.isSealed ? Design.Colors.bobaOrange : Design.Colors.element(card.element)).opacity(0.4), radius: 16, y: 6)
         }
     }
 

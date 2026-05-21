@@ -1969,10 +1969,14 @@ struct BrowserCardDetailSheet: View {
     /// in the body BELOW this panel, never in the panel itself.
     /// Matches CardDetailView.artPanel.
     private var artPanel: some View {
+        // Sealed-product accent matches CardDetailView 2026-05-20 sync
+        // per DESIGN.md §8.6. Decks browser cards are never sealed in
+        // practice (deck pool excludes sealed) but the check costs
+        // nothing and keeps the three artPanel impls aligned.
         ZStack {
             LinearGradient(
                 colors: [
-                    Design.Colors.element(card.element).opacity(0.25),
+                    (card.isSealed ? Design.Colors.bobaOrange : Design.Colors.element(card.element)).opacity(0.25),
                     Design.Colors.nearBlack
                 ],
                 startPoint: .top, endPoint: .bottom

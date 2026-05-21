@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 131 — 2026-05-20 — **Android** — `/` keyboard shortcut jumps to Find tab (Chromebook polish)
+- **Cadence:** 131 % 5 = 1 → Android.
+- **Picked:** Android has Ctrl+1..5 tab shortcuts (per scratchpad overnight 2026-05-20 commit) but no `/` to jump to search — the canonical "go to search" hardware-keyboard pattern across GitHub, YouTube, Wikipedia, and most Chromebook-friendly web apps. Ben specifically uses Chromebook for testing per DECISIONS.md #047 so this is a real ergonomics polish.
+- **Shipped:**
+  - `BOBAApp.kt::onPreviewKeyEvent` (the existing root-Box keystroke handler):
+    - New branch: `if (!event.isCtrlPressed && event.key == Key.Slash) handleShortcut(1)` — `1` is Find's tab index.
+    - Only fires when the root Box has focus — Compose's focus propagation means a TextField that grabbed the keystroke first will type `/` as normal. No conflict with in-field typing.
+    - Returns the boolean from `handleShortcut(1)` so the propagation chain knows the event was consumed.
+- **Verified:** `Key` + `isCtrlPressed` + `onPreviewKeyEvent` imports already at the top of the file (lines 18-23). `handleShortcut` returns Boolean per the existing Ctrl-N branches.
+- **Auto-focusing the SearchBar deferred** — would require plumbing a focus-request token through FindScreen. The jump-to-tab is the primary value; once on Find, tap-to-focus is one tap.
+- **PARITY.md:** No row — Android-specific hardware-keyboard polish. iOS has Cmd+1..5 but no Cmd+/ equivalent; web doesn't have a `/` shortcut either (browser owns `/` historically as page-find legacy). Could backport to both in a future tick.
+- **Next:** tick 132 = iOS; 133 = web; 134 = Android; 135 = opt.
+
+
+
 ### Tick 130 — 2026-05-20 — **OPTIMIZATION TICK (17th 1-in-5)** — audit-only; no orphans found
 - **Cadence:** opt rotation. Web 5 · iOS 8 · Android 3 across opt ticks (cumulative -182 lines). Bias-toward-Android couldn't find a clean orphan target this pass.
 - **Audited:**

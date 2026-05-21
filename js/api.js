@@ -843,6 +843,23 @@ const API = (() => {
     if (error) throw new Error(error.message);
   }
 
+  /// Rename a saved deck. Updates only the name column; format +
+  /// deck_cards are untouched. Parity with iOS DeckManagementSheet
+  /// rename action (DESIGN.md §8.3) and Android Manage Decks rename
+  /// shipped overnight 2026-05-20.
+  async function deckRename(deckId, newName) {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) throw new Error('Not signed in');
+    const trimmed = String(newName || '').trim();
+    if (!trimmed) throw new Error('Name cannot be empty');
+    const { error } = await supa()
+      .from('decks')
+      .update({ name: trimmed, updated_at: new Date().toISOString() })
+      .eq('id', deckId)
+      .eq('user_id', session.user.id);
+    if (error) throw new Error(error.message);
+  }
+
   /* ----------------------------------------------------------------
      Exports
   ---------------------------------------------------------------- */
@@ -919,6 +936,7 @@ const API = (() => {
     deckList,
     deckLoad,
     deckDelete,
+    deckRename,
     // Public collections
     fetchPublicProfile,
     fetchPublicCollection,

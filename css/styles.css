@@ -6759,8 +6759,30 @@ dialog.modal-overlay[open] {
 .db-saved-deck-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .db-saved-deck-load { font-family: var(--font-mono, monospace); font-size: 0.6rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(255,77,0,0.35); background: rgba(255,77,0,0.08); color: #FF4D00; cursor: pointer; transition: all 0.15s; }
 .db-saved-deck-load:hover { background: rgba(255,77,0,0.15); }
+.db-saved-deck-rename { font-family: var(--font-mono, monospace); font-size: 0.85rem; padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(0,245,255,0.25); background: transparent; color: rgba(0,245,255,0.7); cursor: pointer; transition: all 0.15s; line-height: 1; }
+.db-saved-deck-rename:hover { color: #00F5FF; border-color: rgba(0,245,255,0.5); background: rgba(0,245,255,0.06); }
 .db-saved-deck-delete { font-family: var(--font-mono, monospace); font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.3); cursor: pointer; transition: all 0.15s; }
 .db-saved-deck-delete:hover { color: #ff6b55; border-color: rgba(192,57,43,0.3); }
+
+/* Manage Decks search input — same shape as the Find search field
+   but scoped to the saved-decks panel. */
+.db-saved-decks-search {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.9);
+  font-family: var(--font-mono, 'Chakra Petch', monospace);
+  font-size: 0.75rem;
+  margin: 6px 0 8px;
+  padding: 6px 10px;
+  width: 100%;
+}
+.db-saved-decks-search::placeholder { color: rgba(255,255,255,0.35); }
+.db-saved-decks-search:focus {
+  outline: none;
+  border-color: rgba(0,245,255,0.4);
+  background: rgba(0,245,255,0.04);
+}
 
 .db-section { display: flex; flex-direction: column; gap: 4px; }
 .db-section-title {

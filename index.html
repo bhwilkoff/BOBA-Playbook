@@ -1969,6 +1969,13 @@
                 <div class="db-saved-decks-title">SAVED CUSTOM DECKS</div>
                 <button class="db-saved-decks-close" id="db-saved-decks-close" aria-label="Close saved decks">✕</button>
               </div>
+              <!-- Search input — filters the saved-decks list by name.
+                   Mirrors the iOS DeckManagementSheet `.searchable`
+                   slot + the Android Manage Decks search field shipped
+                   overnight 2026-05-20. -->
+              <input type="search" class="db-saved-decks-search" id="db-saved-decks-search"
+                     placeholder="Search saved decks…" autocomplete="off"
+                     aria-label="Search saved decks" />
               <div class="db-saved-decks-list" id="db-saved-decks-list">
                 <div class="db-saved-decks-empty">Loading…</div>
               </div>

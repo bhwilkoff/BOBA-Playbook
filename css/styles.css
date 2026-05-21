@@ -4460,6 +4460,31 @@ dialog.modal-overlay[open] {
   background: var(--boba-cyan);
   transition: width 0.2s;
 }
+/* Tick 183 — Rainbow lens chips (Discord backlog #2 web parity).
+   Segmented row of All / Owned / Missing inside each rainbow's body. */
+.rainbow-lens {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem 0;
+  flex-wrap: wrap;
+}
+.rainbow-lens-btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--boba-border);
+  background: transparent;
+  color: var(--boba-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.rainbow-lens-btn:hover { color: var(--boba-text); border-color: var(--boba-cyan); }
+.rainbow-lens-btn.active {
+  background: var(--boba-cyan);
+  color: var(--boba-near-black);
+  border-color: var(--boba-cyan);
+}
 .rainbow-thumbs {
   display: flex;
   flex-wrap: wrap;

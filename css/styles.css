@@ -6960,8 +6960,26 @@ dialog.modal-overlay[open] {
   color: rgba(255,255,255,0.4);
   white-space: nowrap;
 }
-.db-stat-legality { color: rgba(255,77,0,0.8); }
-.db-stat-legality.legal { color: #4CAF50; }
+/* Legality chip — matches iOS DeckBuilderView line 441-454.
+   ILLEGAL = BRAWL red (#C0392B) with a 15%-alpha capsule fill.
+   LEGAL = green (#4CAF50) same pattern.
+   "Build your deck" placeholder = muted (no fill). */
+.db-stat-legality {
+  color: #C0392B;
+  background: rgba(192,57,43,0.15);
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+.db-stat-legality.legal {
+  color: #4CAF50;
+  background: rgba(76,175,80,0.15);
+}
+/* Pre-build state: heroes.length === 0, no capsule fill. */
+.db-stat-legality:empty,
+.db-stat-legality[data-state="empty"] {
+  color: rgba(255,255,255,0.4);
+  background: transparent;
+}
 
 .db-layout {
   flex: 1;

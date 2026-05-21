@@ -102,6 +102,15 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 42 — 2026-05-20 — Decks ILLEGAL chip: BRAWL red + capsule (iOS parity)
+- **Picked:** UX gap audit. Web's `.db-stat-legality` for ILLEGAL was BoBA-orange text-only (rgba(255,77,0,0.8)). iOS DeckBuilderView lines 441-454 uses **BRAWL red `#C0392B` with a 15%-alpha capsule fill** for ILLEGAL + green `#4CAF50` capsule for LEGAL. Web's orange ILLEGAL colors collided with the brand's primary-action color (orange = CTA, not danger).
+- **Shipped:**
+  - `css/styles.css::.db-stat-legality`: ILLEGAL → BRAWL red text + 15%-alpha red capsule fill. LEGAL kept its green text + new 15%-alpha green capsule fill. Pre-build "Build your deck" state → muted text, no fill, via `data-state="empty"` selector.
+  - `js/practice.js`: legality update path sets/unsets `data-state="empty"` so the pre-build state distinguishes from ILLEGAL visually.
+- **Verified:** node -c clean. Trace: open Decks → "Build your deck" muted (no fill). Add a hero with wrong format → ILLEGAL red capsule. Fix the deck → LEGAL green capsule.
+- **Why this matters:** the LEGAL/ILLEGAL chip is the most-glanced status on the deck-builder. Wrong color = wrong semantic signal; users with red/green colorblindness used the capsule fill to disambiguate, and orange-text-on-dark was almost invisible against the BoBA-orange background highlights elsewhere.
+- **PARITY.md:** No row — visual polish on already-✅ Decks row.
+
 ### Tick 41 — 2026-05-20 — Find filter badge + empty-state count showcase picks
 - **Picked:** Audit gap. `filters.showcaseId` (WOBA / Basketball / etc. curated subsets) was missing from BOTH the filter-button badge count AND the empty-state body line. A user with WOBA showcase active + zero results saw "0 filters" badge + a generic empty-state message — invisible filter.
 - **Shipped:**

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Row
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bobaplaybook.core.data.rainbows.CustomRainbow
 import com.bobaplaybook.core.data.rainbows.RainbowCriteria
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 
@@ -47,23 +48,30 @@ import com.bobaplaybook.core.ui.components.BOBASectionHeader
  * Releases land in a polish pass when the iOS UX shows what bucket
  * the user reaches for most.
  *
- * On Save: persists to Supabase user_custom_rainbows via
- * CustomRainbowsViewModel.create. Sheet dismisses on success.
+ * Two modes:
+ *  - `existing == null` → create mode. Save → vm.create.
+ *  - `existing != null` → edit mode. State pre-filled. Save →
+ *    vm.update. Title swaps to "Edit". (Tick 61 Android parity with
+ *    web tick 15 + iOS CustomRainbowEditorSheet.)
  */
 @Composable
 fun CustomRainbowEditorSheet(
     onDismiss: () -> Unit,
+    existing: CustomRainbow? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val vm: CustomRainbowsViewModel = hiltViewModel()
     val catalogVm: RainbowCatalogViewModel = hiltViewModel()
     val catalog by catalogVm.cards.collectAsStateWithLifecycle()
 
-    var name by rememberSavedField("")
-    var heroes by rememberSavedSet()
-    var elements by rememberSavedSet()
-    var treatments by rememberSavedSet()
-    var inspiredInkOnly by rememberSavedField(false)
+    // Pre-fill from `existing` on first composition. After that, the
+    // user's edits drive state — re-keying on existing.id ensures
+    // opening the editor for a different rainbow resets correctly.
+    var name by rememberSavedField(existing?.name ?: "", existing?.id)
+    var heroes by rememberSavedSet(existing?.criteria?.heroes?.toSet() ?: emptySet(), existing?.id)
+    var elements by rememberSavedSet(existing?.criteria?.elements?.toSet() ?: emptySet(), existing?.id)
+    var treatments by rememberSavedSet(existing?.criteria?.treatments?.toSet() ?: emptySet(), existing?.id)
+    var inspiredInkOnly by rememberSavedField(existing?.criteria?.inspiredInkOnly ?: false, existing?.id)
 
     // Derive picker options from the live catalog so options stay in
     // sync as the catalog grows.
@@ -79,7 +87,10 @@ fun CustomRainbowEditorSheet(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("New custom rainbow", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                if (existing == null) "New custom rainbow" else "Edit custom rainbow",
+                style = MaterialTheme.typography.headlineSmall,
+            )
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -112,16 +123,17 @@ fun CustomRainbowEditorSheet(
                 OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
                 Button(
                     onClick = {
-                        vm.create(
-                            name = name.trim(),
-                            criteria = RainbowCriteria(
-                                heroes = heroes.toList(),
-                                elements = elements.toList(),
-                                treatments = treatments.toList(),
-                                inspiredInkOnly = inspiredInkOnly,
-                            ),
-                            onResult = { ok -> if (ok) onDismiss() },
+                        val criteria = RainbowCriteria(
+                            heroes = heroes.toList(),
+                            elements = elements.toList(),
+                            treatments = treatments.toList(),
+                            inspiredInkOnly = inspiredInkOnly,
                         )
+                        if (existing == null) {
+                            vm.create(name.trim(), criteria) { ok -> if (ok) onDismiss() }
+                        } else {
+                            vm.update(existing.id, name.trim(), criteria) { ok -> if (ok) onDismiss() }
+                        }
                     },
                     enabled = name.trim().isNotEmpty(),
                     modifier = Modifier.weight(1f),
@@ -156,19 +168,20 @@ private fun <T> Set<T>.toggle(value: T): Set<T> =
     if (value in this) this - value else this + value
 
 @Composable
-private fun rememberSavedField(initial: String): androidx.compose.runtime.MutableState<String> =
-    androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(initial) }
+private fun rememberSavedField(initial: String, reKey: Any? = null): androidx.compose.runtime.MutableState<String> =
+    androidx.compose.runtime.saveable.rememberSaveable(reKey) { androidx.compose.runtime.mutableStateOf(initial) }
 
 @Composable
 @JvmName("rememberSavedFieldBool")
-private fun rememberSavedField(initial: Boolean): androidx.compose.runtime.MutableState<Boolean> =
-    androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(initial) }
+private fun rememberSavedField(initial: Boolean, reKey: Any? = null): androidx.compose.runtime.MutableState<Boolean> =
+    androidx.compose.runtime.saveable.rememberSaveable(reKey) { androidx.compose.runtime.mutableStateOf(initial) }
 
 @Composable
-private fun rememberSavedSet(): androidx.compose.runtime.MutableState<Set<String>> =
+private fun rememberSavedSet(initial: Set<String> = emptySet(), reKey: Any? = null): androidx.compose.runtime.MutableState<Set<String>> =
     androidx.compose.runtime.saveable.rememberSaveable(
+        reKey,
         saver = androidx.compose.runtime.saveable.Saver(
             save = { it.value.toList() },
             restore = { androidx.compose.runtime.mutableStateOf(it.toSet()) },
         ),
-    ) { androidx.compose.runtime.mutableStateOf(emptySet()) }
+    ) { androidx.compose.runtime.mutableStateOf(initial) }

@@ -86,7 +86,7 @@ When shipping any user-facing feature:
 | Deck editor sheet w/ zoom | ✅ | ⏳ desktop pattern | ⏳ M4 polish | iOS shipped; web desktop split deferred; Android editor sheet shipped, `sharedBounds` zoom is polish |
 | Deck stats (counts + cost curve) | ✅ | ✅ | ✅ | Same canonical layout; Android DBS budget chip shipped overnight |
 | Save deck (Supabase `decks` table) | ✅ | ✅ | ✅ | Auth-required write |
-| Manage saved decks | ✅ | ✅ | ✅ | Android shipped: rename + search + PTR |
+| Manage saved decks | ✅ | ✅ | ✅ | Android shipped: rename + search + PTR. Web shipped rename + search tick 13 (`deckRename` API + ✎ icon per row + `db-saved-decks-search` filter). |
 | Rules + Legality push surfaces | ✅ | ✅ | ✅ | Push as destinations (not stacked sheets) |
 | Drag-and-drop add | ✅ iPad only | n/a | ⏳ M4 polish | `dragAndDropSource` + `dragAndDropTarget` |
 | Long-press add on pool | ✅ | n/a | ✅ | Canonical mobile add |

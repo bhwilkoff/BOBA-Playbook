@@ -828,6 +828,36 @@ function dbRender(allCards) {
   dbRenderDeckList();
 }
 
+/// Hide saved-deck rows whose name doesn't substring-match the
+/// search-input value. Case-insensitive. Idempotent — safe to call
+/// after every list render to re-apply the user's active filter.
+function applyDeckSearchFilter() {
+  const input = $('db-saved-decks-search');
+  const list  = $('db-saved-decks-list');
+  if (!list) return;
+  const q = (input?.value || '').trim().toLowerCase();
+  let visibleCount = 0;
+  list.querySelectorAll('.db-saved-deck-row').forEach(row => {
+    const name = (row.dataset.deckName || '').toLowerCase();
+    const matches = !q || name.includes(q);
+    row.style.display = matches ? '' : 'none';
+    if (matches) visibleCount++;
+  });
+  // If the search yielded zero matches, show a transient inline
+  // hint so the empty-list state isn't ambiguous.
+  let hint = list.querySelector('.db-saved-decks-search-empty');
+  if (q && visibleCount === 0) {
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.className = 'db-saved-decks-empty db-saved-decks-search-empty';
+      hint.textContent = 'No saved decks match that name.';
+      list.appendChild(hint);
+    }
+  } else if (hint) {
+    hint.remove();
+  }
+}
+
 function initDeckBuilder(allCards) {
   const view = $('view-decks');
   if (!view) return;
@@ -1145,18 +1175,25 @@ function initDeckBuilder(allCards) {
         return;
       }
       if (list) {
+        const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+          ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c]));
         list.innerHTML = decks.map(d => `
-          <div class="db-saved-deck-row" data-deck-id="${d.id}">
+          <div class="db-saved-deck-row" data-deck-id="${esc(d.id)}" data-deck-name="${esc(d.name)}">
             <div class="db-saved-deck-info">
-              <span class="db-saved-deck-name">${d.name}</span>
-              <span class="db-saved-deck-meta">${(d.format || 'playmaker').toUpperCase()} · ${new Date(d.updated_at).toLocaleDateString()}</span>
+              <span class="db-saved-deck-name">${esc(d.name)}</span>
+              <span class="db-saved-deck-meta">${esc((d.format || 'playmaker').toUpperCase())} · ${esc(new Date(d.updated_at).toLocaleDateString())}</span>
             </div>
             <div class="db-saved-deck-actions">
-              <button class="db-saved-deck-load" data-deck-id="${d.id}" data-deck-name="${d.name}" data-deck-format="${d.format || 'playmaker'}">Load</button>
-              <button class="db-saved-deck-delete" data-deck-id="${d.id}" aria-label="Delete ${d.name}">✕</button>
+              <button class="db-saved-deck-load" data-deck-id="${esc(d.id)}" data-deck-name="${esc(d.name)}" data-deck-format="${esc(d.format || 'playmaker')}">Load</button>
+              <button class="db-saved-deck-rename" data-deck-id="${esc(d.id)}" aria-label="Rename ${esc(d.name)}" title="Rename">✎</button>
+              <button class="db-saved-deck-delete" data-deck-id="${esc(d.id)}" aria-label="Delete ${esc(d.name)}">✕</button>
             </div>
           </div>
         `).join('');
+        // Reset any prior search filter so the freshly-loaded list
+        // shows in full. The input itself keeps focus / value, but
+        // the row-level hide is wiped because we just re-rendered.
+        applyDeckSearchFilter();
       }
     } catch (err) {
       console.error('Deck list failed:', err);
@@ -1164,10 +1201,51 @@ function initDeckBuilder(allCards) {
     }
   });
 
+  // Search filter — hides saved-deck rows whose name doesn't match
+  // the typed query (case-insensitive substring). Doesn't refetch.
+  $('db-saved-decks-search')?.addEventListener('input', applyDeckSearchFilter);
+
   // Load a specific saved deck
   $('db-saved-decks-list')?.addEventListener('click', async e => {
-    const loadBtn = e.target.closest('.db-saved-deck-load');
-    const delBtn  = e.target.closest('.db-saved-deck-delete');
+    const loadBtn    = e.target.closest('.db-saved-deck-load');
+    const delBtn     = e.target.closest('.db-saved-deck-delete');
+    const renameBtn  = e.target.closest('.db-saved-deck-rename');
+
+    if (renameBtn) {
+      const row = renameBtn.closest('.db-saved-deck-row');
+      if (!row) return;
+      const deckId = renameBtn.dataset.deckId;
+      const currentName = row.dataset.deckName || '';
+      const next = prompt('Rename deck', currentName);
+      if (next == null) return;                          // Cancel
+      const trimmed = next.trim();
+      if (!trimmed || trimmed === currentName) return;   // No-op
+      try {
+        await API.deckRename(deckId, trimmed);
+        row.dataset.deckName = trimmed;
+        const nameEl = row.querySelector('.db-saved-deck-name');
+        if (nameEl) nameEl.textContent = trimmed;
+        // Update Load + Delete aria/data so a subsequent load/delete
+        // uses the new name in feedback strings.
+        const loadEl = row.querySelector('.db-saved-deck-load');
+        if (loadEl) loadEl.dataset.deckName = trimmed;
+        const delEl = row.querySelector('.db-saved-deck-delete');
+        if (delEl) delEl.setAttribute('aria-label', `Delete ${trimmed}`);
+        renameBtn.setAttribute('aria-label', `Rename ${trimmed}`);
+        // If this deck is the currently-loaded draft, keep the
+        // builder's editable name field in step too.
+        if (DB_savedId === deckId) {
+          DB.deckName = trimmed;
+          const nameInput = $('db-deck-name');
+          if (nameInput) nameInput.value = trimmed;
+        }
+        applyDeckSearchFilter();
+      } catch (err) {
+        console.error('Deck rename failed:', err);
+        alert(err?.message || 'Could not rename deck.');
+      }
+      return;
+    }
 
     if (loadBtn) {
       const deckId = loadBtn.dataset.deckId;

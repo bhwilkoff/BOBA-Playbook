@@ -36,6 +36,18 @@ enum ShowWallComposer {
     static let canvasWidth:  CGFloat = 1080
     static let canvasHeight: CGFloat = 1512   // 1080 × 7/5
 
+    /// Hard cap on cells rendered onto a single wall. Matches the web
+    /// (tick 43) + Android (tick 64) caps. Above this:
+    ///  - parallel UIImage decode allocates 500+ in-flight bitmaps,
+    ///    risking memory pressure on older devices;
+    ///  - the per-cell area is so small (sub-50pt at 200 cards on a
+    ///    1080-wide canvas already) that further packing produces
+    ///    illegible thumbnails;
+    ///  - JPEG output starts pushing past the social-share 2MB limit.
+    /// Caller is responsible for messaging the user when they pass >
+    /// HARD_CAP. (Cap enforcement here is the safety net.)
+    static let HARD_CAP: Int = 200
+
     /// Produce a UIImage from the cards' CDN thumbnails. Runs on the
     /// main actor because ImageRenderer requires it. Returns nil if
     /// there are no cards to compose.
@@ -48,13 +60,18 @@ enum ShowWallComposer {
         prices: [String: Decimal]
     ) async -> UIImage? {
         guard !cards.isEmpty else { return nil }
+        // Truncate at HARD_CAP. Web / Android show a truncation note
+        // BEFORE rendering; iOS callers should do the same — this
+        // safety-net cap is the second-of-two defenses.
+        let capped: [Card] = cards.count > HARD_CAP ? Array(cards.prefix(HARD_CAP)) : cards
+        let cappedHits: [Bool] = bigHits.count > HARD_CAP ? Array(bigHits.prefix(HARD_CAP)) : bigHits
 
-        let images = await fetchFullImages(for: cards)
-        let flags: [Bool] = (0..<cards.count).map { i in
-            i < bigHits.count ? bigHits[i] : false
+        let images = await fetchFullImages(for: capped)
+        let flags: [Bool] = (0..<capped.count).map { i in
+            i < cappedHits.count ? cappedHits[i] : false
         }
-        let entries: [WallGrid.Entry] = (0..<cards.count).map { i in
-            WallGrid.Entry(card: cards[i], image: images[i], isBigHit: flags[i])
+        let entries: [WallGrid.Entry] = (0..<capped.count).map { i in
+            WallGrid.Entry(card: capped[i], image: images[i], isBigHit: flags[i])
         }
 
         let content = WallGrid(

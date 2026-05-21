@@ -15,8 +15,6 @@ struct AdminPanelView: View {
     @State private var pendingModRequests: [SupabaseClient.PendingModRequest] = []
     @State private var isLoading = true
     @State private var errorMessage: String? = nil
-    @State private var roleUpdateTarget: AdminUserProfile? = nil
-    @State private var showRolePicker = false
 
     var body: some View {
         List {

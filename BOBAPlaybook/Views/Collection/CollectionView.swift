@@ -62,7 +62,6 @@ struct CollectionView: View {
     }
     @State private var showingShareSheet   = false
     @State private var shareItems: [Any]   = []
-    @AppStorage("selectedIconName") private var selectedIconName: String = "default"
     /// Per user feedback: collectors care most about per-card value
     /// information — the dense LIST renderer surfaces value/paid/qty
     /// inline; GRID hides it behind individual card detail. Default

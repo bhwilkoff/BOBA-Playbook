@@ -146,6 +146,20 @@ fun RainbowsScreen(
             )
             return@Scaffold
         }
+        // Hoisted OUTSIDE the LazyColumn body — LazyListScope isn't a
+        // @Composable scope so `remember(...)` calls inside it (outside
+        // `item {}` / `items {}` builders) fail to compile. iOS Custom
+        // Rainbow detail does the same "compute once, use per-row"
+        // optimization.
+        val ownedBobaIds = remember(state) {
+            state.entriesByDesignation.values.flatten()
+                .filter { it.userCard.designation in setOf(
+                    com.bobaplaybook.core.domain.model.Designation.PERSONAL,
+                    com.bobaplaybook.core.domain.model.Designation.FOR_SALE,
+                    com.bobaplaybook.core.domain.model.Designation.FOR_TRADE,
+                ) }
+                .map { it.card.bobaId }.toSet()
+        }
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(bottom = 96.dp),
@@ -161,19 +175,6 @@ fun RainbowsScreen(
                     )
                 }
             } else {
-                // Owned bobaIds (Personal / Sale / Trade) computed
-                // once for this list — per-row reuses the same set
-                // for O(1) overlap counting. iOS Custom Rainbow detail
-                // does the same.
-                val ownedBobaIds = remember(state) {
-                    state.entriesByDesignation.values.flatten()
-                        .filter { it.userCard.designation in setOf(
-                            com.bobaplaybook.core.domain.model.Designation.PERSONAL,
-                            com.bobaplaybook.core.domain.model.Designation.FOR_SALE,
-                            com.bobaplaybook.core.domain.model.Designation.FOR_TRADE,
-                        ) }
-                        .map { it.card.bobaId }.toSet()
-                }
                 items(items = customRainbows, key = { it.id }) { rainbow ->
                     // Catalog cards that match this rainbow's criteria.
                     // Memoized on (catalog, rainbow) so the per-recompose

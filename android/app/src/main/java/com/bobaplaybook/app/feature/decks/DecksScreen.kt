@@ -715,7 +715,22 @@ private fun DecksTabletScreen(
                         }
                     }
                 },
-                onSave = { deckViewModel.save { /* tablet pane stays open */ } },
+                onSave = {
+                    // Snackbar feedback — symmetric with the compact
+                    // path (line 391). Tablet pane stays open after
+                    // save (no editor-sheet to dismiss), but the user
+                    // still needs a signal that the save persisted.
+                    // Tick 154 — was firing fire-and-forget save with
+                    // no UI feedback, so users couldn't tell if the
+                    // server write actually landed.
+                    deckViewModel.save { errorMessage: String? ->
+                        scope.launch {
+                            appSnackbar?.showSnackbar(
+                                errorMessage ?: "Saved \"${draft.name}\""
+                            )
+                        }
+                    }
+                },
                 onSignInRequest = onSignInRequest,
                 onOpenRules = onOpenRules,
                 onOpenLegality = onOpenLegality,

@@ -12,6 +12,27 @@ final class CollectionStore {
     private(set) var isLoading = false
     private(set) var error: String?
 
+    // MARK: - Market-price refresh state (tick 192)
+    //
+    // Hoisted from CollectionView so the refresh task SURVIVES view
+    // unmount when the user navigates away from Collection mid-refresh.
+    // Two prior bugs this fixes:
+    //  1. Triple-spinner during pull-to-refresh — system pull spinner
+    //     + banner spinner + toolbar ellipsis-replaced spinner all
+    //     lit up at once. View now reads `refreshSource` to decide
+    //     which surface(s) to show.
+    //  2. Refresh would APPEAR to die when the user switched tabs;
+    //     the background Task continued (Task{}.value detached it)
+    //     but the View-local @State was gone, so coming back showed
+    //     no progress. State now lives on the Store, persisting
+    //     across the view tree.
+
+    enum RefreshSource: Equatable { case pullToRefresh, toolbar }
+    private(set) var refreshSource: RefreshSource? = nil
+    private(set) var recalcProgress: (current: Int, total: Int)? = nil
+    private var recalcTask: Task<Void, Never>? = nil
+    var isRecalculating: Bool { refreshSource != nil }
+
     private let client = SupabaseClient.shared
 
     // MARK: - Load
@@ -282,6 +303,39 @@ final class CollectionStore {
     func refreshPricingIfNeeded(for cardNumber: String, card: Card) async {
         guard needsPriceRefresh(cardNumber) else { return }
         await fetchAndStorePricing(for: cardNumber, card: card)
+    }
+
+    /// Tick 192 — single orchestrator that owns the refresh task.
+    ///
+    /// - Idempotent: if a refresh is already running, returns immediately
+    ///   without spawning a second (so pull-to-refresh during a
+    ///   toolbar-triggered refresh doesn't double-fire).
+    /// - The Task is detached from the caller (Task{}.value) AND
+    ///   stored on the Store, so navigating away from Collection
+    ///   does NOT cancel it. Refresh continues in the background;
+    ///   `refreshSource` + `recalcProgress` stay populated for any
+    ///   view that returns and reads them.
+    /// - Returns when the work completes; caller can `await` to keep
+    ///   the source's spinner attached (e.g. pull-to-refresh).
+    func recalculateAll(cardStore: CardStore, source: RefreshSource) async {
+        if refreshSource != nil {
+            // Already running — block on the existing task so the
+            // caller (pull-to-refresh) still awaits to completion.
+            await recalcTask?.value
+            return
+        }
+        refreshSource  = source
+        recalcProgress = (0, 0)
+        let task = Task { [weak self] in
+            await self?.recalculateAllValues(cardStore: cardStore) { current, total in
+                self?.recalcProgress = (current, total)
+            }
+            self?.refreshSource = nil
+            self?.recalcProgress = nil
+            self?.recalcTask = nil
+        }
+        recalcTask = task
+        await task.value
     }
 
     /// Force-refreshes estimated_value for every owned unique card number.

@@ -2778,3 +2778,23 @@ Both flow into a single tick 192 commit. Bump v2.293 / build 555.
 - **Punch-list status:** #8: ✅ Android · ⏳ iOS · ⏳ web. Events.json is platform-shared so iOS+web port will reuse the same data file.
 - **Backlog status:** all 8 items now have at least 1 platform shipped. Items 1, 4, 7 still need iOS+web; items 3, 5 need iOS+web; item 2 + 5 are done across all 3.
 - **Next:** tick 192 = iOS (Ben's collection-refresh asks queued at end of AUTONOMOUS_PROGRESS.md "Pending iOS asks").
+
+### Tick 192 — 2026-05-21 — iOS Collection refresh: collapse triple spinner + survive view unmount
+- **Closes both Ben asks** queued at end of "Pending iOS asks":
+  1. Triple pull-to-refresh spinner → single system spinner.
+  2. Market-price refresh now survives view-tree unmount (background-OK).
+- **Implementation — refresh state hoisted to CollectionStore:**
+  - New on store: `enum RefreshSource { case pullToRefresh, toolbar }`, `refreshSource: RefreshSource? = nil`, `recalcProgress: (Int, Int)? = nil`, private `recalcTask: Task<Void, Never>?`, computed `isRecalculating: Bool`.
+  - New `recalculateAll(cardStore:source:)` orchestrator — idempotent (concurrent calls block on the existing task), spawns work in a detached `Task { ... }` stored on the store. View unmount no longer cancels — Task survives, state survives, returning user sees in-flight progress.
+- **Triple-spinner collapse:**
+  - **Toolbar ellipsis-spinner** (3rd spinner) — REMOVED. Toolbar stays as static ellipsis-circle. The menu item's label still flips to "Refreshing prices…" so the trigger feedback is preserved without the icon swap.
+  - **Top progress banner** — now gated on `refreshSource == .toolbar`. During pull-to-refresh, only the system spinner shows. During toolbar-triggered refresh, only the banner shows.
+  - **System pull-to-refresh spinner** — unchanged, the canonical iOS affordance.
+- **View cleanup:**
+  - Dropped `@State isRecalculating` + `@State recalcProgress` from CollectionView.
+  - Dropped private `recalculateAll()` (orphan after both call sites moved to the store).
+  - Both call sites (toolbar Menu button + `.refreshable {}` block) now `await collection.recalculateAll(cardStore:, source:)` with the source explicit.
+- **Net change:** +50 / -50 lines, but the View loses 12 lines of complex Task-detachment plumbing (replaced by 1 store call).
+- **Version:** v2.293 / build 555 (tandem bump per [[feedback_bump_marketing_and_build_in_tandem]]).
+- **Note:** Android CI fix for tick 191 (FontWeight import) shipped first as 133fd6b. Both ticks in this slot.
+- **Next:** tick 193 = web (cadence 193 % 5 = 3). Pick #4 (format-legality chip) or #3 (glossary tooltips) for web.

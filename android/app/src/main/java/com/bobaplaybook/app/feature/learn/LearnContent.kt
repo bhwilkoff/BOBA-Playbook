@@ -574,18 +574,4 @@ object LearnCorpus {
         ),
     )
 
-    // ════════════════════════════════════════════════════════════════
-    // WATCH — placeholder; YouTube feed Worker wiring is M5-polish
-    // ════════════════════════════════════════════════════════════════
-
-    val watch: List<LearnSection> = listOf(
-        LearnSection.Body(
-            heading = "Coming soon",
-            text = "The BoBA Playbook YouTube feed (tutorials, top plays, live breaks, shorts) lives in the iOS app today and ships to Android in an upcoming release.",
-        ),
-        LearnSection.Body(
-            heading = "Until then",
-            text = "Open YouTube and search for 'Bo Jackson Battle Arena' — the BoBA official channel posts new content every week.",
-        ),
-    )
 }

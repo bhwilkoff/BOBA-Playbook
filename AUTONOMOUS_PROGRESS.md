@@ -102,6 +102,20 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 28 — 2026-05-20 — Sign-in modal accessibility polish
+- **Picked:** Audit from tick-27 "Next" list. Sign-in modal is the highest-stakes a11y surface — screen-reader users hitting it without proper announcements have a worse experience than they should. Native `<dialog>.showModal()` already handles focus trap + ESC + scroll lock + top layer per WEB-DESIGN.md §13; this tick closes the small gaps on top of that.
+- **Audit findings + fixes:**
+  - **Stale `aria-label`**: dialog had `aria-label="Sign in to BOBA Playbook"` static. When user toggled to Create Account, the label still said "Sign in" — wrong context for screen readers. Fixed: new `_updateAriaLabel()` swaps between "Sign in to BOBA Playbook" and "Create your BOBA Playbook account" on open + on mode tab switch.
+  - **Missing form-validation hooks**: email + password inputs lacked `required` / `aria-required`. Added both on every required field. Web's native form validation now fires `:invalid` styling + browser tooltip on bare-empty submit.
+  - **Password hint**: signUp mode adds `<p id="auth-password-hint" class="auth-field-hint">6 characters minimum.</p>` + `aria-describedby="auth-password-hint"` on the password input. Screen readers announce the constraint on focus.
+  - **Min-length validation**: signUp password + confirm gain `minlength="6"` for native HTML5 validation.
+  - `css/styles.css`: small `.auth-field-hint` style (muted mono caption).
+- **What was already correct (verified):** `<dialog>.showModal()` handles focus trap natively; ESC dismisses; backdrop click dismisses (explicit handler at line 379); first-focus on email field via 60ms `setTimeout` (necessary because `showModal()`'s auto-focus competes with the input's `autofocus` if used); close-button labeled `aria-label="Close sign-in"`; error/info `<p>` already have `role="alert"` and `role="status"`; submit button is a real `<button>`.
+- **Verified:** node -c clean. Manual trace: tab to signUp → aria-label re-issued; tab back → aria-label re-issued. Empty-submit fires browser tooltip ("Please fill out this field"). Password-hint announces under the field on focus in signUp mode.
+- **PARITY.md:** No row — a11y polish on an already-✅ flow.
+- **Architectural note:** the `<dialog>` element is doing most of the heavy lifting. Native-first paying off again — a custom modal would need a focus-trap library, ESC handler, scroll lock, top-layer compositing, and backdrop. We get it all for free + can layer dynamic aria-label + HTML5 validation on top.
+- **Next:** Tick 29. Plausible: (a) similar a11y pass on the card-detail modal, (b) similar a11y pass on the wall-overlay, (c) audit Find filter sheet for keyboard / a11y, (d) move to a non-a11y polish item.
+
 ### Tick 27 — 2026-05-20 — Public collection "Wall" button (canvas share image)
 - **Picked:** Continuing the public-collection user-acquisition arc. Tick 25 added the unauth CTA, tick 26 added the Share button (URL share). Tick 27 closes the trio with a Wall button — visitor (auth or unauth) renders the cards they're viewing as a downloadable PNG. Reuses the tick-9/10 `openCardsWallSheet` pipeline entirely; this is mostly UI wiring.
 - **Shipped:**

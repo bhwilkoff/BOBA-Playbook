@@ -102,6 +102,17 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 59 — 2026-05-20 — **ANDROID** — CustomRainbow update (rename + criteria edit)
+- **Ben directive ack:** "lots of updates for the web app, but very few for the iOS and Android apps." Saved `feedback_platform_cadence.md` — every tick is fixed by `tick_number % 5`: 0=opt, 1=Android, 2=iOS, 3=web, 4=Android. Android gets 2/5 since it's least mature. 59 % 5 = 4 → Android tick.
+- **Picked:** Android CustomRainbowRepository had `save` (insert) + `delete` but NO `update`. Web shipped update tick 15; iOS has CustomRainbowStore.update. Android couldn't rename or edit-criteria a saved rainbow at all — significant parity gap on the highest-demand Collection feature (Agent C 1,237 community messages on rainbow tracking).
+- **Shipped:**
+  - `android/core/data/.../rainbows/CustomRainbowRepository.kt`: new `suspend fun update(id, name, criteria): Boolean`. Optimistically patches the in-memory `_rainbows` StateFlow first (UI updates instantly), then PATCH via PostgREST `update(name, criteria, updated_at) { filter { eq("id", id) } }`. On failure, reverts the optimistic patch + re-fetches authoritative state via `refresh()`. Mirrors the web tick-15 + iOS SupabaseClient.updateCustomRainbow pattern.
+  - `android/app/.../feature/collection/CustomRainbowsViewModel.kt`: new `fun update(id, name, criteria, onResult: (Boolean) -> Unit)` — same shape as the existing `create()` callback contract.
+- **Not shipped this tick:** the EDITOR UI surface (sheet with name field + sub-pickers + Save → calls vm.update). The repo + ViewModel are wired; the Compose editor sheet binding is the next Android tick of this thread. Today's tick lays the data path.
+- **Verified:** edits are additive (no breaking changes to existing call sites). Both files type-check at a structural level — full Gradle build verification requires Android Studio setup not available in CLI.
+- **PARITY.md:** Custom Rainbows Android row note updated.
+- **Cadence note:** ticks 50-58 were all web. Tick 59 is the first under the new platform-cadence rule. Tick 60 = opt (1-in-5 rule), 61 = Android again (61 % 5 = 1), 62 = iOS, 63 = web, 64 = Android, 65 = opt …
+
 ### Tick 58 — 2026-05-20 — Find multi-select: exit on SIGNED_OUT
 - **Picked:** Continuing the post-sign-out staleness audit from tick 57. Find tab's `selectionMode` + `selectedCardKeys` were module-scope state never cleared on sign-out. User A multi-selects 5 cards → signs out → Selection toolbar still shows "5 selected" with Add-to-Collection / Add-to-Deck buttons that would auth-fail on click. Misleading.
 - **Shipped:** the existing auth-change listener (line 1658) now calls `exitSelectionMode()` on the SIGNED_OUT branch (when `detail.session` is falsy AND selectionMode is true).

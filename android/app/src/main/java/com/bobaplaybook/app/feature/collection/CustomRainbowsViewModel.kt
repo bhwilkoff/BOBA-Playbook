@@ -36,6 +36,16 @@ class CustomRainbowsViewModel @Inject constructor(
         }
     }
 
+    /** Rename + criteria edit of an existing rainbow. Parity with
+     *  web `API.updateCustomRainbow` (tick 15) and iOS
+     *  `CustomRainbowStore.update`. */
+    fun update(id: String, name: String, criteria: RainbowCriteria, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val ok = repo.update(id, name, criteria)
+            onResult(ok)
+        }
+    }
+
     fun delete(id: String) {
         viewModelScope.launch { repo.delete(id) }
     }

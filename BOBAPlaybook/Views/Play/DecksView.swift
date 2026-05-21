@@ -1349,33 +1349,6 @@ struct DecksView: View {
         return groups.map { (power: $0.key, cards: $0.value) }.sorted { $0.power > $1.power }
     }
 
-    /// One-line "Hero (FIRE×2, ICE)" breakdown for a single power tier.
-    /// Restored from the legacy DeckBuilderView so coaches still see
-    /// weapon spread per tier in the new Maps-pattern Decks view.
-    private func heroWeaponBreakdown(for cards: [Card]) -> String {
-        var byHero: [String: [String: Int]] = [:]
-        for c in cards {
-            let hero = c.hero.isEmpty ? c.name : c.hero
-            byHero[hero, default: [:]][c.element, default: 0] += 1
-        }
-        let elementOrder = ["FIRE","ICE","STEEL","BRAWL","GLOW","HEX","GUM","SUPER","CYBER","ALT","NONE"]
-        let sortedHeroes = byHero.keys.sorted { a, b in
-            let aTotal = byHero[a]!.values.reduce(0, +)
-            let bTotal = byHero[b]!.values.reduce(0, +)
-            if aTotal != bTotal { return aTotal > bTotal }
-            return a.localizedCompare(b) == .orderedAscending
-        }
-        return sortedHeroes.map { hero -> String in
-            let weapons = byHero[hero]!.sorted { a, b in
-                let ai = elementOrder.firstIndex(of: a.key) ?? 99
-                let bi = elementOrder.firstIndex(of: b.key) ?? 99
-                return ai < bi
-            }
-            let weaponFrag = weapons.map { "\($0.key)\($0.value > 1 ? "×\($0.value)" : "")" }.joined(separator: ", ")
-            return "\(hero) (\(weaponFrag))"
-        }.joined(separator: " · ")
-    }
-
     /// Heroes appearing more than once across the full Hero Deck (counting
     /// all variations). The 6-per-hero rule caps this at 6; the banner
     /// shows current counts so coaches spot crowding early.
@@ -1461,25 +1434,6 @@ struct DecksView: View {
         if card.isHotDog { return .hotDog }
         if card.isBonusPlay == true { return .bonusPlay }
         return .play
-    }
-
-    // MARK: - Lifecycle
-
-    private func handleAppear() {
-        // Auto-restore any in-progress draft.
-        if deckIsEmpty {
-            _ = store.restoreDraft(allCards: cardStore.displayCards)
-        }
-        // Walkthrough on first visit. Deferred 250ms so the
-        // LazyVGrid pool cells + summary pill have time to lay out
-        // and register their anchor preferences (.onAppear fires
-        // before first layout — see SearchView for context).
-        if WalkthroughsManager.shared.shouldShow(.decksTab) {
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(250))
-                walkthrough = .decksTab
-            }
-        }
     }
 
     // MARK: - Actions

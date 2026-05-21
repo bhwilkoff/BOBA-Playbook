@@ -792,31 +792,6 @@ struct DeckBuilderView: View {
         EmptyView()
     }
 
-    /// One-line progress summary per role. Plays tab gets the
-    /// DBS-budget tracker tagged on (the user's biggest constraint
-    /// post-2026-04-27 patch).
-    private func browserTabSummaryText(for role: DeckCardRole) -> String? {
-        switch role {
-        case .hero:
-            guard store.format.heroTarget > 0 else { return nil }
-            return "Heroes \(store.heroes.count)/\(store.format.heroTarget)"
-        case .play:
-            guard store.format.needsPlaybook else { return nil }
-            let dbsTag = store.effectiveEnforceDBS
-                ? "  ·  DBS \(store.totalDBS)/\(store.effectiveDBSBudget)"
-                : ""
-            return "Plays \(store.plays.count)/30\(dbsTag)"
-        case .bonusPlay:
-            guard store.format.needsPlaybook else { return nil }
-            return "Bonus plays \(store.bonusPlays.count)/15"
-        case .hotDog:
-            guard store.format.needsHotDogs else { return nil }
-            return "Hot Dogs \(store.hotDogs.count)/10"
-        case .sideboard:
-            return nil
-        }
-    }
-
     private var browserTabPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Design.Spacing.xs) {

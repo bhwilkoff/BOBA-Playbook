@@ -76,6 +76,28 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 145 — 2026-05-21 — **opt** — Drop 302 lines of orphan iOS helpers
+- **Cadence:** 145 % 5 = 0 → opt.
+- **Picked:** Per-file orphan-helper scan across iOS `Views/`. For each `private func`, count refs within the same file (Swift `private` is file-scope, so external refs are by definition zero). A count of 1 = the definition only, no callers. Filtered out SwiftUI protocol overrides (`body`) where the protocol invokes them at runtime via dynamic dispatch.
+- **Shipped:**
+  - `DeckBuilderView.swift`: drop `browserTabSummaryText(for:)` (24 lines — superseded by inline `headerLabel` lookup in `browserTabPicker`).
+  - `CollectionView.swift`: drop `presentShareDeepLink()` (18 lines — the iOS Share affordance now routes through the AsyncShare helper in CollectionCardDetailView's body; this older sheet-shape helper had no remaining caller).
+  - `DecksView.swift`: drop two orphans:
+    - `heroWeaponBreakdown(for:)` (25 lines — duplicate of the one in DeckBuilderView.swift, originally copied when DecksView split off; only the DeckBuilderView copy is wired).
+    - `handleAppear()` (16 lines — Decks now wires `.onAppear` directly to `restoreDraft` + `walkthrough` triggers inline; this consolidated helper lost its single caller in an earlier refactor).
+  - `CardDetailView.swift`: drop `navigateCard(by:)` (14 lines — duplicate of `advanceCard(by:)` left over from an earlier swipe-nav prototype; only `advanceCard` is wired to the swipe gestures).
+  - `HouseOfCardsView.swift`: drop 4 orphan helpers + 1 orphan stored property:
+    - `minCardYConservative()` (3 lines).
+    - `downwardFaceProbePoints(of:)` (49 lines — face-probe geometry from an earlier sit-on-top snap prototype that switched to the v2.183 orientation-aware approach).
+    - `spawnHeldPair(takingFrom:)` (102 lines + 21 lines of preamble doc-comment that flagged itself as "Legacy stub — kept to avoid breaking call sites mid-refactor" — refactor done, no call sites left).
+    - `makeEdgeMaterial()` (9 lines — PhysicallyBasedMaterial edge factory; HouseOfCards now uses the shared `BOBACardEntity.makeEdgeMaterial(config:)` in `Components/`).
+    - `private var edgeMaterial: PhysicallyBasedMaterial?` (1 line — backing storage for the deleted lazy factory).
+- **Why it's safe:** Swift `private func` is file-scope. Grep for `\\bname\\(` AND `Button(action: name)` (function reference) collectively cover every Swift call shape. Each orphan was verified by a global grep — no `#selector(name(_:))` / no protocol witness / no test reference. The "Legacy stub" comment on `spawnHeldPair` even self-documented its orphan state.
+- **Why these accumulated:** the iOS app shipped 280+ versions through 6 weeks of intense refactor cycles (Decks Maps-pattern → Music-pattern → fullScreenCover; House of BoBA's 8 commits of physics tuning; CardDetailView swipe-nav prototype). The IDE doesn't auto-strip private funcs when their last caller goes away — they linger as silent ~10–100 line debt items.
+- **Net:** −302 lines across 5 files. Pure deletion; no new code.
+- **PARITY.md:** No row.
+- **Next:** tick 146 = Android (% 5 = 1).
+
 ### Tick 144 — 2026-05-21 — **Android** — Manage-decks load: destructive-overwrite warning + Undo
 - **Cadence:** 144 % 5 = 4 → Android.
 - **Picked:** `DeckManageScreen` (Manage Decks list) was the last untreated destructive-overwrite surface in Android Decks. Tapping a saved-deck row replaced the active draft via `vm.loadSaved(deck, catalog)` with NO warning. The Snackbar that fired afterwards just said "Loaded X" — gave no hint that the user's in-progress draft was wiped. Same shape as template-load before tick 136. Now that `restoreDraft(snapshot)` is wired (tick 139), Undo costs nothing.

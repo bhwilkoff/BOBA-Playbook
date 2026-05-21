@@ -52,6 +52,7 @@ When shipping any user-facing feature:
 | Filter rows (weapon, cost, hero, treatment) | ✅ | ✅ | ✅ | `FilterChip` flow row — Android shipped overnight 2026-05-20 |
 | Featured shelves (no-search state) | ✅ | ✅ | ✅ | Android: `HorizontalMultiBrowseCarousel` showcase carousels |
 | Multi-select + bulk add | n/a | ✅ | 🔮 | Web-only today; mobile uses long-press add |
+| Multi-select → Wall these N cards | n/a | ✅ | 🔮 | Web-only — selection toolbar `Wall` action calls `openCardsWallSheet` (tick 10). Title defaults to "N cards". |
 | Card detail push w/ hero zoom | ✅ | ✅ | ⏳ M1 polish | iOS + web shipped; Android destination scaffolding done, `sharedBounds` zoom is M1 polish |
 | Card-size picker (S/M/L density) | ✅ | ✅ | ✅ | Toolbar Menu → 1/2/3 cols on all three; Android persists via `GridDensityStore` (DataStore) |
 | Profile entry (Find-only) | ✅ | ✅ | ✅ | TopAppBar leading icon — per `feedback_profile_only_on_find` |

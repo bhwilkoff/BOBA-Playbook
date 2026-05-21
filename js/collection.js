@@ -2843,21 +2843,29 @@ const Collection = (() => {
     return saved;
   }
 
-  /// Open the Wall dialog for a deck. Caller passes catalog Cards
-  /// directly (no user-card row resolution needed) and a deck name
-  /// for the title.
-  function openDeckWallSheet({ deckName, cards }) {
+  /// Open the Wall dialog for an arbitrary catalog-card set. Caller
+  /// passes catalog Cards directly (no user-card row resolution) and
+  /// a title. Price overlay is disabled (no designation context).
+  /// Used by Decks ("Generate deck wall") and Find multi-select
+  /// ("Wall these N cards"). Both surfaces are DESIGN.md §8.8.
+  function openCardsWallSheet({ title, cards }) {
     return openWallSheet({
       context: 'deck',
-      title: deckName,
+      title: title,
       cards: cards || [],
     });
+  }
+  // Backward-compat alias from tick 9 — same shape, deck-flavored
+  // signature. Practice.js still calls this name.
+  function openDeckWallSheet({ deckName, cards }) {
+    return openCardsWallSheet({ title: deckName, cards });
   }
 
   return {
     init,
     load,
     openAddSheet,
+    openCardsWallSheet,
     openDeckWallSheet,
     quickAdd,
     isOwned,

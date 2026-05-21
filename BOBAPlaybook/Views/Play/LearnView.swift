@@ -1750,6 +1750,22 @@ private struct GlossaryView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityHint("Copies the term and definition to your clipboard")
+                    // Long-press contextMenu — adds Share alongside the
+                    // tap-to-copy default. Coaches often want to route
+                    // a definition into Discord without copy + paste.
+                    // Mirrors Android tick 126's long-press → ACTION_SEND;
+                    // iOS canon is contextMenu + ShareLink.
+                    .contextMenu {
+                        Button {
+                            copyTerm(t)
+                        } label: {
+                            Label("Copy", systemImage: "doc.on.doc")
+                        }
+                        ShareLink(item: "\(t.term) — \(t.definition)",
+                                  subject: Text("BOBA Glossary: \(t.term)")) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                    }
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))

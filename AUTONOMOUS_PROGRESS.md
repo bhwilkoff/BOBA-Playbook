@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 174 — 2026-05-21 — **Android** — AddToDeckSheet Saved-Deck rows: "Already in deck" hint (tick 171 extension)
+- **Cadence:** 174 % 5 = 4 → Android.
+- **Picked:** Tick 171 added the "alreadyInDraft" visual hint to AddToDeckSheet's **current-draft row**. The same indicator was missing from the **saved-decks list** below — saved-deck rows showed the same `Icons.Default.Add` and the same body text whether the saved deck already contained this card or not. A coach attempting to "add this card to my Maverick deck" couldn't see at a glance that Maverick already had it (load + add would hit the dup-warning).
+- **Shipped:**
+  - `AddToDeckSheet.kt` saved-decks forEach:
+    - New `val alreadyInSaved = saved.cards.any { it.cardNumber == card.cardNumber }` per-row. Matches on `cardNumber` because that's the canonical persistence shape (deck_cards table stores cardNumber + quantity, not bobaId).
+    - supportingContent wraps in a `Column` that prepends a primary-color "Already in this deck" line when matched.
+    - trailingContent swaps `Icons.Default.Add` → `Icons.Default.Check` (primary tint) when matched.
+- **Verified:** the saved-deck rows are inside `if (savedDecks.isNotEmpty())` block (line 160), gated correctly. Behavior on tap is unchanged — same `decksViewModel.loadSaved + add` sequence + Snackbar with the existing tick-114-aware AddResult branching. Visual hint is purely advisory.
+- **PARITY.md:** No row.
+- **Next:** tick 175 = opt.
+
 ### Tick 173 — 2026-05-21 — **web** — Deck rename: success toast + drop blocking alert on failure
 - **Cadence:** 173 % 5 = 3 → web.
 - **Picked:** Web's saved-deck rename in `practice.js:1463` had two UX gaps:

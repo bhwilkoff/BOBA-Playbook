@@ -161,17 +161,42 @@ fun AddToDeckSheet(
                 HorizontalDivider()
                 BOBASectionHeader(title = "Saved decks")
                 savedDecks.forEach { saved ->
+                    // Tick 174 — extend tick 171's "alreadyInDraft" hint
+                    // to Saved Decks rows. Each saved deck's cards list
+                    // carries cardNumber (the canonical persistence
+                    // shape, not bobaId) so we match on cardNumber here.
+                    // The visual cue tells the user "this saved deck
+                    // ALREADY contains this card — load + add will hit
+                    // the duplicate-warning path."
+                    val alreadyInSaved = saved.cards.any { it.cardNumber == card.cardNumber }
                     ListItem(
                         headlineContent = { Text(saved.name) },
                         supportingContent = {
                             val total = saved.cards.sumOf { it.quantity }
-                            Text("$total cards", style = MaterialTheme.typography.labelMedium)
+                            Column {
+                                if (alreadyInSaved) {
+                                    Text(
+                                        "Already in this deck",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                                Text("$total cards", style = MaterialTheme.typography.labelMedium)
+                            }
                         },
                         leadingContent = {
                             Icon(Icons.Default.ViewModule, contentDescription = null)
                         },
                         trailingContent = {
-                            Icon(Icons.Default.Add, contentDescription = "Open and add")
+                            if (alreadyInSaved) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = "Card already in this deck",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            } else {
+                                Icon(Icons.Default.Add, contentDescription = "Open and add")
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()

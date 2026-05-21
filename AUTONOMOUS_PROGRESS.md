@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 101 — 2026-05-20 — **Android** — Decks pool grid density picker (iOS @AppStorage parity)
+- **Cadence:** 101 % 5 = 1 → Android.
+- **Picked:** `GridDensityStore.Target.DECKS` was registered in the shared store (alongside FIND + COLLECTION) but `grep -rn Target.DECKS` returned zero callers — the pool grid hardcoded `GridCells.Adaptive(minSize = 110.dp)` and never read the user's preference. iOS DesksView exposes a 1/2/3 column picker via `@AppStorage("bp_decksGridColumns_v1")` — Android gap.
+- **Shipped:**
+  - `CardPoolGrid` signature gained `columns: Int = 0` param. `0` = adaptive default (preserves existing behavior for the tablet caller). Non-zero → `GridCells.Fixed(columns)`.
+  - `DecksCompactScreen` injects `GridDensityViewModel` (already in DI graph), reads `storedPoolColumns` from `Target.DECKS` Flow, threads into `CardPoolGrid(columns = storedPoolColumns)`.
+  - Overflow `DropdownMenu` gained a "Pool columns" mini-section with 3 `DropdownMenuItem`s (1 / 2 / 3 columns). Active row gets a `Check` leadingIcon; inactive rows get a 24dp Spacer so the layout doesn't jump. Setting fires `gridDensityVm.setColumns(Target.DECKS, col)` via `scope.launch` — DataStore persists asynchronously, the Flow updates the next recomposition.
+  - New import: `androidx.compose.material.icons.filled.Check`.
+- **Verified:** `columnsFor` returns Flow<Int> with initialValue=0 — matches the FIND tab's pattern at FindScreen.kt:161. Tablet caller (DecksTabletScreen) doesn't pass the new param — defaults to 0, adaptive minSize preserved.
+- **PARITY.md:** Per-tab grid density row stays ✅ — was misstated as ✅ when only Find + Collection actually used it. The "Grid density picker (1/2/3 cols)" row at PARITY line 100 was effectively half-true on Android; now true.
+- **Next:** tick 102 = iOS; 103 = web; 104 = Android; 105 = opt.
+
+
+
 ### Tick 100 — 2026-05-20 — **OPTIMIZATION TICK (11th 1-in-5)** — collapse duplicate CDN_FULL const
 - **Cadence:** opt rotation. Web hadn't had a tick since 80 (3 ago); pick web.
 - **Picked:** `js/practice.js` declared TWO consts holding the same R2 CDN URL: `CDN_BASE` at line 17 and `CDN_FULL` at line 1477. `CDN_FULL` was introduced when `fullUrl` was added, but the values are byte-identical — `'https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev'`. Pure duplication.

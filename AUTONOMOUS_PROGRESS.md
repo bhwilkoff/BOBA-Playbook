@@ -102,6 +102,12 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 58 — 2026-05-20 — Find multi-select: exit on SIGNED_OUT
+- **Picked:** Continuing the post-sign-out staleness audit from tick 57. Find tab's `selectionMode` + `selectedCardKeys` were module-scope state never cleared on sign-out. User A multi-selects 5 cards → signs out → Selection toolbar still shows "5 selected" with Add-to-Collection / Add-to-Deck buttons that would auth-fail on click. Misleading.
+- **Shipped:** the existing auth-change listener (line 1658) now calls `exitSelectionMode()` on the SIGNED_OUT branch (when `detail.session` is falsy AND selectionMode is true).
+- **Verified:** node -c clean. Trace: select 5 cards → sign out → toolbar hides, body's `.selection-mode` class removed, all `.card-item--selected` removed, lastSelectedIndex reset. User B signs in → starts clean.
+- **PARITY.md:** No row.
+
 ### Tick 57 — 2026-05-20 — Cached user role: clear on SIGNED_OUT
 - **Picked:** Real bug. `_userRole` (module-scope in api.js) was set on SIGN_IN via `fetchUserRole()` but NOT cleared on SIGNED_OUT. User A signs in as admin → _userRole = 'admin' → signs out → _session = null BUT _userRole still 'admin' → any post-sign-out UI render that calls `API.getCachedRole()` sees the wrong (stale-admin) role. Practice tab admin-gate at app.js:475, mod-edit affordances at app.js:2987, etc.
 - **Real-user impact:** during the brief window between SIGNED_OUT firing and any subsequent SIGNED_IN completing `fetchUserRole`, the UI could flash admin-only content. Worst case: user signs out and stays signed-out — `_userRole` keeps the prior admin value forever.

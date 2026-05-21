@@ -1657,6 +1657,13 @@
   quickAddToggle?.addEventListener('click', () => setQuickAddMode(!quickAddMode));
   document.addEventListener('auth-change', ({ detail }) => {
     updateQuickAddVisibility(!!detail?.session);
+    // Sign-out → drop any active multi-select. Selection actions
+    // (Add to Collection / Add to Deck / Wall) are all auth-required
+    // anyway; leaving "5 selected" in the toolbar after sign-out
+    // would be misleading.
+    if (!detail?.session && selectionMode) {
+      exitSelectionMode();
+    }
   });
 
   /* ================================================================

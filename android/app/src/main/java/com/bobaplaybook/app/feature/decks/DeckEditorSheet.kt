@@ -49,6 +49,7 @@ import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
+import kotlinx.coroutines.launch
 
 /**
  * Deck editor — full-screen ModalBottomSheet on compact (ANDROID-
@@ -537,6 +538,13 @@ private fun EmptyDeckCTA(modifier: Modifier = Modifier) {
     val templates by androidx.compose.runtime.produceState(initialValue = emptyList<com.bobaplaybook.core.data.decks.DeckTemplate>()) {
         value = com.bobaplaybook.core.data.decks.DeckTemplateLoader().load(context)
     }
+    // Tick 164 — confirm template load with a Snackbar. The visual
+    // flip from empty-state → populated editor IS a signal, but the
+    // explicit "Loaded X" message matches TemplateGallerySheet's
+    // tick-136 pattern + gives a verbal cue ("yes, the tap registered")
+    // alongside the visual change.
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
 
     LazyColumn(
         modifier = modifier,
@@ -579,6 +587,9 @@ private fun EmptyDeckCTA(modifier: Modifier = Modifier) {
                             decksVm.clear()
                             decksVm.rename(template.name)
                             cards.forEach { decksVm.add(it) }
+                            scope.launch {
+                                appSnackbar?.showSnackbar("Loaded \"${template.name}\"")
+                            }
                         }
                     },
             ) {

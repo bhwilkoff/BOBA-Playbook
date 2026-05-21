@@ -272,10 +272,35 @@ private fun FindContent(
 
             when {
                 state.isEmpty -> {
+                    // Dynamic body line that names the active filters
+                    // (web tick 29 parity). "Nothing matches FIRE.
+                    // Try loosening or removing the filter." beats the
+                    // generic "Try a different search."
+                    val active = buildList {
+                        state.query.takeIf { it.isNotBlank() }?.let { add("\"$it\"") }
+                        state.activeWeapons.forEach { add(it) }
+                        state.activeSet?.let { add("Set: $it") }
+                        state.activeTreatment?.let { add("Treatment: $it") }
+                        state.activeRelease?.let { add("Release: $it") }
+                        state.showcaseId?.let { id ->
+                            add("Showcase: ${Showcases.byId(id)?.name ?: id}")
+                        }
+                        if (state.hasImageOnly) add("image-only")
+                        if (state.powerMin != null || state.powerMax != null) {
+                            val mn = state.powerMin?.toString() ?: "0"
+                            val mx = state.powerMax?.toString() ?: "∞"
+                            add("power $mn–$mx")
+                        }
+                    }
+                    val body = when {
+                        active.isEmpty()  -> "Try a different search."
+                        active.size == 1  -> "Nothing matches ${active[0]}. Try loosening or removing the filter."
+                        else              -> "Nothing matches all of: ${active.joinToString(" · ")}. Try removing one."
+                    }
                     BOBAEmptyState(
                         icon = Icons.Default.SearchOff,
                         headline = stringResource(R.string.find_no_results_title),
-                        body = stringResource(R.string.find_no_results_body),
+                        body = body,
                         actionLabel = "Clear filters",
                         onAction = { onEvent(FindEvent.ClearAllFilters) },
                     )

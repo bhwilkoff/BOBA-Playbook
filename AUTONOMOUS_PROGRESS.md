@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 143 — 2026-05-21 — **web** — Clear-deck draft: Undo Snackbar (closes 3-platform parity loop)
+- **Cadence:** 143 % 5 = 3 → web.
+- **Picked:** Web Clear-deck handler in `js/practice.js` used a blocking `confirm()` dialog. The pattern is the same anti-pattern tick 123 fixed for Collection per-copy delete: `confirm()` is OS-modal, breaks the page focus, doesn't theme to BOBA brand, and on mobile fires an "are you sure?" prompt that interrupts the user mid-flow. Closes the 3-platform parity loop on Clear-deck Undo (iOS tick 142, Android tick 139).
+- **Shipped:**
+  - `js/practice.js` `db-clear-btn` handler:
+    - Empty-deck short-circuit moved to the top — bail before touching anything.
+    - Pre-clear `snapshot = { heroes, plays, bonusPlays, hotDogs, deckName }`. `.slice()` defensively copies the arrays so a subsequent mutation (e.g. user re-adds a card after clearing) doesn't corrupt the snapshot.
+    - Format + activePreset + ruleOverrides are NOT captured because `DB.clear()` already preserves them (line 544 only resets the four arrays + deckName).
+    - After `DB.clear()` + DOM update, fires `window.showUndoToast("Draft cleared", undoCallback)`.
+    - Undo callback restores all four arrays + deckName + name input field; calls `dbRender(allCards)` to repaint.
+- **Verified:** `window.showUndoToast` is the canonical Material-Snackbar-shape helper at `practice.js:1630` (exposed via `window.` for cross-module use after tick 123 fix). Soft-fails behind `typeof === 'function'` guard for the (unlikely) case the helper isn't loaded yet — graceful degradation.
+- **Net:** ~10 lines added (snapshot + restore) and ~14 lines removed (blocking-confirm dialog + label-construction). Slight net-add but the UX win + parity closure justifies it (this is a content tick, not opt).
+- **PARITY.md:** No row — UX polish on already-✅ Decks. Closes parity with iOS tick 142 + Android tick 139.
+- **Next:** tick 144 = Android; 145 = opt.
+
 ### Tick 142 — 2026-05-21 — **iOS** — Clear-deck draft: Undo banner
 - **Cadence:** 142 % 5 = 2 → iOS.
 - **Picked:** iOS mirror of Android tick 139. The iOS Clear-deck `.alert("Clear deck?", ...)` confirm button called `store.clearDeck()` + `store.discardDraft()` + flipped `showTemplates = true` — all destructive, with no recovery path. A coach could tap "Clear deck" by accident (it's the destructive button in the alert) and lose 30+ cards of work permanently. The on-disk draft also got wiped via `discardDraft()`, so even quitting & relaunching wouldn't recover it.

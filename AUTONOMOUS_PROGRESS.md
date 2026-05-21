@@ -2688,3 +2688,13 @@ Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 =
 - **CSS:** `.rainbow-lens` + `.rainbow-lens-btn` with cyan-active treatment using existing `--boba-cyan` token.
 - **Status:** Punch-list #2: ✅ Android · ✅ iOS · ✅ web. DONE — first item fully shipped across all 3 platforms via the loop.
 - **Next:** tick 184 = Android (cadence). Pick punch-list #3 (glossary tooltips in Learn articles) on Android since the surface is the freshest.
+
+### Tick 184 — 2026-05-21 — Android Learn articles: inline tap-to-define glossary terms (punch list #3)
+- **Discord §4:** article prose throws around HTD / OBF / G&S / vouch / PWE without inline definitions. Standalone Glossary tab exists but users have to know which terms are in it. This tick wires inline tap-to-define so terms in any LearnSection.Body become cyan-underlined links.
+- **Implementation:**
+  - New private helpers `allGlossaryTerms()` / `detectGlossaryHits(text, terms)` — sort by longest-match-first to prevent shorter substrings winning, claim-array prevents overlapping hits, word-boundary regex (`\b`) for alphanumeric terms vs lookaround (`(?<![A-Za-z0-9])`) for symbol-containing terms like `G&S` / `F/S` so `&`/`/` don't trip the regex.
+  - New `GlossaryAwareBody(text)` composable replacing the old plain `Text(section.text)` in `SectionRenderer`'s `Body` branch. Builds an `AnnotatedString` via `buildAnnotatedString` with `pushStringAnnotation(tag="glossary", ...)` per hit + cyan/underline `SpanStyle`. Uses `ClickableText` to bind taps → opens a `ModalBottomSheet` with term + definition.
+  - `remember(text)` on hit detection so re-renders don't re-scan.
+- **Coverage:** every Rules / Strategy / Setup / Tournament Body paragraph automatically inherits the glossary affordance — no per-article wiring needed. Roughly 30+ terms become tappable across the article corpus.
+- **Punch-list #3:** ✅ Android · ⏳ iOS · ⏳ web.
+- **Next:** tick 185 = opt (185 % 5 = 0).

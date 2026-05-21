@@ -92,7 +92,7 @@ When shipping any user-facing feature:
 | Long-press add on browser | ✅ | n/a | ✅ | Canonical mobile add |
 | 3-column tablet layout (saved / browser / editor) | ✅ iPad | ⏳ desktop | ⏳ M4 polish | `NavigableListDetailPaneScaffold` 3-pane — in v1 from M4 per DECISIONS.md #047 |
 | Template gallery (empty editor) | ✅ | ✅ | ✅ | Web upgraded tick 11 — card-style 5-archetype gallery with per-archetype accent color (STEEL/ICE/CYAN/GLOW/BRAWL) matching iOS TemplateCard. |
-| Generate deck wall (share image) | ✅ | ✅ | 🔮 | Web shipped tick 9 — db-wall-btn in Decks toolbar reuses the shared canvas Wall pipeline (price overlay disabled for deck context). |
+| Generate deck wall (share image) | ✅ | ✅ | ✅ | Web shipped tick 9 — db-wall-btn reuses the canvas Wall pipeline. Android shipped tick 76 — `DeckWallSheet` reuses `WallShareHelper` (same `graphicsLayer.record` capture + FileProvider + ACTION_SEND). Editor exposes IconButton (modal-sheet) + OutlinedButton "Wall" (tablet inline pane); both gated on `draft.cards.isNotEmpty()`. |
 | Walkthrough | ✅ | 🚫 | 🚫 | Same skip rule |
 
 ---

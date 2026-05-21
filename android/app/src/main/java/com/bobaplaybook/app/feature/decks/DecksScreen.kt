@@ -149,6 +149,7 @@ private fun DecksCompactScreen(
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
     var editorOpen by remember { mutableStateOf(false) }
+    var wallOpen by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var templatesOpen by remember { mutableStateOf(false) }
     var clearConfirmOpen by remember { mutableStateOf(false) }
@@ -352,7 +353,12 @@ private fun DecksCompactScreen(
                 editorOpen = false
                 onSignInRequest()
             },
+            onGenerateWall = { wallOpen = true },
         )
+    }
+
+    if (wallOpen) {
+        DeckWallSheet(draft = draft, onDismiss = { wallOpen = false })
     }
 
     if (templatesOpen) {
@@ -508,6 +514,11 @@ private fun DecksTabletScreen(
     val draft by deckViewModel.draft.collectAsStateWithLifecycle()
     val authState by deckViewModel.authState.collectAsStateWithLifecycle()
     val isSignedIn = authState is com.bobaplaybook.app.auth.AuthState.SignedIn
+    var wallOpen by remember { mutableStateOf(false) }
+
+    if (wallOpen) {
+        DeckWallSheet(draft = draft, onDismiss = { wallOpen = false })
+    }
 
     Row(modifier = modifier.fillMaxSize()) {
         // Saved decks sidebar — Supabase-backed via DecksViewModel.savedDecks
@@ -588,6 +599,7 @@ private fun DecksTabletScreen(
                 onSignInRequest = onSignInRequest,
                 onOpenRules = onOpenRules,
                 onOpenLegality = onOpenLegality,
+                onGenerateWall = { wallOpen = true },
             )
         }
     }

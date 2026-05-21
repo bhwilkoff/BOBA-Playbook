@@ -76,6 +76,25 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 76 — 2026-05-20 — **Android** — Generate Deck Wall (web tick 9 + iOS §8.8 parity)
+- **Cadence:** 76 % 5 = 1 → Android.
+- **Picked:** Real parity gap from PARITY.md line 95: Generate-deck-wall shipped on iOS (✅) + web tick 9 (✅) but Android was 🔮. Android Decks editor had no Wall affordance even though `CollectionWall` already shipped a graphicsLayer-record + `WallShareHelper` capture/share pipeline that's directly reusable.
+- **Shipped:**
+  - New `android/.../feature/decks/DeckWallSheet.kt` — full-screen `ModalBottomSheet` rendering `draft.cards` as a near-black small-multiples `LazyVerticalGrid` w/ the same `graphicsLayer.record` capture pattern + `WallShareHelper.share()` call as `CollectionWall`. Same 200-card HARD_CAP with GLOW-yellow truncation note (parity with web tick 43 + Android tick 64 + iOS tick 72). Empty-draft branch shows a placeholder instead of an empty share-button.
+  - `DeckEditorSheet.kt`:
+    - `DeckEditorSheet` (modal) gained an `onGenerateWall: () -> Unit = {}` param + IconButton (Icons.Default.ViewModule) in the top action row, gated on `draft.cards.isNotEmpty()`.
+    - `DeckEditorContentInline` (tablet pane) gained the same param + an OutlinedButton "Wall" alongside Rules / Legality, gated on `hasCards`.
+    - `DeckEditorContent` (sheet inner content) gained the param + IconButton wiring.
+    - All three call sites default the param to `{}` so unrelated callers stay source-compatible.
+  - `DecksScreen.kt`:
+    - `DecksCompactScreen` gained `var wallOpen by remember { mutableStateOf(false) }` + `if (wallOpen) DeckWallSheet(...)` block; wires `onGenerateWall = { wallOpen = true }` on the editor sheet.
+    - `DecksTabletScreen` gained its own `wallOpen` + sheet block + wired into the inline editor.
+- **Verified:** Card field shape verified (`bobaId`, `imageFile`, `isSealed`, `displayName` all on `core/domain/model/Card.kt`). `WallShareHelper.share()` signature accepts `username = null` cleanly (text-body branches on `publicLink != null`). `BOBACardCell` signature accepts `imageFile` + `isSealed` + `contentDescription`. Java not on PATH for gradle compile; iterate on CI / next-iteration if surface issues.
+- **PARITY.md:** Line 95 flipped to ✅ Android with note on the WallShareHelper reuse + dual editor surfaces (modal IconButton + tablet OutlinedButton).
+- **Next:** tick 77 = iOS; 78 = web; 79 = Android; 80 = opt.
+
+
+
 ### Tick 75 — 2026-05-20 — **OPTIMIZATION TICK (6th 1-in-5)** — orphan Android string + orphan auth fn
 - **Cadence:** opt-rotation. Web has had 3 opt ticks (50/55/70), iOS 1 (65), Android 1 (60). Bias-toward-not-web this round.
 - **Shipped two orphan removals:**

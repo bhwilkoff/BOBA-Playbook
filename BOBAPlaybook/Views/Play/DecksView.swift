@@ -192,7 +192,21 @@ struct DecksView: View {
         .walkthroughOverlay($walkthrough) { stage in
             handleWalkthroughStage(stage)
         }
-        .onAppear(perform: handleAppear)
+        .onAppear {
+            // Auto-restore any in-progress draft + fire the Decks walkthrough
+            // on first visit. Was `handleAppear()`; inlined here when the
+            // shared helper got dropped in tick 145 (the call site survived
+            // — this restores correct behavior).
+            if deckIsEmpty {
+                _ = store.restoreDraft(allCards: cardStore.displayCards)
+            }
+            if WalkthroughsManager.shared.shouldShow(.decksTab) {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(250))
+                    walkthrough = .decksTab
+                }
+            }
+        }
         .onDisappear { store.saveDraft() }
         .onChange(of: scanStore.pendingScannedCardsForActiveDeck.count) { _, count in
             guard count > 0 else { return }

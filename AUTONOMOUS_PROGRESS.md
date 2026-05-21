@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 128 — 2026-05-20 — **web** — Glossary right-click + long-press to share (3-platform parity)
+- **Cadence:** 128 % 5 = 3 → web.
+- **Picked:** Tick 88 shipped tap-to-copy on the web Glossary. iOS tick 127 + Android tick 126 just added the long-press-to-share companion. Web was the laggard. Progressive-enhancement: web's two canonical "secondary action" gestures are right-click (desktop) and long-press (touch) — no HTML change needed; existing 32-row markup unchanged.
+- **Shipped:**
+  - `js/app.js` two new global listeners (sit alongside the existing `click` listener for tap-to-copy):
+    - `contextmenu` → suppress the browser's right-click menu + call `glossaryShare(row)`.
+    - `touchstart` + 600ms timer → `glossaryShare(row)`. Timer cleared on `touchmove` / `touchend` / `touchcancel` so a scroll gesture doesn't fire share.
+  - New `glossaryShare(row)` helper — fires `window.bobaShareTarget({title: "BOBA Glossary: {term}", text: "{term} — {definition}"})` (Web Share API w/ clipboard fallback already wired via shareTarget). When `bobaShareTarget` isn't available (defensive), falls through to `navigator.clipboard.writeText` + toast.
+  - All 4 touch listeners use `{ passive: true }` so the browser scroll doesn't fight the timer.
+- **Verified:** `node -c js/app.js` clean. Existing tap-to-copy unchanged — still fires on regular click. The touch path is keyboard-friendly: keyboard users get the row's existing Enter-to-copy via the `<button class="glossary-row">` (HTML button semantics intact).
+- **PARITY.md:** No row — UX polish on already-✅ Glossary. 3-platform parity now: iOS contextMenu (127) + Android combinedClickable (126) + web contextmenu/longpress (128).
+- **Next:** tick 129 = Android; 130 = opt.
+
+
+
 ### Tick 127 — 2026-05-20 — **iOS** — Glossary contextMenu: Share alongside tap-to-copy (Android tick 126 parity)
 - **Cadence:** 127 % 5 = 2 → iOS.
 - **Picked:** Tick 87 shipped tap-to-copy on iOS Glossary rows. Tick 126 just added Android's long-press → ACTION_SEND chooser. iOS canon is `.contextMenu` (long-press surfaces a menu instead of immediately invoking the action). Without contextMenu, iOS coaches who wanted to share a definition had to copy → switch to Discord → paste — 3 steps where 1 would do.

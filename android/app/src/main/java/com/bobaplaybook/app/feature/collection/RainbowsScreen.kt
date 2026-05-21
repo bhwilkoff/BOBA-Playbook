@@ -166,7 +166,30 @@ fun RainbowsScreen(
                     )
                 }
             } else {
+                // Owned bobaIds (Personal / Sale / Trade) computed
+                // once for this list — per-row reuses the same set
+                // for O(1) overlap counting. iOS Custom Rainbow detail
+                // does the same.
+                val ownedBobaIds = remember(state) {
+                    state.entriesByDesignation.values.flatten()
+                        .filter { it.userCard.designation in setOf(
+                            com.bobaplaybook.core.domain.model.Designation.PERSONAL,
+                            com.bobaplaybook.core.domain.model.Designation.FOR_SALE,
+                            com.bobaplaybook.core.domain.model.Designation.FOR_TRADE,
+                        ) }
+                        .map { it.card.bobaId }.toSet()
+                }
                 items(items = customRainbows, key = { it.id }) { rainbow ->
+                    // Catalog cards that match this rainbow's criteria.
+                    // Memoized on (catalog, rainbow) so the per-recompose
+                    // cost is zero. Owned count = intersection with
+                    // ownedBobaIds — "5 of 30 owned · 17%". iOS parity.
+                    val matching = remember(catalog, rainbow.criteria) {
+                        catalog.filter { criteriaMatches(rainbow.criteria, it) }
+                    }
+                    val owned = matching.count { it.bobaId in ownedBobaIds }
+                    val pct = if (matching.isEmpty()) 0
+                              else ((owned * 100.0) / matching.size).toInt()
                     ListItem(
                         headlineContent = { Text(rainbow.name) },
                         supportingContent = {
@@ -185,10 +208,18 @@ fun RainbowsScreen(
                                 if (rainbow.criteria.cardTypes.isNotEmpty())  add("${rainbow.criteria.cardTypes.size} card types")
                                 if (rainbow.criteria.inspiredInkOnly)         add("Inspired Ink only")
                             }
-                            Text(
-                                parts.joinToString(" · ").ifEmpty { "Any card" },
-                                style = MaterialTheme.typography.labelMedium,
-                            )
+                            Column {
+                                Text(
+                                    "$owned of ${matching.size} owned · $pct%",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                Text(
+                                    parts.joinToString(" · ").ifEmpty { "Any card" },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         },
                         trailingContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -297,3 +328,40 @@ private data class AutoRainbow(
     val totalTreatments: Int,
     val totalCopies: Int,
 )
+
+/**
+ * Card-matches-criteria check used by the Custom Rainbow row's
+ * "5 of 30 owned" computation. Mirrors iOS RainbowCriteria.matches
+ * + the web equivalent (rainbowCriteriaMatches). Local to this file
+ * to avoid touching the shared data model; promote to
+ * `RainbowCriteria.matches(card)` when a 2nd call site needs it.
+ *
+ * Empty criteria fields are interpreted as "any" (not "none") —
+ * a rainbow with no constraints matches every catalog card.
+ */
+private fun criteriaMatches(
+    criteria: com.bobaplaybook.core.data.rainbows.RainbowCriteria,
+    card: com.bobaplaybook.core.domain.model.Card,
+): Boolean {
+    if (criteria.heroes.isNotEmpty()    && card.hero !in criteria.heroes) return false
+    if (criteria.elements.isNotEmpty()  && card.element !in criteria.elements) return false
+    if (criteria.treatments.isNotEmpty()) {
+        val t = card.treatment ?: ""
+        if (t !in criteria.treatments) return false
+    }
+    if (criteria.sets.isNotEmpty()      && card.set !in criteria.sets) return false
+    if (criteria.subSets.isNotEmpty()) {
+        val s = card.subSet ?: ""
+        if (s !in criteria.subSets) return false
+    }
+    if (criteria.releases.isNotEmpty()) {
+        val r = card.release ?: ""
+        if (r !in criteria.releases) return false
+    }
+    if (criteria.cardTypes.isNotEmpty() && card.cardType !in criteria.cardTypes) return false
+    if (criteria.inspiredInkOnly) {
+        val isInspired = (card.treatment ?: "").lowercase().contains("inspired ink")
+        if (!isInspired) return false
+    }
+    return true
+}

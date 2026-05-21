@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 111 — 2026-05-20 — **Android** — Custom Rainbow row shows owned/total progress (iOS parity)
+- **Cadence:** 111 % 5 = 1 → Android.
+- **Picked:** Android Custom Rainbow rows showed only WHICH filter dimensions were active ("3 heroes · 5 treatments") but NO progress info — user had to tap into each rainbow to learn whether they were 2/30 or 28/30 done. iOS + web Custom Rainbows surface "5 of 30 owned · 17%" inline; Android lagged.
+- **Shipped:**
+  - `RainbowsScreen.kt`:
+    - Pre-computed `ownedBobaIds` Set once for the custom-rainbows list (memoized on `state`). Personal / For Sale / For Trade designations count as "owned" — same scope iOS uses.
+    - Per-row `remember(catalog, rainbow.criteria) { ... }` filters catalog → matching cards. `owned` = intersection with ownedBobaIds. `pct` = owned ÷ matching × 100.
+    - Row's `supportingContent` now renders a 2-line Column: bold cyan progress line "${owned} of ${matching.size} owned · ${pct}%" on top, dim filter-summary line below. Was previously a single label-summary line.
+  - New file-private `criteriaMatches(criteria, card)` helper at the bottom — ports iOS `RainbowCriteria.matches` + web `rainbowCriteriaMatches` semantics. Empty fields = "any" (matches every card); non-empty fields = whitelist. Inspired Ink toggle checks for "inspired ink" substring in treatment. Local-scope (file-private) to keep tick small; promote to `RainbowCriteria.matches(card)` extension when a 2nd call site needs it.
+- **Verified:** `state.entriesByDesignation` shape unchanged. `catalog` already collected at line 69. RainbowCriteria field list confirmed at `CustomRainbowRepository.kt:142-150`.
+- **PARITY.md:** No row — UX polish on already-✅ Custom Rainbows row. Closes the "list shows filter but not progress" gap.
+- **Next:** tick 112 = iOS; 113 = web; 114 = Android; 115 = opt.
+
+
+
 ### Tick 110 — 2026-05-20 — **OPTIMIZATION TICK (13th 1-in-5)** — orphan pmDetectHDRecovery
 - **Cadence:** opt rotation. Web 5 ticks · iOS 4 · Android 3. Web has slight lead but `practice.js` had a clean orphan target.
 - **Picked:** `pmDetectHDRecovery(card)` at practice.js:1557 — 12-line regex helper that detected "return/recover N hot dogs" play text. `grep -rn pmDetectHDRecovery js/` returned exactly one hit — the function definition. The structured `play-effects.json` engine (loaded via `pmLoadPlayEffects` immediately below) supersedes this regex approach; the orphan helper is leftover from the pre-structured-effects era.

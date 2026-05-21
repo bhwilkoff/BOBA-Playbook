@@ -102,6 +102,16 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 35 — 2026-05-20 — Web Decks pool search debounce
+- **Picked:** Audit continuation. Find search has 280ms debounce, Collection search shipped tick 34 with 220ms. Decks pool search at `js/practice.js:913` had **no debounce** — every keystroke triggered `dbFilterCards(allCards)` (17k catalog linear scan) + `dbRenderGrid` (full DOM rebuild of 180 cells). Fast typists could fire 6+ renders per second.
+- **Shipped:**
+  - `js/practice.js`: 220ms debounce on `#db-search` input handler. Same shape as Collection tick 34 (matches the Decks pool's render cost — slightly cheaper than Find since the pool is pre-filtered to plays / heroes / hot-dogs).
+- **Verified:** node -c clean. Logic trace: rapid typing → debounce coalesces to one filter+render at 220ms-quiet → no jank. Filter is correct in steady-state (the debounced timer always assigns the latest `next` value).
+- **Why this matters:** the Decks builder is THE most-typed-in surface for power users — drafting a deck involves a lot of "search for Maverick → click → search for X → click." Smooth keystroke response is the whole UX.
+- **PARITY.md:** No row — debounce on an already-✅ row.
+- **Architectural note:** all three web search inputs now share a debounce pattern (Find 280ms, Collection 220ms, Decks 220ms). Worth a `debounce(fn, ms)` helper in a future refactor — three call sites is the threshold where a primitive starts to pay off.
+- **Next:** Tick 36. Plausible: (a) debounce helper extraction, (b) audit Filter sheet for missing chips / UX gaps, (c) jump to another area.
+
 ### Tick 34 — 2026-05-20 — Web Collection in-tab search input
 - **Picked:** Audit closed; back to features. Found a real parity gap: iOS Collection has `.searchable` (DESIGN.md §8.4) — composes with the designation tab. Web Collection had no search at all. Users with 500+ owned cards had no way to find a specific one without scrolling.
 - **Shipped:**

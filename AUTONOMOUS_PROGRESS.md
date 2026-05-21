@@ -76,6 +76,24 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 124 — 2026-05-20 — **Android** — Manage Decks delete: Undo Snackbar (replaces "Can't be undone" copy)
+- **Cadence:** 124 % 5 = 4 → Android.
+- **Picked:** Manage Decks delete dialog said "This removes the deck from every device. Can't be undone." — TRUE for the Supabase row identity (the delete is hard) but FALSE for the data (deck name + cards are recoverable from the SavedDeck snapshot the UI just rendered from). Three-platform parity tick (iOS Decks tick 117 + Android Decks tick 116 + web Decks tick 118 all shipped Undo Snackbars; Manage Decks was the holdout).
+- **Shipped:**
+  - `DecksViewModel.kt::restoreDeletedDeck(saved: SavedDeck, onResult)`:
+    - Bypasses the draft-state path (`save(...)` requires DeckStore.draft to be populated). Calls `repo.saveDeck(userId, name, flatCardNumbers)` directly with the captured SavedDeck's data.
+    - Expands the quantity-rows back into a flat cardNumber list (saveDeck takes one entry per copy; quantities inferred server-side).
+    - Returns the NEW deck id (Supabase issues a fresh UUID; the captured original is gone for good).
+  - `DeckSecondaryScreens.kt::pendingDelete dialog`:
+    - Body copy updated: "Can't be undone" → "You'll have a few seconds to undo."
+    - confirmButton handler captures the deck BEFORE delete, fires vm.deleteDeck, then shows Snackbar with "Undo" action.
+    - On Undo: calls `vm.restoreDeletedDeck(captured) { newId -> ... }`. Surfaces a follow-up Snackbar "Restored \"{name}\"" on success, "Couldn't restore — check connectivity." on null (e.g. signed-out race or RLS reject).
+- **Verified:** `SavedDeck.cards` is a `List<SavedDeckCard>` with `cardNumber` + `quantity`; the flat-list expansion mirrors the existing saveDeck call shape at DecksViewModel:90. Snackbar pattern matches the per-card delete flow in CollectionCardDetailScreen (tick 119).
+- **PARITY.md:** No row — UX polish on already-✅ Manage Decks delete.
+- **Next:** tick 125 = opt; 126 = Android; 127 = iOS.
+
+
+
 ### Tick 123 — 2026-05-20 — **web** — Collection delete: Undo Snackbar replaces blocking confirm (3-platform parity)
 - **Cadence:** 123 % 5 = 3 → web.
 - **Picked:** Web `_renderCollectionDetail`'s per-copy delete (collection.js:2842) used a blocking native `confirm()` dialog + `alert()` on error. Both modal-blocking and ugly. iOS tick 122 + Android tick 119 ship inline Undo toasts that ARE the safety net; web was the laggard.

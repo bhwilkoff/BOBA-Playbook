@@ -29,7 +29,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -63,6 +65,13 @@ fun CustomRainbowEditorSheet(
     val vm: CustomRainbowsViewModel = hiltViewModel()
     val catalogVm: RainbowCatalogViewModel = hiltViewModel()
     val catalog by catalogVm.cards.collectAsStateWithLifecycle()
+    // Tick 156 — surface success / failure feedback after Save.
+    // Without this, vm.create silently fails (network / RLS) leaving
+    // the user staring at an unchanged editor and the parent list
+    // untouched — looks exactly like a successful save that didn't
+    // appear, or like the tap did nothing.
+    val scope = rememberCoroutineScope()
+    val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
 
     // Pre-fill from `existing` on first composition. After that, the
     // user's edits drive state — re-keying on existing.id ensures
@@ -157,11 +166,19 @@ fun CustomRainbowEditorSheet(
                             releases = releases.toList(),
                             inspiredInkOnly = inspiredInkOnly,
                         )
-                        if (existing == null) {
-                            vm.create(name.trim(), criteria) { ok -> if (ok) onDismiss() }
-                        } else {
-                            vm.update(existing.id, name.trim(), criteria) { ok -> if (ok) onDismiss() }
+                        val verb = if (existing == null) "Created" else "Saved"
+                        val cb: (Boolean) -> Unit = { ok ->
+                            scope.launch {
+                                if (ok) {
+                                    appSnackbar?.showSnackbar("$verb \"${name.trim()}\"")
+                                    onDismiss()
+                                } else {
+                                    appSnackbar?.showSnackbar("Couldn't save — check connectivity and try again.")
+                                }
+                            }
                         }
+                        if (existing == null) vm.create(name.trim(), criteria, cb)
+                        else                  vm.update(existing.id, name.trim(), criteria, cb)
                     },
                     enabled = name.trim().isNotEmpty(),
                     modifier = Modifier.weight(1f),

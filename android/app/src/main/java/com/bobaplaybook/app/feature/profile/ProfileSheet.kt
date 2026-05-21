@@ -791,7 +791,25 @@ private fun SignedInContent(
                             android.content.Intent.ACTION_VIEW,
                             android.net.Uri.parse("mailto:ben@bobaplaybook.com?subject=$subject"),
                         )
+                        // Tick 166 — was silently swallowed via
+                        // runCatching{...}. If no email app is installed
+                        // (Pixels often ship without one), the user taps
+                        // and sees nothing. Fall back to a Snackbar with
+                        // the canonical email + a Copy-email affordance
+                        // so they can at least reach out via another
+                        // client (Gmail web, etc.).
                         runCatching { context.startActivity(intent) }
+                            .onFailure {
+                                val cm = context.getSystemService(android.content.ClipboardManager::class.java)
+                                cm?.setPrimaryClip(
+                                    android.content.ClipData.newPlainText("BOBA feedback email", "ben@bobaplaybook.com")
+                                )
+                                scope.launch {
+                                    appSnackbar?.showSnackbar(
+                                        "No email app — copied ben@bobaplaybook.com to clipboard",
+                                    )
+                                }
+                            }
                     },
             )
         }

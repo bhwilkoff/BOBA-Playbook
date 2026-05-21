@@ -102,6 +102,14 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 49 — 2026-05-20 — Custom Rainbows empty-state shows even before catalog hydrates
+- **Picked:** Latency edge case. `hydrateCustomRainbows` early-returned when `window.__bobaCatalog` was empty (initial sign-in, catalog still in phase-2 load). A signed-in user with ZERO rainbows but on a fresh page load saw the section heading + "+ New rainbow" button + **nothing else** — no empty-state hint to explain why. Looked like a layout bug.
+- **Shipped:**
+  - `js/collection.js::hydrateCustomRainbows`: moved the empty-state render BEFORE the catalog-readiness early-return. Now: zero rainbows → empty-state visible immediately, even before catalog loads. Catalog-required match work stays gated on catalog readiness (it's only needed for the rainbow ROW rendering).
+  - Cleaned up the duplicate `empty.hidden = true` that resulted from the reorder.
+- **Verified:** node -c clean. Trace: sign in cold (catalog still loading) + zero rainbows → "No custom rainbows yet" hint + + New button immediately visible. Cold sign-in + has rainbows → list rendering waits for catalog (which loads fast enough that the user doesn't see the in-between state).
+- **PARITY.md:** No row.
+
 ### Tick 48 — 2026-05-20 — iOS card-detail artPanel sealed-orange drift sync
 - **Picked:** DESIGN.md §8.6: "All three detail structs share these blocks — drift is the bug." Audit found drift. `CardDetailView.artPanel` (Search/Find) had the sealed-product orange gradient handling (line 491): `card.isSealed ? Design.Colors.bobaOrange : Design.Colors.element(card.element)`. `CollectionCardDetailView.artPanel` (line 341) and `BrowserCardDetailSheet.artPanel` (DeckBuilderView.swift:1971) did NOT — they always used the element color, even for sealed products which have no element. Sealed boxes opened from Collection got a muddy transparent gradient instead of the orange brand accent.
 - **Shipped:**

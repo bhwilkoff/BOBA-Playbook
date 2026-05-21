@@ -1061,18 +1061,23 @@ const Collection = (() => {
     _customRainbowsById = {};
     for (const r of rainbows || []) _customRainbowsById[r.id] = r;
 
-    const catalog = window.__bobaCatalog || [];
-    if (catalog.length === 0) return;
-
-    const groupKeyOf = c => c.boba_id || c.card_number;
-    const ownedKeys = new Set(ownedCards.map(groupKeyOf));
-
+    // Empty-state render BEFORE the catalog-readiness check. A user
+    // with zero rainbows shouldn't see a bare heading + button when
+    // they first sign in (catalog still hydrating) — show the empty
+    // hint immediately. The catalog-required match work below is the
+    // only path that needs the catalog.
     if (!rainbows || rainbows.length === 0) {
       list.innerHTML = '';
       if (empty) empty.hidden = false;
       return;
     }
     if (empty) empty.hidden = true;
+
+    const catalog = window.__bobaCatalog || [];
+    if (catalog.length === 0) return;
+
+    const groupKeyOf = c => c.boba_id || c.card_number;
+    const ownedKeys = new Set(ownedCards.map(groupKeyOf));
     list.innerHTML = rainbows.map(rainbow => {
       const matching = _rainbowMatching(rainbow, catalog);
       return _renderRainbowRow({

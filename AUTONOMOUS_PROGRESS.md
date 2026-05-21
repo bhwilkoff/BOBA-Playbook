@@ -102,6 +102,23 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 33 — 2026-05-20 — iOS customRainbowProgress: caching audit follow-up
+- **Picked:** Tail finding from the tick-30/31 large-collection audit. Tick 31 cached `rainbowRows` for the hero auto-rainbow list, but `customRainbowProgress(rainbow)` was still a per-rainbow function called from `customRainbowRow` on every body re-eval. Each call did a fresh 17k catalog filter AND a fresh `ownedIds` Set construction from `collection.userCards` — at 5 custom rainbows × N re-evals, this dominated the rainbow tab frame time.
+- **Shipped:**
+  - `BOBAPlaybook/Views/Collection/CollectionView.swift`:
+    - New `@State customRainbowProgressCache: [UUID: CustomRainbowTriple]` keyed by rainbow.id; private `CustomRainbowTriple` struct holds owned/total/thumb (Swift dicts can't store tuple values cleanly).
+    - `customRainbowProgress(rainbow)` reads from the cache when populated, falls back to `_computeRainbowTriple` for the rare uncached first-frame case.
+    - New `_computeRainbowTriple(rainbow, ownedIds: Set<String>?)` — the shared compute helper. When `ownedIds` is passed in (the cache-build path), it's reused across every rainbow; when nil (uncached fallback), it's built locally.
+    - New `buildCustomRainbowProgressCache()` — builds `ownedIds` ONCE outside the per-rainbow loop, then computes the triple per rainbow. Replaces the prior N × ownedIds-rebuild pattern with a single ownedIds construction.
+    - `rainbowCacheKey` extended to include `customRainbows.count` + per-rainbow `updatedAt.timeIntervalSince1970` so editing a rainbow's criteria via the iOS editor invalidates the cache.
+    - `.task(id: rainbowCacheKey)` block rebuilds both caches in lockstep.
+- **Cost change:** body re-eval was running 5 × `displayCards.filter` (17k cards each) + 5 × ownedIds Set construction = ~85k+5×ownedCards comparisons per re-eval. Now: O(1) dict lookup. Rebuild fires only when userCards / catalog / customRainbows change.
+- **Verified:** `CustomRainbow` has `updatedAt: Date` (line 107) so the cache key signature is valid. Cache-key shape is bounded (per-rainbow signature is 8 chars of UUID + a timestamp), no balloon at 100+ rainbows.
+- **PARITY.md:** No row — iOS perf fix.
+- **Why this matters for big collections:** the rainbow tab is one of the most-used Collection surfaces (1,237 community messages on rainbow/checklist tracking per Agent C's audit). Smoothness there is the load-bearing path for power users.
+- **Audit fully closed:** Web (ticks 30 + 32) + iOS (ticks 31 + 33) + Android (already clean per audit). The "no other delays/stoppages anywhere in the collection views" directive is satisfied.
+- **Next:** Tick 34. Loop continues at 60s. Back to features/polish. Plausible: (a) Card detail modal re-render audit, (b) Decks deck-stats live update audit, (c) a non-perf feature.
+
 ### Tick 32 — 2026-05-20 — Web Collection grid pagination (audit item #8)
 - **Picked:** Final web piece of the large-collection audit. Item #8 — `sortedGroups.map(buildCollectionCardHtml).join('')` emitted EVERY group as a single `innerHTML` assignment. At 500 cards that's 500 DOM nodes parsed synchronously on every tab switch; at 5000, paint stalls visibly. Find tab already had this solved (PAGE_SIZE = 60 + IntersectionObserver); Collection just hadn't picked up the pattern.
 - **Verified other Find-side perf paths first:** web search debounce = 280ms (`SEARCH_DEBOUNCE_MS`, line 22) ✓. `applyFilters` paginates via `renderNextPage` + `PAGE_SIZE = 60` ✓. Find is clean.

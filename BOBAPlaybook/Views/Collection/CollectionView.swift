@@ -50,6 +50,17 @@ struct CollectionView: View {
     /// this cache, ownedBobaIds Set + byHero buckets + sort all rebuild
     /// on every body call — measurable jank at 500+ owned cards.
     @State private var rainbowRowsCache: [RainbowProgress] = []
+    /// Cached per-custom-rainbow progress triples (owned/total/thumb).
+    /// Without this, `customRainbowProgress(rainbow)` was called per-rainbow
+    /// per body re-eval — each call did a fresh 17k-catalog filter +
+    /// rebuilt the ownedBobaIds Set from scratch. At 5 rainbows × N
+    /// re-evals per gesture, this dominated the rainbow tab's frame time.
+    @State private var customRainbowProgressCache: [UUID: CustomRainbowTriple] = [:]
+    private struct CustomRainbowTriple {
+        let owned: Int
+        let total: Int
+        let thumb: Card?
+    }
     @State private var showingShareSheet   = false
     @State private var shareItems: [Any]   = []
     @AppStorage("selectedIconName") private var selectedIconName: String = "default"
@@ -1024,10 +1035,19 @@ struct CollectionView: View {
 
     /// Cache-invalidation key. Recomputes the rainbow rows when the
     /// user adds/removes cards or the catalog finishes hydrating its
-    /// second phase. Doesn't depend on tab selection / search / sort —
-    /// those wouldn't change the rainbow aggregation.
+    /// second phase. Also includes the custom-rainbow list signature
+    /// (count + name hash) so saved-criteria edits invalidate too.
+    /// Doesn't depend on tab selection / search / sort — those wouldn't
+    /// change the rainbow aggregation.
     private var rainbowCacheKey: String {
-        "\(collection.userCards.count)|\(cardStore.displayCards.count)"
+        let custom = customRainbowStore.rainbows
+        // Cheap signature: count + concatenated id-tails. Detects
+        // adds / removes / criteria-saves; doesn't fire on no-op
+        // re-renders.
+        let customSig = custom.reduce(into: "") { acc, r in
+            acc += "|\(r.id.uuidString.prefix(8))=\(r.updatedAt.timeIntervalSince1970)"
+        }
+        return "\(collection.userCards.count)|\(cardStore.displayCards.count)|\(custom.count)\(customSig)"
     }
 
     private var rainbowList: some View {
@@ -1095,13 +1115,15 @@ struct CollectionView: View {
         .sheet(isPresented: $showingCustomRainbowEditor) {
             CustomRainbowEditorSheet(existing: nil)
         }
-        // Rebuild the rainbowRowsCache when the data this aggregation
-        // depends on actually changes. `.task(id:)` re-fires on key
-        // change + cancels prior runs cleanly. Without this, the body
-        // re-eval rebuilt buckets + sort on EVERY render — at 500+
-        // owned cards × 17k catalog, visible jank on tab switch.
+        // Rebuild both rainbow caches when the data they depend on
+        // actually changes. `.task(id:)` re-fires on key change +
+        // cancels prior runs cleanly. Without this, the body re-eval
+        // rebuilt buckets + sort + per-rainbow matching on EVERY
+        // render — at 500+ owned cards × 17k catalog × 5 custom
+        // rainbows, visible jank on every tap.
         .task(id: rainbowCacheKey) {
             rainbowRowsCache = buildRainbowRows()
+            customRainbowProgressCache = buildCustomRainbowProgressCache()
         }
     }
 
@@ -1217,12 +1239,26 @@ struct CollectionView: View {
     /// matching card in the catalog when nothing is owned yet, and
     /// to nil only if the rainbow matches zero cards entirely
     /// (rare; the row falls back to the sparkles placeholder).
+    /// Read the cached per-rainbow progress. Cache is built once per
+    /// data-change by `buildCustomRainbowProgressCache()` and stored
+    /// in `customRainbowProgressCache`. Falls back to computing inline
+    /// if the cache hasn't been populated yet (initial first frame).
     private func customRainbowProgress(_ rainbow: CustomRainbow) -> (owned: Int, total: Int, thumb: Card?) {
+        if let cached = customRainbowProgressCache[rainbow.id] {
+            return (cached.owned, cached.total, cached.thumb)
+        }
+        return _computeRainbowTriple(rainbow, ownedIds: nil)
+    }
+
+    /// Single-rainbow triple computation. When `ownedIds` is supplied
+    /// (the cache-build path) it's reused across every rainbow; when
+    /// nil (the rare uncached fallback) it's built locally.
+    private func _computeRainbowTriple(_ rainbow: CustomRainbow, ownedIds: Set<String>?) -> (owned: Int, total: Int, thumb: Card?) {
         let matching = cardStore.displayCards.filter { rainbow.criteria.matches($0) }
-        let ownedIds = Set(collection.userCards
-                               .filter { $0.designation.isOwned }
-                               .compactMap { $0.bobaId })
-        let ownedMatching = matching.filter { ownedIds.contains($0.id) }
+        let owned = ownedIds ?? Set(collection.userCards
+                                        .filter { $0.designation.isOwned }
+                                        .compactMap { $0.bobaId })
+        let ownedMatching = matching.filter { owned.contains($0.id) }
         // Prefer an owned card with a real image; else any owned;
         // else first match overall.
         let thumb = ownedMatching.first(where: { $0.imageFile?.isEmpty == false })
@@ -1230,6 +1266,26 @@ struct CollectionView: View {
                     ?? matching.first(where: { $0.imageFile?.isEmpty == false })
                     ?? matching.first
         return (ownedMatching.count, matching.count, thumb)
+    }
+
+    /// Build the entire customRainbowProgressCache in one pass. Called
+    /// from `.task(id: rainbowCacheKey)` alongside the buildRainbowRows
+    /// invocation so both caches refresh in lockstep.
+    private func buildCustomRainbowProgressCache() -> [UUID: CustomRainbowTriple] {
+        // Compute ownedIds ONCE outside the per-rainbow loop — previously
+        // each customRainbowProgress(rainbow) rebuilt this from scratch
+        // for every rainbow in the list.
+        let ownedIds: Set<String> = Set(
+            collection.userCards
+                .filter { $0.designation.isOwned }
+                .compactMap { $0.bobaId }
+        )
+        var out: [UUID: CustomRainbowTriple] = [:]
+        for rainbow in customRainbowStore.rainbows {
+            let triple = _computeRainbowTriple(rainbow, ownedIds: ownedIds)
+            out[rainbow.id] = .init(owned: triple.owned, total: triple.total, thumb: triple.thumb)
+        }
+        return out
     }
 
     private func rainbowRow(_ row: RainbowProgress) -> some View {

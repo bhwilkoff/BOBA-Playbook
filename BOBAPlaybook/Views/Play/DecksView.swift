@@ -1485,25 +1485,63 @@ struct DecksView: View {
 
     /// Long-press handler — adds the card to the current deck via
     /// the store's role-aware addCard, fires haptic feedback, and
-    /// surfaces a transient "Added X" banner. Skips invisible
-    /// rule-violating cards (the format-eligibility filter already
-    /// hides them from the pool, but the dup check happens here).
+    /// surfaces a transient "Added X" banner. When the card couldn't
+    /// be added (already in deck or section cap reached), shows a
+    /// "couldn't add" banner explaining why instead of silently
+    /// no-opping — tick 112 closes the gap with Android tick 89's
+    /// search-vs-filter disambiguation pattern.
     private func addCardToDeck(_ card: Card) {
         let role = pickRoleForCard(card)
         let beforeCount = countForRole(role)
         store.addCard(card, role: role)
         let afterCount = countForRole(role)
-        // Only show feedback if the card was actually added (the
-        // store silently skips dupes / cap violations).
-        guard afterCount > beforeCount else { return }
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         let label = card.hero.isEmpty ? card.name : card.hero
-        withAnimation(.easeOut(duration: 0.25)) {
-            addedBanner = "Added \(label)"
+        if afterCount > beforeCount {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            withAnimation(.easeOut(duration: 0.25)) {
+                addedBanner = "Added \(label)"
+            }
+        } else {
+            // Disambiguate the no-op reason so the user knows WHY
+            // the long-press appeared to do nothing.
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            let reason = noAddReasonFor(card: card, role: role)
+            withAnimation(.easeOut(duration: 0.25)) {
+                addedBanner = "\(label) — \(reason)"
+            }
         }
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(1.5))
             withAnimation(.easeOut(duration: 0.3)) { addedBanner = nil }
+        }
+    }
+
+    /// Compute a user-readable reason the long-press add no-opped.
+    /// Mirrors the silent-skip branches in DeckBuilderStore.addCard.
+    private func noAddReasonFor(card: Card, role: DeckCardRole) -> String {
+        switch role {
+        case .hero:
+            if store.heroes.contains(card) { return "already in deck" }
+            return "skipped"
+        case .play:
+            if store.plays.contains(card) || store.bonusPlays.contains(card) {
+                return "already in deck"
+            }
+            if card.cardNumber.hasPrefix("BPL") || card.treatment == "Bonus Plays" {
+                if store.bonusPlays.count >= 15 { return "bonus plays full (15)" }
+            }
+            return "skipped"
+        case .bonusPlay:
+            if store.bonusPlays.contains(card) || store.plays.contains(card) {
+                return "already in deck"
+            }
+            if store.bonusPlays.count >= 15 { return "bonus plays full (15)" }
+            return "skipped"
+        case .hotDog:
+            if store.hotDogs.count >= 10 { return "hot dogs full (10)" }
+            return "skipped"
+        case .sideboard:
+            return "skipped"
         }
     }
 

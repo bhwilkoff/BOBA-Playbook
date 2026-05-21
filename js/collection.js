@@ -192,11 +192,34 @@ const Collection = (() => {
     // scroll. Tab switch / sort change re-renders from page 1.
     const initialPage = sortedGroups.slice(0, _COLLECTION_PAGE_SIZE);
     const desigLabel = DESIGNATIONS.find(d => d.key === _activeTab)?.label;
-    const emptyMsg = _collectionSearchText
-      ? `No cards in ${esc(desigLabel)} match &ldquo;${esc(_collectionSearchText)}&rdquo;.`
-      : `No cards in ${esc(desigLabel)} yet.`;
+    // Brand-voice empty state with a productive next-action
+    // (universal-feature-states skill — empty states must invite action,
+    // not just announce absence). Per-designation copy mirrors what the
+    // user is most likely to do next. Search-empty branches separately
+    // so the CTA is "Clear search," not "Go to Find."
+    const isSearchEmpty = sortedGroups.length === 0 && !!_collectionSearchText;
+    const emptyCopyByDesig = {
+      personal:  { headline: 'No personal cards yet',  body: 'Scan a card or use Quick Add from the Find tab to start your stack.' },
+      for_sale:  { headline: 'Nothing for sale yet',   body: 'Mark a card from your Personal stack to start moving it.' },
+      for_trade: { headline: 'Nothing for trade yet',  body: 'Flag a card to find a trading partner once trading launches.' },
+      wanted:    { headline: 'No wanted cards yet',    body: 'Flag the cards you’re chasing — start with the ones at the top of your list.' },
+      grails:    { headline: 'No grails yet',          body: 'Mark the cards you’d cross a state line for.' },
+    };
+    const emptyCopy = emptyCopyByDesig[_activeTab]
+      || { headline: `No cards in ${esc(desigLabel)} yet`, body: '' };
+    const emptyHtml = isSearchEmpty
+      ? `<div class="collection-empty collection-empty-search">
+           <p class="collection-empty-headline">No cards match “${esc(_collectionSearchText)}”</p>
+           <p class="collection-empty-body">Try a different search term or clear the box to see every card in ${esc(desigLabel)}.</p>
+           <button type="button" class="btn-ghost-sm collection-empty-clear" data-action="clear-collection-search">Clear search</button>
+         </div>`
+      : `<div class="collection-empty">
+           <p class="collection-empty-headline">${esc(emptyCopy.headline)}</p>
+           ${emptyCopy.body ? `<p class="collection-empty-body">${esc(emptyCopy.body)}</p>` : ''}
+           <button type="button" class="btn-ghost-sm collection-empty-cta" data-action="go-to-find">Browse Find</button>
+         </div>`;
     const listHtml = sortedGroups.length === 0
-      ? `<p class="collection-empty">${emptyMsg}</p>`
+      ? emptyHtml
       : initialPage.map(buildCollectionCardHtml).join('');
 
     view.innerHTML = `
@@ -392,6 +415,19 @@ const Collection = (() => {
         designation: _activeTab,
         cards: sortedGroups.map(g => g[0]),  // one card per group (representative)
       });
+    });
+
+    // Empty-state CTAs (per-designation productive action). Wired only
+    // when the empty markup actually rendered. "Browse Find" routes to
+    // the Find view; "Clear search" wipes the in-collection search
+    // term + re-renders so the unfiltered designation grid surfaces.
+    view.querySelector('[data-action="go-to-find"]')?.addEventListener('click', () => {
+      if (typeof window.showView === 'function') window.showView('find');
+    });
+    view.querySelector('[data-action="clear-collection-search"]')?.addEventListener('click', () => {
+      _collectionSearchText = '';
+      renderCollectionView();
+      document.getElementById('collection-search')?.focus();
     });
 
     // Paginated render: attach IntersectionObserver on the sentinel to

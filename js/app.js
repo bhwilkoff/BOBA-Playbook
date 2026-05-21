@@ -3623,6 +3623,18 @@
 
     if (!rows.length) {
       subtitleEl.textContent = '';
+      // Distinguish "private / unknown handle" from "public but
+      // empty collection". `fetchPublicProfile` returns a row only
+      // when the handle exists AND sharing is on — use it to
+      // pick the right empty copy. We fetch it twice (also above
+      // for the avatar) but the call is cheap + cached server-side.
+      try {
+        const profile = await API.fetchPublicProfile(handle);
+        if (profile) {
+          // Profile exists + public — they just haven't added cards.
+          emptyEl.innerHTML = `<h2 style="color: var(--boba-orange); margin: 0 0 0.5rem 0;">No cards yet.</h2><p style="margin: 0; color: rgba(255,255,255,0.5);">@${escHtml(handle)} hasn't added any cards to their public collection.</p>`;
+        }
+      } catch { /* offline — fall through to default copy */ }
       emptyEl.hidden = false;
       return;
     }

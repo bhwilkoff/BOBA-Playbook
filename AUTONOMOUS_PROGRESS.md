@@ -102,6 +102,14 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 56 — 2026-05-20 — public-collection: duplicate fetchPublicProfile + honest empty-state
+- **Two bug fixes in one tick:**
+  1. **Duplicate function** — `fetchPublicProfile` was declared twice in api.js (lines 830 + 870) AND exported twice in the same object literal (lines 995 + 1008). JS uses the second declaration (silent override) so the first was unreachable dead code; the duplicate export key was no-op. Removed the orphan declaration + duplicate export.
+  2. **Misleading empty-state** — public-collection page showed "This collection isn't public" for BOTH "handle doesn't exist / private" AND "public but empty collection" cases. Now disambiguates: if `fetchPublicProfile(handle)` returns a profile row (handle exists AND sharing on), the empty message becomes "No cards yet. @handle hasn't added any cards to their public collection." Falls back to the original copy on offline / fetch error.
+- **Verified:** node -c clean on both api.js + app.js.
+- **PARITY.md:** No row.
+- **Tick spirit:** dead-code removal alongside the bug fix — appropriate even on a non-optimization tick when the dead code is in the same flow being audited.
+
 ### Tick 55 — 2026-05-20 — **OPTIMIZATION TICK** (2nd 1-in-5): unused Collection exports
 - **Second 1-in-5 optimization tick** per `feedback_one_in_five_optimization_tick.md`. Net line-removal target.
 - **Shipped:**

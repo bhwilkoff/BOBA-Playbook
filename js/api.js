@@ -827,13 +827,6 @@ const API = (() => {
   /// (avatar URL, Discord avatar fallback). Returns null if the
   /// user hasn't enabled public sharing or doesn't exist. Used by
   /// the public-collection page to render the owner's avatar.
-  async function fetchPublicProfile(handle) {
-    const { data, error } = await supa().rpc('get_public_profile', { handle });
-    if (error) throw new Error(error.message);
-    // RPC returns a setof — first row or null.
-    return Array.isArray(data) ? data[0] || null : (data || null);
-  }
-
   /// Permanently delete the current user's account via the
   /// boba-account-delete Worker. The Worker holds the Supabase
   /// service_role key and proxies the admin auth.users delete (which
@@ -1005,6 +998,5 @@ const API = (() => {
     uploadAvatar,
     deleteAvatar,
     setAvatarUrl,
-    fetchPublicProfile,
   };
 })();

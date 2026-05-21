@@ -758,9 +758,14 @@ private fun HeroStatRow(card: Card) {
  * CardDetailView.swift) so iOS+Android stay in sync. Sourced from
  * the 2026-04-22 Discord terminology handoff §4.1.
  */
+/// Made `internal` (was private) so the Decks editor's DBS chip
+/// (tick 134) can route to the same explainer instead of duplicating
+/// the copy. Stays in this file because Card detail's DBS chip is
+/// still the primary trigger; promote to a shared module if a 3rd
+/// caller needs it.
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun DBSInfoSheet(onDismiss: () -> Unit) {
+internal fun DBSInfoSheet(onDismiss: () -> Unit) {
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),

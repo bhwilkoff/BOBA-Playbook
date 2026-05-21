@@ -76,6 +76,23 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 134 — 2026-05-20 — **Android** — Decks editor DBS chip tap → explainer sheet (iOS Card-detail parity)
+- **Cadence:** 134 % 5 = 4 → Android.
+- **Picked:** The Decks editor's DBS chip ("DBS 750/1000") was a passive display — new Playmaker-format coaches see a number bound to a cap with no in-app path to learn what DBS means. `DBSInfoSheet` already exists on Card detail (tick around launch); making the Decks-editor chip tappable + routing to the same sheet is single-screen polish that unblocks the learning path. iOS DeckBuilder DBS chip has had this since the practice executor shipped; Android had the chip without the routing.
+- **Shipped:**
+  - `DeckEditorSheet.kt::StatChip`:
+    - New `onTap: (() -> Unit)? = null` param. When non-null, wraps the Surface with `Modifier.clickable { onTap() }`. Other StatChip callers (Heroes / Plays / Bonus / HD) unchanged — they pass no onTap, behavior identical.
+  - DBS chip call site:
+    - Adds `var dbsInfoOpen by remember { mutableStateOf(false) }` inside the `if (draft.enforcesDBS)` guard so the state is created only when the chip exists.
+    - Passes `onTap = { dbsInfoOpen = true }` to StatChip.
+    - Renders `com.bobaplaybook.app.feature.carddetail.DBSInfoSheet(onDismiss = ...)` when `dbsInfoOpen` is true.
+  - `CardDetailScreen.kt::DBSInfoSheet`: `private fun` → `internal fun` so Decks editor can reach it. Doc comment explains the cross-feature reuse rationale + when to promote to a shared module (3rd caller).
+- **Verified:** `Modifier.clickable` already imported (line 5). Other StatChip call sites unchanged. The DBS sheet copy stays in one place (CardDetailScreen.kt) — Decks editor route is just a fresh caller.
+- **PARITY.md:** No row — UX polish on already-✅ Decks editor surface.
+- **Next:** tick 135 = opt; 136 = Android; 137 = iOS.
+
+
+
 ### Tick 133 — 2026-05-20 — **web** — `/` jumps to Find + focuses search input (3-platform parity)
 - **Cadence:** 133 % 5 = 3 → web.
 - **Picked:** Web had no keyboard shortcut to focus the Find search bar. Android tick 131 + iOS tick 132 shipped `/`/Cmd+/ jump-to-search. GitHub / YouTube / X all map `/` to focus search — canonical web "go to search" idiom. Per WEB-DESIGN.md §2.4 the Cmd-K command palette is explicitly out of scope, but `/` is a single-key affordance that doesn't require building a palette.

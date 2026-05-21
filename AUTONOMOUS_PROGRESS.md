@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 129 — 2026-05-20 — **Android** — Rainbow detail: Share progress action
+- **Cadence:** 129 % 5 = 4 → Android.
+- **Picked:** `RainbowDetailScreen` showed per-hero rainbow progress ("12 of 15 owned · 80%") but had no Share affordance. Coaches share rainbow progress in Discord all the time as bragging-rights — currently they screenshot the bar + add caption. A direct Share action skips both steps.
+- **Shipped:**
+  - `RainbowDetailScreen.kt`:
+    - `LocalContext` resolved at composable root.
+    - TopAppBar `actions = { ... }` gained a Share IconButton (Icons.Default.Share).
+    - On click: builds `"My {hero} rainbow: {owned} of {total} treatments ({pct}%) · bobaplaybook.com"` and fires `Intent.ACTION_SEND` w/ `EXTRA_TEXT` + `EXTRA_SUBJECT` = `"My {hero} rainbow"` + `Intent.createChooser`.
+    - bobaplaybook.com URL is the canonical homepage (when public collections are wired with deep-link routes per username, this can become a per-user link, but that's TRADE-DESIGN.md territory; for now the homepage gives recipients a path to the catalog browser).
+- **Verified:** TopAppBar pattern + ACTION_SEND chooser identical to the per-card Share helper at CardShareHelper.kt. Owned + total counts already in scope from the existing rainbow-progress computation.
+- **PARITY.md:** No row — UX polish on already-✅ Rainbow Detail surface.
+- **Next:** tick 130 = opt; 131 = Android; 132 = iOS.
+
+
+
 ### Tick 128 — 2026-05-20 — **web** — Glossary right-click + long-press to share (3-platform parity)
 - **Cadence:** 128 % 5 = 3 → web.
 - **Picked:** Tick 88 shipped tap-to-copy on the web Glossary. iOS tick 127 + Android tick 126 just added the long-press-to-share companion. Web was the laggard. Progressive-enhancement: web's two canonical "secondary action" gestures are right-click (desktop) and long-press (touch) — no HTML change needed; existing 32-row markup unchanged.

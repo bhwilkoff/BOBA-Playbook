@@ -80,6 +80,7 @@ fun RainbowDetailScreen(
     val ownedCount = allCards.count { it.bobaId in ownedBobaIds }
     val pctOwned = if (allCards.isEmpty()) 0f else ownedCount.toFloat() / allCards.size
 
+    val context = androidx.compose.ui.platform.LocalContext.current
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -88,6 +89,26 @@ fun RainbowDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    // Share rainbow progress — Intent.ACTION_SEND with a
+                    // short bragging-rights blurb. Coaches share "my 12 of
+                    // 15 Maverick rainbow" in Discord all the time; this
+                    // skips the screenshot+caption round-trip.
+                    IconButton(onClick = {
+                        val pct = if (allCards.isEmpty()) 0
+                                  else ((ownedCount * 100.0) / allCards.size).toInt()
+                        val text = "My $hero rainbow: $ownedCount of ${allCards.size} treatments ($pct%) · bobaplaybook.com"
+                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(android.content.Intent.EXTRA_SUBJECT, "My $hero rainbow")
+                            putExtra(android.content.Intent.EXTRA_TEXT, text)
+                        }
+                        context.startActivity(android.content.Intent.createChooser(intent, "Share rainbow"))
+                    }) {
+                        Icon(androidx.compose.material.icons.Icons.Default.Share,
+                             contentDescription = "Share rainbow progress")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

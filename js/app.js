@@ -3524,6 +3524,24 @@
           '',
           buildCardURL(card)
         );
+      } else {
+        // Broken / outdated deep-link — surface a toast so the user
+        // knows the page loaded but the target card couldn't be
+        // resolved. Without this, the URL just sat there and the
+        // user wondered whether the link worked.
+        showToast(`Couldn't find card "${params.get('card')}"`);
+        // Strip the bad card param so a refresh doesn't re-trigger
+        // the same toast forever.
+        const cleaned = new URLSearchParams(params);
+        cleaned.delete('card');
+        cleaned.delete('hero');
+        cleaned.delete('treatment');
+        const qs = cleaned.toString();
+        history.replaceState(
+          { view: currentView },
+          '',
+          location.pathname + (qs ? '?' + qs : '')
+        );
       }
     }
 

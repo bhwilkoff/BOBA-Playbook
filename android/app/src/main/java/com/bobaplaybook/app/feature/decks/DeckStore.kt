@@ -2,7 +2,6 @@ package com.bobaplaybook.app.feature.decks
 
 import com.bobaplaybook.core.data.decks.SavedDeck
 import com.bobaplaybook.core.domain.model.Card
-import dagger.hilt.android.scopes.ViewModelScoped
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.collections.immutable.toPersistentList

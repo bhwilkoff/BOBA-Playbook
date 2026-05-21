@@ -1,6 +1,5 @@
 package com.bobaplaybook.app.navigation
 
-import dagger.hilt.android.scopes.ActivityRetainedScoped
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow

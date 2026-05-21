@@ -352,12 +352,24 @@ private fun StatsRow(draft: DeckDraft) {
         )
         // DBS chip — Playmaker format only; matches iOS DeckBuilderView
         // line 428 (effectiveEnforceDBS gate). Tints red when over budget.
+        // Tap → DBSInfoSheet (existing explainer shipped on Card detail
+        // tick around launch). Tick 134 makes the explainer reachable
+        // from the deck editor too — new coaches building a Playmaker
+        // deck see "DBS 750/1000" and now have a one-tap path to learn
+        // what DBS even is.
         if (draft.enforcesDBS) {
+            var dbsInfoOpen by remember { mutableStateOf(false) }
             StatChip(
                 label = "DBS",
                 value = "${draft.totalDBS}/${draft.dbsBudget}",
                 overBudget = draft.totalDBS > draft.dbsBudget,
+                onTap = { dbsInfoOpen = true },
             )
+            if (dbsInfoOpen) {
+                com.bobaplaybook.app.feature.carddetail.DBSInfoSheet(
+                    onDismiss = { dbsInfoOpen = false },
+                )
+            }
         }
         Spacer(Modifier.weight(1f))
         if (draft.isStandardLegal) {
@@ -388,11 +400,18 @@ private fun StatsRow(draft: DeckDraft) {
 }
 
 @Composable
-private fun StatChip(label: String, value: String, overBudget: Boolean = false) {
+private fun StatChip(
+    label: String,
+    value: String,
+    overBudget: Boolean = false,
+    onTap: (() -> Unit)? = null,
+) {
+    val baseModifier = if (onTap != null) Modifier.clickable { onTap() } else Modifier
     Surface(
         color = if (overBudget) MaterialTheme.colorScheme.errorContainer
                 else MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = MaterialTheme.shapes.small,
+        modifier = baseModifier,
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),

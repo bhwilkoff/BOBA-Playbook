@@ -197,6 +197,13 @@ fun CollectionCardDetailScreen(
                             condition = condition,
                             notes = notes,
                         )
+                        // Confirmation Snackbar — without it the user has
+                        // no signal that the save persisted (the in-place
+                        // form values look identical pre/post-save). Tick
+                        // 151 parity with iOS dismissal-as-confirmation.
+                        scope.launch {
+                            appSnackbar?.showSnackbar("Saved edits to ${entry.card.displayName}")
+                        }
                     },
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -493,6 +500,10 @@ private fun EditCopySheet(
                             conditionPick,
                             notesText.takeIf { it.isNotBlank() },
                         )
+                        // Auto-dismiss on save — parity with the iOS
+                        // EditCollectionEntrySheet pattern. Was the
+                        // missing companion to tick 99's onSave wiring.
+                        onDismiss()
                     },
                 ) { Text("Save") }
             }

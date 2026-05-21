@@ -76,6 +76,16 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 151 — 2026-05-21 — **Android** — Collection Edit Copy: auto-dismiss + confirmation Snackbar
+- **Cadence:** 151 % 5 = 1 → Android.
+- **Picked:** Real bug. The Collection card detail's `EditCopySheet` (tick 99 added it) Save button fired `onSave(...)` then... did nothing else. The sheet stayed open with the user's now-saved edits still in form fields. The user had no signal the save succeeded — they had to either tap Cancel (which feels wrong after saving) or backdrop-dismiss (also fragile feedback). Worse: `updateEntry` is fire-and-forget on the ViewModel side, so a silent failure (network error, RLS rejection) would leave the sheet open with stale-looking input + no error message.
+- **Shipped:**
+  - `EditCopySheet` Save button: after `onSave(...)`, immediately calls `onDismiss()`. Auto-dismissal-as-confirmation is the iOS `EditCollectionEntrySheet.swift:1019` pattern translated.
+  - `onSaveEdits` lambda at the call site (line 192): wraps the existing `viewModel.updateEntry(...)` call with a `scope.launch { appSnackbar?.showSnackbar("Saved edits to ${entry.card.displayName}") }`. The Snackbar is the user-visible signal that the persistence call landed.
+- **Verified:** `scope` + `appSnackbar` are already in scope at line 89-90 (used by the existing delete-Undo Snackbar at line 173-174). Reused without changes. The Snackbar message preserves the entry's display name so a user with multiple cards open knows which one got saved.
+- **PARITY.md:** No row — UX polish on already-✅ Collection Edit Copy.
+- **Next:** tick 152 = iOS; 153 = web; 154 = Android; 155 = opt.
+
 ### Tick 150 — 2026-05-21 — **opt** — Drop ~239 lines of dead code across iOS + web
 - **Cadence:** 150 % 5 = 0 → opt.
 - **Picked:** Cross-platform sweep for orphans the earlier opt rounds didn't catch.

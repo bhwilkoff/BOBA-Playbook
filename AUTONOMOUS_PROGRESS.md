@@ -2665,3 +2665,16 @@ Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 =
 - **Punch-list status:** #2 now ✅ Android · ⏳ iOS (need same lens + % label) · ⏳ web.
 - **Files:** `android/app/.../collection/RainbowDetailScreen.kt` (+100 / -15).
 - **Next:** tick 182 = iOS (cadence). Pick punch-list #4 (format-legality chips) port to iOS — port the Kotlin `legalFormats()` to Swift + new chip strip in CardDetailView.
+
+### Tick 182 — 2026-05-21 — iOS Rainbow detail: All/Owned/Missing lens (Discord backlog #2 — iOS parity)
+- **Verified Android CI 4b73047 green** (SegmentedButton + RainbowLens cleanly compile).
+- **iOS parity for Android tick 181:** RainbowDetailView gets the same All/Owned/Missing lens. iOS already had the percent label, owned/missing visual distinction, and progress bar — it just needed the explicit "shopping list" filter.
+- **Implementation:**
+  - New `enum Lens: String, CaseIterable` (all/owned/missing) backed by `@SceneStorage("rainbowLens_v1")` so the user's choice survives backgrounding.
+  - Segmented `Picker` with per-bucket counts: `All (12) · Owned (5) · Missing (7)`.
+  - New `filtered(cards:owned:lens:)` helper (extracted out of the body because the inline `switch` expression tripped SwiftUI's type-inference timeout — Swift compiler can't fold a 3-case switch inside a multi-clause `if let context { let cards = ... }` chain in reasonable time).
+  - New `lensEmpty(for:)` view: "Complete — every card collected." with green seal-fill icon when Missing is empty (the bragging-rights moment). "You don't own any of these yet." for empty Owned.
+- **Lesson:** SwiftUI body-scope `switch` expressions reliably time out the compiler when 5+ locals are in scope. **Always extract to a function** when adding switch expressions inside view bodies. New memory: [[feedback_swift_switch_expression_typecheck_timeout]] (TODO next opt tick).
+- **Punch-list #2:** ✅ Android · ✅ iOS · ⏳ web. Tick 183 (web) picks this up.
+- **Version:** v2.291.
+- **Next:** tick 183 = web (#2 lens parity).

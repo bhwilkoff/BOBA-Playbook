@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 144 — 2026-05-21 — **Android** — Manage-decks load: destructive-overwrite warning + Undo
+- **Cadence:** 144 % 5 = 4 → Android.
+- **Picked:** `DeckManageScreen` (Manage Decks list) was the last untreated destructive-overwrite surface in Android Decks. Tapping a saved-deck row replaced the active draft via `vm.loadSaved(deck, catalog)` with NO warning. The Snackbar that fired afterwards just said "Loaded X" — gave no hint that the user's in-progress draft was wiped. Same shape as template-load before tick 136. Now that `restoreDraft(snapshot)` is wired (tick 139), Undo costs nothing.
+- **Shipped:**
+  - `DeckSecondaryScreens.kt` `DeckManageScreen`:
+    - New `val draft by vm.draft.collectAsStateWithLifecycle()` so the load handler can read pre-load state.
+    - Row `clickable` block now:
+      - Captures `val hadDraft = draft.cards.isNotEmpty()` + `val captured = if (hadDraft) draft else null` BEFORE the `vm.loadSaved(deck, catalog)` call.
+      - When `captured != null`, Snackbar copy becomes `"Loaded \"X\" — your previous draft was replaced."` with `actionLabel = "Undo"` + `SnackbarDuration.Short`. On `SnackbarResult.ActionPerformed`, calls `vm.restoreDraft(captured)` — the entire DeckDraft (cards + name + playMode) re-binds atomically.
+      - Empty-draft path keeps the existing terse `"Loaded \"X\""` message with no Undo.
+- **Verified:** the `AddToDeckSheet` "load saved + add card" path (line 163) is intentionally NOT changed — tick 96 already surfaces the swap via the "Loaded X and added Y" message, AND the user explicitly tapped a saved-deck row inside an Add-to-Deck sheet (intentional swap with context). The pure Manage Decks load path was the silent one.
+- **PARITY.md:** No row — UX polish on already-✅ Decks. Closes the last destructive-overwrite gap in Android Decks alongside ticks 136 (templates) and 139 (clear).
+- **Next:** tick 145 = opt.
+
 ### Tick 143 — 2026-05-21 — **web** — Clear-deck draft: Undo Snackbar (closes 3-platform parity loop)
 - **Cadence:** 143 % 5 = 3 → web.
 - **Picked:** Web Clear-deck handler in `js/practice.js` used a blocking `confirm()` dialog. The pattern is the same anti-pattern tick 123 fixed for Collection per-copy delete: `confirm()` is OS-modal, breaks the page focus, doesn't theme to BOBA brand, and on mobile fires an "are you sure?" prompt that interrupts the user mid-flow. Closes the 3-platform parity loop on Clear-deck Undo (iOS tick 142, Android tick 139).

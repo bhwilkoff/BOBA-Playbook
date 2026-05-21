@@ -61,6 +61,10 @@ import com.bobaplaybook.core.ui.components.BOBASectionHeader
 fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val vm: DecksViewModel = hiltViewModel()
     val savedDecks by vm.savedDecks.collectAsStateWithLifecycle()
+    // Current draft is read so the Load-saved-deck path can warn the
+    // user (with Undo) when it's about to overwrite work-in-progress.
+    // Tick 144 — parallels tick 136's TemplateGallerySheet capture.
+    val draft by vm.draft.collectAsStateWithLifecycle()
     // Use CollectionViewModel's exposed catalog flow. Both Find and
     // Collection-detail screens already consume it; reusing it here
     // avoids adding a third copy.
@@ -183,9 +187,28 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         modifier = Modifier.clickable {
                             // Replace the draft with this saved deck + pop back
                             // to the editor. Mirrors iOS DeckBuilderStore.loadDeck.
+                            //
+                            // Tick 144 — capture the pre-load draft so the
+                            // Snackbar can warn about overwrite + offer Undo.
+                            // Same shape as TemplateGallerySheet tick 136
+                            // plus the Manage-Decks-delete Undo pattern from
+                            // tick 124.
+                            val hadDraft = draft.cards.isNotEmpty()
+                            val captured = if (hadDraft) draft else null
                             vm.loadSaved(deck, catalog)
                             scope.launch {
-                                appSnackbar?.showSnackbar("Loaded \"${deck.name}\"")
+                                if (captured != null) {
+                                    val result = appSnackbar?.showSnackbar(
+                                        message = "Loaded \"${deck.name}\" — your previous draft was replaced.",
+                                        actionLabel = "Undo",
+                                        duration = androidx.compose.material3.SnackbarDuration.Short,
+                                    )
+                                    if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                                        vm.restoreDraft(captured)
+                                    }
+                                } else {
+                                    appSnackbar?.showSnackbar("Loaded \"${deck.name}\"")
+                                }
                             }
                             onBack()
                         },

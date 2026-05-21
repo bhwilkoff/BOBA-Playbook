@@ -91,7 +91,7 @@ When shipping any user-facing feature:
 | Drag-and-drop add | ✅ iPad only | n/a | ⏳ M4 polish | `dragAndDropSource` + `dragAndDropTarget` |
 | Long-press add on pool | ✅ | n/a | ✅ | Canonical mobile add |
 | 3-column tablet layout (saved / pool / editor) | ✅ iPad | ⏳ desktop | ⏳ M4 polish | `NavigableListDetailPaneScaffold` 3-pane — in v1 from M4 per DECISIONS.md #047 |
-| Template gallery (empty editor) | ✅ | 🔮 | ✅ | Android shipped overnight (5-archetype gallery) |
+| Template gallery (empty editor) | ✅ | ✅ | ✅ | Web upgraded tick 11 — card-style 5-archetype gallery with per-archetype accent color (STEEL/ICE/CYAN/GLOW/BRAWL) matching iOS TemplateCard. |
 | Generate deck wall (share image) | ✅ | ✅ | 🔮 | Web shipped tick 9 — db-wall-btn in Decks toolbar reuses the shared canvas Wall pipeline (price overlay disabled for deck context). |
 | Walkthrough | ✅ | 🚫 | 🚫 | Same skip rule |
 

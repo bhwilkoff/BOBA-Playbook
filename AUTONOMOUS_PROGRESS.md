@@ -76,6 +76,25 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 79 — 2026-05-20 — **Android** — Collection per-designation empty states (web tick 78 parity)
+- **Cadence:** 79 % 5 = 4 → Android.
+- **Picked:** Android Collection's empty state was generic — every designation rendered "No {designation} cards yet · Scan a card or browse Find to add your first one." Tick 78 just shipped tuned per-designation copy on web; Android lagged. Real cross-platform parity gap on the same surface.
+- **Shipped:**
+  - `CollectionScreen.kt::CollectionScreen` empty-state branch:
+    - `when (designation)` → 5 brand-voice `headline + body` pairs matching web tick 78 verbatim:
+      - PERSONAL: "No personal cards yet" + "Scan a card or use Quick Add from the Find tab to start your stack."
+      - FOR_SALE: "Nothing for sale yet" + "Mark a card from your Personal stack to start moving it."
+      - FOR_TRADE: "Nothing for trade yet" + "Flag a card to find a trading partner once trading launches."
+      - WANTED: "No wanted cards yet" + "Flag the cards you're chasing — start with the ones at the top of your list."
+      - GRAILS: "No grails yet" + "Mark the cards you'd cross a state line for."
+    - **Only PERSONAL gets a "Scan a card" CTA button**. Other designations need the user to switch to Find (or Personal) — but Android's NavigationBar is permanently visible at the bottom, so a "Go to Find" CTA would be no-op chrome. Body copy carries the wayfinding instead. (Web tick 78 has "Browse Find" because web's mobile nav drawer is collapsible; Android doesn't have that constraint.)
+    - `BOBAEmptyState`'s `actionLabel` + `onAction` accept null cleanly (signature verified).
+- **Verified:** Designation enum at `core/domain/model/Designation.kt` has the five expected values. BOBAEmptyState signature at `core/ui/.../BOBAEmptyState.kt:37` accepts `actionLabel: String? = null` + `onAction: (() -> Unit)? = null`. Search-empty branch (existing) preserved verbatim — "Clear search" CTA still wired.
+- **PARITY.md:** No row — UX polish on already-✅ Collection row.
+- **Next:** tick 80 = opt; 81 = Android; 82 = iOS; 83 = web; 84 = Android.
+
+
+
 ### Tick 78 — 2026-05-20 — **web** — Collection empty states: brand-voice + productive CTA
 - **Cadence:** 78 % 5 = 3 → web.
 - **Picked:** Per-designation Collection empty states said only "No cards in {Personal/Sale/Trade/Wanted/Grails} yet." with no next-action button. The universal-feature-states skill requires brand-voice copy + a productive next-action — what the user is most likely to want to do RIGHT NOW. Search-empty branch added the same anti-pattern: "No cards match 'xyz'" with no way out other than re-tapping the toolbar's clear-× button.

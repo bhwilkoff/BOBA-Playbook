@@ -1783,6 +1783,35 @@
     const isEmpty = filteredCards.length === 0;
     cardGrid.hidden = isEmpty;
     emptyState.hidden = !isEmpty;
+    if (isEmpty) updateEmptyStateBody();
+  }
+
+  /// Update the empty-state body line to surface what's actually
+  /// filtering so the user knows where to relax. Mirrors the iOS
+  /// `ContentUnavailableView.search` "Try removing the Cost filter"
+  /// suggestion pattern from DESIGN.md §6.7.
+  function updateEmptyStateBody() {
+    const bodyEl = document.getElementById('empty-state-body');
+    if (!bodyEl) return;
+    const active = [];
+    if (filters.query)                            active.push(`"${filters.query}"`);
+    if (filters.element)                          active.push(filters.element);
+    if (filters.set)                              active.push(filters.set);
+    if (filters.treatment)                        active.push(filters.treatment);
+    if (filters.release)                          active.push(filters.release);
+    if (filters.hasImage)                         active.push('image-only');
+    if (filters.powerMin != null || filters.powerMax != null) {
+      const min = filters.powerMin ?? 0;
+      const max = filters.powerMax ?? '∞';
+      active.push(`power ${min}–${max}`);
+    }
+    if (active.length === 0) {
+      bodyEl.textContent = 'Try a different search.';
+    } else if (active.length === 1) {
+      bodyEl.textContent = `Nothing matches ${active[0]}. Try loosening or removing the filter.`;
+    } else {
+      bodyEl.textContent = `Nothing matches all of: ${active.join(' · ')}. Try removing one.`;
+    }
   }
 
   function buildCardElement(card, index) {

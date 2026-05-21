@@ -2637,3 +2637,10 @@ Pick the top item for each upcoming tick's platform. Strike out shipped items in
 
 ### Tick 178's own next step
 Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 = 4 → Android, but use punch list anyway since Android is least mature and #1 fits Android cleanly). **Pick: item #1 (Power-level RANGE filter) on Android first** since Android Find filter sheet is the freshest implementation. Then 180 = opt, 181 = Android #1 follow-up to iOS/web, 182 = iOS picks item #2 or #4 (both S, both cross-platform).
+
+### Tick 179 — 2026-05-21 — Android: format-legality chip strip (punch list #4)
+- **Punch-list audit before shipping:** Verified Tier 1 items against actual code (Agent's list was wrong on #1 — power-range filter ALREADY ships on all 3 platforms; #2 partially shipped). Picked #4 (format-eligibility badge) since the existing `CardFormatEligibility.restrictions(...)` only returns EXCEPTIONS — the typical card has no positive-legality affordance, which is the Discord ask.
+- **Domain API:** Added `legalFormats(card)` to `android/core/domain/.../CardFormatEligibility.kt`. Returns 4-chip list (Spec / Spec+ / Brawl / Checklist) with status (`LEGAL` / `CONSTRAINED` / `ILLEGAL`) + optional reason for tooltip. Sealed products return empty.
+- **UI:** New `FormatLegalityStrip` composable in `CardDetailScreen.kt` — Row of `AssistChip`s above the existing `FormatRestrictionsBlock`. Each chip has a colored leading dot (green/amber/red) + format name. Click → `TooltipBox` with the reason or `"Spec: legal"` for the happy case. Most cards show 4 green chips at a glance — the at-a-glance reassurance is the point.
+- **Punch-list status:** #4 now ✅ Android · ⏳ iOS · ⏳ web. Future ticks pick up iOS + web parity.
+- **Next:** tick 180 = opt; tick 181 = iOS picks #4 (port `legalFormats` to Swift + add chip strip to `CardDetailView.swift`).

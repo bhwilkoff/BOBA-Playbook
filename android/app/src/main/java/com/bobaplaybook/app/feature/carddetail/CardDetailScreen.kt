@@ -317,6 +317,11 @@ private fun CardDetailBody(
         // tinted so coaches read it at a glance.
         HeroStatRow(card = card)
 
+        // Format-legality chip strip (Discord-mined backlog #4, tick 179).
+        // 4 chips at-a-glance: Spec · Spec+ · Brawl · Checklist. Most
+        // cards show all 4 green. Sealed products hide entirely.
+        FormatLegalityStrip(card = card)
+
         // Format restrictions — only renders when the card has at least
         // one. iOS CardDetailView.formatRestrictionsBlock. Empty for the
         // typical sub-160 Hero / base-Set Play.
@@ -665,6 +670,72 @@ private fun FormatRestrictionsBlock(card: Card) {
                 }
             }
         }
+    }
+}
+
+/**
+ * Format-legality chip strip (Discord-mined backlog #4, tick 179).
+ *
+ * Discord §11 finding: ~30-35% of rules Qs are "is this legal in Spec /
+ * Spec+ / Brawl / Checklist?" 4 chips, at-a-glance, dot-coded:
+ * green = legal, amber = constrained, red = illegal. Long-press a chip
+ * for the reason (TooltipBox).
+ *
+ * Sealed products hide entirely (no format semantics).
+ */
+@Composable
+private fun FormatLegalityStrip(card: Card) {
+    val chips = remember(card.bobaId) {
+        com.bobaplaybook.core.domain.model.CardFormatEligibility.legalFormats(card)
+    }
+    if (chips.isEmpty()) return
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        chips.forEach { chip ->
+            FormatLegalityChip(chip)
+        }
+    }
+}
+
+@Composable
+private fun FormatLegalityChip(chip: com.bobaplaybook.core.domain.model.FormatLegality) {
+    val color = when (chip.status) {
+        com.bobaplaybook.core.domain.model.FormatStatus.LEGAL ->
+            androidx.compose.ui.graphics.Color(0xFF4CAF50)
+        com.bobaplaybook.core.domain.model.FormatStatus.CONSTRAINED ->
+            com.bobaplaybook.core.ui.theme.BobaBrand.Orange
+        com.bobaplaybook.core.domain.model.FormatStatus.ILLEGAL ->
+            androidx.compose.ui.graphics.Color(0xFFE53935)
+    }
+    val tooltipState = androidx.compose.material3.rememberTooltipState()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    androidx.compose.material3.TooltipBox(
+        positionProvider = androidx.compose.material3.TooltipDefaults
+            .rememberPlainTooltipPositionProvider(),
+        tooltip = {
+            if (chip.reason != null) {
+                androidx.compose.material3.PlainTooltip { Text(chip.reason) }
+            } else {
+                androidx.compose.material3.PlainTooltip { Text("${chip.format}: legal") }
+            }
+        },
+        state = tooltipState,
+    ) {
+        androidx.compose.material3.AssistChip(
+            onClick = { scope.launch { tooltipState.show() } },
+            label = { Text(chip.format, style = MaterialTheme.typography.labelMedium) },
+            leadingIcon = {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(color, shape = androidx.compose.foundation.shape.CircleShape),
+                )
+            },
+        )
     }
 }
 

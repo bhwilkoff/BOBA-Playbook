@@ -18,7 +18,81 @@ data class CardRestriction(
     val detail: String,
 )
 
+/**
+ * Tick 179 — positive legality answer (Discord-mined backlog #4).
+ * Restrictions tell you what's BANNED; this tells you what's LEGAL.
+ * Discord §11 finding: ~30-35% of rules Qs are "is this legal in Spec
+ * / Spec+ / Brawl / Checklist?" — we surface a 4-chip at-a-glance strip.
+ */
+enum class FormatStatus { LEGAL, CONSTRAINED, ILLEGAL }
+
+data class FormatLegality(
+    val format: String,
+    val status: FormatStatus,
+    /** Tooltip detail explaining why constrained / illegal. Null for legal. */
+    val reason: String? = null,
+)
+
 object CardFormatEligibility {
+
+    /**
+     * 4-chip strip for the card-detail header. Order matches user mental
+     * model (Spec → Spec+ → Brawl → Checklist). Sealed products return
+     * empty (no format meaning).
+     */
+    fun legalFormats(card: Card): List<FormatLegality> {
+        if (card.cardType.equals("sealed_product", ignoreCase = true)) return emptyList()
+        return listOf(
+            specLegality(card),
+            specPlusLegality(card),
+            brawlLegality(card),
+            checklistLegality(card),
+        )
+    }
+
+    private fun specLegality(card: Card): FormatLegality {
+        // Spec: Power ≤ 160 for Heroes. Plays / BP / HTD allowed.
+        val p = if (card.isHero) card.power else null
+        return when {
+            p != null && p > 160 -> FormatLegality(
+                "Spec", FormatStatus.ILLEGAL,
+                "Power $p exceeds Spec's 160 cap."
+            )
+            else -> FormatLegality("Spec", FormatStatus.LEGAL)
+        }
+    }
+
+    private fun specPlusLegality(card: Card): FormatLegality {
+        val p = if (card.isHero) card.power else null
+        return when {
+            p != null && p > 200 -> FormatLegality(
+                "Spec+", FormatStatus.ILLEGAL,
+                "Power $p exceeds the SPEC+ 200 ceiling."
+            )
+            p != null && p > 160 -> FormatLegality(
+                "Spec+", FormatStatus.CONSTRAINED,
+                "Power $p fits SPEC+'s 165-200 tiered slots (max 1-2 per deck by power)."
+            )
+            else -> FormatLegality("Spec+", FormatStatus.LEGAL)
+        }
+    }
+
+    private fun brawlLegality(card: Card): FormatLegality {
+        val p = if (card.isHero) card.power else null
+        return when {
+            p != null && p > 160 -> FormatLegality(
+                "Brawl", FormatStatus.ILLEGAL,
+                "Power $p exceeds Brawl's 160 cap."
+            )
+            else -> FormatLegality("Brawl", FormatStatus.LEGAL)
+        }
+    }
+
+    private fun checklistLegality(card: Card): FormatLegality {
+        // Checklist accepts the broadest set; Trainer is the only known
+        // restriction (banned in Elite Playmaker, not in Checklist itself).
+        return FormatLegality("Checklist", FormatStatus.LEGAL)
+    }
 
     /**
      * Returns all per-card format restrictions that apply. Empty list

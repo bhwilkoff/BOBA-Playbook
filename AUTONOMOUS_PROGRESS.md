@@ -76,6 +76,19 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 159 — 2026-05-21 — **Android** — Custom Rainbow delete: Undo Snackbar (closes 3-platform parity loop)
+- **Cadence:** 159 % 5 = 4 → Android.
+- **Picked:** Mirror of web tick 158. Android Custom Rainbow delete in `RainbowsScreen.kt` used an `AlertDialog` confirm → `customVm.delete(id)` → silent dismissal. No Snackbar, no Undo. Same destructive-action-without-recovery shape that ticks 119/124/139/144/149/152/158 have been systematically closing.
+- **Shipped:**
+  - `RainbowsScreen.kt`:
+    - New `scope = rememberCoroutineScope()` + `appSnackbar = LocalAppSnackbar.current` at the composable root.
+    - Confirm-button handler captures `val captured = rb` (the resolved CustomRainbow object) BEFORE `customVm.delete(id)`.
+    - After delete + close dialog, fires `appSnackbar?.showSnackbar(message = "Deleted \"X\"", actionLabel = "Undo", duration = SnackbarDuration.Short)`.
+    - On `SnackbarResult.ActionPerformed`, calls `customVm.create(captured.name, captured.criteria) { ok -> ... }` — same shape as the editor's create path (tick 156). On `ok == false`, fires a secondary Snackbar `"Couldn't restore — try again."`.
+- **Verified:** `customVm.create` (line 30) and `customVm.delete` (line 49) already exist on the ViewModel. Supabase issues a new `id` on insert but the user-visible data (name + criteria) round-trips losslessly — same trade-off as web tick 158 and Android Manage Decks Undo (tick 124).
+- **PARITY.md:** No row — UX polish on already-✅ Custom Rainbows. Closes parity with web tick 158.
+- **Next:** tick 160 = opt.
+
 ### Tick 158 — 2026-05-21 — **web** — Custom Rainbow delete: Undo Snackbar replaces blocking confirm
 - **Cadence:** 158 % 5 = 3 → web.
 - **Picked:** `collection.js:3562` still used a blocking `confirm("Delete X? This cannot be undone.")` for Custom Rainbow delete. This is the same anti-pattern tick 123 (Collection per-copy delete) and tick 143 (Clear-deck) replaced. Worse: the dialog wording lied — the deletion CAN be undone by re-creating the rainbow with the same name + criteria via the public API (Supabase generates a new id, but the user-visible data round-trips losslessly).

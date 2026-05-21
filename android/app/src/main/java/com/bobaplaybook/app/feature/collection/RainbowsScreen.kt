@@ -62,6 +62,10 @@ fun RainbowsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val customRainbows by customVm.rainbows.collectAsStateWithLifecycle()
     val catalog by viewModel.catalogCards.collectAsStateWithLifecycle()
+    // Tick 159 — Snackbar host + scope so the Custom Rainbow delete
+    // confirm can offer Undo. Closes parity with web tick 158.
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
     var pendingDeleteId by androidx.compose.runtime.saveable.rememberSaveable {
         androidx.compose.runtime.mutableStateOf<String?>(null)
     }
@@ -292,8 +296,31 @@ fun RainbowsScreen(
             },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
+                    // Capture the rainbow BEFORE delete so Undo can
+                    // recreate it via the public create API. Supabase
+                    // issues a new id but user-visible data round-
+                    // trips losslessly. Same shape as web tick 158.
+                    val captured = rb
                     customVm.delete(id)
                     pendingDeleteId = null
+                    if (captured != null) {
+                        scope.launch {
+                            val result = appSnackbar?.showSnackbar(
+                                message = "Deleted \"${captured.name}\"",
+                                actionLabel = "Undo",
+                                duration = androidx.compose.material3.SnackbarDuration.Short,
+                            )
+                            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                                customVm.create(captured.name, captured.criteria) { ok ->
+                                    if (!ok) {
+                                        scope.launch {
+                                            appSnackbar?.showSnackbar("Couldn't restore — try again.")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }

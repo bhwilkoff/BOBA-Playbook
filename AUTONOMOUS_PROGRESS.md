@@ -76,6 +76,23 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 109 — 2026-05-20 — **Android** — Card detail "Other Versions" owned/wanted indicators (iOS parity)
+- **Cadence:** 109 % 5 = 4 → Android.
+- **Picked:** iOS CardDetailView::variationsSection rendered an owned-check or wanted-star icon overlay on each "Other Versions" thumbnail (lines 799-805) so users could see at a glance which treatments they already had. Android's equivalent at CardDetailScreen.kt:447 just rendered the thumb + treatment label — no ownership signal.
+- **Shipped:**
+  - `CardDetailScreen.kt` Other Versions section:
+    - Pre-computed `ownedBobaIds: Set<String>` + `wantedBobaIds: Set<String>` via `remember(collectionState)` — O(1) per-row lookup instead of re-walking entriesByDesignation on every recompose. Same shape iOS uses.
+    - Owned set = Personal / For Sale / For Trade. Wanted set = Wanted / Grails.
+    - Wrapped `BOBACardCell` in a `Box`; overlay `Icon(CheckCircle or Star)` at `Alignment.TopEnd` when the thumb's bobaId is in either set.
+    - Owned wins on tie (theoretical case: user has both Personal + Wanted of the same bobaId).
+    - Owned = `Color(0xFF4CAF50)` (same Material success-green iOS uses literally). Wanted = `BobaBrand.Orange`.
+    - New imports: `CheckCircle` + `Star` icons.
+- **Verified:** `collectionState` already collected at line 334 (used by "In your collection" section). `Box` already imported (used elsewhere in the file). Comments tie the green hex to the iOS literal so future contributors don't drift the colors.
+- **PARITY.md:** No row — UX polish on already-✅ Other Versions row.
+- **Next:** tick 110 = opt (13th 1-in-5).
+
+
+
 ### Tick 108 — 2026-05-20 — **web** — Card detail modal: "IN YOUR COLLECTION" summary (3-platform parity)
 - **Cadence:** 108 % 5 = 3 → web.
 - **Picked:** iOS tick 107 just shipped the Find-tab CardDetailView ownership summary. Web card-detail modal had no equivalent — users tapping a card from search had no signal whether they already owned a copy + at which designation. Same gap iOS tick 107 fixed; web cadence closes 3-platform lockstep.

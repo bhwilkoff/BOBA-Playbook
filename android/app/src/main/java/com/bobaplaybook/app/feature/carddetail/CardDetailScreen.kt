@@ -33,6 +33,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -440,6 +442,28 @@ private fun CardDetailBody(
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
             BOBASectionHeader(title = "Other versions of ${card.displayName}")
+            // Pre-compute the bobaIds the user owns / wants so the per-
+            // row lookup is O(1) instead of re-walking entriesByDesignation
+            // on every item recompose. iOS CardDetailView::variationsSection
+            // does the same (the per-tile indicator helps users see at a
+            // glance "I already have 2 of these treatments").
+            val ownedBobaIds = remember(collectionState) {
+                collectionState.entriesByDesignation.values.flatten()
+                    .filter { it.userCard.designation in setOf(
+                        com.bobaplaybook.core.domain.model.Designation.PERSONAL,
+                        com.bobaplaybook.core.domain.model.Designation.FOR_SALE,
+                        com.bobaplaybook.core.domain.model.Designation.FOR_TRADE,
+                    ) }
+                    .map { it.card.bobaId }.toSet()
+            }
+            val wantedBobaIds = remember(collectionState) {
+                collectionState.entriesByDesignation.values.flatten()
+                    .filter { it.userCard.designation in setOf(
+                        com.bobaplaybook.core.domain.model.Designation.WANTED,
+                        com.bobaplaybook.core.domain.model.Designation.GRAILS,
+                    ) }
+                    .map { it.card.bobaId }.toSet()
+            }
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -449,14 +473,38 @@ private fun CardDetailBody(
                         modifier = Modifier.width(80.dp),
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
-                        BOBACardCell(
-                            imageFile = other.imageFile,
-                            contentDescription = other.displayName,
-                            isSealed = other.isSealed,
-                            modifier = Modifier.clickable {
-                                onOpenOtherVersion(other.bobaId)
-                            },
-                        )
+                        Box {
+                            BOBACardCell(
+                                imageFile = other.imageFile,
+                                contentDescription = other.displayName,
+                                isSealed = other.isSealed,
+                                modifier = Modifier.clickable {
+                                    onOpenOtherVersion(other.bobaId)
+                                },
+                            )
+                            // Owned/Wanted indicator overlay — iOS parity.
+                            // Owned wins when both flags fire (a user could
+                            // theoretically have both a Personal copy AND
+                            // a Wanted entry for the same bobaId).
+                            val isOwned = other.bobaId in ownedBobaIds
+                            val isWanted = other.bobaId in wantedBobaIds
+                            if (isOwned || isWanted) {
+                                Icon(
+                                    imageVector = if (isOwned) Icons.Default.CheckCircle else Icons.Default.Star,
+                                    contentDescription = if (isOwned) "Owned" else "Wanted",
+                                    // 0xFF4CAF50 = the same Material success-
+                                    // green iOS uses (Color(hex:"4CAF50")) so
+                                    // owned/wanted indicators feel identical
+                                    // across platforms.
+                                    tint = if (isOwned) androidx.compose.ui.graphics.Color(0xFF4CAF50)
+                                           else BobaBrand.Orange,
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(4.dp)
+                                        .size(16.dp),
+                                )
+                            }
+                        }
                         // Treatment / set label — iOS CardDetailView
                         // variationsSection renders this under the
                         // thumb so the user can tell base from

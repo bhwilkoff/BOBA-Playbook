@@ -6611,6 +6611,63 @@ dialog.modal-overlay[open] {
   margin-bottom: var(--sp-3);
 }
 
+/* Tick 193 — Discord backlog #8: Upcoming Events list on Tournament tab. */
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.events-empty {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--boba-text-muted);
+  margin: 0;
+  padding: 0.5rem 0;
+}
+.event-row {
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-border);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+}
+.event-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.event-kind {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.event-dot { color: var(--boba-text-muted); }
+.event-date {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--boba-text-secondary);
+}
+.event-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--boba-text);
+  margin: 0 0 0.3rem;
+}
+.event-desc {
+  font-family: var(--font-mono);
+  font-size: 0.83rem;
+  color: var(--boba-text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+.event-loc {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--boba-text-muted);
+  margin-top: 0.4rem;
+}
+
 /* Penalty details */
 .penalty-details {
   background: var(--boba-surface);

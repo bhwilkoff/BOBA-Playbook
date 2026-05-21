@@ -1303,7 +1303,22 @@ body[data-find-density="l"] #view-search .card-grid { grid-template-columns: rep
   transition: opacity 0.18s, transform 0.18s;
   z-index: 2500;
 }
-.app-toast.visible { opacity: 1; transform: translate(-50%, 0); }
+.app-toast.visible { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+/* Inline action button for the showUndoToast helper (practice.js).
+   Right of the message text, cyan-accent so it reads as actionable
+   without competing with the toast's own border. */
+.app-toast-action {
+  appearance: none; background: transparent; border: 0;
+  margin-left: 12px; padding: 4px 8px;
+  color: var(--boba-cyan); cursor: pointer;
+  font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.app-toast-action:hover,
+.app-toast-action:focus-visible {
+  outline: 1px solid var(--boba-cyan); outline-offset: 2px;
+  border-radius: 4px;
+}
 
 /* Column-count picker (segmented-style) */
 .grid-cols-picker {

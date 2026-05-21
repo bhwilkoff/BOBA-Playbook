@@ -16,6 +16,7 @@ struct CardDetailView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(CollectionStore.self) private var collection
     @Environment(CardStore.self) private var cardStore
+    @Environment(DeckBuilderStore.self) private var deckBuilder
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     // The card currently being displayed — may change via prev/next navigation.
@@ -317,7 +318,15 @@ struct CardDetailView: View {
                 ModCardEditSheet(card: card)
             }
             .sheet(isPresented: $showingDBSInfo) {
-                DBSInfoSheet()
+                // Tick 187 — Discord backlog #5: pass active draft's DBS
+                // context. Sheet falls back to static explainer when the
+                // format doesn't enforce DBS or the card isn't a Play.
+                let showContext = deckBuilder.effectiveEnforceDBS && card.isPlay && card.dbs != nil
+                DBSInfoSheet(
+                    cardDBS:        showContext ? card.dbs : nil,
+                    currentDeckDBS: showContext ? deckBuilder.totalDBS : nil,
+                    dbsBudget:      showContext ? deckBuilder.effectiveDBSBudget : nil,
+                )
             }
             // Confirmation toast for "Added to {deck}". Rendered inside the
             // NavigationStack so it floats above the card art and info panel.
@@ -1131,10 +1140,23 @@ struct CardDetailView: View {
 
 struct DBSInfoSheet: View {
     @Environment(\.dismiss) private var dismiss
+
+    /// Tick 187 — Discord backlog #5 (Android tick 186 parity).
+    /// Optional per-card contextual line. When all three are provided,
+    /// renders a header block ABOVE the static explainer:
+    /// "This card costs +N DBS. Your deck has X/Y. Adding it brings
+    /// you to (X+N)/Y." Switches to error red when over budget.
+    var cardDBS:        Int? = nil
+    var currentDeckDBS: Int? = nil
+    var dbsBudget:      Int? = nil
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Design.Spacing.lg) {
+                    if let cardDBS, let currentDeckDBS, let dbsBudget {
+                        contextBlock(card: cardDBS, used: currentDeckDBS, budget: dbsBudget)
+                    }
                     Text("What is DBS?")
                         .font(Design.Fonts.display(22))
                         .foregroundStyle(Design.Colors.textPrimary)
@@ -1176,6 +1198,35 @@ struct DBSInfoSheet: View {
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
+    }
+
+    /// Tick 187 — contextual DBS block surfacing the active draft's
+    /// current load vs. what adding this card would do. Mirrors
+    /// Android tick 186's DBSInfoSheet header. Red treatment when
+    /// projected total exceeds budget.
+    @ViewBuilder
+    private func contextBlock(card: Int, used: Int, budget: Int) -> some View {
+        let projected = used + card
+        let overCap   = projected > budget
+        let surface   = overCap ? Color.red.opacity(0.18) : Design.Colors.surface
+        let stroke    = overCap ? Color.red.opacity(0.55) : Design.Colors.glassBorder
+        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+            Text("This card costs +\(card) DBS")
+                .font(Design.Fonts.display(15))
+                .foregroundStyle(Design.Colors.textPrimary)
+            Text("Your deck has \(used) / \(budget) DBS used.")
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(Design.Colors.textSecondary)
+            Text(overCap
+                 ? "Adding it puts you at \(projected) / \(budget) — over budget."
+                 : "Adding it brings you to \(projected) / \(budget).")
+                .font(Design.Fonts.mono(13))
+                .foregroundStyle(overCap ? Color.red : Design.Colors.textSecondary)
+        }
+        .padding(Design.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(surface))
+        .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(stroke, lineWidth: 1))
     }
 
     private func bullet(_ text: String) -> some View {

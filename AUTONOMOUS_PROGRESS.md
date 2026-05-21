@@ -2715,3 +2715,13 @@ Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 =
   - **Wiring:** `HeroStatRow` injects `DecksViewModel` via `hiltViewModel()` at the `if (dbsInfoOpen)` site, collects state, passes the draft's `totalDBS` + `dbsBudget` only when `enforcesDBS` is true. Sheet falls back to static when format doesn't enforce DBS (Rookie / Substitution / base Playmaker).
 - **Punch-list #5:** ✅ Android · ⏳ iOS (DBSInfoSheet takes no params today; needs same parity) · ⏳ web.
 - **Next:** tick 187 = iOS (cadence 187 % 5 = 2). Port either #4 (format-legality chip) or #5 (contextual DBS sheet) to iOS — #5 is closer to feature parity since #4 needs the bigger UI build.
+
+### Tick 187 — 2026-05-21 — iOS DBS contextual sheet (Discord backlog #5, Android tick 186 parity)
+- **Android CI fix landed first** (b85a277): tick-186's `decksVm.state` was wrong — `DecksViewModel.draft` is the direct StateFlow. Fixed wiring + dropped dead `cards.isNotEmpty() || true` short-circuit. Then continued with the iOS work.
+- **iOS port of contextual DBS sheet:**
+  - `DBSInfoSheet` gains 3 optional params (`cardDBS / currentDeckDBS / dbsBudget`). When all three are set, renders a header `contextBlock` block above the static explainer: "This card costs +N DBS. Your deck has X/Y. Adding it brings you to (X+N)/Y." Switches to `Color.red.opacity(0.18)` surface + red stroke when projected exceeds budget.
+  - `CardDetailView` adds `@Environment(DeckBuilderStore.self) private var deckBuilder` (the store is already injected at the app root in `BOBAPlaybookApp.swift:27`).
+  - The `.sheet(isPresented: $showingDBSInfo)` site passes the context only when `effectiveEnforceDBS && card.isPlay && card.dbs != nil` — falls back to static explainer otherwise.
+- **Punch-list #5:** ✅ Android · ✅ iOS · ⏳ web. Closes all 3 platforms next tick if web cooperates.
+- **Version:** v2.292 / build 554 (tandem bump per [[feedback_bump_marketing_and_build_in_tandem]]).
+- **Next:** tick 188 = web (#5 contextual DBS + Learn DBS explainer).

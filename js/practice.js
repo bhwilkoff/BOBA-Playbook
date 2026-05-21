@@ -1489,9 +1489,20 @@ function initDeckBuilder(allCards) {
           if (nameInput) nameInput.value = trimmed;
         }
         applyDeckSearchFilter();
+        // Tick 173 — confirm rename + close parity with iOS/Android
+        // (Android tick noted earlier surfaces "Renamed to X" via
+        // Snackbar; iOS uses DeckManagementSheet's saveMessage
+        // pattern). Web had silent success, alert-on-failure.
+        if (typeof window.showToast === 'function') {
+          window.showToast(`Renamed to "${trimmed}"`);
+        }
       } catch (err) {
         console.error('Deck rename failed:', err);
-        alert(err?.message || 'Could not rename deck.');
+        // Was a blocking alert(); same anti-pattern tick 123 / 143 /
+        // 163 systematically replaced. Use the canonical toast helper.
+        if (typeof window.showToast === 'function') {
+          window.showToast(`Couldn't rename — ${err?.message || 'try again'}`);
+        }
       }
       return;
     }

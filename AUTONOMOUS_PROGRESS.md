@@ -76,6 +76,25 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 82 — 2026-05-20 — **iOS** — Collection per-designation empty states (3-platform parity)
+- **Cadence:** 82 % 5 = 2 → iOS.
+- **Picked:** Web tick 78 + Android tick 79 both shipped per-designation brand-voice empty states with productive next-action copy. iOS was the last platform with the generic "Add cards from any card detail view." line. Closes the 3-platform parity gap on the same surface.
+- **Shipped:**
+  - `CollectionView.swift::emptyState`:
+    - 5 designation-specific `(headline, body)` pairs verbatim with web tick 78 + Android tick 79:
+      - personal: "No personal cards yet" + "Scan a card or use Quick Add from the Find tab to start your stack."
+      - for_sale: "Nothing for sale yet" + "Mark a card from your Personal stack to start moving it."
+      - for_trade: "Nothing for trade yet" + "Flag a card to find a trading partner once trading launches."
+      - wanted: "No wanted cards yet" + "Flag the cards you're chasing — start with the ones at the top of your list."
+      - grails: "No grails yet" + "Mark the cards you'd cross a state line for."
+    - **Search-empty branch** added: when `searchText.trimmingCharacters(...)` is non-empty, headline becomes "No matches" + body names the trimmed search query, with a "Clear search" `Button` (cyan accent) that wipes `searchText`. Mirrors web tick 78's branch.
+    - Headline now uses `textSecondary` (not muted) — small contrast bump for the headline so it reads as the brand-voice statement and the body is the support copy.
+- **Verified:** All five Designation cases at `Models/UserCard.swift:94-99`. `Design.Colors.bobaCyan` + `textSecondary` confirmed at Design.swift. SourceKit cross-file noise (Cannot find 'CardStore'/'Card') is preexisting per project state — not real errors.
+- **PARITY.md:** No row — UX polish on already-✅ Collection row. 3-platform parity now in lockstep on the same five copy strings.
+- **Next:** tick 83 = web; 84 = Android; 85 = opt.
+
+
+
 ### Tick 81 — 2026-05-20 — **Android** — Custom Rainbow editor: full 7-dimension parity
 - **Cadence:** 81 % 5 = 1 → Android.
 - **Picked:** PARITY.md line 111 read "✅ basic (3 dimensions)" for Android Custom Rainbows. Web tick 16 + iOS surface all 7 criterion dimensions; Android editor only had Heroes / Weapons / Treatments + Inspired Ink. The remaining 4 dimensions (Sets / Sub-sets / Releases / Card types) were already in the data layer (`RainbowCriteria` already had them; `toJsonString`/`fromJson` already round-tripped). The editor UI was the gap.

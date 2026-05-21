@@ -960,17 +960,49 @@ struct CollectionView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: Design.Spacing.md) {
+        // Per-designation brand-voice empty states (parity with web
+        // tick 78 + Android tick 79). Generic "Add cards from any
+        // card detail view." said the same thing for every designation;
+        // each one wants tuned next-action copy. Search-empty branches
+        // separately with a "Clear search" CTA.
+        let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isSearchEmpty = !trimmedSearch.isEmpty
+        let copy: (headline: String, body: String) = {
+            if isSearchEmpty {
+                return ("No matches", "Nothing in your \(selectedDesignation.displayName.lowercased()) cards matches “\(trimmedSearch)”.")
+            }
+            switch selectedDesignation {
+            case .personal:  return ("No personal cards yet",
+                                     "Scan a card or use Quick Add from the Find tab to start your stack.")
+            case .for_sale:  return ("Nothing for sale yet",
+                                     "Mark a card from your Personal stack to start moving it.")
+            case .for_trade: return ("Nothing for trade yet",
+                                     "Flag a card to find a trading partner once trading launches.")
+            case .wanted:    return ("No wanted cards yet",
+                                     "Flag the cards you’re chasing — start with the ones at the top of your list.")
+            case .grails:    return ("No grails yet",
+                                     "Mark the cards you’d cross a state line for.")
+            }
+        }()
+        return VStack(spacing: Design.Spacing.md) {
             Spacer()
             Image(systemName: selectedDesignation.icon)
                 .font(.system(size: 36))
                 .foregroundStyle(Design.Colors.textMuted)
-            Text("No \(selectedDesignation.displayName) cards")
+            Text(copy.headline)
                 .font(Design.Fonts.display(16))
-                .foregroundStyle(Design.Colors.textMuted)
-            Text("Add cards from any card detail view.")
+                .foregroundStyle(Design.Colors.textSecondary)
+            Text(copy.body)
                 .font(Design.Fonts.mono(13))
                 .foregroundStyle(Design.Colors.textMuted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Design.Spacing.lg)
+            if isSearchEmpty {
+                Button("Clear search") { searchText = "" }
+                    .font(Design.Fonts.mono(13, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                    .padding(.top, Design.Spacing.sm)
+            }
             Spacer()
         }
         .frame(maxWidth: .infinity)

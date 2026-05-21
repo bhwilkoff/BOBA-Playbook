@@ -118,6 +118,14 @@ fun CollectionScreen(
         androidx.hilt.navigation.compose.hiltViewModel()
     val storedDisplayMode by collectionPrefs.displayMode.collectAsStateWithLifecycle(initialValue = null)
     val storedSortOrder by collectionPrefs.sortOrder.collectAsStateWithLifecycle(initialValue = null)
+    // Per-tab grid density — Target.COLLECTION was registered in
+    // GridDensityStore but unused until tick 104. iOS @AppStorage
+    // ("bp_collectionGridColumns_v1") parity.
+    val gridDensityVm: com.bobaplaybook.app.settings.GridDensityViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val storedGridColumns by gridDensityVm
+        .columnsFor(com.bobaplaybook.app.settings.GridDensityStore.Target.COLLECTION)
+        .collectAsStateWithLifecycle(initialValue = 0)
     val displayMode = remember(storedDisplayMode) {
         storedDisplayMode?.let { runCatching { DisplayMode.valueOf(it) }.getOrNull() }
             ?: DisplayMode.GRID
@@ -197,6 +205,41 @@ fun CollectionScreen(
                                 },
                             )
                             androidx.compose.material3.HorizontalDivider()
+                            // Grid density picker (GRID mode only) — iOS
+                            // @AppStorage("bp_collectionGridColumns_v1") parity.
+                            // Rendered inline in the same overflow menu since
+                            // M3 doesn't ship nested DropdownMenu; the Decks
+                            // tab uses the same pattern (tick 101).
+                            if (displayMode == DisplayMode.GRID) {
+                                Text(
+                                    "Grid columns",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp),
+                                )
+                                listOf(1, 2, 3).forEach { col ->
+                                    DropdownMenuItem(
+                                        text = { Text("$col column${if (col > 1) "s" else ""}") },
+                                        leadingIcon = {
+                                            if (storedGridColumns == col) {
+                                                Icon(androidx.compose.material.icons.Icons.Default.Check, contentDescription = "Active")
+                                            } else {
+                                                androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(24.dp))
+                                            }
+                                        },
+                                        onClick = {
+                                            menuOpen = false
+                                            scope.launch {
+                                                gridDensityVm.setColumns(
+                                                    com.bobaplaybook.app.settings.GridDensityStore.Target.COLLECTION,
+                                                    col,
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
+                                androidx.compose.material3.HorizontalDivider()
+                            }
                             // Sort sub-menu — peer-collection iOS parity (P1 #17).
                             // Material 3 doesn't have a built-in nested DropdownMenu;
                             // we expose the active sort label in this row and open a
@@ -425,7 +468,11 @@ fun CollectionScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 when (displayMode) {
-                    DisplayMode.GRID -> CollectionGrid(entries = entries, onCardClick = onCardClick)
+                    DisplayMode.GRID -> CollectionGrid(
+                        entries = entries,
+                        onCardClick = onCardClick,
+                        columns = storedGridColumns,
+                    )
                     DisplayMode.LIST -> CollectionList(entries = entries, onCardClick = onCardClick)
                     DisplayMode.WALL -> CollectionWall(
                         entries = entries,
@@ -544,9 +591,16 @@ private fun ValueSummary(
 private fun CollectionGrid(
     entries: List<CollectionEntry>,
     onCardClick: (String) -> Unit,
+    /**
+     * Fixed column count (1/2/3) from the per-tab grid-density store.
+     * 0 → adaptive default (preserves prior behavior). iOS
+     * @AppStorage("bp_collectionGridColumns_v1") parity.
+     */
+    columns: Int = 0,
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 110.dp),
+        columns = if (columns > 0) GridCells.Fixed(columns)
+                  else GridCells.Adaptive(minSize = 110.dp),
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),

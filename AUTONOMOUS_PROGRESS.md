@@ -102,6 +102,16 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 67 — 2026-05-20 — **iOS** — ShowWallComposer 200-card safety cap (parity with web 43 + Android 64)
+- **Cadence:** 67 % 5 = 2 → iOS.
+- **Picked:** Web (tick 43) capped Wall at 200 cards to avoid canvas-height limits; Android (tick 64) capped to avoid bitmap-capture OOM. iOS uses a fixed 1080×1512 canvas so the canvas-size concern doesn't apply, but `fetchFullImages` spawns N parallel URLSession tasks + decodes N UIImage instances into memory simultaneously. At 500 cards = 500 in-flight UIImages on the main actor — meaningful memory pressure on older iPhones (12 mini, SE).
+- **Shipped:**
+  - `BOBAPlaybook/Components/ShowWallComposer.swift`:
+    - New `static let HARD_CAP: Int = 200` constant + comment explaining the three reasons (parallel-decode memory, sub-50pt unreadable cells, JPEG output 2MB limit).
+    - `compose(...)` now truncates both `cards` and `bigHits` arrays to HARD_CAP before fetching + rendering. Defensive — callers should message the user when they pass > HARD_CAP, but the cap is the second-of-two defenses.
+- **Verified:** SourceKit isolation noise (UIKit unavailable in CLI) not real. Cap math: 1080-wide canvas / sqrt(200 × 1.4) cols ≈ 8 cols × ~135pt cell. Readable. At 500 cards: 8 × 26 = 208 cells, ~52pt each — illegible. Cap is well-chosen.
+- **PARITY.md:** No row — iOS-side safety net matching the existing web + Android caps.
+
 ### Tick 66 — 2026-05-20 — **Android** — Hero Auto Rainbows: catalog total + completion sort
 - **Cadence:** 66 % 5 = 1 → Android.
 - **Picked:** Android Hero Auto Rainbows row showed "5 treatments · 8 copies" — the user couldn't tell if 5 was complete or 5 of 50. iOS + web show owned/total ("5 of 15 treatments"). Real parity gap. Also: Android sorted by raw treatment count, not by completion %, so heroes with many treatments (Maverick / Cupid) crowded out almost-complete cheap heroes (a 5/5 Joe Greene rainbow ranked below 8/40 Maverick).

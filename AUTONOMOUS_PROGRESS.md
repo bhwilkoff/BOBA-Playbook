@@ -76,6 +76,19 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 152 — 2026-05-21 — **iOS** — Collection card detail "In your decks": Undo banner on draft overwrite
+- **Cadence:** 152 % 5 = 2 → iOS.
+- **Picked:** iOS mirror of Android tick 149. The Collection card detail's "In your decks" surface (CollectionCardDetailView.swift:614) was already tap-to-load (parity with Android tick 94) but tapping a row silently wiped any in-progress draft via `deckBuilder.loadSavedDeck` → `clearDeck()` internally. The text-only toast `"Loaded "X" into Decks"` didn't acknowledge the destruction. A coach mid-build who taps to peek at a saved deck loses 30+ cards with no recovery path.
+- **Shipped:**
+  - `CollectionCardDetailView.swift`:
+    - New `@State private var preLoadDraftSnapshot: (snapshot: DeckBuilderStore.DraftSnapshot, deckName: String)?` paralleling the templateLoadBanner one-shot pattern (tick 137) and clearedSnapshot pattern (tick 142).
+    - Button-tap handler at line 614 now captures `hadDraft = !heroes.isEmpty || !plays.isEmpty || !bonusPlays.isEmpty || !hotDogs.isEmpty` synchronously BEFORE the async `loadSavedDeck` Task; if hadDraft, it calls `deckBuilder.currentSnapshot()` (added in tick 142) to grab a snapshot. After the load succeeds, sets `preLoadDraftSnapshot = (snap, deck.name)` + schedules a 6-second auto-fade. Empty-draft path keeps the existing terse `showAddedToDeckToast` confirmation.
+    - New `overwriteUndoBanner(deckName:snapshot:)` ViewBuilder helper: cyan-accent banner (`arrow.uturn.backward.circle.fill` icon, distinct from the green check confirmationToast) with a tappable UNDO button in BOBA orange. Tap → `deckBuilder.applySnapshot(snapshot, allCards: cardStore.displayCards)` + dismiss banner.
+    - Top-overlay slot extends with `if let pending = preLoadDraftSnapshot { overwriteUndoBanner(...) } else if ...` — banner takes priority over the addedToDeckName/addedToShowName/removedEntryName confirmation toasts since they'd never overlap in time (load is a one-shot UX event).
+- **Verified:** `deckBuilder.currentSnapshot()` + `applySnapshot()` were added in tick 142 for the same purpose (Clear-deck Undo); reusing them on this surface is free. `DraftSnapshot` is a Codable struct so passing it through @State works. SourceKit reports the pre-existing indexer noise on `@Observable @MainActor` files; Swift compiler resolves.
+- **PARITY.md:** No row — UX polish on already-✅ "In your decks" surface. Closes parity with Android tick 149.
+- **Next:** tick 153 = web; 154 = Android; 155 = opt.
+
 ### Tick 151 — 2026-05-21 — **Android** — Collection Edit Copy: auto-dismiss + confirmation Snackbar
 - **Cadence:** 151 % 5 = 1 → Android.
 - **Picked:** Real bug. The Collection card detail's `EditCopySheet` (tick 99 added it) Save button fired `onSave(...)` then... did nothing else. The sheet stayed open with the user's now-saved edits still in form fields. The user had no signal the save succeeded — they had to either tap Cancel (which feels wrong after saving) or backdrop-dismiss (also fragile feedback). Worse: `updateEntry` is fire-and-forget on the ViewModel side, so a silent failure (network error, RLS rejection) would leave the sheet open with stale-looking input + no error message.

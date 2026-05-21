@@ -30,6 +30,11 @@ struct CollectionCardDetailView: View {
     /// rows. Distinct state from addedToDeckName so the toast doesn't
     /// prepend the "Added to " text the existing overlay wraps.
     @State private var removedEntryName: String?
+    /// Tick 152 — snapshot of the deck draft right before "In your
+    /// decks" load wipes it. Non-nil while the Undo banner is on
+    /// screen; tapping UNDO re-applies it via store.applySnapshot.
+    /// Mirrors Android tick 149.
+    @State private var preLoadDraftSnapshot: (snapshot: DeckBuilderStore.DraftSnapshot, deckName: String)?
     /// Custom decks this card is in. Loaded on appear when the user is
     /// authenticated. `nil` = not yet loaded, `[]` = loaded and empty.
     @State private var containingDecks: [SavedDeck]? = nil
@@ -294,7 +299,9 @@ struct CollectionCardDetailView: View {
                 CollectionCardDetailView(bobaId: other)
             }
             .overlay(alignment: .top) {
-                if let name = addedToDeckName {
+                if let pending = preLoadDraftSnapshot {
+                    overwriteUndoBanner(deckName: pending.deckName, snapshot: pending.snapshot)
+                } else if let name = addedToDeckName {
                     confirmationToast("Added to \(name)")
                 } else if let showName = addedToShowName {
                     confirmationToast("Added to \(showName)")
@@ -317,6 +324,35 @@ struct CollectionCardDetailView: View {
         .padding(.vertical, Design.Spacing.sm)
         .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
+        .padding(.top, Design.Spacing.md)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    /// Cyan-accent banner with a tappable UNDO. Surfaced after "In your
+    /// decks" load wipes a non-empty draft. Tick 152 — mirrors Android
+    /// tick 149 destructive-overwrite warning + Undo flow.
+    private func overwriteUndoBanner(deckName: String, snapshot: DeckBuilderStore.DraftSnapshot) -> some View {
+        HStack(spacing: Design.Spacing.sm) {
+            Image(systemName: "arrow.uturn.backward.circle.fill")
+                .foregroundStyle(Design.Colors.bobaCyan)
+            Text("Loaded “\(deckName)” — draft replaced")
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .foregroundStyle(Design.Colors.textPrimary)
+                .lineLimit(2)
+            Button {
+                deckBuilder.applySnapshot(snapshot, allCards: cardStore.displayCards)
+                withAnimation(.easeOut(duration: 0.2)) { preLoadDraftSnapshot = nil }
+            } label: {
+                Text("UNDO")
+                    .font(Design.Fonts.mono(12, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+            }
+            .accessibilityLabel("Undo deck load")
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Design.Colors.bobaCyan.opacity(0.4), lineWidth: 1))
         .padding(.top, Design.Spacing.md)
         .transition(.move(edge: .top).combined(with: .opacity))
     }
@@ -612,10 +648,30 @@ struct CollectionCardDetailView: View {
                         // required opening Decks tab and finding the
                         // deck manually.
                         Button {
+                            // Capture pre-load draft so the Undo banner
+                            // can restore it. Mirrors Android tick 149.
+                            let hadDraft = !deckBuilder.heroes.isEmpty
+                                || !deckBuilder.plays.isEmpty
+                                || !deckBuilder.bonusPlays.isEmpty
+                                || !deckBuilder.hotDogs.isEmpty
+                            let captured = hadDraft ? deckBuilder.currentSnapshot() : nil
                             Task {
                                 do {
                                     _ = try await deckBuilder.loadSavedDeck(deck, cards: cardStore.displayCards)
-                                    showAddedToDeckToast("Loaded “\(deck.name)” into Decks")
+                                    if let snap = captured {
+                                        preLoadDraftSnapshot = (snap, deck.name)
+                                        // Auto-dismiss after 6s so the
+                                        // banner doesn't linger forever
+                                        // if the user navigates away.
+                                        Task { @MainActor in
+                                            try? await Task.sleep(for: .seconds(6))
+                                            withAnimation(.easeOut(duration: 0.3)) {
+                                                preLoadDraftSnapshot = nil
+                                            }
+                                        }
+                                    } else {
+                                        showAddedToDeckToast("Loaded “\(deck.name)” into Decks")
+                                    }
                                 } catch {
                                     // Silent failure — Snackbar would
                                     // overlay the green-checkmark toast.

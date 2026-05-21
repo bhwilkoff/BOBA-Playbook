@@ -76,6 +76,24 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 87 — 2026-05-20 — **iOS** — Glossary tap-to-copy + hint banner (Android tick 84 parity)
+- **Cadence:** 87 % 5 = 2 → iOS.
+- **Picked:** Android tick 84 shipped tap-to-copy on Glossary term rows + the LEARN_LONG_PRESS_GLOSSARY hint banner. iOS Glossary had no equivalent affordance — term rows were inert display-only. Coaches who wanted to quote a definition in Discord had to manually retype or select-and-copy through the iOS text-selection menu.
+- **Shipped:**
+  - `BOBAPlaybook/Components/Design.swift::HintID` — new case `glossaryTapToCopy` ("hint.glossary_tap_to_copy") for the once-per-device dismissal flag.
+  - `BOBAPlaybook/Views/Play/LearnView.swift`:
+    - Added `import UIKit` (UIPasteboard + UINotificationFeedbackGenerator).
+    - `@State private var copiedTermId: String?` — track which row's checkmark to flash.
+    - `HintBanner(id: .glossaryTapToCopy, ...)` at top of `GlossaryView.body`. Same brand-voice copy as Android tick 84: "Tap a term to copy it" + "Tap any glossary term to copy the term + definition. Handy when you want to quote it in Discord or a coaching note."
+    - Term row wrapped in `Button { copyTerm(t) }` with `.buttonStyle(.plain)` + `.contentShape(Rectangle())` so the whole row taps + accessibility-hint "Copies the term and definition to your clipboard."
+    - Inline `Image(systemName: "checkmark.circle.fill")` (green) appears next to the tapped term for ~1.2s — the iOS analog of Android's Toast confirmation. Uses `.transition(.opacity)` so the checkmark fades in/out.
+    - New `copyTerm(_:)` helper: writes `"{term} — {definition}"` to `UIPasteboard.general`, fires `UINotificationFeedbackGenerator.notificationOccurred(.success)` for haptic confirmation, sets `copiedTermId` with a 1.2s clear task.
+- **Verified:** `HintBanner` + `HintsManager` are at `Design.swift` (already on the compile manifest). `UIPasteboard.general` + `UINotificationFeedbackGenerator` are stdlib. SourceKit cross-file noise preexisting.
+- **PARITY.md:** No row — UX polish on already-✅ Glossary surface. 2-platform parity (Android tick 84 + iOS tick 87).
+- **Next:** tick 88 = web; 89 = Android; 90 = opt.
+
+
+
 ### Tick 86 — 2026-05-20 — **Android** — Custom Rainbow row hints reflect all 7 dims
 - **Cadence:** 86 % 5 = 1 → Android.
 - **Picked:** Tick 81 extended the Custom Rainbow editor to all 7 criterion dimensions, but the list-row supporting-text helper at `RainbowsScreen.kt:172` still only iterated 3 dims (heroes / weapons / treatments) + the Inspired Ink toggle. A user who created a custom rainbow with "Sets: Season One" or "Card types: Hero" looked identical to "Any card" in the list — looked like the filter didn't save.

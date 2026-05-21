@@ -683,6 +683,7 @@ Documented so future sessions don't re-add these as parity gaps.
 | **Card pipeline UI** | Internal tooling | Probably never user-facing |
 | **App-launch slide-deck onboarding** | Explicitly rejected — universal Android conventions cover this | **Never** |
 | **Sign in with Apple on Android** | iOS-only branding; Credential Manager + Sign in with Google + email is the canonical Android shape | Never |
+| **Twitter / X integration (any form)** | DECISIONS.md #053 — binding. No Twitter OAuth via Credential Manager, no `ACTION_SEND` `com.twitter.android` targeting, no Twitter SDK / API. Discord remains the primary community channel; other social platforms (Bluesky, Mastodon, Threads) are fine when use cases arise. | **Never** |
 | **Hamburger drawer on compact** | M3 Expressive de-emphasizes drawers; we have 5 destinations, NavigationBar handles it | Never |
 | **Edge-to-edge opt-out** | Disallowed by Android 16; we honor edge-to-edge always | Never |
 | **XML layouts / AppCompat / legacy ActionBar / Toolbar** | 100% Compose | Never |

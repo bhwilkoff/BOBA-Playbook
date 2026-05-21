@@ -102,6 +102,19 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 21b — 2026-05-20 — Rollback: remove Twitter Card meta + add binding "never" docs
+- **Picked:** Ben directive. Twitter / X is owned by a fascist; BOBA will not integrate. Same-day rollback of tick 21's Twitter Card additions.
+- **Shipped:**
+  - `index.html`: removed all four `<meta name="twitter:*">` tags + updated the OG-block comment to call out "no `twitter:*` per DECISIONS.md #053." OG protocol tags kept (read by every other major platform).
+  - `js/app.js::updateOpenGraphMeta`: stripped `twitter:title` / `twitter:description` / `twitter:image` setters. Helper now updates the four `og:*` properties only. Comment updated to flag the "never" rule.
+  - `DECISIONS.md`: new entry **#053 — No Twitter / X integration, ever**. Explicit rule (no OAuth, no Card tags, no share intents, no SDK, no API) + why (BOBA is a tool for human learning; Twitter is owned by a fascist; integration would signal endorsement + provide material support) + what still ships (full OG protocol, Discord per DECISIONS.md #049, other social platforms when use cases arise).
+  - `DESIGN.md §12 "Out of scope"`: row added — "Twitter / X integration (any form)" → "Never".
+  - `WEB-DESIGN.md §17 "Out of scope"`: same row.
+  - `ANDROID-DESIGN.md §12 "Out of scope"`: same row.
+  - Memory: `feedback_no_twitter_integration.md` with the binding context for future sessions.
+- **Why this is binding, not aesthetic:** the docs are explicit. Any future tick that reaches for a `twitter.com` URL, a `twitter:*` meta tag, a "Share to Twitter" button, or a Twitter SDK is rejected at proposal stage. Other social platforms (Discord, Bluesky, Mastodon, Threads) are fine when use cases arise.
+- **Net effect on tick 21:** OG protocol still ships fully — Discord, iMessage, Slack, Bluesky, Mastodon, Threads, Facebook, LinkedIn, WhatsApp, Signal, Telegram, and search engines all read OG. Tick 21's user-acquisition + sharing value lands. Only the Twitter-specific dialect is gone.
+
 ### Tick 21 — 2026-05-20 — Open Graph + Twitter card meta tags
 - **Picked:** Documented in tick-20 "Next" as the next obvious polish. The web app had zero OG / Twitter meta tags — any link to BOBA Playbook shared in Discord, iMessage, Slack, Twitter, etc. got either a blank preview or the browser's auto-generated text-only card. Cheap to ship with meaningful user-acquisition + sharing impact.
 - **Shipped:**

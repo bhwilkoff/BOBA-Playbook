@@ -494,35 +494,27 @@
   /// either directly (no-transition path) or inside a
   /// startViewTransition callback. Pure side-effect; do not call
   /// directly from app code, always go through showView.
-  /// Update the Open Graph + Twitter meta tags in <head> to match
-  /// the current route. **Note:** link crawlers (Discord, Twitter,
-  /// iMessage, Slack) read only the STATIC <head> when they crawl a
-  /// URL — they don't run JS — so this client-side update only helps
-  /// in-app share affordances (Web Share API target string + browser
-  /// extensions that re-read the DOM). Server-side rendering would
-  /// be needed for crawler-visible per-route OG, which we don't do
-  /// on GitHub Pages.
+  /// Update the Open Graph meta tags in <head> to match the current
+  /// route. **Note:** link crawlers (Discord, iMessage, Slack, etc.)
+  /// read only the STATIC <head> when they crawl a URL — they don't
+  /// run JS — so this client-side update only helps in-app share
+  /// affordances (Web Share API target string + browser extensions
+  /// that re-read the DOM). Server-side rendering would be needed for
+  /// crawler-visible per-route OG, which we don't do on GitHub Pages.
+  ///
+  /// NO twitter:* tags — per DECISIONS.md #053, BOBA never integrates
+  /// with Twitter / X. The OG protocol is read by every other major
+  /// platform.
   function updateOpenGraphMeta({ title, description, url, image }) {
     const setMeta = (selector, value) => {
       if (value == null) return;
       const el = document.head.querySelector(selector);
       if (el) el.setAttribute('content', value);
     };
-    if (title != null) {
-      setMeta('meta[property="og:title"]',  title);
-      setMeta('meta[name="twitter:title"]', title);
-    }
-    if (description != null) {
-      setMeta('meta[property="og:description"]',  description);
-      setMeta('meta[name="twitter:description"]', description);
-    }
-    if (url != null) {
-      setMeta('meta[property="og:url"]', url);
-    }
-    if (image != null) {
-      setMeta('meta[property="og:image"]',  image);
-      setMeta('meta[name="twitter:image"]', image);
-    }
+    if (title       != null) setMeta('meta[property="og:title"]',       title);
+    if (description != null) setMeta('meta[property="og:description"]', description);
+    if (url         != null) setMeta('meta[property="og:url"]',         url);
+    if (image       != null) setMeta('meta[property="og:image"]',       image);
   }
 
   // Display-titles for each routable view, used both for the

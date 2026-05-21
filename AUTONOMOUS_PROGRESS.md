@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 74 — 2026-05-20 — **Android** — Find empty-state body line (web tick 29 parity)
+- **Cadence:** 74 % 5 = 4 → Android.
+- **Picked:** Android Find empty state surfaced a single static body line "Try a different search, or remove a filter." regardless of what filters were active. Web tick 29 already shipped a dynamic body line ("Nothing matches FIRE. Try loosening or removing the filter.") that names the active filters back to the user. Real parity gap on the same surface — Android user with five filters active had no clue WHICH one was producing the empty results.
+- **Shipped:**
+  - `android/app/src/main/java/com/bobaplaybook/app/feature/find/FindScreen.kt`:
+    - Replaced static `stringResource(R.string.find_no_results_body)` with a runtime-computed `body` string.
+    - `buildList` collects active filter atoms in display order: query (quoted), weapons, set, treatment, release, showcase name, image-only flag, power range.
+    - Three branches based on `active.size`: empty (no active filters — generic "Try a different search."), single-filter (names the one filter — "Nothing matches FIRE. Try loosening or removing the filter."), multi-filter (joins with " · " — "Nothing matches all of: FIRE · power 100–160. Try removing one.").
+    - `Showcases.byId(id)?.name` resolves the showcase enum back to a human-readable name (already imported at top of file).
+- **Verified:** FindUiState fields verified (lines 24–36): query / activeWeapons / activeSet / activeTreatment / activeRelease / showcaseId / hasImageOnly / powerMin / powerMax all present. `Showcases.byId` exists at Showcase.kt:154. Showcases import already at FindScreen.kt:87. Pure-Kotlin string builder — no Compose API risk.
+- **PARITY.md:** No row — empty-state polish on already-✅ Find row.
+- **Next:** tick 75 = opt (5th-in-5 cadence); tick 76 = Android (76%5=1).
+
+
+
 ```
 ### Tick N — 2026-05-20 HH:MM MT
 - **Picked:** {backlog item title}

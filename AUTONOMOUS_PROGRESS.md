@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 147 — 2026-05-21 — **iOS** — Decks editor DBS chip is now tappable (opens DBSInfoSheet)
+- **Cadence:** 147 % 5 = 2 → iOS.
+- **Picked:** Android tick 134 made the DBS budget chip in the Decks editor tappable — taps open `DBSInfoSheet` (the canonical explainer also used from CardDetailView). iOS Decks DBS chip was rendered the same way but inert — coaches couldn't tap to learn what the budget is or why their deck just turned orange when DBS overflowed. The `DBSInfoSheet` View already exists at `CardDetailView.swift:1132` and is presented from Card detail; reusing it here costs nothing.
+- **Shipped:**
+  - `DeckBuilderView.swift`:
+    - New `@State private var showDBSInfo = false` paralleling the other sheet-trigger flags.
+    - Stats-bar DBS chip wrapped in `Button { showDBSInfo = true } label: { statChip(...) }` with `.buttonStyle(.plain)` so the visual shape stays identical (statChip's typography + element color survive intact) + `.accessibilityHint("Opens DBS budget explainer")` for VoiceOver.
+    - New `.sheet(isPresented: $showDBSInfo) { DBSInfoSheet().presentationDetents([.medium, .large]) }` next to the Rules + Legality sheets. Medium detent matches the explainer content's natural height.
+- **Verified:** `DBSInfoSheet` (defined at `CardDetailView.swift:1132`) is a stateless View — no init args needed. Both surfaces share the explainer verbatim. iOS doesn't need a per-deck context the way Android passes nothing either.
+- **PARITY.md:** No row needed — UX polish on already-✅ Decks DBS surface. Closes parity with Android tick 134.
+- **Next:** tick 148 = web; 149 = Android; 150 = opt.
+
 ### Tick 146 — 2026-05-21 — **Android** — Drop `nil()` Swift→Kotlin port artifact + PARITY hero-zoom audit
 - **Cadence:** 146 % 5 = 1 → Android.
 - **Picked two things in one tick** because each is small:

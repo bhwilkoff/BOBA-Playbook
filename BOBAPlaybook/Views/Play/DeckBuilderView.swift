@@ -61,6 +61,10 @@ struct DeckBuilderView: View {
     /// clears after 6s. Parity with Android tick 139's Clear-deck Undo
     /// Snackbar.
     @State private var clearedSnapshot: DeckBuilderStore.DraftSnapshot?
+    /// DBS explainer sheet trigger. Tapping the DBS chip in the stats
+    /// bar opens the canonical `DBSInfoSheet` (CardDetailView.swift).
+    /// Parity with Android tick 134's tappable DBS chip.
+    @State private var showDBSInfo = false
     @State private var showLegalityReport = false
 
     init(pendingCard: Card? = nil, isRootView: Bool = false) {
@@ -251,6 +255,10 @@ struct DeckBuilderView: View {
         }
         .sheet(isPresented: $showLegalityReport) {
             LegalityReportSheet(store: store)
+        }
+        .sheet(isPresented: $showDBSInfo) {
+            DBSInfoSheet()
+                .presentationDetents([.medium, .large])
         }
         .sheet(item: $selectedBrowserCard) { card in
             BrowserCardDetailSheet(card: card, store: store, tab: store.browserTab)
@@ -490,11 +498,17 @@ struct DeckBuilderView: View {
                         statChip(label: "BONUS", value: "+\(store.bonusPlays.count)", ok: true)
                     }
                     if store.effectiveEnforceDBS {
-                        statChip(
-                            label: "DBS",
-                            value: "\(store.totalDBS)/\(store.effectiveDBSBudget)",
-                            ok: store.totalDBS <= store.effectiveDBSBudget
-                        )
+                        Button {
+                            showDBSInfo = true
+                        } label: {
+                            statChip(
+                                label: "DBS",
+                                value: "\(store.totalDBS)/\(store.effectiveDBSBudget)",
+                                ok: store.totalDBS <= store.effectiveDBSBudget
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Opens DBS budget explainer")
                     }
                 }
                 if store.format.needsHotDogs {

@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 133 — 2026-05-20 — **web** — `/` jumps to Find + focuses search input (3-platform parity)
+- **Cadence:** 133 % 5 = 3 → web.
+- **Picked:** Web had no keyboard shortcut to focus the Find search bar. Android tick 131 + iOS tick 132 shipped `/`/Cmd+/ jump-to-search. GitHub / YouTube / X all map `/` to focus search — canonical web "go to search" idiom. Per WEB-DESIGN.md §2.4 the Cmd-K command palette is explicitly out of scope, but `/` is a single-key affordance that doesn't require building a palette.
+- **Shipped:**
+  - `js/app.js` new global `keydown` listener:
+    - Skips when `key !== '/'` OR any modifier (Cmd/Ctrl/Alt) is held — bare `/` only.
+    - Skips when the active target is `input` / `textarea` / `contenteditable` — typing `/` in a field types `/` as normal.
+    - Skips when any `<dialog>` is open (card-detail modal, auth, add-sheet, share) — user is engaged with a focused task.
+    - `e.preventDefault()` + `window.showView('find')` + (via `requestAnimationFrame`) `document.getElementById('search-input').focus()` + `.select()` so the existing query is selected ready to overtype.
+- **Verified:** `node -c js/app.js` clean. Defers focus to next animation frame so the showView View-Transition animation doesn't snatch focus first.
+- **PARITY.md:** No row — 3-platform parity now: iOS Cmd+/ (132) + Android `/` (131) + web `/` (133). Web is the only platform that also auto-focuses the input (because the URL-routed view-switch is synchronous).
+- **Next:** tick 134 = Android; 135 = opt.
+
+
+
 ### Tick 132 — 2026-05-20 — **iOS** — Cmd+/ jumps to Find tab (Android tick 131 parity)
 - **Cadence:** 132 % 5 = 2 → iOS.
 - **Picked:** iOS has Cmd+1..5 tab shortcuts via `TabSwitchShortcuts` hidden-buttons surface. Android tick 131 added `/` (no modifier) → Find tab. iOS canonical equivalent is `Cmd+/` (Cmd+/ is widely used as "open keyboard shortcuts cheatsheet" but BOBA doesn't ship one, so this binding is free). Adds a sixth hidden-button to the existing TabSwitchShortcuts View.

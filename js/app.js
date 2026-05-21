@@ -3203,6 +3203,32 @@
     if (e.key === 'ArrowRight') { navigateModal(+1); return; }
   });
 
+  // `/` (no modifier) — jump to Find tab + focus the search input.
+  // Tick 133 — parity with iOS Cmd+/ (tick 132) + Android `/` (tick
+  // 131). Canonical "go to search" idiom (GitHub, YouTube, X all map
+  // `/` to focus search). Skip when the user is already typing in an
+  // input / textarea / contentEditable / open <dialog> — `/` should
+  // type a slash there.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+    const tgt = e.target;
+    if (tgt && (tgt.matches?.('input, textarea, [contenteditable="true"]') || tgt.isContentEditable)) return;
+    // Don't fire when a modal <dialog> is open — the user is engaged
+    // with a focused task, not browsing.
+    if (modalOverlay.open) return;
+    // Auth dialog / add-sheet / share — same logic.
+    if (document.querySelector('dialog[open]')) return;
+    e.preventDefault();
+    if (typeof window.showView === 'function') window.showView('find');
+    // Defer focus by a frame so the showView's view-transition
+    // animation doesn't snatch focus away first.
+    requestAnimationFrame(() => {
+      const input = document.getElementById('search-input');
+      input?.focus();
+      input?.select?.();
+    });
+  });
+
   // Touch swipe navigation inside the modal
   let _touchStartX = 0, _touchStartY = 0;
   modalOverlay.addEventListener('touchstart', (e) => {

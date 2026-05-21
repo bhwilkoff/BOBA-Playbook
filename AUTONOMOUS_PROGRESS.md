@@ -102,6 +102,15 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 39 — 2026-05-20 — Custom Rainbow editor per-picker "Clear all" + commit-as-you-go
+- **Ben directive ack:** "commit instead of queueing as you go." Acknowledged — committing per-tick (already the pattern) and dropping the "Next: tick N — X" queue items from progress notes since those become commits in their own right.
+- **Picked:** iOS Custom Rainbow editor audit (line 304 of `CustomRainbowEditorSheet.swift`) showed a per-picker "Clear all" destructive button when ≥1 option is selected. Web didn't have it — a user with 50 heroes checked in the Heroes picker had to un-check each individually.
+- **Shipped:**
+  - `js/collection.js::_renderFilterDim`: when `selected.size > 0`, emit a destructive `Clear N` button between the search input and the options grid. Click → wipes `_draftCriteria[dim.key]` + re-renders the picker (which drops the button + zeroes the count badge) + refreshes the live preview.
+  - `css/styles.css`: `.rainbow-filter-clear` — red destructive accent (matches the brand's BRAWL color), pill style, hover + focus-visible states.
+- **Verified:** node -c clean. Trace: check 5 heroes → "Clear 5" appears → click → all 5 unchecked, button gone, count badge in summary header clears, preview re-runs with the broader criteria.
+- **PARITY.md:** No row — editor polish on the already-✅ Custom Rainbows row.
+
 ### Tick 37 — 2026-05-20 — Collection search clear-× button
 - **Picked:** Re-queued tick after the tick-36 "no 'pool'" interrupt. The tick-34 Collection search input relied on the native `<input type="search">` browser-built-in clear-×, which is small on iOS Safari + sometimes invisible on Android Chrome + inconsistent across themes. Add a custom × matching Find's `searchClear` pattern.
 - **Shipped:** see commit 85aebf0. Markup wrapped in `.collection-search-wrap`, custom `<button id="collection-search-clear">`, instant un-debounced visibility toggle on every keystroke, zero-debounce immediate clear + refocus, `::-webkit-search-cancel-button { appearance: none }` to hide the native ×, keyboard-accessible cyan focus ring.

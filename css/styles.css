@@ -4284,6 +4284,26 @@ dialog.modal-overlay[open] {
   border-color: rgba(0,245,255,0.4);
   background: rgba(0,245,255,0.04);
 }
+.rainbow-filter-clear {
+  background: rgba(192,57,43,0.10);
+  border: 1px solid rgba(192,57,43,0.35);
+  border-radius: 4px;
+  color: #ff6b55;
+  cursor: pointer;
+  font-family: var(--font-mono, 'Chakra Petch', monospace);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 4px 10px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  transition: background 0.15s, border-color 0.15s;
+}
+.rainbow-filter-clear:hover { background: rgba(192,57,43,0.18); border-color: rgba(192,57,43,0.5); }
+.rainbow-filter-clear:focus-visible {
+  outline: 2px solid rgba(192,57,43,0.6);
+  outline-offset: 1px;
+}
 .rainbow-filter-options {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));

@@ -102,6 +102,18 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 40 — 2026-05-20 — Decks browser: at-cap visual marker across all tabs
+- **Picked:** UX gap. The `.violates` class (opacity 0.3 + pointer-events: none) was only set for `browserTab === 'hero'` when `wouldHeroViolate(card)` was true. For plays / bonus / hotdog tabs, at-cap cells were fully interactive but `DB.addCard` silently returned without adding — looked broken to the user.
+- **Shipped:**
+  - `js/practice.js::dbRenderGrid` (line 670): `violates` extended to cover all four tabs:
+    - hero — `wouldHeroViolate(card)` (existing).
+    - play — already in deck OR plays.length ≥ format target (30 default).
+    - bonus — already in deck OR bonusPlays.length ≥ 15 (BoBA rule).
+    - hotdog — hotDogs.length ≥ 10.
+  - `js/practice.js::dbShowCardPopup` (line 1449): popup Add button gets the same extended check. Button text now: "In Deck" / "At cap" / "Add to Deck" (was "Cannot Add" for the hero violation).
+- **Verified:** node -c clean. Trace: open hotdog tab at 10/10 → all 137 cells dimmed + pointer-events:none. Open play tab → already-added plays dimmed. Open popup on a dimmed cell → button reads "At cap" (or "In Deck" if it's the in-deck case).
+- **PARITY.md:** No row — UX polish on an already-✅ surface.
+
 ### Tick 39 — 2026-05-20 — Custom Rainbow editor per-picker "Clear all" + commit-as-you-go
 - **Ben directive ack:** "commit instead of queueing as you go." Acknowledged — committing per-tick (already the pattern) and dropping the "Next: tick N — X" queue items from progress notes since those become commits in their own right.
 - **Picked:** iOS Custom Rainbow editor audit (line 304 of `CustomRainbowEditorSheet.swift`) showed a per-picker "Clear all" destructive button when ≥1 option is selected. Web didn't have it — a user with 50 heroes checked in the Heroes picker had to un-check each individually.

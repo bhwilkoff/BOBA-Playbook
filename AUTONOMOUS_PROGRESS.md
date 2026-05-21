@@ -76,6 +76,22 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 142 — 2026-05-21 — **iOS** — Clear-deck draft: Undo banner
+- **Cadence:** 142 % 5 = 2 → iOS.
+- **Picked:** iOS mirror of Android tick 139. The iOS Clear-deck `.alert("Clear deck?", ...)` confirm button called `store.clearDeck()` + `store.discardDraft()` + flipped `showTemplates = true` — all destructive, with no recovery path. A coach could tap "Clear deck" by accident (it's the destructive button in the alert) and lose 30+ cards of work permanently. The on-disk draft also got wiped via `discardDraft()`, so even quitting & relaunching wouldn't recover it.
+- **Shipped:**
+  - `DeckBuilderStore.swift`:
+    - New `func currentSnapshot() -> DraftSnapshot` — builds an in-memory snapshot of every persistable field without touching UserDefaults. The DraftSnapshot struct (lines 877-889) already existed for on-disk persistence; this just reuses it for the Undo path.
+    - New `func applySnapshot(_ snap: DraftSnapshot, allCards: [Card])` — counterpart to `restoreDraft(allCards:)` but takes a value directly instead of decoding from UserDefaults. Mirrors the restore math line-for-line.
+  - `DeckBuilderView.swift`:
+    - New `@State private var clearedSnapshot: DeckBuilderStore.DraftSnapshot?` paralleling the `templateLoadBanner` one-shot pattern.
+    - Clear-deck alert handler captures `clearedSnapshot = store.currentSnapshot()` BEFORE the destructive triple-call. Schedules a 6-second `withAnimation` fade.
+    - Alert copy changed from prescriptive ("Removes every Hero... starter-deck splash returns...") to recovery-aware: *"Removes every Hero, Play, and Hot Dog. You'll have a few seconds to undo."* — same shape as Android tick 124's Manage Decks delete copy.
+    - Top-overlay banner slot extends with `else if let snap = clearedSnapshot` branch. Distinct visual treatment: cyan accent (vs the green success banner) + `arrow.uturn.backward.circle.fill` icon + an inline UNDO Button in orange. Tap → `store.applySnapshot(snap, allCards:)`, flip `showTemplates = false`, dismiss banner.
+- **Verified:** the snapshot captures deckName / format / activePresetID / ruleOverrides / heroes / plays / bonusPlays / hotDogs / sideboard / currentDeckId — every field that `restoreDraft` re-applies, so Undo restores 1:1. SourceKit reports the same "Cannot find type" indexer noise on DeckBuilderStore.swift (pre-existing, see tick 137 note). The actual Swift compiler resolves.
+- **PARITY.md:** No row — UX polish on already-✅ Decks. Closes parity with Android tick 139.
+- **Next:** tick 143 = web; 144 = Android; 145 = opt.
+
 ### Tick 141 — 2026-05-21 — **Android** — Custom Rainbow detail screen wires up (was stub)
 - **Cadence:** 141 % 5 = 1 → Android.
 - **Picked:** Real bug. Tapping a Custom Rainbow in `RainbowsScreen` already navigated to `collection/rainbow/custom/{id}` per tick 81's plumbing, but the destination wiring at `BOBAApp.kt:496` had a TODO: `// kind is currently "hero"; custom rainbows ship in a later pass`. The route silently treated the custom rainbow's UUID as a hero name. Result: `catalogCards.filter { it.hero.equals(uuid) }` matched zero cards → screen rendered "0 / 0 owned" with an empty grid + the UUID as the TopAppBar title. The Custom Rainbow feature was visible in the list but broken on tap.

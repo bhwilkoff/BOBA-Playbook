@@ -56,6 +56,11 @@ struct DeckBuilderView: View {
     /// overwritten so the destruction isn't invisible. Parity with
     /// Android tick 136 Snackbar.
     @State private var templateLoadBanner: String?
+    /// Snapshot captured at Clear-deck confirm time; non-nil while the
+    /// Undo banner is on screen. Tap → applySnapshot + dismiss. Auto-
+    /// clears after 6s. Parity with Android tick 139's Clear-deck Undo
+    /// Snackbar.
+    @State private var clearedSnapshot: DeckBuilderStore.DraftSnapshot?
     @State private var showLegalityReport = false
 
     init(pendingCard: Card? = nil, isRootView: Bool = false) {
@@ -225,12 +230,21 @@ struct DeckBuilderView: View {
         .alert("Clear deck?", isPresented: $confirmingClearDeck) {
             Button("Cancel", role: .cancel) {}
             Button("Clear deck", role: .destructive) {
+                // Capture pre-clear state so the Undo banner can
+                // restore it. Tick 142 parity with Android tick 139.
+                clearedSnapshot = store.currentSnapshot()
                 store.clearDeck()
                 store.discardDraft()
                 showTemplates = true
+                // Auto-dismiss the Undo banner after 6 seconds so it
+                // doesn't shadow the templateGallery splash forever.
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(6))
+                    withAnimation(.easeOut(duration: 0.3)) { clearedSnapshot = nil }
+                }
             }
         } message: {
-            Text("Removes every Hero, Play, and Hot Dog. Your deck name and rule overrides stay. The starter-deck splash returns so you can pick a fresh template.")
+            Text("Removes every Hero, Play, and Hot Dog. You'll have a few seconds to undo.")
         }
         .sheet(isPresented: $showRulesSheet) {
             DeckRulesSheet(store: store)
@@ -318,6 +332,34 @@ struct DeckBuilderView: View {
                 .padding(.vertical, Design.Spacing.sm)
                 .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(hex: "4CAF50").opacity(0.4), lineWidth: 1))
+                .padding(.top, 50)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            } else if let snap = clearedSnapshot {
+                // Clear-deck Undo banner (tick 142). Tapping UNDO
+                // re-applies the captured snapshot in-memory; the
+                // draft-persistence layer will pick it up on the next
+                // saveDraft trigger.
+                HStack(spacing: Design.Spacing.sm) {
+                    Image(systemName: "arrow.uturn.backward.circle.fill")
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                    Text("Draft cleared")
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                    Button {
+                        store.applySnapshot(snap, allCards: cardStore.displayCards)
+                        showTemplates = false
+                        withAnimation(.easeOut(duration: 0.2)) { clearedSnapshot = nil }
+                    } label: {
+                        Text("UNDO")
+                            .font(Design.Fonts.mono(12, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaOrange)
+                    }
+                    .accessibilityLabel("Undo clear deck")
+                }
+                .padding(.horizontal, Design.Spacing.md)
+                .padding(.vertical, Design.Spacing.sm)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Design.Colors.surface))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Design.Colors.bobaCyan.opacity(0.4), lineWidth: 1))
                 .padding(.top, 50)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }

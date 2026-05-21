@@ -76,6 +76,22 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 97 — 2026-05-20 — **iOS** — CollectionCardDetail "IN YOUR DECKS" tap-to-load (Android tick 94 parity)
+- **Cadence:** 97 % 5 = 2 → iOS.
+- **Picked:** iOS `CollectionCardDetailView::decksSection` rendered cyan-tinted deck rows but they were inert — no Button, no onTapGesture. The user saw their decks containing this card but couldn't open them; opening Decks tab and manually finding the named deck was the only path. Android tick 94 just shipped tap-to-load + Snackbar; iOS gap on the opposite axis (Android had tap + no chevron; iOS had nothing).
+- **Shipped:**
+  - `CollectionCardDetailView.swift`:
+    - New `@Environment(DeckBuilderStore.self) private var deckBuilder` — the iOS canonical singleton (same one `DecksView` uses at line 453 for the saved-decks loader).
+    - Wrapped each `HStack` row in a `Button { ... } label: { ... }` with `.buttonStyle(.plain)` + `.contentShape(Rectangle())` so the entire row taps without losing the cyan-tinted Surface look.
+    - Tap handler: `Task { _ = try await deckBuilder.loadSavedDeck(deck, cards: cardStore.displayCards); showAddedToDeckToast("Loaded \"{deck.name}\" into Decks") }`. Reuses the existing green-checkmark toast helper.
+    - Added trailing `chevron.right` icon — universal "this row is tappable" affordance.
+    - `.accessibilityHint("Loads this deck into the Decks editor")` for VoiceOver.
+- **Verified:** `DeckBuilderStore.loadSavedDeck(_:cards:)` signature confirmed at `DeckBuilderStore.swift:1355`. `showAddedToDeckToast` already defined in this view at line 318+. SourceKit cross-file noise is preexisting.
+- **PARITY.md:** No row — UX polish on already-✅ CollectionCardDetail row. 2-platform parity (iOS tick 97 + Android tick 94) on the in-deck-tap-to-load pattern.
+- **Next:** tick 98 = web; 99 = Android; 100 = opt.
+
+
+
 ### Tick 96 — 2026-05-20 — **Android** — AddToDeckSheet: Snackbar confirmations on add
 - **Cadence:** 96 % 5 = 1 → Android.
 - **Picked:** Android `AddToDeckSheet` had two silent action paths:

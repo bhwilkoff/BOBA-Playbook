@@ -2833,3 +2833,13 @@ Both flow into a single tick 192 commit. Bump v2.293 / build 555.
   - Memory of Carde.io game-id discovery saved as part of script comments (`BOBA_GAME_ID = "e30530dd-..."`).
   - Reverse-engineering a Next.js client API: `baseURL` in axios config + `fetch` URL strings together give the full URL; required headers found via `interceptors.request.use` block.
 - **Next:** tick 195 = opt (195 % 5 = 0). Verify CI on the refresh + iOS tick 192 builds.
+
+### Tick 195 — 2026-05-21 — opt: drop dead Coordinator typealias + ugly walrus pattern
+- **CI snapshot:** Android on tick 194 (00bf35d) still in_progress (assets-only change rebuilding); iOS tick 192 (1291925) shipped clean.
+- **Drops:**
+  - `BOBAPlaybook/Views/HouseOfCards/HouseOfCardsView.swift`: removed `private typealias Coordinator = HouseOfCardsCoordinator` (5 lines incl comment). `makeCoordinator()`'s return type was the only consumer — inlined to `-> HouseOfCardsCoordinator`. Swift's UIViewRepresentable Coordinator associatedtype just infers from the return type, so the alias was purely cosmetic.
+  - `scripts/refresh_events.py`: tick 194's `events_in = existing.get("events", []) if isinstance(events_in_root := existing, dict) else []` was ugly defensive-walrus when `existing` is always a dict (load_existing's contract). Replaced with `events_in = existing.get("events") or []` (2 lines).
+- **Net:** -7 lines (12 deletions, 5 insertions).
+- **Version:** v2.294 / build 556 (tandem bump per [[feedback_bump_marketing_and_build_in_tandem]] since opt touched iOS code).
+- **Cadence rule:** opt tick should net-remove. ✓
+- **Next:** tick 196 = Android (cadence 196 % 5 = 1). Backlog items still needing Android-side polish? Most have Android done — pick #6 (Wanted-list public sharing) which needs cross-platform infra, OR cycle iOS+web parity for the still-pending items (#3 glossary tooltips, #4 format-legality chip, #7 print-run badge) — those need iOS+web. Per platform cadence, tick 196 = Android = no obvious ship; consider opening a NEW Discord-mining pass since the original 8-item punch list is heavily shipped (5 of 8 closed across all 3 platforms).

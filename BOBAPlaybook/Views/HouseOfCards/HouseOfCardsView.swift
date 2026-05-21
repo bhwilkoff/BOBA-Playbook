@@ -467,8 +467,8 @@ private struct HouseOfCardsRealityView: UIViewRepresentable {
     /// sessions.
     let catalog: [String: Card]
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(session: session)
+    func makeCoordinator() -> HouseOfCardsCoordinator {
+        HouseOfCardsCoordinator(session: session)
     }
 
     func makeUIView(context: Context) -> ARView {
@@ -3730,11 +3730,6 @@ private extension float4x4 {
         return m
     }
 }
-
-// Re-export name expected by the SwiftUI body (replaces the
-// stub HouseOfCardsRealityView that was here before the
-// physics pipeline landed).
-private typealias Coordinator = HouseOfCardsCoordinator
 
 // MARK: - HouseOfCardsSession
 //

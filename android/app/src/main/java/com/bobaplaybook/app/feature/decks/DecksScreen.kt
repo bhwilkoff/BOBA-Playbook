@@ -7,8 +7,11 @@
 package com.bobaplaybook.app.feature.decks
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -76,6 +79,7 @@ import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBAHintBanner
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import com.bobaplaybook.core.ui.components.BOBAWordmark
+import com.bobaplaybook.core.ui.theme.BobaBrand
 import com.bobaplaybook.core.ui.transitions.cardSharedBounds
 import kotlinx.coroutines.launch
 
@@ -329,6 +333,7 @@ private fun DecksCompactScreen(
                     findViewModel.onEvent(com.bobaplaybook.app.feature.find.FindEvent.QueryChanged(""))
                 },
                 columns = storedPoolColumns,
+                inDeckBobaIds = remember(draft.cards) { draft.cards.map { it.bobaId }.toSet() },
                 onCardClick = onCardClick,
                 onCardLongClick = { card ->
                     // Snackbar branches on the actual add outcome
@@ -481,6 +486,13 @@ private fun CardPoolGrid(
      * defaults to ~3 cols on a typical phone, 5-7 on tablet).
      */
     columns: Int = 0,
+    /**
+     * Bobaids of cards currently in the draft — iOS DeckBuilderView
+     * parity (tick 161). Pool cells that are already in the draft get a
+     * cyan border + checkmark badge so coaches see at a glance which
+     * cards they've already picked.
+     */
+    inDeckBobaIds: Set<String> = emptySet(),
 ) {
     if (cards.isEmpty()) {
         // Disambiguate: search-driven empty vs filter-driven empty.
@@ -523,17 +535,50 @@ private fun CardPoolGrid(
             key = { card -> card.bobaId },
             contentType = { "card" },
         ) { card ->
-            BOBACardCell(
-                imageFile = card.imageFile,
-                isSealed = card.isSealed,
-                contentDescription = card.displayName,
+            val isInDeck = card.bobaId in inDeckBobaIds
+            Box(
                 modifier = Modifier
                     .cardSharedBounds(card.bobaId)
                     .combinedClickable(
                         onClick = { onCardClick(card.bobaId) },
                         onLongClick = { onCardLongClick(card) },
                     ),
-            )
+            ) {
+                BOBACardCell(
+                    imageFile = card.imageFile,
+                    isSealed = card.isSealed,
+                    contentDescription = card.displayName,
+                )
+                // Tick 161 — iOS DeckBuilderView parity. Cards already in
+                // the draft get a cyan border + checkmark badge so coaches
+                // see at a glance which pool cards they've already picked.
+                if (isInDeck) {
+                    androidx.compose.foundation.Canvas(
+                        modifier = Modifier.matchParentSize(),
+                    ) {
+                        drawRoundRect(
+                            color = BobaBrand.Cyan,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.dp.toPx()),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx()),
+                        )
+                    }
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .size(20.dp)
+                            .background(BobaBrand.Cyan, shape = CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Already in deck",
+                            tint = BobaBrand.NearBlack,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -676,6 +721,7 @@ private fun DecksTabletScreen(
                 cards = findState.results,
                 onCardClick = onCardClick,
                 onCardLongClick = deckViewModel::add,
+                inDeckBobaIds = remember(draft.cards) { draft.cards.map { it.bobaId }.toSet() },
                 modifier = Modifier.fillMaxSize(),
             )
         }

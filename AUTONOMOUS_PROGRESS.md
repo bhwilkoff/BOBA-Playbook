@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 161 — 2026-05-21 — **Android** — Decks pool: cyan border + ✓ badge on in-deck cards
+- **Cadence:** 161 % 5 = 1 → Android.
+- **Picked:** Real parity gap. iOS DeckBuilderView's `BrowserCardCell` highlights cards already in the active draft with a cyan border (`Design.Colors.bobaCyan`, 2.5pt) + a checkmark badge (line 1218-1255 area). Android's Decks `CardPoolGrid` showed every card identically — coaches couldn't see at a glance which cards they'd already picked, leading to unnecessary tap-attempts that hit "already in deck" rejections from tick 114's enforcement.
+- **Shipped:**
+  - `DecksScreen.kt` `CardPoolGrid`:
+    - New parameter `inDeckBobaIds: Set<String> = emptySet()`.
+    - Each item now wraps `BOBACardCell` in a `Box(modifier = combinedClickable + cardSharedBounds)`. When `card.bobaId in inDeckBobaIds`, the Box adds:
+      - A full-size `Canvas` overlay drawing a cyan rounded-rect stroke (4dp width, 12dp corner radius — matches the cell's `shapes.medium`).
+      - A 20dp circular badge anchored TopEnd with a 14dp Check icon, cyan background + near-black tint (matches iOS treatment).
+    - Both call sites (line 324 compact + line 716 tablet) pass `inDeckBobaIds = remember(draft.cards) { draft.cards.map { it.bobaId }.toSet() }` — single-pass set construction memoized on the draft's cards list.
+  - New imports: `Canvas`, `layout.size`, `shape.CircleShape`, `BobaBrand`.
+- **Verified:** uses `BOBACardCell` unchanged (shared primitive untouched per design principle — no fork). Set lookup is O(1) per cell. The remember key (`draft.cards`) is a kotlinx.collections.immutable `PersistentList`, so reference equality is enough to invalidate the memo on any draft change.
+- **PARITY.md:** No row — UX polish on already-✅ Decks. Closes iOS DeckBuilderView "in-deck visual indicator" parity.
+- **Next:** tick 162 = iOS; 163 = web; 164 = Android; 165 = opt.
+
 ### Tick 160 — 2026-05-21 — **opt** — Drop 67 more lines of orphan practice.js helpers + audit
 - **Cadence:** 160 % 5 = 0 → opt.
 - **Picked:** Cascade cleanup after tick 150's `pmResolveEffect` removal. `pmResolveCoinFlip` (24 lines) and `pmResolveDiceRoll` (43 lines) were ONLY called from inside the now-deleted regex resolver. Tick 150's audit missed them because they shared the same code path — once `pmResolveEffect` went, these too became orphan helpers.

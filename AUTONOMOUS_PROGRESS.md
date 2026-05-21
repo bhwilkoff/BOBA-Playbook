@@ -76,6 +76,18 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 175 — 2026-05-21 — **opt** — Clean pass (no orphans remaining)
+- **Cadence:** 175 % 5 = 0 → opt.
+- **Picked:** Cross-platform orphan sweep (iOS @State + private vars/funcs, Android imports + funcs, web top-level functions). Zero hits across all three platforms. The orphan-detection logic now correctly handles trailing-lambda invocations, fully-qualified Icons refs, and delegate-keyword usage — the false-positive shape that broke tick 140's CI is no longer triggering.
+- **Why:** Recent opt ticks (140, 145, 150, 155, 160, 165, 170) cumulatively dropped ~700+ lines of dead code. The current codebase is in a denser-than-baseline state; no low-hanging orphans remain to surface in a single grep pass.
+- **Net:** 0 lines (audit-only).
+- **Out-of-band fixes shipped this session (not tick-counted)**:
+  - Android Studio warnings in `CardDetailScreen`: unnecessary `?.` on `snackbarHostState` + deprecated `rememberTransformableState` 3-arg overload → centroid-aware 4-arg variant.
+  - Android app icon: rewrote `ic_launcher_foreground` + `ic_launcher_monochrome` vectors with thicker strokes + bigger marks to match iOS `AppIcon.appiconset/icon.png` aesthetic. Sized to fit Android's 66% safe zone.
+- **PARITY.md:** No row.
+- **Saved to memory (pre-compaction):** [[feedback_autonomous_loop_failure_modes]] + [[reference_autonomous_loop_tick_100_175_state]] capture the recurring CI failure shapes + the loop's progress snapshot, so a post-compaction resume picks up cleanly.
+- **Next:** tick 176 = Android.
+
 ### Tick 174 — 2026-05-21 — **Android** — AddToDeckSheet Saved-Deck rows: "Already in deck" hint (tick 171 extension)
 - **Cadence:** 174 % 5 = 4 → Android.
 - **Picked:** Tick 171 added the "alreadyInDraft" visual hint to AddToDeckSheet's **current-draft row**. The same indicator was missing from the **saved-decks list** below — saved-deck rows showed the same `Icons.Default.Add` and the same body text whether the saved deck already contained this card or not. A coach attempting to "add this card to my Maverick deck" couldn't see at a glance that Maverick already had it (load + add would hit the dup-warning).

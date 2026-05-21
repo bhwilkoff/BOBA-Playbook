@@ -97,6 +97,10 @@ struct ContentView: View {
 /// buttons — present in the responder chain so .keyboardShortcut
 /// fires, but not visible or interactive via touch. iPhone with no
 /// keyboard simply ignores them.
+///
+/// Cmd+/ also jumps to Find — matches the canonical GitHub / YouTube
+/// "go to search" pattern + Android tick 131's `/` shortcut. iPad-only
+/// affordance; iPhone w/o keyboard ignores it.
 private struct TabSwitchShortcuts: View {
     @Binding var selectedTab: Int
     var body: some View {
@@ -111,6 +115,10 @@ private struct TabSwitchShortcuts: View {
                 .keyboardShortcut("4", modifiers: .command)
             Button { selectedTab = 5 } label: { EmptyView() }
                 .keyboardShortcut("5", modifiers: .command)
+            // Cmd+/ → Find. Same "go to search" idiom Chromebooks +
+            // GitHub use. Routes to tab 0 (Find).
+            Button { selectedTab = 0 } label: { EmptyView() }
+                .keyboardShortcut("/", modifiers: .command)
         }
         .frame(width: 0, height: 0)
         .opacity(0)

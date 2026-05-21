@@ -102,6 +102,20 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 62 — 2026-05-20 — **iOS** — Delete Account: type-to-confirm second gate
+- **Cadence:** 62 % 5 = 2 → iOS. Backfilling parity from web tick 24.
+- **Picked:** iOS Delete Account was a single-step `confirmationDialog` — Delete button + Cancel + warning copy. Web (tick 24) added a second gate requiring the user to type their @username before the actual delete fires. Two taps on iOS could wipe an account; web is three deliberate steps. Real safety gap given the cascade scope (collection / decks / rainbows / shows / account itself via FK ON DELETE CASCADE).
+- **Shipped:**
+  - `ProfileView.swift`:
+    - New `@State showingDeleteTypeAlert: Bool` + `deleteTypeToConfirm: String`.
+    - First `confirmationDialog` Delete button no longer wires `auth.deleteAccount()` directly — it now flips `showingDeleteTypeAlert = true` (and the label became "Continue" since it's not the final delete).
+    - Second `.alert("Type your username to confirm", ...)` with native iOS 26 inline TextField bound to `deleteTypeToConfirm`. Delete button enabled only when the typed value (trimmed) is non-empty + matches `deleteTypeExpected` (auth.username or "DELETE" fallback for username-less accounts).
+    - `.textInputAutocapitalization(.never)` + `.autocorrectionDisabled()` so iOS doesn't auto-capitalize the lowercase username or autocomplete it weirdly.
+    - Cancel button on both steps; mismatched-typed silently dismisses without firing delete.
+    - Cascade list in message updated to include "custom rainbows" (added in tick 24's web equivalent; iOS message hadn't been updated).
+- **Verified:** SourceKit cross-file resolution unavailable in CLI; pre-existing isolation diagnostics not real. Added code uses only types already in scope (`auth.username` exists per line 335 + 574).
+- **PARITY.md:** No row — flow parity catching up to web tick 24.
+
 ### Tick 61 — 2026-05-20 — **ANDROID** — CustomRainbow editor: edit mode wired to UI
 - **Cadence:** 61 % 5 = 1 → Android. Direct follow-up to tick 59 (which added the data-layer update method).
 - **Picked:** the editor UI was create-only — pressing the FAB opened a blank editor, but tapping an existing rainbow row had no Edit affordance. Repo had `update()`; UI didn't use it.

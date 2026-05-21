@@ -39,6 +39,14 @@ struct ProfileView: View {
     // modal-on-modal layers (§3.4).
     @State private var showingSignIn          = false
     @State private var showingDeleteConfirm   = false
+    /// Second-gate type-to-confirm — iOS parity with web tick 24.
+    /// After the first destructive confirm, an alert presents a
+    /// TextField requiring the user to type their @username before
+    /// the actual delete fires. Without this, a misclick on the
+    /// confirmationDialog's red Delete button could wipe an account
+    /// in two taps. Now: three deliberate steps.
+    @State private var showingDeleteTypeAlert = false
+    @State private var deleteTypeToConfirm    = ""
     @State private var showingSignOutConfirm  = false
     @State private var showingPrivacy         = false
     @State private var showingTerms           = false
@@ -861,28 +869,57 @@ struct ProfileView: View {
             .confirmationDialog("Delete your account?",
                                 isPresented: $showingDeleteConfirm,
                                 titleVisibility: .visible) {
-                Button("Delete Account", role: .destructive) {
-                    Task {
-                        let ok = await auth.deleteAccount()
-                        if !ok {
-                            // AuthManager.error carries the reason
-                            // (Worker offline, JWT expired, etc.).
-                            // Re-arm the confirm so the user can
-                            // retry; surfacing it on the inline
-                            // error banner is the next polish.
-                            showingDeleteConfirm = false
-                        }
-                    }
+                Button("Continue", role: .destructive) {
+                    // Step 1 OK → present the type-to-confirm alert.
+                    // The actual delete fires only after the user
+                    // types their @username exactly.
+                    deleteTypeToConfirm = ""
+                    showingDeleteTypeAlert = true
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This permanently removes your collection, decks, shared links, and account from BOBA Playbook. This action cannot be undone.")
+                Text("This permanently removes your collection, decks, custom rainbows, shared links, and account from BOBA Playbook. This action cannot be undone.")
+            }
+            // Step 2: type-to-confirm. iOS 26's native .alert
+            // supports inline TextField. Mirrors web tick 24's
+            // prompt() pattern but in native chrome.
+            .alert("Type your username to confirm",
+                   isPresented: $showingDeleteTypeAlert) {
+                TextField(deleteTypeExpected, text: $deleteTypeToConfirm)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("Delete Account", role: .destructive) {
+                    let typed = deleteTypeToConfirm.trimmingCharacters(in: .whitespaces).lowercased()
+                    let expected = deleteTypeExpected.lowercased()
+                    if typed == expected {
+                        Task { _ = await auth.deleteAccount() }
+                    }
+                    // Mismatched typed: alert dismisses; user can
+                    // retry from the destructive Delete row.
+                }
+                .disabled(deleteTypeToConfirm.trimmingCharacters(in: .whitespaces).isEmpty)
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                if let u = auth.username, !u.isEmpty {
+                    Text("Type @\(u) to confirm. This action is final.")
+                } else {
+                    Text("Type DELETE in capital letters to confirm.")
+                }
             }
         } footer: {
             Text("Trouble deleting? Email ben@bobaplaybook.com.")
                 .font(Design.Fonts.mono(11))
                 .foregroundStyle(Design.Colors.textMuted)
         }
+    }
+
+    /// What the user must type to confirm the delete — either their
+    /// @username (lowercased server-side) or the literal "DELETE"
+    /// fallback for edge-case accounts with no username yet. Same
+    /// fallback as web tick 24.
+    private var deleteTypeExpected: String {
+        if let u = auth.username, !u.isEmpty { return u }
+        return "DELETE"
     }
 }
 

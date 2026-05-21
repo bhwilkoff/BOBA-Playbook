@@ -734,6 +734,15 @@ const Collection = (() => {
         truncNote.textContent = '';
       }
     }
+    // Footer-note copy is context-specific — Collection wants the
+    // designation guidance, Decks wants the deck-content reminder,
+    // Find multi-select wants the "your selection" framing.
+    const footerNote = document.getElementById('wall-footer-note');
+    if (footerNote) {
+      footerNote.textContent = isDeckContext
+        ? 'Renders the cards in your current deck. Edit the deck and re-open Wall to update.'
+        : 'Renders the cards in the current designation. Tap a card on the Collection tab to add or remove copies first, then re-open Wall.';
+    }
 
     // Off-screen render plan. Square canvas, grid of card thumbs
     // computed from total count. 5:7 aspect per card. 1080×1080

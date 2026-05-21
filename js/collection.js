@@ -188,9 +188,23 @@ const Collection = (() => {
              async on first view-render. iOS shipped v2.219-v2.221;
              web parity ships here (web tick 7). Editor is iOS-only
              today; web users can view + see progress. -->
-        <section class="custom-rainbows-section" id="custom-rainbows-section" hidden>
-          <h3 class="custom-rainbows-heading">Custom Rainbows</h3>
+        <section class="custom-rainbows-section" id="custom-rainbows-section">
+          <div class="custom-rainbows-heading-row">
+            <h3 class="custom-rainbows-heading">Custom Rainbows</h3>
+            <button type="button" class="custom-rainbow-new-btn" id="custom-rainbow-new-btn"
+                    aria-label="Create a new custom rainbow" title="New rainbow">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              <span>New rainbow</span>
+            </button>
+          </div>
           <div class="custom-rainbows-list" id="custom-rainbows-list"></div>
+          <div class="custom-rainbows-empty" id="custom-rainbows-empty" hidden>
+            No custom rainbows yet — tap <strong>New rainbow</strong> to set a collecting goal.
+          </div>
         </section>
         <!-- HERO AUTO RAINBOWS — one synthesized rainbow per hero
              the user owns at least one card of. Mirrors iOS
@@ -697,7 +711,12 @@ const Collection = (() => {
   /// auto-hero). Used by both hydrateCustomRainbows and
   /// hydrateHeroRainbows. matchingCards is pre-computed by the caller
   /// so the catalog filter only runs once per row.
-  function _renderRainbowRow({ name, summary, matching, ownedKeys }) {
+  ///
+  /// `rainbowId` (optional) — when present, the row emits an edit
+  /// button that opens the Custom Rainbow editor preloaded with this
+  /// row's data. Auto-hero rainbows omit `rainbowId` so they're
+  /// uneditable.
+  function _renderRainbowRow({ name, summary, matching, ownedKeys, rainbowId }) {
     const visible = matching.slice(0, 24);
     const ownedMatching = matching.filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber));
     const pct = matching.length === 0 ? 0
@@ -711,6 +730,9 @@ const Collection = (() => {
                 <img src="${esc(url)}" alt="${esc(c.hero || c.name || '')}" loading="lazy" />
               </button>`;
     }).join('');
+    const editAffordance = rainbowId
+      ? `<button type="button" class="rainbow-edit-btn" data-rainbow-id="${esc(rainbowId)}" aria-label="Edit ${esc(name)}" title="Edit rainbow">✎</button>`
+      : '';
     return `
       <details class="rainbow-row">
         <summary>
@@ -721,6 +743,7 @@ const Collection = (() => {
             <span class="rainbow-progress-bar"><span style="width:${pct}%"></span></span>
             <span class="rainbow-progress-pct">${pct}%</span>
           </span>
+          ${editAffordance}
         </summary>
         <div class="rainbow-thumbs">
           ${thumbs || '<div class="rainbow-empty">No matching cards in the catalog.</div>'}
@@ -742,20 +765,38 @@ const Collection = (() => {
     });
   }
 
+  // Cache of the user's custom rainbows (latest fetch) — keyed by id
+  // for fast lookup when the edit button is tapped. Refreshed by
+  // hydrateCustomRainbows.
+  let _customRainbowsById = {};
+
   async function hydrateCustomRainbows(ownedCards) {
     const section = document.getElementById('custom-rainbows-section');
     const list    = document.getElementById('custom-rainbows-list');
+    const empty   = document.getElementById('custom-rainbows-empty');
     if (!section || !list) return;
-    let rainbows;
-    try { rainbows = await API.fetchCustomRainbows(); } catch { return; }
-    if (!rainbows || rainbows.length === 0) return;
+    // Only show the "+ New rainbow" affordance to signed-in users —
+    // unauthed users can't write, so don't tease the button.
+    section.hidden = !Auth.isAuthenticated();
+    if (!Auth.isAuthenticated()) return;
 
-    const groupKeyOf = c => c.boba_id || c.card_number;
-    const ownedKeys = new Set(ownedCards.map(groupKeyOf));
+    let rainbows;
+    try { rainbows = await API.fetchCustomRainbows(); } catch { rainbows = []; }
+    _customRainbowsById = {};
+    for (const r of rainbows || []) _customRainbowsById[r.id] = r;
+
     const catalog = window.__bobaCatalog || [];
     if (catalog.length === 0) return;
 
-    section.hidden = false;
+    const groupKeyOf = c => c.boba_id || c.card_number;
+    const ownedKeys = new Set(ownedCards.map(groupKeyOf));
+
+    if (!rainbows || rainbows.length === 0) {
+      list.innerHTML = '';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
     list.innerHTML = rainbows.map(rainbow => {
       const matching = catalog.filter(c => API.rainbowCriteriaMatches(c, rainbow.criteria));
       return _renderRainbowRow({
@@ -763,9 +804,19 @@ const Collection = (() => {
         summary: API.rainbowCriteriaSummary(rainbow.criteria),
         matching,
         ownedKeys,
+        rainbowId: rainbow.id,
       });
     }).join('');
     _wireRainbowThumbs(list, catalog);
+    // Wire edit-pencil clicks to open the editor preloaded.
+    list.querySelectorAll('.rainbow-edit-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();         // don't toggle the <details>
+        e.stopPropagation();
+        const r = _customRainbowsById[btn.dataset.rainbowId];
+        if (r) openCustomRainbowEditor(r);
+      });
+    });
   }
 
   /// Per-hero Auto Rainbows — one row per unique hero in the user's
@@ -2818,6 +2869,105 @@ const Collection = (() => {
     // Initial render (signed-out state before Supabase loads)
     renderCollectionView();
     renderProfileView();
+
+    // Wire Custom Rainbow editor (create/edit/delete).
+    wireCustomRainbowEditor();
+  }
+
+  /* ────────────────────────────────────────────────────────────────
+     CUSTOM RAINBOW EDITOR — first slice. Name only; sub-pickers
+     land in a later tick. Save / delete via API.createCustomRainbow
+     / updateCustomRainbow / deleteCustomRainbow.
+  ──────────────────────────────────────────────────────────────── */
+
+  let _editingRainbow = null;  // null = create-new; non-null = edit
+
+  function openCustomRainbowEditor(rainbow) {
+    const dlg = document.getElementById('custom-rainbow-editor');
+    const titleEl = document.getElementById('custom-rainbow-editor-title');
+    const nameEl  = document.getElementById('custom-rainbow-editor-name');
+    const delBtn  = document.getElementById('custom-rainbow-editor-delete');
+    const errEl   = document.getElementById('custom-rainbow-editor-error');
+    if (!dlg || !nameEl) return;
+    _editingRainbow = rainbow || null;
+    titleEl.textContent = rainbow ? 'Edit Rainbow' : 'New Rainbow';
+    nameEl.value = rainbow?.name || '';
+    delBtn.hidden = !rainbow;
+    errEl.hidden = true;
+    errEl.textContent = '';
+    if (typeof dlg.showModal === 'function') dlg.showModal();
+    setTimeout(() => nameEl.focus(), 50);
+  }
+
+  function closeCustomRainbowEditor() {
+    const dlg = document.getElementById('custom-rainbow-editor');
+    if (dlg?.open) dlg.close();
+    _editingRainbow = null;
+  }
+
+  function wireCustomRainbowEditor() {
+    document.getElementById('custom-rainbow-new-btn')?.addEventListener('click', () => {
+      if (!Auth.isAuthenticated()) { Auth.open(); return; }
+      openCustomRainbowEditor(null);
+    });
+    document.getElementById('custom-rainbow-editor-cancel')
+      ?.addEventListener('click', closeCustomRainbowEditor);
+    document.querySelector('[data-action="close-rainbow-editor"]')
+      ?.addEventListener('click', closeCustomRainbowEditor);
+
+    const saveBtn = document.getElementById('custom-rainbow-editor-save');
+    saveBtn?.addEventListener('click', async () => {
+      const nameEl = document.getElementById('custom-rainbow-editor-name');
+      const errEl  = document.getElementById('custom-rainbow-editor-error');
+      const name = (nameEl?.value || '').trim();
+      if (!name) {
+        errEl.textContent = 'Name cannot be empty.';
+        errEl.hidden = false;
+        return;
+      }
+      saveBtn.disabled = true;
+      try {
+        if (_editingRainbow) {
+          await API.updateCustomRainbow(_editingRainbow.id, {
+            name,
+            criteria: _editingRainbow.criteria,
+          });
+        } else {
+          // Empty criteria = no filters applied yet. Matches the
+          // entire catalog as a no-op; user can later edit and add
+          // filters once the sub-picker UI ships. For now, this is
+          // a named "checklist anchor."
+          await API.createCustomRainbow(name, {});
+        }
+        closeCustomRainbowEditor();
+        // Re-render — load() rebuilds the rainbow list including
+        // the new/edited row.
+        await load();
+      } catch (err) {
+        errEl.textContent = err?.message || 'Save failed.';
+        errEl.hidden = false;
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    const delBtn = document.getElementById('custom-rainbow-editor-delete');
+    delBtn?.addEventListener('click', async () => {
+      if (!_editingRainbow) return;
+      if (!confirm(`Delete "${_editingRainbow.name}"? This cannot be undone.`)) return;
+      delBtn.disabled = true;
+      try {
+        await API.deleteCustomRainbow(_editingRainbow.id);
+        closeCustomRainbowEditor();
+        await load();
+      } catch (err) {
+        const errEl = document.getElementById('custom-rainbow-editor-error');
+        errEl.textContent = err?.message || 'Delete failed.';
+        errEl.hidden = false;
+      } finally {
+        delBtn.disabled = false;
+      }
+    });
   }
 
   /* ================================================================

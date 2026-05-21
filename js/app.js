@@ -3635,6 +3635,7 @@
           window.Collection.openCardsWallSheet({
             title: `@${handle} on BOBA Playbook`,
             cards,
+            context: 'public',
           });
         }
       };

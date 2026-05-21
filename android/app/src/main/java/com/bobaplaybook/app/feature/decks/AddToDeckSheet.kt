@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -129,7 +130,7 @@ fun AddToDeckSheet(
                 trailingContent = {
                     if (alreadyInDraft) {
                         Icon(
-                            androidx.compose.material.icons.Icons.Default.Check,
+                            Icons.Default.Check,
                             contentDescription = "Already in deck",
                             tint = MaterialTheme.colorScheme.primary,
                         )

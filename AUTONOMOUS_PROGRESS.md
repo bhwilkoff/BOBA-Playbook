@@ -76,6 +76,20 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 77 — 2026-05-20 — **iOS** — Find empty-state dynamic body (3-platform parity)
+- **Cadence:** 77 % 5 = 2 → iOS.
+- **Picked:** iOS Find emptyState rendered a static "No cards match your search" with no indication WHICH filter was producing zero results. Web tick 29 + Android tick 74 both shipped a dynamic line that names the active filters. Three-platform parity gap.
+- **Shipped:**
+  - `BOBAPlaybook/Views/Search/SearchView.swift::emptyState`:
+    - Headline shortened to "No matches" (parity with Android `find_no_results_title`).
+    - New `Text(emptyBodyText)` between headline and Clear button — the dynamic-filter line.
+  - New `private var emptyBodyText: String` computed property — collects active filter atoms in display order (searchText quoted, weapons sorted, set, treatment, release, showcase name via `Showcases.byId(id)?.name`, image-only, power range). Three branches: empty (no active filters), single ("Nothing matches \"FIRE\". Try loosening or removing the filter."), multi ("Nothing matches all of: A · B · C. Try removing one.").
+- **Verified:** `Showcases.byId(_:)` exists at `BOBAPlaybook/Models/Showcase.swift:135`; returns `Showcase?` with a `name: String` field at line 19. SourceKit cross-file noise (Cannot find 'CardStore') is preexisting per project state; not a real compile error.
+- **PARITY.md:** No row — empty-state polish on already-✅ Find row.
+- **Next:** tick 78 = web; 79 = Android; 80 = opt.
+
+
+
 ### Tick 76 — 2026-05-20 — **Android** — Generate Deck Wall (web tick 9 + iOS §8.8 parity)
 - **Cadence:** 76 % 5 = 1 → Android.
 - **Picked:** Real parity gap from PARITY.md line 95: Generate-deck-wall shipped on iOS (✅) + web tick 9 (✅) but Android was 🔮. Android Decks editor had no Wall affordance even though `CollectionWall` already shipped a graphicsLayer-record + `WallShareHelper` capture/share pipeline that's directly reusable.

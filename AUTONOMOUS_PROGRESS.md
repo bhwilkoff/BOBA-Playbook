@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 139 — 2026-05-21 — **Android** — Clear-deck draft: Undo Snackbar
+- **Cadence:** 139 % 5 = 4 → Android.
+- **Picked:** `DecksScreen` Clear-deck confirm path called `deckViewModel.clear()` then fired a one-shot `appSnackbar?.showSnackbar("Draft cleared")` with NO action. A coach could blast through the Clear confirm with one tap (it's the primary "Clear" button in the dialog) and lose 30 cards of work with no recovery window. The Manage Decks delete (tick 124) already has Undo Snackbar parity for the equivalent action on saved decks; the draft-clear path was the obvious omission.
+- **Shipped:**
+  - `DeckStore.kt`: new `fun restoreDraft(snapshot: DeckDraft)` — assigns `_draft.value = snapshot`. Single-line; this is just an inverse of `clear()`.
+  - `DecksViewModel.kt`: new `fun restoreDraft(snapshot: DeckDraft) = store.restoreDraft(snapshot)` — exposes the inverse for UI to consume.
+  - `DecksScreen.kt` Clear confirm handler:
+    - Captures `val captured = draft` BEFORE calling `deckViewModel.clear()`.
+    - Snackbar gains `actionLabel = "Undo"`, `duration = SnackbarDuration.Short`.
+    - On `SnackbarResult.ActionPerformed`, calls `deckViewModel.restoreDraft(captured)` — the entire `DeckDraft` (cards + name + playMode) re-binds atomically.
+  - Editor sheet has no separate clear path; DecksScreen owns the canonical confirm dialog so this is the only call site.
+- **Verified:** DecksScreen's `draft` (line 142) is in scope at the dialog handler. The Undo path is fully client-side — no Supabase round-trip — so restoration is instantaneous unlike Manage Decks Undo which re-saves with a new id.
+- **PARITY.md:** No row — UX polish on already-✅ Decks. Closes parity with the Manage Decks Undo pattern shipped tick 124.
+- **Next:** tick 140 = opt.
+
 ### Tick 138 — 2026-05-21 — **web** — Template load: toast + destructive-overwrite warning
 - **Cadence:** 138 % 5 = 3 → web.
 - **Picked:** Web mirror of iOS tick 137 + Android tick 136. `applyTemplate(data)` in `js/practice.js` calls `DB.clear()` + replaces hero/play/bonus/hotdog arrays. If a coach had been building a draft and tapped a starter-deck card, the draft was silently wiped — no toast, no confirmation, no undo.

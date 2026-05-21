@@ -438,9 +438,24 @@ private fun DecksCompactScreen(
             },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
+                    // Snapshot the draft BEFORE clearing so the Undo
+                    // Snackbar can restore it. Tick 139 — Clear-deck
+                    // is a 30-card destructive action; a brief recovery
+                    // window matches the Manage Decks delete pattern
+                    // shipped in tick 124.
+                    val captured = draft
                     deckViewModel.clear()
                     clearConfirmOpen = false
-                    scope.launch { appSnackbar?.showSnackbar("Draft cleared") }
+                    scope.launch {
+                        val result = appSnackbar?.showSnackbar(
+                            message = "Draft cleared",
+                            actionLabel = "Undo",
+                            duration = androidx.compose.material3.SnackbarDuration.Short,
+                        )
+                        if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                            deckViewModel.restoreDraft(captured)
+                        }
+                    }
                 }) {
                     Text("Clear", color = MaterialTheme.colorScheme.error)
                 }

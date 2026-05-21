@@ -76,6 +76,21 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 163 — 2026-05-21 — **web** — Profile error paths: 3 blocking alerts → non-blocking toasts
+- **Cadence:** 163 % 5 = 3 → web.
+- **Picked:** WEB-DESIGN.md §1 (native first, no blocking modals for routine errors). Three remaining `alert('Could not …')` call sites in `collection.js` covered routine error paths:
+  - Line 1966: public-collection toggle failed (network drop on toggle change).
+  - Line 2085: switch-to-Discord-avatar failed.
+  - Line 2096: remove-custom-avatar failed.
+  Each was an OS-modal blocking interrupt for a moderately-rare-but-not-extraordinary error. Tick 123 + 143 + 158 systematically dropped blocking dialogs; this round catches three more in the Profile flow.
+- **Hints / Reset hints on web NOT shipped** — web doesn't have multi-step walkthroughs or dismissible `HintBanner`-style cards (WEB-DESIGN.md §11 explicitly rejects them in favor of inline help). There's no `HintsManager` analog to toggle. iOS tick 162's "Show first-run hints / Reset hints" Profile section has no web equivalent because there's nothing to silence.
+- **Shipped:**
+  - `js/collection.js` three error paths replace `alert('Could not …')` with `window.showToast` (canonical helper at practice.js:1640 exposed as `window.showToast` since tick 103). Each soft-fails behind `typeof window.showToast === 'function'` for graceful degradation.
+  - Same copy shape: `"Could not update sharing — {err.message || 'try again'}"` (en-dash matches BOBA's brand vocab for inline error fragments).
+- **Verified:** the toast helper handles arbitrary text, auto-dismisses after 3s, doesn't interrupt the user. All three sites previously blocked the page until the OS modal was dismissed.
+- **PARITY.md:** No row.
+- **Next:** tick 164 = Android; 165 = opt.
+
 ### Tick 162 — 2026-05-21 — **iOS** — Profile: hints master toggle + Reset hints (Android parity)
 - **Cadence:** 162 % 5 = 2 → iOS.
 - **Picked:** Real iOS parity gap. Android ProfileSheet has a "Show first-run hints" toggle + a "Reset hints" button (line 670-720 area, used `HintsViewModel.setGlobalEnabled` / `resetAll`). iOS has had `HintsManager.shared` since DECISIONS.md #031 — the `hintsEnabled` master toggle and `resetAll()` API both exist (`Design.swift:230`) — but Profile never surfaced the UI. Coaches who dismissed a hint they wanted back had no recovery path; coaches who didn't want hints at all couldn't silence them.

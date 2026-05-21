@@ -970,6 +970,23 @@ function initDeckBuilder(allCards) {
 
   // Clear deck
   $('db-clear-btn')?.addEventListener('click', () => {
+    // Empty deck → clearing is a no-op; no confirm needed.
+    const totalCards = DB.heroes.length + DB.plays.length + DB.bonusPlays.length + DB.hotDogs.length;
+    if (totalCards > 0) {
+      // iOS parity: DeckBuilderView's Clear action shows a confirm
+      // dialog. Web's prior behavior nuked the deck on a single click
+      // of the ✕ icon — easy misclick destroying user work.
+      const heroLabel  = DB.heroes.length === 1   ? '1 hero'    : `${DB.heroes.length} heroes`;
+      const playLabel  = DB.plays.length === 1    ? '1 play'    : `${DB.plays.length} plays`;
+      const bonusLabel = DB.bonusPlays.length;
+      const hdLabel    = DB.hotDogs.length === 1  ? '1 hot dog' : `${DB.hotDogs.length} hot dogs`;
+      const parts = [heroLabel, playLabel];
+      if (bonusLabel > 0) parts.push(`${bonusLabel} bonus`);
+      parts.push(hdLabel);
+      if (!confirm(`Clear this deck (${parts.join(', ')})? Your deck name and format settings stay.`)) {
+        return;
+      }
+    }
     DB.clear();
     const nameEl = $('db-deck-name');
     if (nameEl) nameEl.value = 'New Deck';

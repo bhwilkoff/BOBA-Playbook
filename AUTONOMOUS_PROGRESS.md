@@ -76,6 +76,22 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 94 — 2026-05-20 — **Android** — Card detail "Decks with this card": tap-affordance + Snackbar
+- **Cadence:** 94 % 5 = 4 → Android.
+- **Picked:** `CardDetailScreen.kt` at line 367+ rendered "Decks with this card (N)" with each deck row already `Modifier.clickable { decksVmHere.loadSaved(deck, catalog) }` — but the row had NO visual affordance signaling it was tappable (no chevron, no trailing icon), and the loadSaved call gave NO feedback. The comment on the section even called the tap-through "a future iteration" — stale, since it already worked. Result: users likely never realized the row was tappable, and even when they tried it, the deck would silently load into the Decks editor (visible only when they switched tabs) with zero confirmation.
+- **Shipped:**
+  - `CardDetailScreen.kt`:
+    - Added `Icons.AutoMirrored.Filled.ArrowForward` trailing chevron (16dp, on-surface-variant tint) to each row — universal "this is tappable" affordance.
+    - Wrapped row content in `horizontalArrangement = Arrangement.spacedBy(8.dp)` for consistent spacing with the new icon.
+    - Added Snackbar confirmation after `loadSaved`: "Loaded \"{deckName}\" into the Decks editor" — anchors the cause-and-effect so users see the action register.
+    - Updated the stale comment from "v1 renders read-only; tap-through to load is a future iteration" → "Tap a row → loadSaved swaps the current draft to the saved deck. Snackbar confirms..."
+  - New import: `androidx.compose.material.icons.automirrored.filled.ArrowForward`.
+- **Verified:** `scope` (rememberCoroutineScope) + `snackbarHostState` (LocalAppSnackbar) both already in scope at this composable level — no new state plumbing needed. `androidx.compose.foundation.layout.size` already imported (line 13).
+- **PARITY.md:** No row — UX polish on already-✅ Card detail row.
+- **Next:** tick 95 = opt; 96 = Android; 97 = iOS; 98 = web; 99 = Android; 100 = opt.
+
+
+
 ### Tick 93 — 2026-05-20 — **web** — Decks browser empty: search vs filter disambiguation (3-platform parity)
 - **Cadence:** 93 % 5 = 3 → web.
 - **Picked:** Web `dbRenderGrid` literally rendered an EMPTY grid when no cards matched — worse UX than iOS or Android, which at least show a message. Tick 89 (Android) + tick 92 (iOS) just shipped search-vs-filter disambiguation; web was the laggard with not even a generic empty-state.

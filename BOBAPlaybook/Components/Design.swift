@@ -220,11 +220,6 @@ enum HintID: String, CaseIterable {
     case substitutionPositioning = "hint.substitution_positioning"
     /// Surfaces inside the deck builder when bonus-play count reaches 7.
     case bonusPlayCeiling        = "hint.bonus_play_ceiling"
-    /// Surfaces inside the deck builder on first build.
-    case deckCompositionTriad    = "hint.deck_composition_triad"
-    /// Surfaces when a play with cost ≥3 is added — coaches use the
-    /// "10-points-per-HD" heuristic.
-    case hdValueHeuristic        = "hint.hd_value_heuristic"
     /// First Glossary visit — tells coaches the term rows are tap-to-copy
     /// (handy for pasting "term — definition" into Discord / game-night
     /// chat). Mirrors Android tick 84.

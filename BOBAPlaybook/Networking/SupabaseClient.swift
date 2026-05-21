@@ -279,9 +279,10 @@ final class SupabaseClient {
         try checkStatus(data: data, response: response)
     }
 
-    /// Generalized role request. Replaces submitModRequest — the old
-    /// API name still works (compat shim in the SQL layer) but new
-    /// code should call this so streamer requests route correctly.
+    /// Generalized role request — accepts 'moderator' or 'streamer'.
+    /// SQL function `request_role` writes both the new
+    /// `requested_role` column AND the legacy `mod_request_*` columns
+    /// (compat shim) so older clients still surface pending status.
     func requestRole(_ role: String, reason: String) async throws {
         let url = try makeURL(path: "/rest/v1/rpc/request_role")
         var request = URLRequest(url: url)
@@ -394,23 +395,6 @@ final class SupabaseClient {
     }
 
     // MARK: - Mod promotion requests
-
-    /// Submits a mod-access request for the current user. Writes reason +
-    /// timestamp to their own row (self-update, allowed by RLS).
-    func submitModRequest(reason: String) async throws {
-        guard let uid = userId else { throw APIError.serverError(401, "Not authenticated") }
-        let url = try makeURL(path: "/rest/v1/user_profiles?user_id=eq.\(uid.uuidString.lowercased())")
-        var request = URLRequest(url: url)
-        request.httpMethod = "PATCH"
-        addHeaders(&request, authenticated: true)
-        let iso = ISO8601DateFormatter().string(from: Date())
-        request.httpBody = try JSONSerialization.data(withJSONObject: [
-            "mod_request_reason": reason,
-            "mod_request_at": iso
-        ])
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try checkStatus(data: data, response: response)
-    }
 
     /// Admin-only: fetches all pending mod requests. Returns empty array for non-admins
     /// (RPC raises, which executeArray catches → empty result).

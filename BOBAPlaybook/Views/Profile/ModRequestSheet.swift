@@ -119,7 +119,7 @@ struct ModRequestSheet: View {
         Button {
             Task {
                 isSubmitting = true
-                await auth.submitModRequest(reason: reason.trimmingCharacters(in: .whitespacesAndNewlines))
+                await auth.requestRole("moderator", reason: reason.trimmingCharacters(in: .whitespacesAndNewlines))
                 isSubmitting = false
                 dismiss()
             }

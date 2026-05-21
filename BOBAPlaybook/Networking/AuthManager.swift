@@ -219,8 +219,7 @@ final class AuthManager {
     }
 
     /// Generalized role request — accepts 'moderator' or 'streamer'.
-    /// Replaces submitModRequest. Old code paths still work because
-    /// the SQL layer keeps a compat shim.
+    /// SQL layer keeps a compat shim for the legacy column write.
     func requestRole(_ targetRole: String, reason: String) async {
         guard isAuthenticated else { return }
         do {
@@ -296,12 +295,6 @@ final class AuthManager {
             self.error = error.localizedDescription
             return false
         }
-    }
-
-    /// Submits a mod-access request with the given reason. Kept for
-    /// existing call sites; new code should call requestRole.
-    func submitModRequest(reason: String) async {
-        await requestRole("moderator", reason: reason)
     }
 
     // MARK: - Sign up (email/password)

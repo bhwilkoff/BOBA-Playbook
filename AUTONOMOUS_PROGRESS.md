@@ -76,6 +76,19 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 106 — 2026-05-20 — **Android** — Practice placeholder: user-facing copy
+- **Cadence:** 106 % 5 = 1 → Android.
+- **Picked:** `PracticePlaceholder.kt`'s BOBAEmptyState body read "The iOS state-machine engine (DECISIONS.md #030) ports as pure Kotlin in :core:domain. Multi-session effort scheduled post-M8. Admin-gated." Pure developer jargon — referenced internal doc + Kotlin module path. The screen is admin-gated but admins ARE the BoBA team / close beta + they don't need to read DECISIONS.md to use the app. Empty-state copy should always be user-facing.
+- **Shipped:**
+  - `PracticePlaceholder.kt::BOBAEmptyState`:
+    - Headline: "Practice executor port in progress" → "Battle practice — coming soon" (BoBA community always says "Battle Practice"; "executor" is internal).
+    - Body: developer-jargon → "Practice the BoBA state machine against a CPU coach. The Android port is in progress; use the iOS app for now, or check back in a few releases."
+- **Verified:** Doc-comments at the top of the file still reference DECISIONS.md #048 / #030 — engineering docs preserved. Only user-facing strings changed.
+- **PARITY.md:** No row — copy polish on already-⏳ Practice executor row.
+- **Next:** tick 107 = iOS; 108 = web; 109 = Android; 110 = opt.
+
+
+
 ### Tick 105 — 2026-05-20 — **OPTIMIZATION TICK (12th 1-in-5)** — 2 orphan iOS @State vars
 - **Cadence:** opt rotation. Web 5 ticks · iOS 3 · Android 3. Bias-toward-iOS.
 - **Picked:** Scanned iOS view-level `@State` declarations. Two orphans:

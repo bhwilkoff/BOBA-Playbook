@@ -54,8 +54,8 @@ fun PracticeScreen(
     ) { padding ->
         BOBAEmptyState(
             icon = Icons.Default.SportsEsports,
-            headline = "Practice executor port in progress",
-            body = "The iOS state-machine engine (DECISIONS.md #030) ports as pure Kotlin in :core:domain. Multi-session effort scheduled post-M8. Admin-gated.",
+            headline = "Battle practice — coming soon",
+            body = "Practice the BoBA state machine against a CPU coach. The Android port is in progress; use the iOS app for now, or check back in a few releases.",
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),

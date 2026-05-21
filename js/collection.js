@@ -2837,11 +2837,19 @@ const Collection = (() => {
       });
     });
 
-    // Delete buttons
+    // Delete buttons — tick 123 replaced the blocking confirm() with
+    // an inline Undo toast (3-platform parity: iOS tick 122 banner +
+    // Android tick 119 Snackbar+Undo). The Undo toast IS the safety
+    // net so the modal-blocking confirm is no longer the right shape.
     box.querySelectorAll('[data-delete-entry-id]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Remove this copy from your collection?')) return;
         const id = btn.dataset.deleteEntryId;
+        // Capture the entry BEFORE delete so Undo can re-add with the
+        // full field set (designation / purchase_price / asking_price /
+        // condition / notes). Without this, accidental delete drops
+        // any per-copy provenance metadata.
+        const captured = _cards.find(c => c.id === id);
+        if (!captured) return;
         try {
           await API.collectionDelete(id);
           _cards = _cards.filter(c => c.id !== id);
@@ -2852,8 +2860,42 @@ const Collection = (() => {
           );
           if (remaining.length === 0) closeCollectionDetail();
           else renderCollectionDetail();
+          // Undo toast — `showUndoToast` is a script-global from
+          // practice.js (tick 118). On Undo we re-add via API.collectionAdd
+          // with every captured field so the round-trip is lossless.
+          const label = captured.hero || captured.name || 'card';
+          if (typeof window.showUndoToast === 'function') {
+            window.showUndoToast(`Removed ${label}`, async () => {
+              try {
+                const saved = await API.collectionAdd({
+                  card_number:   captured.card_number,
+                  boba_id:       captured.boba_id,
+                  hero:          captured.hero,
+                  name:          captured.name,
+                  element:       captured.element,
+                  treatment:     captured.treatment,
+                  variation:     captured.variation,
+                  designation:   captured.designation,
+                  condition:     captured.condition,
+                  purchase_price: captured.purchase_price,
+                  asking_price:  captured.asking_price,
+                  notes:         captured.notes,
+                });
+                _cards.push(saved);
+                renderCollectionView();
+                renderProfileView();
+                renderCollectionDetail();
+              } catch (e) {
+                if (typeof window.showToast === 'function') {
+                  window.showToast('Undo failed — re-add manually.');
+                }
+              }
+            });
+          }
         } catch (err) {
-          alert('Could not remove: ' + err.message);
+          if (typeof window.showToast === 'function') {
+            window.showToast('Could not remove: ' + (err?.message || 'try again'));
+          }
         }
       });
     });

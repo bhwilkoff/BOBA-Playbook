@@ -1644,6 +1644,12 @@ function showUndoToast(message, onUndo) {
   if (showUndoToast._timer) clearTimeout(showUndoToast._timer);
   showUndoToast._timer = setTimeout(() => t.classList.remove('visible'), 3000);
 }
+// Expose for sibling modules (collection.js's per-copy delete in
+// particular — tick 123). Top-level `function` declarations land on
+// the global object in classic scripts, but the explicit assignment
+// is defensive: if practice.js is ever wrapped in an IIFE, this
+// keeps cross-module access working.
+window.showUndoToast = showUndoToast;
 
 // ── Structured effect executor (play-effects.json) ────────────────
 // Loads the effect database lazily and exposes pmExecStructured, which

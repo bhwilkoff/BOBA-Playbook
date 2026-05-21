@@ -76,6 +76,22 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 123 — 2026-05-20 — **web** — Collection delete: Undo Snackbar replaces blocking confirm (3-platform parity)
+- **Cadence:** 123 % 5 = 3 → web.
+- **Picked:** Web `_renderCollectionDetail`'s per-copy delete (collection.js:2842) used a blocking native `confirm()` dialog + `alert()` on error. Both modal-blocking and ugly. iOS tick 122 + Android tick 119 ship inline Undo toasts that ARE the safety net; web was the laggard.
+- **Shipped:**
+  - `js/collection.js::_renderCollectionDetail` delete handler:
+    - Removed the `confirm()` gate — the Undo toast is now the safety net (modern UX, matches mobile platforms).
+    - Captures the full `_cards.find(c => c.id === id)` entry BEFORE delete so Undo can re-add with the complete field set (designation / purchase_price / asking_price / condition / notes). Without this, accidental delete would lose per-copy provenance.
+    - On `API.collectionDelete` success: shows `showUndoToast("Removed {label}", undo)`. On Undo: calls `API.collectionAdd` with every captured field + pushes the new row into `_cards` + re-renders.
+    - On API error: replaced `alert()` with `window.showToast` ("Could not remove: ...").
+  - `js/practice.js::showUndoToast` got an explicit `window.showUndoToast = showUndoToast` export. Top-level function declarations DO land on the global object in classic scripts, but the explicit assignment is defensive against any future IIFE wrap.
+- **Verified:** `node -c` clean on both files. `showUndoToast` defined since tick 118; the assignment makes the cross-script access explicit.
+- **PARITY.md:** No row — UX polish on already-✅ Collection delete row. 3-platform parity now: iOS banner (122) + Android Snackbar+Undo (119) + web Snackbar+Undo (123).
+- **Next:** tick 124 = Android; 125 = opt.
+
+
+
 ### Tick 122 — 2026-05-20 — **iOS** — Collection card detail swipe-delete: "Removed X" toast (Android tick 119 parity)
 - **Cadence:** 122 % 5 = 2 → iOS.
 - **Picked:** `CollectionCardDetailView::collectionRow` swipe-action `Button(role: .destructive)` fired `collection.deleteCard(id: entry.id)` silently on success (errors surfaced via deleteError). Android tick 119 just shipped the equivalent + Undo for the per-copy delete; iOS got the banner-only version (Undo defer — the confirmationToast helper is text-only; Undo requires a richer action-state overlay).

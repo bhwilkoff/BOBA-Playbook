@@ -186,6 +186,19 @@ fun BOBAApp(
                     .focusable()
                     .onPreviewKeyEvent { event ->
                         if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                        // `/` (no modifier) — jump to Find tab. Common
+                        // Chromebook / hardware-keyboard pattern (GitHub,
+                        // YouTube, Wikipedia all map `/` to "go to
+                        // search"). Auto-focusing the SearchBar from
+                        // here would require plumbing through FindScreen;
+                        // for v1 the tap-to-focus pattern after the
+                        // jump is good enough.
+                        // Only fires when the root-level Box has focus
+                        // (i.e., no TextField grabbed the keystroke first)
+                        // so `/` inside a TextField types a slash as expected.
+                        if (!event.isCtrlPressed && event.key == Key.Slash) {
+                            return@onPreviewKeyEvent handleShortcut(1)
+                        }
                         if (!event.isCtrlPressed) return@onPreviewKeyEvent false
                         when (event.key) {
                             Key.One   -> handleShortcut(1)

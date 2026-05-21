@@ -76,6 +76,22 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 93 — 2026-05-20 — **web** — Decks browser empty: search vs filter disambiguation (3-platform parity)
+- **Cadence:** 93 % 5 = 3 → web.
+- **Picked:** Web `dbRenderGrid` literally rendered an EMPTY grid when no cards matched — worse UX than iOS or Android, which at least show a message. Tick 89 (Android) + tick 92 (iOS) just shipped search-vs-filter disambiguation; web was the laggard with not even a generic empty-state.
+- **Shipped:**
+  - `js/practice.js::dbRenderGrid` — early-out empty-state branch before the existing card.map render:
+    - **Search-empty** (`DB.search.trim()` non-empty): "No cards match \"{query}\"" + "Try a different term or clear the search." + a "Clear search" button (`btn-ghost-sm`) that wipes `DB.search`, clears the `#db-search` input value + its inline clear-✕ button (`#db-search-clear`), and re-renders. Query is HTML-escaped inline.
+    - **Filter-empty** (no query): "No cards in scope" + "Pick a different tab above (Heroes / Plays / Bonus / Hot Dogs) to see eligible cards." No CTA — the tab strip is visible right above the grid.
+  - `css/styles.css::.db-browser-empty`:
+    - `grid-column: 1 / -1` so the empty block spans the full grid width (the grid is `display: grid`).
+    - Flex column with brand-display headline (text-secondary), mono body (text-muted), bounded to `max-width: 40ch` for readability.
+- **Verified:** `node -c js/practice.js` clean. `#db-search` is the correct input ID (not `#db-browser-search` — first attempt was wrong, corrected). `#db-search-clear` is the inline ✕ button — also wiped on Clear so the user doesn't have a stale ✕ next to the now-empty input.
+- **PARITY.md:** No row — UX polish on already-✅ Decks browser row. 3-platform parity now lockstep.
+- **Next:** tick 94 = Android; 95 = opt.
+
+
+
 ### Tick 92 — 2026-05-20 — **iOS** — DeckBuilder pool empty: search vs filter disambiguation (Android tick 89 parity)
 - **Cadence:** 92 % 5 = 2 → iOS.
 - **Picked:** iOS `DeckBuilderView`'s empty-pool state rendered "Try a different search or filter" for every cause. Same anti-pattern Android tick 89 just fixed. Closes the parity gap on the same surface — iOS user typing "obscurehero" had no signal whether the issue was their query or the catalog scope.

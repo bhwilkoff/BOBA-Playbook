@@ -102,6 +102,23 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 37 — 2026-05-20 — Collection search clear-× button
+- **Picked:** Re-queued tick after the tick-36 "no 'pool'" interrupt. The tick-34 Collection search input relied on the native `<input type="search">` browser-built-in clear-×, which is small on iOS Safari + sometimes invisible on Android Chrome + inconsistent across themes. Add a custom × matching Find's `searchClear` pattern.
+- **Shipped:**
+  - `js/collection.js`:
+    - Markup: wrapped the `<input>` in `.collection-search-wrap` (relative positioning anchor) + added `<button id="collection-search-clear">` with Lucide × icon. Hidden by default when query is empty; rendered un-hidden when `_collectionSearchText` is populated (e.g. tab-switch re-render preserves the visible clear button).
+    - Input handler: immediate `searchClearEl.hidden = !raw` toggle on every keystroke so the affordance feels instant even though the search filter is debounced (220ms).
+    - Clear button handler: zero-debounce immediate clear — explicit user intent to clear shouldn't wait. Wipes `_collectionSearchText`, re-renders, refocuses the new input (the re-render rebuilds the DOM, so we find the fresh element by id and `.focus()`).
+  - `css/styles.css`:
+    - `.collection-search-wrap` — relative, flex-grow 180px min, 280px max, margin-right auto (preserves the tick-34 layout where Sort + Wall sit at trailing edge).
+    - `.collection-search-input` width 100% inside the wrap; right padding bumped to 28px so the × button has visual room.
+    - **`::-webkit-search-cancel-button { appearance: none }`** — hides the native WebKit/Chromium × so it doesn't double up with our custom button.
+    - `.collection-search-clear` — absolute right: 4px, transparent → low-alpha-white-fill hover, 2px cyan focus-visible outline for keyboard a11y.
+- **Verified:** node -c clean. Trace: type "mav" → × appears immediately → 220ms debounce → grid filters. Click × → query cleared instantly → grid restored → focus on input. Tab to × via keyboard → focus ring visible → Enter clears.
+- **PARITY.md:** No row — polish on the tick-34 row.
+- **Architectural note:** the immediate × visibility (un-debounced) + the debounced filter together give the right feel: the user gets instant visual confirmation that BOBA registered the keystroke, while the heavy filter+render coalesces to one execution at 220ms-quiet.
+- **Next:** Tick 38. Plausible: (a) Decks pool — wait, search clear-× on the Decks card-browser input too (parity), (b) similar clear-× on Custom Rainbow editor name field, (c) different polish item.
+
 ### Tick 36 — 2026-05-20 — "No 'pool' for cards" terminology sweep + binding doc rule
 - **Picked:** Ben directive interrupt: "pool is never the word to use to describe cards. Please make a note and keep on looping." Second time this came up. The codebase + binding docs had ~25 user-facing / doc references to "pool" describing cards (deck-builder browsing surface mostly). Sweep + codify in binding docs + save the rule to memory.
 - **Shipped:**

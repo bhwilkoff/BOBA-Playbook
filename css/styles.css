@@ -2660,24 +2660,52 @@ dialog.modal-overlay[open] {
   padding: var(--sp-2) 0;
   flex-wrap: wrap;
 }
-.collection-search-input {
+.collection-search-wrap {
   flex: 1 1 180px;
   max-width: 280px;
   min-width: 0;
+  position: relative;
+  margin-right: auto;  /* push sort + wall to the trailing edge */
+}
+.collection-search-input {
+  width: 100%;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 6px;
   color: var(--boba-text);
   font-family: var(--font-mono, 'Chakra Petch', monospace);
   font-size: 0.8rem;
-  padding: 6px 10px;
-  margin-right: auto;  /* push sort + wall to the trailing edge */
+  padding: 6px 28px 6px 10px;  /* right padding clears the × button */
 }
 .collection-search-input::placeholder { color: rgba(255,255,255,0.35); }
 .collection-search-input:focus {
   outline: none;
   border-color: rgba(0,245,255,0.4);
   background: rgba(0,245,255,0.04);
+}
+/* Hide the native WebKit/Chromium clear-× — our custom button replaces
+   it with consistent styling + keyboard-accessible behavior. */
+.collection-search-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.collection-search-clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+.collection-search-clear:hover { color: #fff; background: rgba(255,255,255,0.06); }
+.collection-search-clear:focus-visible {
+  outline: 2px solid rgba(0,245,255,0.5);
+  outline-offset: 1px;
 }
 .collection-sort-label {
   font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;

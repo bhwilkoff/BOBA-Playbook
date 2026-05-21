@@ -102,6 +102,19 @@ Each loop tick appends an entry below. Format:
 - **Next:** wait for audit agents (A, B, C), then start cross-platform
   parity shipping in tick 2.
 
+### Tick 23 — 2026-05-20 — Web Decks Clear: confirmation guard
+- **Picked:** From tick-22 "Next" list. Found real bug: clicking the ✕ Clear button in the deck-builder toolbar destroyed the entire deck (heroes + plays + bonus + hot dogs) with **zero confirmation**. One misclick on the small icon could nuke an hour of work. iOS DECISIONS.md mentions the Clear confirm dialog; web had no equivalent.
+- **Shipped:**
+  - `js/practice.js` `db-clear-btn` handler:
+    - Empty-deck shortcut: `totalCards === 0` → skip confirm + clear directly (clearing an already-empty deck is a no-op anyway).
+    - Non-empty deck: native `confirm()` with a section-by-section count summary: *"Clear this deck (5 heroes, 28 plays, 4 bonus, 10 hot dogs)? Your deck name and format settings stay."* The plural-aware labels avoid awkward "1 heroes" / "0 plays" cruft.
+    - Cancel → early return → deck untouched.
+    - Confirm → existing `DB.clear() + reset name + dbRender` flow.
+- **Verified:** node -c clean. Logic trace: empty deck → clear directly. Built deck → confirm with count summary → cancel returns → clear proceeds.
+- **PARITY.md:** No row change — bug fix, not a feature.
+- **Architectural note:** native `confirm()` is acceptable for destructive guards. WEB-DESIGN.md §2.1 "native-first" — `<dialog>.showModal()` would be the deluxe path, but the simpler `confirm()` is what the existing rainbow-delete + deck-delete affordances already use; consistent here.
+- **Next:** Tick 24. Plausible: (a) audit save flow on Find Quick Add (mentioned in tick 22), (b) Find search "clear all" keyboard shortcut + UI button, (c) Decks → save deck duplicates an existing deck-id warning, (d) audit Profile delete-account flow (high stakes, should be very explicit).
+
 ### Tick 22 — 2026-05-20 — Web Decks save: empty-deck guard + inline feedback
 - **Picked:** Audit triggered by tick-21b "Next" plan. Found three issues with the current Save flow: (1) zero-card decks could be saved, writing junk rows to Supabase. (2) Empty / whitespace deck name was accepted unchanged. (3) Errors went to `alert()` instead of the existing inline `db-import-banner` (used by import + every other deck-builder transient feedback).
 - **Shipped:**

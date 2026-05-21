@@ -308,11 +308,17 @@ const Collection = (() => {
     // grid renders fewer than ~4 cards across (mobile / "L" density),
     // stays on cheap thumbs in dense layouts. Mirrors iOS's
     // CardImageView size pass-through pattern.
-    const srcsetPair = imageFile
-      ? `${API.thumbUrl(imageFile)} 200w, ${API.fullUrl(imageFile)} 1200w`
+    // CRITICAL: route through API.cardThumbUrl / cardFullUrl so sealed
+    // products (cardType === 'Sealed Product') resolve to /sealed/thumbs/
+    // and /sealed/optimized/ instead of 404'ing against the regular
+    // /thumbs/ and /full/ paths.
+    const thumbSrc = catalogCard ? API.cardThumbUrl(catalogCard) : null;
+    const fullSrc  = catalogCard ? API.cardFullUrl(catalogCard)  : null;
+    const srcsetPair = (thumbSrc && fullSrc)
+      ? `${thumbSrc} 200w, ${fullSrc} 1200w`
       : null;
-    const imgHtml = imageFile
-      ? `<img class="ccard-thumb" src="${esc(API.thumbUrl(imageFile))}"
+    const imgHtml = thumbSrc
+      ? `<img class="ccard-thumb" src="${esc(thumbSrc)}"
               srcset="${esc(srcsetPair)}"
               sizes="auto, (min-width: 1024px) 220px, (min-width: 480px) 33vw, 50vw"
               alt="${esc(cardName)}" loading="lazy" decoding="async">`
@@ -2383,9 +2389,11 @@ const Collection = (() => {
       ? _variantLookup(hero, cardNum)
       : [];
 
-    // Card header image
-    const imgHtml = imageFile
-      ? `<img class="cdetail-card-img" src="${esc(API.fullUrl(imageFile))}"
+    // Card header image. Route through API.cardFullUrl so sealed
+    // products land on /sealed/optimized/, not /full/.
+    const fullSrc = catalogCard ? API.cardFullUrl(catalogCard) : null;
+    const imgHtml = fullSrc
+      ? `<img class="cdetail-card-img" src="${esc(fullSrc)}"
               alt="${esc(cardName)}" loading="lazy" decoding="async">`
       : `<div class="cdetail-card-img cdetail-card-img-placeholder" data-element="${esc(element)}">
            <span class="placeholder-brand">BOBA PB</span>
@@ -2534,8 +2542,9 @@ const Collection = (() => {
       c.designation === 'wanted' &&
       (c.boba_id === bid || (c.boba_id == null && c.card_number === num))
     );
-    const imgHtml = card.imageFile
-      ? `<img class="cdetail-var-img" src="${esc(API.thumbUrl(card.imageFile))}"
+    const thumbSrc = card.imageFile ? API.cardThumbUrl(card) : null;
+    const imgHtml = thumbSrc
+      ? `<img class="cdetail-var-img" src="${esc(thumbSrc)}"
               alt="${esc(card.name)}" loading="lazy" decoding="async">`
       : `<div class="cdetail-var-img cdetail-var-img-ph" data-element="${esc(card.element || 'NONE')}"><span>?</span></div>`;
     const badge = owned

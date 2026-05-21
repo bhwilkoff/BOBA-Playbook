@@ -47,34 +47,61 @@ import kotlinx.coroutines.flow.StateFlow
  * given hero, with owned/missing state on each tile. Owned cards from
  * the user's Collection union with the full catalog's hero-filtered
  * slice gives us the gap.
+ *
+ * Also handles Custom Rainbow detail (kind = "custom") — fetches the
+ * user's saved rainbow by UUID, applies its [RainbowCriteria] across
+ * the full catalog, and renders the same owned-vs-missing grid. Tick
+ * 141 — closes the "kind=custom ignored" stub left by RainbowsScreen's
+ * initial pass.
  */
 @Composable
 fun RainbowDetailScreen(
-    hero: String,
+    kind: String,
+    id: String,
     onCardClick: (bobaId: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val collectionVm: CollectionViewModel = hiltViewModel()
     val catalogVm: RainbowCatalogViewModel = hiltViewModel()
+    val customVm: CustomRainbowsViewModel = hiltViewModel()
     val collectionState by collectionVm.uiState.collectAsStateWithLifecycle()
     val catalogCards by catalogVm.cards.collectAsStateWithLifecycle()
+    val customRainbows by customVm.rainbows.collectAsStateWithLifecycle()
 
-    val ownedBobaIds = remember(collectionState) {
-        collectionState.entriesByDesignation.values
-            .flatten()
-            .filter { it.card.hero.equals(hero, ignoreCase = true) }
-            .map { it.card.bobaId }
-            .toSet()
+    // Resolve the rainbow's identity + matching predicate. Hero rainbows
+    // match purely on `card.hero`; custom rainbows apply the saved
+    // RainbowCriteria. When a custom rainbow id doesn't resolve (stale
+    // deep-link / deleted on another device) we fall through to an
+    // empty rainbow with a placeholder title rather than crashing.
+    val isCustom = kind == "custom"
+    val customRainbow = if (isCustom) customRainbows.firstOrNull { it.id == id } else null
+    val title = when {
+        isCustom -> customRainbow?.name ?: "Custom Rainbow"
+        else     -> id
     }
-    val allCards = remember(catalogCards, hero) {
+
+    val allCards = remember(catalogCards, kind, id, customRainbow?.criteria) {
+        val base = when {
+            isCustom && customRainbow != null ->
+                catalogCards.filter { criteriaMatches(customRainbow.criteria, it) }
+            isCustom -> emptyList() // unresolved custom rainbow → empty grid
+            else     -> catalogCards.filter { it.hero.equals(id, ignoreCase = true) }
+        }
         // Image-first per memory feedback_card_art_sort_priority.
         // Pending-art placeholders sink to the bottom of the rainbow.
-        catalogCards.filter { it.hero.equals(hero, ignoreCase = true) }
-            .sortedWith(
-                compareByDescending<com.bobaplaybook.core.domain.model.Card> { !it.imageFile.isNullOrEmpty() }
-                    .thenBy { it.cardNumber },
-            )
+        base.sortedWith(
+            compareByDescending<com.bobaplaybook.core.domain.model.Card> { !it.imageFile.isNullOrEmpty() }
+                .thenBy { it.cardNumber },
+        )
+    }
+    val matchingBobaIds = remember(allCards) { allCards.map { it.bobaId }.toSet() }
+    val ownedBobaIds = remember(collectionState, matchingBobaIds) {
+        collectionState.entriesByDesignation.values
+            .flatten()
+            .filter { it.card.bobaId in matchingBobaIds }
+            .map { it.card.bobaId }
+            .toSet()
     }
 
     val ownedCount = allCards.count { it.bobaId in ownedBobaIds }
@@ -85,7 +112,7 @@ fun RainbowDetailScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(hero) },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -99,10 +126,11 @@ fun RainbowDetailScreen(
                     IconButton(onClick = {
                         val pct = if (allCards.isEmpty()) 0
                                   else ((ownedCount * 100.0) / allCards.size).toInt()
-                        val text = "My $hero rainbow: $ownedCount of ${allCards.size} treatments ($pct%) · bobaplaybook.com"
+                        val unit = if (isCustom) "cards" else "treatments"
+                        val text = "My $title rainbow: $ownedCount of ${allCards.size} $unit ($pct%) · bobaplaybook.com"
                         val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                             type = "text/plain"
-                            putExtra(android.content.Intent.EXTRA_SUBJECT, "My $hero rainbow")
+                            putExtra(android.content.Intent.EXTRA_SUBJECT, "My $title rainbow")
                             putExtra(android.content.Intent.EXTRA_TEXT, text)
                         }
                         context.startActivity(android.content.Intent.createChooser(intent, "Share rainbow"))
@@ -133,7 +161,7 @@ fun RainbowDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            BOBASectionHeader(title = "Every printing")
+            BOBASectionHeader(title = if (isCustom) "Cards matching your filter" else "Every printing")
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 110.dp),
                 contentPadding = PaddingValues(8.dp),

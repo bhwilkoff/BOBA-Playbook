@@ -76,6 +76,26 @@ Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
 
 Each loop tick appends an entry below. Format:
 
+### Tick 141 — 2026-05-21 — **Android** — Custom Rainbow detail screen wires up (was stub)
+- **Cadence:** 141 % 5 = 1 → Android.
+- **Picked:** Real bug. Tapping a Custom Rainbow in `RainbowsScreen` already navigated to `collection/rainbow/custom/{id}` per tick 81's plumbing, but the destination wiring at `BOBAApp.kt:496` had a TODO: `// kind is currently "hero"; custom rainbows ship in a later pass`. The route silently treated the custom rainbow's UUID as a hero name. Result: `catalogCards.filter { it.hero.equals(uuid) }` matched zero cards → screen rendered "0 / 0 owned" with an empty grid + the UUID as the TopAppBar title. The Custom Rainbow feature was visible in the list but broken on tap.
+- **Shipped:**
+  - `RainbowDetailScreen.kt`:
+    - Signature changed from `(hero: String, ...)` to `(kind: String, id: String, ...)`. Compositional break — callers MUST pass the kind; safe because the only caller is BOBAApp.kt's NavHost.
+    - Resolves `customRainbow` from `CustomRainbowsViewModel` when `kind == "custom"`.
+    - `title` derives from `customRainbow.name` (custom) or the raw id (hero — that IS the hero name).
+    - `allCards` branches: custom path filters catalog by `criteriaMatches(customRainbow.criteria, card)`; hero path keeps the existing `card.hero.equals` filter; missing-custom path renders an empty grid (graceful for stale deep-links to deleted rainbows).
+    - `ownedBobaIds` now intersects via `matchingBobaIds` (rainbow membership) instead of hero name — math equivalent for hero rainbows, correct for custom.
+    - Body section header swaps `"Every printing"` → `"Cards matching your filter"` on custom path.
+    - Share-blurb pluralization adapts: `"of N treatments"` (hero) → `"of N cards"` (custom).
+  - `RainbowsScreen.kt`:
+    - `private fun criteriaMatches` → `internal fun` so RainbowDetailScreen (same package) can reuse it. Keeps the single source of truth; no copy-paste.
+  - `BOBAApp.kt:482`:
+    - Read `ARG_RAINBOW_KIND` from `backStackEntry.arguments`. Pass to `RainbowDetailScreen` alongside id. Removed the stale TODO comment.
+- **Verified:** RainbowsScreen's tap callbacks (`onRainbowClick("custom", rainbow.id)` and `onRainbowClick("hero", rainbow.hero)`) both pass valid kinds; the URL-encode path in NavRoutes.rainbowDetail preserves the id verbatim; URLDecoder.decode unwraps in BOBAApp. End-to-end works for both kinds.
+- **PARITY.md:** Custom Rainbows row (Collection §5) was already ✅ ✅ ✅ but the Android detail-nav was a stub. Tick 141 makes the ✅ honest.
+- **Next:** tick 142 = iOS; 143 = web; 144 = Android; 145 = opt.
+
 ### Tick 140 — 2026-05-21 — **opt** — Drop 51 orphan Android imports
 - **Cadence:** 140 % 5 = 0 → opt.
 - **Picked:** Per-file orphan-import scan across the entire `android/app/src/main/java/com/bobaplaybook/app/` tree. Built an awk-driven detector that lists each import's last symbol, then greps its file for matching word-boundary references. Anything that resolved to exactly 1 match (the import line itself) is an orphan. Filtered out (a) `getValue` / `setValue` / `provideDelegate` — Kotlin uses these implicitly via the `by` delegate keyword and would never appear by name; (b) aliased imports (`X as Y`) — grep would only find the alias, not the original.

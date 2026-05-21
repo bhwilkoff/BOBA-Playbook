@@ -332,7 +332,7 @@ private data class AutoRainbow(
  * Empty criteria fields are interpreted as "any" (not "none") —
  * a rainbow with no constraints matches every catalog card.
  */
-private fun criteriaMatches(
+internal fun criteriaMatches(
     criteria: com.bobaplaybook.core.data.rainbows.RainbowCriteria,
     card: com.bobaplaybook.core.domain.model.Card,
 ): Boolean {

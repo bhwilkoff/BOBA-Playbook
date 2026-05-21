@@ -323,6 +323,11 @@
         </div>
       </div>
 
+      <!-- Active-filter chips — visible whenever ≥1 filter is set so
+           the user can see + remove each filter without opening the
+           panel. Populated by app.js::renderActiveFilterChips. -->
+      <div class="active-filter-chips" id="active-filter-chips" role="group" aria-label="Active filters" hidden></div>
+
       <div class="filter-panel" id="filter-panel" aria-hidden="true">
         <div class="filter-bar">
           <!-- Showcase chips — WOBA + sport showcases. Populated from

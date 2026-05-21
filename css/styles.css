@@ -653,6 +653,39 @@ main {
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 0 6px var(--boba-orange-glow);
 }
+/* Active-filter chips — always-visible dismissible row showing every
+   currently-set filter, above the (collapsible) filter panel. Each
+   chip is a button with a × icon; click removes that filter. */
+.active-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px var(--sp-4);
+  background: rgba(0,245,255,0.04);
+  border-bottom: 1px solid rgba(0,245,255,0.15);
+}
+.active-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0,245,255,0.10);
+  border: 1px solid rgba(0,245,255,0.35);
+  border-radius: 999px;
+  color: #00F5FF;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 3px 8px 3px 10px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.active-filter-chip:hover { background: rgba(0,245,255,0.18); border-color: rgba(0,245,255,0.6); }
+.active-filter-chip:focus-visible {
+  outline: 2px solid rgba(0,245,255,0.6);
+  outline-offset: 1px;
+}
+
 /* Filter panel — collapsible at every breakpoint. The filter icon
    is the only way to reveal the panel; opens with the same animation
    as mobile so the desktop and phone behaviors match. */

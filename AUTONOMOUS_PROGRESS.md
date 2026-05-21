@@ -2601,3 +2601,13 @@ Status of each: queued / running / complete + findings folded back into Backlog.
 - **Saved lessons:** [[feedback_compose_transformable_centroid_order]] (centroid order), added #9 to [[feedback_autonomous_loop_failure_modes]].
 - **Verified:** ran the diff carefully; can't compile locally (no JVM on this Mac at /usr/libexec/java_home). CI will validate.
 - **Next:** tick 177 = iOS (177 % 5 = 2).
+
+### Tick 177 — 2026-05-21 — iOS AddToDeckSheet "Already in deck" hint (Android parity, tick 174)
+- **Verified CI on 32999e8 (tick 176) — green.** Centroid fix held; M3 wavy indicators compiled clean.
+- **iOS feature parity:** AddToDeckSheet now shows an "Already in deck" hint per saved-deck row when the card being added is already in that deck (Android tick 174 shipped this on `AddToDeckSheet.kt`).
+  - New `@State deckBobaIds: [UUID: Set<String>]` — populated lazily after the deck list lands.
+  - Prefetch uses `withTaskGroup` so all decks fetch in parallel; per-deck failure silently leaves the hint off (no error UI noise).
+  - Row affordance: "· Already in deck" cyan label next to deck name + cyan checkmark icon (replacing the plus) + cyan 1px stroke around the row's surface card.
+  - Pattern parity: same cyan accent used on the Android version + `BOBACardCell`'s in-deck indicator.
+- **Version bump:** AppVersion.xcconfig → MARKETING_VERSION 2.290 (build number auto-bumped by ci_post_clone.sh via ASC API).
+- **Next:** tick 178 = web (178 % 5 = 3).

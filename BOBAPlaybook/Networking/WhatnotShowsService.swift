@@ -23,8 +23,6 @@ struct WhatnotShow: Identifiable, Codable, Sendable, Hashable {
     let startTimeMs: Int64?
     let viewerCount: Int
     let categoryName: String
-    let categorySlug: String
-    let tags: [String]
     let thumbnailUrl: String
 
     var id: String { showId }

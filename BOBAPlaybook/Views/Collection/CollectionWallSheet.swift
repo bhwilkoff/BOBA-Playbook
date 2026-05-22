@@ -58,6 +58,26 @@ struct CollectionWallSheet: View {
         _included = State(initialValue: Set(cards.map(\.id)))
     }
 
+    /// Tick 523 — deck-wall init. Used by DecksView's "Generate deck
+    /// wall" affordance (web + Android parity). Takes a custom title
+    /// (the deck name) and defaults the Price Overlay OFF since deck
+    /// composition isn't about market price. `designation` is set to
+    /// .personal as a no-op carrier — the visible title comes from the
+    /// explicit `title` arg, not from the designation default.
+    init(
+        title: String,
+        cards: [Card],
+        onDismiss: @escaping () -> Void
+    ) {
+        self.designation = .personal
+        self.cards = cards
+        self.prices = [:]
+        self.onDismiss = onDismiss
+        _title = State(initialValue: title)
+        _includePrices = State(initialValue: false)
+        _included = State(initialValue: Set(cards.map(\.id)))
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {

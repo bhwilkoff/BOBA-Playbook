@@ -138,6 +138,10 @@ struct DecksView: View {
     @State private var confirmingClearDeck   = false
     @State private var addedBanner           : String? = nil
     @State private var saveBanner            : String? = nil
+    // Tick 523 — "Generate deck wall" sheet (web + Android parity).
+    // Hosted on the editor's NavigationStack so it can present from
+    // the editor Menu without leaving the fullScreenCover.
+    @State private var showingDeckWall       = false
 
     // Walkthrough
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
@@ -308,6 +312,17 @@ struct DecksView: View {
             .toolbarBackground(.visible, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
             .walkthroughOverlay($editorWalkthrough)
+            // Tick 523 — Generate deck wall (web tick 9 + Android tick 76
+            // parity). Reuses CollectionWallSheet via its new title+cards
+            // init so all the share/save/copy/overlay/big-hit affordances
+            // are inherited free.
+            .sheet(isPresented: $showingDeckWall) {
+                CollectionWallSheet(
+                    title: store.deckName.isEmpty ? "My Deck" : store.deckName,
+                    cards: store.heroes + store.plays + store.bonusPlays + store.hotDogs,
+                    onDismiss: { showingDeckWall = false }
+                )
+            }
             .onAppear {
                 // Fire on first editor open. Deferred so the header
                 // stat row + format chips + deck list + save button
@@ -429,10 +444,18 @@ struct DecksView: View {
             if auth.isAuthenticated && store.savedDecks.isEmpty {
                 await store.loadSavedDecks()
             }
+            // Tick 523 — hydrate the collection too. Before this, the
+            // "My collection only" filter showed an empty pool until
+            // the user visited the Collection tab; now Decks always
+            // has access to userCards regardless of tab visit order.
+            if auth.isAuthenticated && collection.userCards.isEmpty {
+                await collection.loadCollection()
+            }
         }
         .onChange(of: auth.isAuthenticated) { _, isAuthed in
             if isAuthed {
                 Task { await store.loadSavedDecks() }
+                Task { await collection.loadCollection() }
             }
         }
         // Tick 362 — pull-to-refresh on the saved-decks sidebar.
@@ -536,8 +559,10 @@ struct DecksView: View {
                         // checkmark item — replaces the misplaced
                         // toggle that used to live inside the editor
                         // (where its effect on the pool was hidden).
+                        // Tick 523 — shorter label (was "Show only cards I
+                        // own" which wrapped to two lines in the Menu).
                         Toggle(isOn: $collectionOnly) {
-                            Label("Show only cards I own",
+                            Label("My collection only",
                                   systemImage: "tray.full")
                         }
                     }
@@ -660,6 +685,13 @@ struct DecksView: View {
                     } label: {
                         Label("Legality audit", systemImage: "checkmark.seal")
                     }
+                    // Tick 523 — Generate deck wall (web + Android parity).
+                    Button {
+                        showingDeckWall = true
+                    } label: {
+                        Label("Generate deck wall", systemImage: "rectangle.grid.3x2")
+                    }
+                    .disabled(deckIsEmpty)
                     Divider()
                     Button(role: .destructive) {
                         confirmingClearDeck = true

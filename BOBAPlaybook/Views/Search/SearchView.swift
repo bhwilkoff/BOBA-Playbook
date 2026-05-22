@@ -92,6 +92,17 @@ struct SearchView: View {
                 .presentationCompactAdaptation(.popover)
         }
         .walkthroughOverlay($walkthrough)
+        // Tick 272 — iPad keyboard shortcut for Surprise Me. Cmd+Shift+R
+        // mirrors GitHub's "random repo" shortcut idiom. Hidden zero-size
+        // button registers in the responder chain so .keyboardShortcut
+        // fires even when the Menu is closed. iPhone w/o keyboard
+        // ignores it.
+        .background(
+            Button { surpriseMe() } label: { EmptyView() }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+                .frame(width: 0, height: 0)
+                .opacity(0)
+        )
         // Deep-link card navigation goes through CardRoute pushed
         // directly onto store.findNavigationPath by the URL handler
         // — no observation chain, no race. CardRouteResolver

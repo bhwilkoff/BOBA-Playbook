@@ -90,6 +90,7 @@ fun BOBAApp(
     authManager: AuthManager,
     connectivityState: ConnectivityState,
     pendingDeepLink: PendingDeepLink,
+    findActions: com.bobaplaybook.app.feature.find.FindActions,
 ) {
     BobaTheme {
         // One NavController per tab so back stacks don't cross-pollute.
@@ -198,6 +199,17 @@ fun BOBAApp(
                         // so `/` inside a TextField types a slash as expected.
                         if (!event.isCtrlPressed && event.key == Key.Slash) {
                             return@onPreviewKeyEvent handleShortcut(1)
+                        }
+                        // Tick 279 — `r` (no modifier) fires Surprise Me
+                        // when on Find. iOS Cmd+Shift+R + web 'r' parity.
+                        // Same "no modifier + no input focus" gate as `/`
+                        // — the root Box only gets the keystroke if no
+                        // TextField has focus.
+                        if (!event.isCtrlPressed && event.key == Key.R
+                            && currentDestination == AppDestination.FIND
+                        ) {
+                            findActions.requestSurprise()
+                            return@onPreviewKeyEvent true
                         }
                         if (!event.isCtrlPressed) return@onPreviewKeyEvent false
                         when (event.key) {

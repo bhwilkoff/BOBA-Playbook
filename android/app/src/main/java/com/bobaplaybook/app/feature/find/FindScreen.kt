@@ -126,6 +126,25 @@ fun FindScreen(
     androidx.compose.runtime.LaunchedEffect(state.results) {
         navHolder.store.set(state.results.map { it.bobaId })
     }
+    // Tick 279 — keyboard 'r' shortcut from BOBAApp root key handler.
+    // Singleton FindActions bus emits surpriseRequested; collect here
+    // and run the same pick logic the overflow Menu uses.
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.findActions.surpriseRequested.collect {
+            val pool = state.results
+            if (pool.isEmpty()) return@collect
+            val pick = if (kotlin.random.Random.nextDouble() < 0.30) {
+                val rares = pool.filter { card ->
+                    val t = (card.treatment ?: "").lowercase()
+                    card.isInspiredInk || t.contains("superfoil") || t.contains("kanji")
+                }
+                rares.randomOrNull() ?: pool.random()
+            } else {
+                pool.random()
+            }
+            onCardClick(pick.bobaId)
+        }
+    }
     FindContent(
         state = state,
         onEvent = viewModel::onEvent,

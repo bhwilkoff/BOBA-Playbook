@@ -4,6 +4,7 @@ package com.bobaplaybook.app.feature.find
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -279,14 +280,22 @@ private fun WeaponSection(
 
 @Composable
 private fun HasImageRow(enabled: Boolean, onToggle: (Boolean) -> Unit) {
+    // Tick 506 — row-level toggle (same pattern as ProfileSheet
+    // ToggleRow + CustomRainbow editor). M3 convention: tap anywhere
+    // on the label flips the Switch.
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .toggleable(
+                value = enabled,
+                role = androidx.compose.ui.semantics.Role.Switch,
+                onValueChange = onToggle,
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("Has Image Only", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        Switch(checked = enabled, onCheckedChange = onToggle)
+        Switch(checked = enabled, onCheckedChange = null)
     }
 }
 

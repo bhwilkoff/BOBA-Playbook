@@ -498,7 +498,11 @@ private fun TournamentPage() {
         bundle.lastUpdated?.takeIf { it.isNotBlank() }?.let { stamp ->
             item("events-stamp") {
                 Text(
-                    text = "Last refreshed $stamp",
+                    // Tick 419 — use the relativeOrIsoDate helper (already
+                    // used by blog stamp at tick 416) so the events stamp
+                    // reads "Last refreshed today" / "yesterday" / "Nd ago"
+                    // instead of raw "2026-05-22". iOS + web parity.
+                    text = "Last refreshed ${relativeOrIsoDate(stamp)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 0.dp),

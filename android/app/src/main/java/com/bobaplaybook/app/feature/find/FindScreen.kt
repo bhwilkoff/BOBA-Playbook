@@ -251,6 +251,9 @@ private fun FindContent(
                                     it,
                                 )
                             },
+                            // Tick 299 — pool size for Surprise label
+                            // (iOS v2.317 + web tick 298 parity).
+                            surpriseCount = state.results.size,
                             onSurpriseMe = {
                                 // Tick 264 — Surprise Me: pick a random
                                 // card from the FindUiState results
@@ -517,6 +520,7 @@ private fun FindOverflowMenu(
     onQuickAddChange: (Boolean) -> Unit,
     gridColumns: Int,
     onGridColumnsChange: (Int) -> Unit,
+    surpriseCount: Int = 0,
     onSurpriseMe: () -> Unit = {},
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
@@ -558,12 +562,23 @@ private fun FindOverflowMenu(
         // filtered) and pushes its detail. Real value for collectors
         // exploring 17k+ cards who don't know what to search for.
         DropdownMenuItem(
-            text = { Text("Surprise me 🎲") },
+            // Tick 299 — pool size in label (iOS v2.317 + web tick 298
+            // parity). Tells users what Surprise is drawing from before
+            // they fire it. java.text.NumberFormat for locale-aware
+            // thousand separators (Locale.US to match the rest of the
+            // app's USD formatting convention).
+            text = {
+                val label = if (surpriseCount > 0)
+                    "Surprise me 🎲 (${java.text.NumberFormat.getInstance(java.util.Locale.US).format(surpriseCount)})"
+                else "Surprise me 🎲"
+                Text(label)
+            },
             // Tick 281 — Star reads more "discovery / serendipity" than
             // Bolt (which is BOBA's weapon-filter chip icon). Icons.Star
             // is in the baseline icon set (already used in
             // CardDetailScreen's owned-state).
             leadingIcon = { Icon(Icons.Default.Star, contentDescription = null) },
+            enabled = surpriseCount > 0,
             onClick = { onDismiss(); onSurpriseMe() },
         )
         DropdownMenuItem(

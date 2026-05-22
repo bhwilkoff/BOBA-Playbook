@@ -45,6 +45,9 @@
     if (weeks < 5) return `${weeks}w ago`;
     return `${Math.floor(days / 30)}mo ago`;
   }
+  // Tick 448 — expose globally so store-locator.js (its own IIFE) can
+  // call it from renderSummary instead of carrying a duplicate helper.
+  window.bobaRelativeDate = relativeDate;
 
   /* ================================================================
      STATE

@@ -480,6 +480,7 @@ object LearnCorpus {
         LearnSection.Term(term = "Modern", definition = "The Active-Era format in BoBA's Set Ascension. Cards from the past 2 years. Primary competitive format; best entry point for new players. Where most gameplay happens."),
         LearnSection.Term(term = "Hall of Fame", definition = "The Ascended-Era format in BoBA's Set Ascension. Cards released 2+ years ago (as of January 1). Larger card pool with complex interactions; reserved for special, high-skill events. Emphasizes mastery over volume."),
         LearnSection.Term(term = "AlphaTrilogy", definition = "The Founders-Era format in BoBA's Set Ascension. Exclusively original Alpha-era cards (first year). Celebrated annually with dedicated events. Alpha cards are also playable in Hall of Fame — preserves BoBA's foundation."),
+        LearnSection.Term(term = "Checklist", definition = "BoBA format where deck-building is restricted to a curated list of Plays (a Checklist). Each event publishes its own theme — high-offense, control, chaos, etc. Core mechanics stay identical; only the available card pool changes. Rewards creativity within constraints rather than finding the 'optimal' build."),
     )
 
     // Verbatim port from iOS LearnView.swift tradingTerms array.
@@ -557,6 +558,29 @@ object LearnCorpus {
         LearnSection.Callout(
             heading = null,
             text = "All Playmaker divisions are 1,000 DBS unless specified otherwise. Heroes can now appear unlimited times per deck (\"one-of\" still applies to an exact card).",
+        ),
+
+        // Tick 231 — Checklist Format explainer (Discord-mined from
+        // 2026-03-27 blog post). Was referenced by the format-legality
+        // chip strip + format dropdowns but never explained in Learn.
+        LearnSection.Body(
+            heading = "Checklist Format",
+            text = "Build decks from a curated list of Plays — a Checklist. Each Checklist creates its own gameplay environment with themed restrictions: high-offense, control, chaos, weapon-focused, etc. Core BoBA mechanics stay identical; only the available card pool changes.",
+        ),
+        LearnSection.Bullets(
+            heading = "What makes Checklist different",
+            items = listOf(
+                "Limited card pool — only Plays from the active Checklist are legal",
+                "Theme-driven gameplay (offense / control / chaos / weapon-focused)",
+                "Rotating or event-specific Checklists ensure variety",
+                "Some overlooked Plays suddenly become stars within their environment",
+                "Players answer 'how do I win in this environment?' rather than 'what's optimal?'",
+            ),
+        ),
+        LearnSection.Callout(
+            heading = "When Checklist fires",
+            text = "Event-specific. Each tournament publishes its active Checklist with the event listing. The Checklist column in the per-card format-legality chip shows green when a card is generally legal under Checklist rules, but the actual event Checklist may exclude it — always check the event's announced Checklist.",
+            element = "GLOW",
         ),
 
         // ─── Game modes ─────────────────────────────────────────

@@ -1384,10 +1384,11 @@ private struct SubstitutionStrategySection: View {
                     Text("10 total")
                         .font(Design.Fonts.mono(13, weight: .bold))
                         .foregroundStyle(Design.Colors.textPrimary)
-                    Text("Pay 2 to substitute a Hero.\nPay 0–6 to play Play cards.\nBoth come out of the same 10 hot dogs.")
-                        .font(Design.Fonts.mono(11))
-                        .foregroundStyle(Design.Colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    GlossaryAwareText(
+                        raw: "Pay 2 to substitute a Hero.\nPay 0–6 to play Play cards.\nBoth come out of the same 10 hot dogs.",
+                        font: Design.Fonts.mono(11),
+                        color: Design.Colors.textSecondary
+                    )
                 }
                 .padding(.top, 4)
                 Spacer(minLength: 0)
@@ -2699,10 +2700,12 @@ private struct HeroDeckFormatsSection: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
             .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
-            Text("All Playmaker divisions are 1,000 DBS unless specified otherwise. Heroes can now appear unlimited times per deck (\"one-of\" still applies to an exact card).")
-                .font(Design.Fonts.mono(11)).foregroundStyle(Design.Colors.textMuted)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, Design.Spacing.xs)
+            GlossaryAwareText(
+                raw: "All Playmaker divisions are 1,000 DBS unless specified otherwise. Heroes can now appear unlimited times per deck (\"one-of\" still applies to an exact card).",
+                font: Design.Fonts.mono(11),
+                color: Design.Colors.textMuted
+            )
+            .padding(.top, Design.Spacing.xs)
         }
     }
 }
@@ -2723,8 +2726,7 @@ private struct GameModesSection: View {
                 ForEach(modes, id: \.0) { m in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(m.0).font(Design.Fonts.mono(14, weight: .bold)).foregroundStyle(m.2)
-                        Text(m.1).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        GlossaryAwareText(raw: m.1, font: Design.Fonts.mono(12), color: Design.Colors.textSecondary)
                     }
                     .padding(Design.Spacing.md)
                     .frame(maxWidth: .infinity, alignment: .leading)

@@ -607,8 +607,12 @@ private fun ValueSummary(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Bold,
             )
+            // Tick 414 — locale-format the count (iOS tick 412 +
+            // web tick 413 parity). Serious collectors hit 1,000+
+            // cards; "1,234" reads cleaner at the headlineSmall
+            // weight than "1234".
             Text(
-                text = "$count",
+                text = java.text.NumberFormat.getInstance(java.util.Locale.US).format(count),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
             )

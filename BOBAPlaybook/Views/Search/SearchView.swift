@@ -415,6 +415,10 @@ struct SearchView: View {
                           systemImage: "sparkles")
                 }
                 .disabled(store.filteredCards.isEmpty)
+                // Tick 332 — surface the keyboard shortcut on iPad
+                // pointer hover (parity with web tick 318 + iOS tick
+                // 327 .help() pattern).
+                .help("Pick a random card · ⌘⇧R")
                 Button {
                     WalkthroughsManager.shared.relaunch(.findTab)
                     walkthrough = .findTab

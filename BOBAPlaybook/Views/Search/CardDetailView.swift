@@ -86,6 +86,12 @@ struct CardDetailView: View {
         guard i >= 0 else { return }
         let next = ((i + delta) % n + n) % n
         guard next != i else { return }
+        // Tick 312 — light haptic on every successful card swap (Android
+        // tick 291 TextHandleMove parity). Subtle confirmation that the
+        // swipe / Cmd-arrow registered without competing with button-tap
+        // haptics. selectionChanged is the closest "stepped through a
+        // list" feedback iOS exposes.
+        UISelectionFeedbackGenerator().selectionChanged()
         withAnimation(.easeInOut(duration: 0.18)) {
             card = navigationCards[next]
             // Reset zoom state on every nav so the new card starts at

@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.ViewModule
@@ -558,7 +559,11 @@ private fun FindOverflowMenu(
         // exploring 17k+ cards who don't know what to search for.
         DropdownMenuItem(
             text = { Text("Surprise me 🎲") },
-            leadingIcon = { Icon(Icons.Default.Bolt, contentDescription = null) },
+            // Tick 281 — Star reads more "discovery / serendipity" than
+            // Bolt (which is BOBA's weapon-filter chip icon). Icons.Star
+            // is in the baseline icon set (already used in
+            // CardDetailScreen's owned-state).
+            leadingIcon = { Icon(Icons.Default.Star, contentDescription = null) },
             onClick = { onDismiss(); onSurpriseMe() },
         )
         DropdownMenuItem(

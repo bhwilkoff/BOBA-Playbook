@@ -140,7 +140,7 @@ When shipping any user-facing feature:
 | Image-fingerprint matching | ✅ | 🚫 | 🔮 v2 | MediaPipe Image Embedder; parallel `feature-prints-android.bin` |
 | Multi-card grid scan | ✅ | 🚫 | 🔮 v2 | OpenCV port |
 | Scan queue / review surface | ✅ | n/a | ✅ | Android ScanQueueStore (Hilt singleton, 25-cap, de-dup by bobaId) + ScanReviewSheet ModalBottomSheet — commit 54d2124 |
-| Per-tab destination routing (Find/Decks/Collection) | ✅ | n/a | 🚧 | Android ScanQueueStore + ScanReviewSheet shipped (ticks 202 + 224); single ScanCoordinator for per-tab destination still pending |
+| Per-tab destination routing (Find/Decks/Collection) | ✅ | n/a | ✅ | Android ScanCoordinator + ScanDestination enum routes by currentDestination (BOBAApp.kt:263 when-statement): Collection → ScanDesignationSheet prompt; Decks → CURRENT_DECK + snackbar; Find/default → push card detail. Audit 2026-05-22. |
 
 Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan results when iOS/Android users share them.
 

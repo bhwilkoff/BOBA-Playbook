@@ -815,7 +815,15 @@
           default:        return 'var(--boba-orange)';  // tournament default
         }
       };
-      list.innerHTML = events.map(ev => {
+      // Tick 218 — surface bundle.lastUpdated so the user knows when
+      // the feed was scraped. events.json refreshes daily at 05:17 UTC
+      // via .github/workflows/refresh-events.yml; this tells the user
+      // "the row you're looking at is from this morning, not 2026-04".
+      const stampStr = bundle?.lastUpdated || '';
+      const stampHtml = stampStr
+        ? `<div class="events-last-updated">Last refreshed ${escHtml(relativeDate(stampStr))}</div>`
+        : '';
+      list.innerHTML = stampHtml + events.map(ev => {
         const accent = accentFor(ev.kind);
         const date = (ev.date && ev.date.trim()) ? ev.date : 'Date TBA';
         const url  = (ev.url && ev.url.trim()) ? ev.url : null;

@@ -15,7 +15,7 @@
 - ⏳ **Planned** — committed; targeted for an upcoming milestone
 - 🔮 **Future** — agreed direction; no timeline yet
 - 🚫 **Out of scope** — explicitly not built on this platform (with reason)
-- n/a — platform-inapplicable (e.g., scan on web — needs camera + on-device OCR)
+- n/a — platform-inapplicable (e.g., AVFoundation specifically on web)
 
 ---
 
@@ -134,15 +134,17 @@ When shipping any user-facing feature:
 
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
-| Live single-card scan | ✅ | 🚫 | ✅ | CameraX + ML Kit Text Recognition v2 — ScanScreen.kt shipped (audit tick 196). |
-| Card-number regex match | ✅ | 🚫 | ✅ | iOS regex ported (ScanScreen.kt). |
-| Hero-name veto | ✅ | 🚫 | ✅ | Per DECISIONS.md #035. |
-| Image-fingerprint matching | ✅ | 🚫 | 🔮 v2 | MediaPipe Image Embedder; parallel `feature-prints-android.bin` |
-| Multi-card grid scan | ✅ | 🚫 | 🔮 v2 | OpenCV port |
-| Scan queue / review surface | ✅ | n/a | ✅ | Android ScanQueueStore (Hilt singleton, 25-cap, de-dup by bobaId) + ScanReviewSheet ModalBottomSheet — commit 54d2124 |
-| Per-tab destination routing (Find/Decks/Collection) | ✅ | n/a | ✅ | Android ScanCoordinator + ScanDestination enum routes by currentDestination (BOBAApp.kt:263 when-statement): Collection → ScanDesignationSheet prompt; Decks → CURRENT_DECK + snackbar; Find/default → push card detail. Audit 2026-05-22. |
+| Live single-card scan | ✅ | 🚧 | ✅ | iOS/Android: on-device Vision / ML Kit. Web: `getUserMedia` → Worker OCR (experimental, less performant). DECISIONS.md #054. |
+| Card-number regex match | ✅ | 🚧 | ✅ | Web inherits via Worker response. Worker `boba-ebay-proxy /ocr` (planned) or equivalent. |
+| Hero-name veto | ✅ | 🔮 | ✅ | Web OCR doesn't currently veto by hero — iterate per DECISIONS.md #035 once Worker shape is firm. |
+| Image-fingerprint matching | ✅ | 🔮 | 🔮 v2 | MediaPipe Image Embedder; parallel `feature-prints-android.bin`. Web could ship a JS port reading the same `feature-prints.bin`. |
+| Multi-card grid scan | ✅ | 🔮 | 🔮 v2 | OpenCV port (iOS-only today). |
+| Scan queue / review surface | ✅ | 🔮 | ✅ | Android ScanQueueStore (Hilt singleton, 25-cap, de-dup by bobaId) + ScanReviewSheet ModalBottomSheet — commit 54d2124. Web could ship a parallel `localStorage`-backed queue. |
+| Per-tab destination routing (Find/Decks/Collection) | ✅ | 🔮 | ✅ | Android ScanCoordinator + ScanDestination enum (BOBAApp.kt:263). Web doesn't have tabs in the same shape; would route by recent-view heuristic. |
+| Desktop → phone QR session handoff | n/a | ✅ | n/a | Web-only affordance (DECISIONS.md #054). Desktop shows QR encoding `?view=scan&rt={refresh_token}`; phone scans → opens BOBA on phone with desktop session. |
+| Native-app CTA inside Scan view | n/a | ✅ | n/a | TestFlight + Google Play tiles. `nativeAppCalloutHTML()` in `js/app.js`. |
 
-Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan results when iOS/Android users share them.
+**Scan is canonical on iOS + Android** (on-device Vision / ML Kit per DECISIONS.md #012). **Web Scan is in scope** as (a) a fallback for desktops without the native apps, (b) a desktop → phone QR handoff surface, and (c) the marketing surface for the native apps (DECISIONS.md #054).
 
 ---
 

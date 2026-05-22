@@ -108,7 +108,7 @@ Same shape as DESIGN.md §2 — different leaves.
 | Glance-and-return action (filter, quick edit) | `<dialog>` with a smaller `max-width`, dismiss on click outside (ESC + backdrop click) |
 | Side panel for inspection (iPad/desktop) | Skip — not a current target. Re-evaluate when desktop usage justifies a `NavigationSplitView` analog |
 | Destructive / one-shot config | `<details>` overflow menu OR Popover API + `confirm()` for destructive |
-| Global app state (active scan, draft) | N/A on web (scan is iOS-only; deck-draft persists to Supabase) — a `position: sticky` bottom strip is acceptable for in-progress state if/when needed |
+| Global app state (active scan, draft) | Scan view is sidebar destination (DECISIONS.md #054); deck-draft persists to Supabase. A `position: sticky` bottom strip is acceptable for in-progress state if/when needed |
 | Cross-cutting capability (share, profile, sign-in) | See §6 |
 | Inline option (toggle, one-of-several) | `<input type="checkbox">` / `<input type="radio">` / `<select>` inside a `<form>` |
 
@@ -263,13 +263,32 @@ DESIGN.md §6.5.
 iOS DESIGN.md §6.5 covers scan, share, profile/auth as cross-
 cutting verbs. Web equivalents:
 
-### 8.1 Scan — N/A on web.
+### 8.1 Scan — sidebar destination (DECISIONS.md #054).
 
-Scanning requires camera access + on-device Vision OCR (DECISIONS.md
-#012). Mobile-web Camera API exists but the OCR pipeline doesn't.
-**Web users see scan results when iOS users share them via the
-share-sheet.** Document this in the Find empty state ("Scan a card
-in the iOS app to add it to your collection").
+Web Scan is a fallback + adjunct surface, not a replacement for
+the canonical iOS Vision / Android ML Kit on-device path. The
+sidebar entry is real (re-surfaced 2026-05-22 per beta-tester
+request); three responsibilities:
+
+1. **Mobile-web camera capture** — `getUserMedia` → frame →
+   Cloudflare Worker OCR. Experimental; less performant than
+   on-device but functional for users without the native apps.
+2. **Desktop → phone QR handoff** — desktop browsers see a QR
+   encoding `?view=scan&rt={refresh_token}`. Phone scans →
+   opens BOBA on phone with desktop session carried over.
+   Refresh token regenerates every 30s.
+3. **Native-app gateway** — TestFlight (iOS) + Google Play
+   (Android) CTA tiles surfaced inside the Scan view. Reuse
+   `nativeAppCalloutHTML()` in `js/app.js` for any other
+   surface that wants to advertise the native apps; don't
+   re-invent.
+
+**Anti-patterns:**
+- Surfacing the camera path as "the way to scan." It's a
+  fallback — the native apps are canonical. Copy + CTAs should
+  always present the native apps as the better option.
+- Hardcoding TestFlight / Play Store URLs anywhere outside
+  `nativeAppCalloutHTML()`. One source of truth.
 
 ### 8.2 Share — Web Share API with copy-link fallback.
 
@@ -640,7 +659,7 @@ Documented so future sessions don't re-add these as parity gaps.
 | **Two-column desktop split-view** | §9 — wait for desktop usage analytics. |
 | **PWA Badging + share_target** | §13 — Safari iOS doesn't ship them; investment is low ROI vs the iOS app. |
 | **Custom-domain branding for shared collections** (`ben.bobaplaybook.com`) | Out of scope — `bobaplaybook.com/u/ben` is sufficient. |
-| **Camera scan on mobile web** | DECISIONS.md #012 — on-device Vision OCR is iOS-only. |
+<!-- Tick 2026-05-22: Camera scan on mobile web removed from out-of-scope per DECISIONS.md #054. Web Scan is now a sidebar destination — fallback + QR handoff + native-app gateway. iOS Vision / Android ML Kit remain canonical. See WEB-DESIGN.md §8.1 for the new spec. -->
 | **Practice executor on web** | DESIGN.md §12 — different design language; iOS-only when shipped. |
 | **Native iOS hero-zoom emulation** | View Transitions API gives us a web-native equivalent (§13). Don't try to emulate the iOS exact behavior — use the platform's primitive. |
 | **`.tabViewBottomAccessory` analog** | iOS-specific. The mobile header + per-view sticky chrome cover the web's needs. |

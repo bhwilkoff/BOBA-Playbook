@@ -424,3 +424,20 @@ BOBA will **never** ship Twitter / X integration across iOS / web / Android. Inc
 **What still ships:** standard Open Graph (`og:*`) is read by Discord / iMessage / Slack / Bluesky / Mastodon / Threads / Facebook / LinkedIn / WhatsApp / Signal / Telegram / search engines. Other social platforms (Bluesky / Mastodon / Threads / Discord) fine when use cases arise.
 
 **How to apply:** reject PRs adding `twitter:*` meta tags, `twitter.com` URLs, Twitter SDK / API, share-to-Twitter buttons, or "tweet this" copy. Future Twitter-pattern features → Web Share API + OG protocol so other platforms inherit naturally. If a third-party template ships with Twitter integration, gut it before integrating.
+
+## 054 — Web Scan re-surfaced as fallback + native-app gateway
+*2026-05-22*
+
+Partially supersedes the web-side of [#012](#012). Scan on web is no longer "out of scope" — it's a sidebar destination with three jobs:
+
+1. **Camera-capture fallback** for users who don't have the native apps. `getUserMedia` → frame → Cloudflare Worker OCR. Less performant than iOS Vision / Android ML Kit (server round trip, no fingerprint matching) but functional.
+2. **Desktop → phone QR session handoff.** Desktop browsers see a QR encoding `?view=scan&rt={refresh_token}`. Phone scans → opens BOBA on phone with desktop session carried over. Refresh token regenerates every 30s to track Supabase's rotation.
+3. **Native-app gateway.** Inline TestFlight (iOS) + Google Play (Android) CTAs surfaced inside the Scan view — most contextually natural place to advertise the canonical scanner.
+
+**Why the reversal:** beta testers explicitly asked for it. The web implementation already existed (hidden in commit `013cf90` 2026-04-27); only the sidebar entry was removed. Restoring the sidebar entry costs nothing because the code never left. The on-device-Vision principle from #012 still governs the **canonical** scanner — web is now framed as an *adjunct*, not a replacement.
+
+**How to apply:**
+- Web Scan IS in scope for iteration. PRs improving the Worker OCR path, QR handoff, or native-app CTA copy are welcome.
+- The native-app CTA tiles are the spec for *every* surface that wants to advertise iOS / Android — reuse `nativeAppCalloutHTML()` in `js/app.js` rather than re-inventing.
+- DESIGN.md / WEB-DESIGN.md / PARITY.md updated in tandem so this isn't whiplash-driven.
+- iOS Vision + Android ML Kit remain the canonical on-device scanners; web is the only platform with a server-OCR + QR-handoff posture.

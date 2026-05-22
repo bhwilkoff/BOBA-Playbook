@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 252 (iOS)** — Upcoming Events section gains the Last-refreshed stamp inline w/ header (770bae4). Closes Android tick 219 + web tick 218 events-stamp parity. v2.305/567.
 - **tick 251 (Android — content)** — Power Curve content enriched in Learn → Strategy (dfabf4d). 3 tier-band bullets + 3 positioning-tip bullets ported from iOS PowerCurveSection. Closes the Android-iOS content-depth gap for strategy beginners.
 - **tick 250 (opt → parity)** — iOS GlossaryView gains 4 Set Ascension terms (Set Ascension / Modern / Hall of Fame / AlphaTrilogy) — was inconsistency with the inline tap-to-define helper that already had them since tick 242 (e678236). Milestone tick — closes web tick 228 + Android tick 229 to 3-platform glossary parity.
 - **tick 249 (Android)** — Haptic feedback on long-press → Quick Add / pool add (f46c1b0). iOS parity (UIImpactFeedbackGenerator); previously the long-press action fired silently.

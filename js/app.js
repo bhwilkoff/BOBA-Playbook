@@ -2911,6 +2911,33 @@
     modalContent.querySelector('[data-action="add-to-collection"]')
       ?.addEventListener('click', () => Collection.openAddSheet(card));
 
+    // Tick 478 — Wire "Add to Deck" button (iOS + Android parity per
+    // tick 474 / CardDetailView L242-247). Reuses the existing
+    // openDeckPicker popover-anchored handler from bulk multi-select
+    // by injecting a single-card cards array via a temporary closure.
+    modalContent.querySelector('[data-action="add-to-deck"]')
+      ?.addEventListener('click', async (e) => {
+        if (!Auth.isAuthenticated()) { Auth.open(); return; }
+        let decks;
+        try { decks = await API.deckList(); } catch (err) {
+          showToast('Could not load your decks. ' + (err?.message || ''));
+          return;
+        }
+        if (!decks.length) {
+          showToast('No saved decks yet. Build one in the Decks tab first.');
+          return;
+        }
+        showPopoverMenu({
+          anchor: e.currentTarget,
+          title: `Add ${card.name} to deck…`,
+          items: decks.map(d => ({
+            label:    d.name,
+            sublabel: d.format,
+            onSelect: () => bulkAddToDeck([card], d),
+          })),
+        });
+      });
+
     // Wire "Share" button — routes through the canonical
     // shareTarget helper (Web Share API → clipboard fallback).
     modalContent.querySelector('[data-action="share-card"]')
@@ -3836,6 +3863,17 @@
               </svg>
               Add to Collection
             </button>
+            ${(card.cardType === 'Hero' || card.cardType === 'Play' || card.cardType === 'HotDog') ? `
+            <button class="btn-collection-add" data-action="add-to-deck"
+                    title="Add this card to a saved deck">
+              <!-- Lucide: layers-2 → "stack of cards" style for Add to Deck -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+                <path d="m16.02 12 5.48 3.16a1 1 0 0 1 0 1.74l-8.5 4.91a2 2 0 0 1-2 0l-8.5-4.91a1 1 0 0 1 0-1.74L7.98 12"/>
+                <path d="M12 2.5 3.5 7.41a1 1 0 0 0 0 1.74l8.5 4.91a2 2 0 0 0 2 0l8.5-4.91a1 1 0 0 0 0-1.74L12 2.5Z"/>
+              </svg>
+              Add to Deck
+            </button>` : ''}
             <button class="btn-share-card" data-action="share-card"
                     title="Share this card" aria-label="Share card link">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

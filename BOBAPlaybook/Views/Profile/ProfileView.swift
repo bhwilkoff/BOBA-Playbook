@@ -1,5 +1,4 @@
 import SwiftUI
-import SafariServices
 import PhotosUI
 
 // MARK: - ProfileView
@@ -94,8 +93,8 @@ struct ProfileView: View {
         )) { target in
             RoleRequestSheet(role: target.role)
         }
-        .sheet(isPresented: $showingPrivacy) { SafariSheet(url: URL(string: "https://bobaplaybook.com/privacy/")!) }
-        .sheet(isPresented: $showingTerms)   { SafariSheet(url: URL(string: "https://bobaplaybook.com/terms/")!) }
+        .sheet(isPresented: $showingPrivacy) { SafariView(url: URL(string: "https://bobaplaybook.com/privacy/")!) }
+        .sheet(isPresented: $showingTerms)   { SafariView(url: URL(string: "https://bobaplaybook.com/terms/")!) }
         .fullScreenCover(isPresented: $showingPractice) {
             NavigationStack {
                 PlayView()
@@ -1525,17 +1524,3 @@ private struct RoleRequestSheet: View {
     }
 }
 
-// MARK: - Safari sheet wrapper
-
-private struct SafariSheet: UIViewControllerRepresentable {
-    let url: URL
-
-    func makeUIViewController(context: Context) -> SFSafariViewController {
-        // iOS 26 deprecated preferredBarTintColor / preferredControlTintColor
-        // ("Tinting the bars interferes with background effects that the
-        // system provides"). Let SFSafariViewController use its own
-        // adaptive Liquid Glass treatment.
-        SFSafariViewController(url: url)
-    }
-    func updateUIViewController(_ vc: SFSafariViewController, context: Context) {}
-}

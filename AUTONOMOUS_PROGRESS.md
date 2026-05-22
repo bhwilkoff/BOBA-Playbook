@@ -23,7 +23,6 @@ Order = (impact × shipping cost⁻¹). Higher impact + cheaper to ship = sooner
 
 ### P0 — Quick wins from beta feedback / verified bugs
 
-- [ ] **Verify sealed-image fix on web + Android** — iOS render path uses `card.isSealed` via CDN.swift; web js/api.js and Android core/network/CDN.kt should do the same. Spot-check that the catalog bake from v2.288 actually lights up in all three.
 - [ ] **9 sealed products still missing R2 art** — surface them in `assets/data/missing-sealed.json` so the next sourcing pass picks them up.
 
 ### P1 — Cross-platform parity (pulled from PARITY.md)

@@ -33,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -43,7 +44,11 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -144,9 +149,9 @@ fun DeckEditorContentInline(
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            androidx.compose.material3.OutlinedButton(onClick = onOpenRules) { Text("Rules") }
-            androidx.compose.material3.OutlinedButton(onClick = onOpenLegality) { Text("Legality") }
-            androidx.compose.material3.OutlinedButton(
+            OutlinedButton(onClick = onOpenRules) { Text("Rules") }
+            OutlinedButton(onClick = onOpenLegality) { Text("Legality") }
+            OutlinedButton(
                 onClick = onGenerateWall,
                 enabled = draft.cards.isNotEmpty(),
             ) { Text("Wall") }
@@ -378,7 +383,7 @@ private fun StatsRow(draft: DeckDraft) {
         }
         Spacer(Modifier.weight(1f))
         if (draft.isStandardLegal) {
-            androidx.compose.material3.Surface(
+            Surface(
                 shape = MaterialTheme.shapes.small,
                 color = MaterialTheme.colorScheme.primaryContainer,
             ) {
@@ -536,12 +541,12 @@ private fun SectionedCardList(
  */
 @Composable
 private fun EmptyDeckCTA(modifier: Modifier = Modifier) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val decksVm: DecksViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val catalogVm: com.bobaplaybook.app.feature.collection.RainbowCatalogViewModel =
         androidx.hilt.navigation.compose.hiltViewModel()
     val catalog by catalogVm.cards.collectAsStateWithLifecycle(initialValue = emptyList())
-    val templates by androidx.compose.runtime.produceState(initialValue = emptyList<com.bobaplaybook.core.data.decks.DeckTemplate>()) {
+    val templates by produceState(initialValue = emptyList<com.bobaplaybook.core.data.decks.DeckTemplate>()) {
         value = com.bobaplaybook.core.data.decks.DeckTemplateLoader().load(context)
     }
     // Tick 164 — confirm template load with a Snackbar. The visual
@@ -549,12 +554,12 @@ private fun EmptyDeckCTA(modifier: Modifier = Modifier) {
     // explicit "Loaded X" message matches TemplateGallerySheet's
     // tick-136 pattern + gives a verbal cue ("yes, the tap registered")
     // alongside the visual change.
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
     // Tick 301 — haptic on template load. Loading a 60-card deck is
     // a "big-deal" moment (vs Quick Add of a single card); LongPress
     // feedback signals the magnitude of what just happened.
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val haptic = LocalHapticFeedback.current
 
     LazyColumn(
         modifier = modifier,

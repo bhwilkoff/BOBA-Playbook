@@ -6,6 +6,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -619,12 +620,22 @@ private fun EventRow(event: EventEntry) {
         "release"    -> com.bobaplaybook.core.ui.theme.BobaBrand.Cyan
         else         -> com.bobaplaybook.core.ui.theme.BobaBrand.Orange  // tournament fallback
     }
-    val dateLabel = event.date?.takeIf { it.isNotBlank() } ?: "Date TBA"
+    // Tick 254 — past-event detection (web tick 253 parity). Concluded
+    // events render dimmed + drop the "Open ↗" CTA + suffix "· PAST"
+    // so users can scan the list and immediately see what's upcoming.
+    val today = remember {
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+    }
+    val isPast = event.date?.takeIf { it.isNotBlank() }?.let { it < today } ?: false
+    val dateLabel = event.date?.takeIf { it.isNotBlank() }
+        ?.let { if (isPast) "$it · PAST" else it }
+        ?: "Date TBA"
     val context = LocalContext.current
-    val url = event.url?.takeIf { it.isNotBlank() }
+    val url = event.url?.takeIf { it.isNotBlank() && !isPast }
     val rowMod = Modifier
         .fillMaxWidth()
         .padding(horizontal = 16.dp, vertical = 2.dp)
+        .alpha(if (isPast) 0.55f else 1f)
         .let { base ->
             if (url != null) base.clickable {
                 runCatching {

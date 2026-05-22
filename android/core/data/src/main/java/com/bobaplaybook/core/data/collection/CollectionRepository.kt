@@ -128,14 +128,19 @@ class CollectionRepository @Inject constructor(
         condition: String? = null,
         notes: String? = null,
     ) {
-        val existing = _ownedCards.value.firstOrNull {
-            it.cardBobaId == cardBobaId && it.designation == designation && it.userId == userId
-        }
-        if (existing != null) {
-            updateQuantity(existing.id, existing.quantity + quantity.coerceAtLeast(1))
-            return
-        }
-        // Insert a new row — Supabase generates `id` + `acquired_at`.
+        // Multi-copy semantics live as multiple ROWS in user_cards
+        // (iOS pattern — each row is one physical copy). The prior
+        // "increment local quantity" early-exit was wrong: it never
+        // wrote to Supabase, so Quick-Add the same card twice
+        // silently no-op'd server-side and the local quantity bump
+        // disappeared on refresh. Ben's 2026-05-22 "quick add doesn't
+        // add the cards correctly" report traces here.
+        //
+        // Now always insert a new row. The catalog JOIN in
+        // CollectionViewModel collapses multiple-rows-same-bobaId to
+        // one cell with the right quantity in the list view (×N
+        // pill); the row count itself reflects the physical-copy
+        // count the user sees on iOS.
         runCatching {
             // CardNumber resolves from the catalog (passed in by the
             // ViewModel), not by parsing the bobaId. Base-Set

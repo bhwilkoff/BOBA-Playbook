@@ -128,6 +128,15 @@ fun FindScreen(
     val viewModel: FindViewModel = hiltViewModel()
     val collectionViewModel: com.bobaplaybook.app.feature.collection.CollectionViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Quick-Add needs an authoritative "signed-in?" answer at tap-time.
+    // Reading collectionViewModel.uiState.value isn't reliable here —
+    // the StateFlow uses WhileSubscribed and nothing in FindScreen
+    // collects it, so it stays stuck at its initialValue
+    // (isSignedIn=false). Collect the AuthViewModel directly.
+    val findAuthVm: com.bobaplaybook.app.auth.AuthViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val findAuthState by findAuthVm.authState.collectAsStateWithLifecycle()
+    val isSignedIn = findAuthState is com.bobaplaybook.app.auth.AuthState.SignedIn
     // Populate CardNavigationStore whenever the visible result set
     // changes — the detail screen reads it to enable horizontal swipe
     // between siblings. Mirrors iOS SearchView passing
@@ -159,6 +168,7 @@ fun FindScreen(
         state = state,
         onEvent = viewModel::onEvent,
         collectionViewModel = collectionViewModel,
+        isSignedIn = isSignedIn,
         onCardClick = onCardClick,
         onProfileClick = onProfileClick,
         onScanClick = onScanClick,
@@ -171,6 +181,7 @@ private fun FindContent(
     state: FindUiState,
     onEvent: (FindEvent) -> Unit,
     collectionViewModel: com.bobaplaybook.app.feature.collection.CollectionViewModel,
+    isSignedIn: Boolean,
     onCardClick: (bobaId: String) -> Unit,
     onProfileClick: () -> Unit,
     onScanClick: () -> Unit,
@@ -409,9 +420,12 @@ private fun FindContent(
                         onQuickAdd = { card ->
                             // Quick Add = add to Personal designation. Signed-out
                             // users get a Snackbar telling them to sign in (the
-                            // write would fail at RLS anyway).
-                            val authState = collectionViewModel.uiState.value
-                            if (!authState.isSignedIn) {
+                            // write would fail at RLS anyway). Reading the
+                            // auth state from the hoisted AuthViewModel is
+                            // the authoritative path; collectionViewModel's
+                            // uiState had nobody collecting it here so it
+                            // stayed stuck at the default signed-out value.
+                            if (!isSignedIn) {
                                 scope.launch {
                                     appSnackbar?.showSnackbar("Sign in to Quick Add ${card.displayName}")
                                 }

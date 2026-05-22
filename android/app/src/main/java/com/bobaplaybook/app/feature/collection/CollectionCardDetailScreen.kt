@@ -153,7 +153,10 @@ fun CollectionCardDetailScreen(
                 subSet     = card.subSet,
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-            BOBASectionHeader(title = "Your copies (${copies.size})")
+            // Tick 434 — locale-format the count (web tick 433 + iOS parity).
+            BOBASectionHeader(
+                title = "Your copies (${java.text.NumberFormat.getInstance(java.util.Locale.US).format(copies.size)})",
+            )
             copies.forEach { entry ->
                 CopyRow(
                     entry = entry,

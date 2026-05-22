@@ -439,7 +439,11 @@ private fun CardDetailBody(
                 .filter { it.card.bobaId == card.bobaId }
         }
         if (ownedEntries.isNotEmpty()) {
-            BOBASectionHeader(title = "In your collection (${ownedEntries.size})")
+            // Tick 434 — locale-format the count (web tick 433 parity).
+            // Grail farmers can hit 4-digit copies of a Maverick.
+            BOBASectionHeader(
+                title = "In your collection (${java.text.NumberFormat.getInstance(java.util.Locale.US).format(ownedEntries.size)})",
+            )
             val byDesignation = ownedEntries.groupingBy { it.userCard.designation }.eachCount()
             Text(
                 text = byDesignation.entries.joinToString(" · ") { (d, n) ->

@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.core.data.catalog.CardRepository
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.ui.components.BOBACardCell
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -144,20 +145,22 @@ fun RainbowDetailScreen(
                     // short bragging-rights blurb. Coaches share "my 12 of
                     // 15 Maverick rainbow" in Discord all the time; this
                     // skips the screenshot+caption round-trip.
-                    IconButton(onClick = {
-                        val pct = if (allCards.isEmpty()) 0
-                                  else ((ownedCount * 100.0) / allCards.size).toInt()
-                        val unit = if (isCustom) "cards" else "treatments"
-                        val text = "My $title rainbow: $ownedCount of ${allCards.size} $unit ($pct%) · bobaplaybook.com"
-                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(android.content.Intent.EXTRA_SUBJECT, "My $title rainbow")
-                            putExtra(android.content.Intent.EXTRA_TEXT, text)
+                    BOBAIconTooltip("Share rainbow progress") {
+                        IconButton(onClick = {
+                            val pct = if (allCards.isEmpty()) 0
+                                      else ((ownedCount * 100.0) / allCards.size).toInt()
+                            val unit = if (isCustom) "cards" else "treatments"
+                            val text = "My $title rainbow: $ownedCount of ${allCards.size} $unit ($pct%) · bobaplaybook.com"
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(android.content.Intent.EXTRA_SUBJECT, "My $title rainbow")
+                                putExtra(android.content.Intent.EXTRA_TEXT, text)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(intent, "Share rainbow"))
+                        }) {
+                            Icon(androidx.compose.material.icons.Icons.Default.Share,
+                                 contentDescription = "Share rainbow progress")
                         }
-                        context.startActivity(android.content.Intent.createChooser(intent, "Share rainbow"))
-                    }) {
-                        Icon(androidx.compose.material.icons.Icons.Default.Share,
-                             contentDescription = "Share rainbow progress")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

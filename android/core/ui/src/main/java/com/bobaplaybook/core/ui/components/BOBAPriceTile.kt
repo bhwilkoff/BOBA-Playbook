@@ -30,14 +30,23 @@ import coil3.request.crossfade
 import com.bobaplaybook.core.ui.format.formatUsdAmount
 
 /**
- * Pricing tile (ANDROID-DESIGN.md §8.7). Renders one listing — thumb,
- * price, source pill, tap-through.
+ * Pricing tile (ANDROID-DESIGN.md §8.7). Text-first row matching iOS
+ * `PricingSection.itemRow` — price (left) + title (middle, wraps) +
+ * date/source (right). The Worker doesn't ship per-listing thumbnails,
+ * so the prior 96dp blank-thumb placeholder above every tile was just
+ * dead grey space on the user's screen (and what Ben flagged as
+ * "buy now thumbnails don't show correctly"). Tap → onClick (Custom
+ * Tabs opens the listing).
+ *
+ * `thumbUrl` is preserved on the API for future Worker enrichment but
+ * is currently ignored. When the Worker surfaces real thumb URLs we
+ * can re-introduce a small leading 40dp art tile.
  */
 @Composable
 fun BOBAPriceTile(
     priceUsd: Double,
     title: String,
-    thumbUrl: String?,
+    @Suppress("UNUSED_PARAMETER") thumbUrl: String?,
     source: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -46,7 +55,7 @@ fun BOBAPriceTile(
 ) {
     Card(
         modifier = modifier
-            .width(140.dp)
+            .width(180.dp)
             .clickable { onClick() },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -54,58 +63,33 @@ fun BOBAPriceTile(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
         ) {
-            if (thumbUrl != null) {
-                AsyncImage(
-                    model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
-                        .data(thumbUrl)
-                        .crossfade(150)
-                        .build(),
-                    contentDescription = title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(96.dp)
-                        .clip(MaterialTheme.shapes.small),
-                )
-            } else {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(96.dp),
-                ) {}
-            }
             Text(
                 text = "$${priceUsd.formatUsdAmount()}",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 8.dp),
             )
+            // Source + date on the same line so the body of the tile
+            // stays compact (matches iOS row's "{relativeDate}" trailing).
+            val sourceLine = buildString {
+                append(source)
+                date?.takeIf { it.isNotBlank() }?.let { append(" · ").append(it) }
+            }
             Text(
-                text = source,
+                text = sourceLine,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
-            date?.takeIf { it.isNotBlank() }?.let { d ->
-                Text(
-                    text = d,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                modifier = Modifier.padding(top = 2.dp),
+                maxLines = 3,
+                modifier = Modifier.padding(top = 4.dp),
             )
         }
     }

@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -484,15 +486,52 @@ private fun SignedInContent(
             )
         }
         item("discord-link") {
+            // Tick 211 — branch on linked-state so signed-in-with-Discord
+            // users + users who already linked don't see "Link" pretending
+            // they haven't. Mirrors iOS Profile/SignInMethodSection logic.
+            val discordLinked = !profile?.discordUserId.isNullOrEmpty()
             ListItem(
-                headlineContent = { Text("Link Discord") },
-                supportingContent = { Text("Required to enable trading", style = MaterialTheme.typography.labelMedium) },
-                leadingContent = { Icon(Icons.Default.Group, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                headlineContent = { Text("Discord") },
+                supportingContent = {
+                    Text(
+                        if (discordLinked) "Linked — enables trading"
+                        else "Link to enable trading",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                },
+                leadingContent = {
+                    val avatarUrl = profile?.discordAvatarUrl
+                    if (discordLinked && !avatarUrl.isNullOrEmpty()) {
+                        coil3.compose.AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = null,
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape),
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Group,
+                            contentDescription = null,
+                            tint = if (discordLinked) androidx.compose.ui.graphics.Color(0xFF5865F2)
+                                   else MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                },
                 trailingContent = {
-                    TextButton(onClick = {
-                        scope.launch { launchDiscordOAuth(authManager) }
-                    }) {
-                        Text("Link")
+                    if (discordLinked) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = "Discord linked",
+                            tint = androidx.compose.ui.graphics.Color(0xFF5865F2),
+                        )
+                    } else {
+                        TextButton(onClick = {
+                            scope.launch { launchDiscordOAuth(authManager) }
+                        }) {
+                            Text("Link")
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),

@@ -1749,6 +1749,20 @@ private struct GlossaryView: View {
     /// timer (mirrors the Android Toast feedback window from tick 84).
     @State private var copiedTermId: String?
 
+    // Tick 347 — filter both glossary lists by query. Substring match
+    // against term + definition, case-insensitive. 38 total terms
+    // makes scroll-to-find tedious; a search bar surfaces them by
+    // intent ("what does HTD mean?" → type htd → instant filter).
+    @State private var query: String = ""
+
+    private func filtered(_ terms: [Term]) -> [Term] {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !q.isEmpty else { return terms }
+        return terms.filter {
+            $0.term.lowercased().contains(q) || $0.definition.lowercased().contains(q)
+        }
+    }
+
     // Tick 257 — hoisted to fileprivate static so boba_inlineGlossary
     // can derive from gameTerms (single source of truth). The arrays
     // stay declared inside GlossaryView for ownership clarity; the
@@ -1815,12 +1829,37 @@ private struct GlossaryView: View {
                     title: "Long-press a term",
                     message: "Press and hold any glossary term to copy or share its definition — handy for quoting it in Discord or a coaching note."
                 )
-                glossarySection(title: "GAME GLOSSARY",    blurb: "Terms you'll hear in rules discussions, deck building, and battle flow.", terms: Self.gameTerms)
-                glossarySection(title: "TRADING GLOSSARY", blurb: "Community shorthand used in the Discord trade room, Whatnot streams, and eBay listings.", terms: Self.tradingTerms)
+                let game = filtered(Self.gameTerms)
+                let trading = filtered(Self.tradingTerms)
+                if !game.isEmpty {
+                    glossarySection(title: "GAME GLOSSARY",    blurb: "Terms you'll hear in rules discussions, deck building, and battle flow.", terms: game)
+                }
+                if !trading.isEmpty {
+                    glossarySection(title: "TRADING GLOSSARY", blurb: "Community shorthand used in the Discord trade room, Whatnot streams, and eBay listings.", terms: trading)
+                }
+                if game.isEmpty && trading.isEmpty {
+                    // Tick 347 — empty search state. Single line w/ Clear
+                    // CTA matches the Collection-search empty pattern.
+                    VStack(spacing: Design.Spacing.sm) {
+                        Text("No glossary terms match “\(query)”")
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                        Button("Clear search") { query = "" }
+                            .font(Design.Fonts.mono(12, weight: .bold))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, Design.Spacing.lg)
+                }
             }
             .padding(Design.Spacing.lg)
             .padding(.bottom, Design.Spacing.xxl)
         }
+        // Tick 347 — `.searchable` over the corpus. Native iOS search
+        // affordance; iOS 26 docks the field below nav, taps to expand,
+        // honors Cancel + clear-on-empty.
+        .searchable(text: $query, placement: .navigationBarDrawer(.always),
+                    prompt: "Search glossary terms…")
     }
 
     /// Copy the term to the system pasteboard, fire a soft haptic, and

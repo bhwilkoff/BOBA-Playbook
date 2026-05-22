@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 347 (iOS v2.327 / 589)** — Added `.searchable` to iOS Glossary corpus (38 terms total). Substring match against term + definition, case-insensitive. Sections auto-hide when filtered to zero. Empty-search state shows "No glossary terms match" + Clear-search Button. iOS 26 native search docking (navigationBarDrawer always-visible). Type "htd" → instantly find Home Team Discount.
 - **tick 346 (Android, code style)** — WatchPage: 5 inline FQN call sites collapsed via imports (rememberCoroutineScope · remember · mutableStateOf · rememberSaveable). Each was wrapping a 1-line State init in 3 lines; the cleanup also reformatted to one-line idiomatic form (`var x by remember { mutableStateOf(...) }`), net -6 lines.
 - **tick 345 (opt, code style)** — DecksScreen: 3 more FQN call sites → top-of-file imports (rememberCoroutineScope · LocalContext · LocalHapticFeedback). Continues the FQN-cleanup pattern from ticks 321/325/330/336/339/341 — every file with inline `androidx.compose.X.Y` references gets the import treatment when touched.
 - **tick 344 (Android)** — "🎲 Surprise me from all cards" secondary CTA on Find empty state. Closes 3-platform trio (iOS v2.326 + web tick 343). BOBAEmptyState already supported secondaryActionLabel/onSecondaryAction (tick 214). Clears filters via FindEvent.ClearAllFilters, then findActions.requestSurprise() routes through the existing LaunchedEffect collector which picks from the freshly-recomputed results.

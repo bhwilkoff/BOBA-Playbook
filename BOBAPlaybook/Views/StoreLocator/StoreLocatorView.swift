@@ -95,7 +95,11 @@ struct StoreLocatorView: View {
                 bigBoxToggle
                 Spacer()
                 if let label = store.lastUpdatedLabel {
-                    Text("Updated \(label.prefix(10))")
+                    // Tick 432 — relative-format the stamp ("Updated 5d
+                    // ago" instead of "Updated 2026-05-17"). Web tick 428
+                    // + Android tick 431 parity. Falls back to ISO prefix
+                    // for >5wk-old scrapes.
+                    Text("Updated \(relativeStoreDate(label))")
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
                 }
@@ -442,5 +446,30 @@ final class LocationPermissionManager: NSObject, ObservableObject, CLLocationMan
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         // Silent — UI still works, user just doesn't get distance sort.
+    }
+}
+
+// Tick 432 — Relative date for the stores-manifest scraped_at stamp.
+// Mirrors `_relativeDate` in js/store-locator.js (tick 428) +
+// `relativeStoreDate` in Android PurchaseScreen (tick 431).
+// "today" / "Nd ago" / "Nw ago" within 5 weeks; "Nmo ago" beyond.
+// Falls back to the raw ISO prefix when parse fails.
+fileprivate func relativeStoreDate(_ iso: String) -> String {
+    let datePart = String(iso.prefix(10))
+    let parts = datePart.split(separator: "-").map(String.init)
+    guard parts.count == 3,
+          let y = Int(parts[0]),
+          let m = Int(parts[1]),
+          let d = Int(parts[2]) else { return datePart }
+    var comps = DateComponents()
+    comps.year = y; comps.month = m; comps.day = d
+    guard let date = Calendar.current.date(from: comps) else { return datePart }
+    let days = Int((Date().timeIntervalSince(date)) / 86_400)
+    switch days {
+    case ..<0:    return datePart
+    case 0:       return "today"
+    case 1..<7:   return "\(days)d ago"
+    case 7..<35:  return "\(days / 7)w ago"
+    default:      return "\(days / 30)mo ago"
     }
 }

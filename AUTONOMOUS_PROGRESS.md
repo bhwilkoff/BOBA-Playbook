@@ -28,24 +28,21 @@ Order = (impact × shipping cost⁻¹). Higher impact + cheaper to ship = sooner
 
 ### P1 — Cross-platform parity (pulled from PARITY.md)
 
-Documented gaps where iOS has shipped but web / Android hasn't, OR vice versa.
+Documented gaps where one platform has shipped but others haven't.
 
-- [ ] **Web Wall view + Price overlay** — `PARITY.md` line 142: iOS ✅, web ⏳ M-future. Already on the §15 roadmap.
-- [ ] **Web Value history chart** — `PARITY.md` line 130: iOS ✅, web 🔮.
-- [ ] **Web Custom Rainbows** — `PARITY.md` line 137: iOS ✅, web 🔮.
-- [ ] **Android Custom Rainbows full parity** — currently `⏳ M2`, started but not complete.
-- [ ] **Web sign-in with Google** — currently 🔮 on both iOS + web; Android shipped.
-- [ ] **Android Whatnot tile list** — currently shows section header but no Worker wiring (per SCRATCHPAD).
-- [ ] **Android Google Maps Find a Store** — needs Maps API key + Compose Maps wiring.
+- [ ] **Value history chart** — not built anywhere (🔮 all 3). DESIGN/ANDROID-DESIGN §8.4 describe the surface.
+- [ ] **Saved Searches** — not built anywhere (🔮 all 3).
+- [ ] **Wanted-list public sharing** (`/u/{handle}/wanted`) — Discord backlog #6 trio; needs per-designation toggle + schema.
+- [ ] **Web sign-in with Google** — currently 🔮 web + iOS; Android shipped.
 
-### P1 — Android v1 deferred polish (per SCRATCHPAD Android section)
+### P1 — Android v1 deferred polish
 
-- [ ] **Material 3 Expressive APIs** — FAB Menu / Floating Toolbar / Wavy Indicators (needs compileSdk 37 — currently 36).
-- [ ] **M3 SearchBar full-screen morph** — Find tab uses OutlinedTextField for now; should use `ExpandedFullScreenSearchBar`.
-- [ ] **Container transform / sharedBounds animations** — hero-zoom into card detail.
-- [ ] **Article corpus port from iOS Swift** — Learn content depth gap.
-- [ ] **Image fingerprinting (MediaPipe)** — defer per DECISIONS.md #043 (v1 = OCR-only).
-- [ ] **Discord OAuth via Custom Tabs** — currently stubbed; Google works.
+- [ ] **M4 Decks polish** — sharedBounds zoom on editor sheet · drag-and-drop add · 3-pane tablet (`NavigableListDetailPaneScaffold`).
+- [ ] **M5.5 Practice executor** — admin-gated port from iOS (DECISIONS.md #048).
+- [ ] **M7 Discord OAuth via Auth Tab / Custom Tabs** — currently stubbed; Google works.
+- [ ] **M7 BiometricPrompt** — sensitive-action gate.
+- [ ] **Article corpus depth** — port iOS Learn richness where Android stays terser.
+- [ ] **M3 SearchBar full-screen morph** — Find tab uses standard SearchBar; full-expand pending.
 
 ### P1 — iPad polish (SCRATCHPAD "Deferred iPad work")
 

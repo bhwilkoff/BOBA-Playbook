@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Account & Data Deletion — BOBA Playbook</title>
+  <meta name="description" content="How to request deletion of your BOBA Playbook account and all associated data.">
+  <link rel="icon" href="/assets/icons/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange: #FF4D00;
+      --cyan: #00F5FF;
+      --violet: #8B00FF;
+      --near-black: #080810;
+      --surface: #0D0D1A;
+      --surface-2: #12121F;
+      --text-primary: #F0F0FF;
+      --text-secondary: #A0A0C0;
+      --text-muted: #606080;
+      --border: rgba(255,255,255,0.08);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--near-black);
+      color: var(--text-primary);
+      font-family: 'Chakra Petch', monospace;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+    }
+    .header-inner {
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .header-icon { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; }
+    .header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+    }
+    .header-title span { color: var(--orange); }
+
+    .hero {
+      background: linear-gradient(135deg, #0D0820 0%, #100818 50%, #080C18 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: -60px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(255,77,0,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-inner { max-width: 760px; margin: 0 auto; position: relative; }
+    .hero h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(36px, 6vw, 54px);
+      letter-spacing: 0.05em;
+      line-height: 1.0;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--orange); }
+    .hero-meta {
+      font-size: 13px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .tldr {
+      background: rgba(0, 245, 255, 0.06);
+      border: 1px solid rgba(0, 245, 255, 0.2);
+      border-radius: 12px;
+      padding: 28px 32px;
+      margin: 40px 0;
+    }
+    .tldr h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      color: var(--cyan);
+      margin-bottom: 16px;
+    }
+    .tldr ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .tldr li { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; color: var(--text-secondary); }
+    .tldr li::before { content: '✓'; color: var(--cyan); font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+
+    main { max-width: 760px; margin: 0 auto; padding: 0 24px 80px; }
+    section { margin-top: 48px; }
+
+    h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px;
+      letter-spacing: 0.06em;
+      color: var(--orange);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,77,0,0.2);
+    }
+
+    h3 {
+      font-family: 'Chakra Petch', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin: 24px 0 10px;
+    }
+
+    p { color: var(--text-secondary); margin-bottom: 16px; font-size: 15px; }
+    p:last-child { margin-bottom: 0; }
+
+    ul, ol { padding-left: 20px; color: var(--text-secondary); font-size: 15px; }
+    li { margin-bottom: 8px; }
+
+    /* Numbered route cards — visually distinct for the two deletion paths. */
+    .route {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin: 16px 0;
+      position: relative;
+    }
+    .route-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 36px;
+      color: var(--orange);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .route h3 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+      text-transform: none;
+      margin: 0 0 12px 0;
+    }
+    .route--preferred { border-color: rgba(255,77,0,0.4); }
+    .route .pref-badge {
+      display: inline-block;
+      background: rgba(255,77,0,0.18);
+      color: var(--orange);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--orange);
+      color: var(--near-black);
+      padding: 12px 22px;
+      border-radius: 8px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 16px;
+      letter-spacing: 0.06em;
+      margin-top: 12px;
+      transition: background 0.15s;
+    }
+    .cta:hover { background: #FF6122; text-decoration: none; }
+    .cta--secondary {
+      background: transparent;
+      color: var(--cyan);
+      border: 1px solid var(--cyan);
+    }
+    .cta--secondary:hover { background: rgba(0,245,255,0.08); }
+
+    .table-wrap { overflow-x: auto; margin: 20px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th {
+      background: var(--surface-2);
+      color: var(--cyan);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+
+    .callout {
+      background: rgba(139,0,255,0.08);
+      border-left: 3px solid var(--violet);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin: 20px 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 28px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: var(--cyan); }
+
+    @media (max-width: 480px) {
+      .tldr { padding: 20px; }
+      .route { padding: 20px; }
+      h2 { font-size: 22px; }
+    }
+  </style>
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "55a142aed31b4f2e89b58208bc31892a"}'></script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <img src="/assets/icons/icon-192.png" alt="BOBA Playbook icon" class="header-icon">
+    <div class="header-title">BOBA <span>PLAYBOOK</span></div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <h1>Delete <span>Account</span></h1>
+    <p class="hero-meta">Last updated: May 22, 2026</p>
+  </div>
+</div>
+
+<main>
+
+  <div class="tldr">
+    <h2>TL;DR</h2>
+    <ul>
+      <li>You can delete your BOBA Playbook account and all associated data at any time.</li>
+      <li>Deletion is immediate and permanent — your card collection, decks, profile, and any avatar you uploaded are removed.</li>
+      <li>No installation required — sign in to the web app and click Delete Account, OR email us.</li>
+      <li>We honor every request within 30 days. In practice, the in-app button completes in seconds.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>How to Delete Your Account</h2>
+    <p>You have two paths. The first is faster and gives you immediate confirmation; the second is for anyone who cannot sign in or prefers email.</p>
+
+    <div class="route route--preferred">
+      <span class="pref-badge">Recommended · Immediate</span>
+      <div class="route-num">1</div>
+      <h3>Delete via the web app</h3>
+      <p>This works whether or not you ever installed the iOS or Android app — anything you signed up with on any platform can be deleted from the web.</p>
+      <ol>
+        <li>Open <a href="https://bobaplaybook.com">bobaplaybook.com</a> in any browser.</li>
+        <li>Click <strong>Profile</strong> in the sidebar and sign in (Apple, Discord, Google, or email).</li>
+        <li>Scroll to the bottom of the Profile view.</li>
+        <li>Click <strong>Delete Account</strong>.</li>
+        <li>Confirm in the dialog. Your account and all associated data are wiped instantly.</li>
+      </ol>
+      <a class="cta" href="https://bobaplaybook.com">Go to bobaplaybook.com →</a>
+    </div>
+
+    <div class="route">
+      <div class="route-num">2</div>
+      <h3>Email request</h3>
+      <p>If you cannot sign in (lost credentials, locked out of the account email, deceased user's family member, etc.), email us. Include enough information for us to identify and verify the account — at minimum the email address or username it was registered under.</p>
+      <p>We respond within 30 days; in practice, same-week.</p>
+      <a class="cta cta--secondary" href="mailto:privacy@bobaplaybook.com?subject=Account%20deletion%20request">Email privacy@bobaplaybook.com</a>
+    </div>
+  </section>
+
+  <section>
+    <h2>What Gets Deleted</h2>
+    <p>When you delete your account, every record tied to your user ID is removed from our database. This is a hard delete — no soft-delete, no archival copy, no analytics dump that retains your identity.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Data Category</th><th>Status After Deletion</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Account credentials (email / Apple relay ID / Discord ID / Google ID)</td>
+            <td>Permanently deleted</td>
+          </tr>
+          <tr>
+            <td>Card collection (owned cards, designations, prices, notes)</td>
+            <td>Permanently deleted</td>
+          </tr>
+          <tr>
+            <td>Decks (saved decks + deck contents)</td>
+            <td>Permanently deleted</td>
+          </tr>
+          <tr>
+            <td>Profile (username, avatar, display preferences)</td>
+            <td>Permanently deleted</td>
+          </tr>
+          <tr>
+            <td>Streamer Shows (if applicable)</td>
+            <td>Permanently deleted</td>
+          </tr>
+          <tr>
+            <td>Public collection URL (if you enabled sharing)</td>
+            <td>Returns 404 immediately</td>
+          </tr>
+          <tr>
+            <td>Uploaded avatar (R2 storage)</td>
+            <td>Permanently deleted</td>
+          </tr>
+          <tr>
+            <td>Card corrections / image overrides you submitted as a moderator</td>
+            <td>Kept anonymously (your user_id field is cleared; the correction itself stays so other users still see the corrected catalog)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <strong>Sign in with Apple users:</strong> we delete every record associated with the Apple relay email on our end. To also revoke the Sign in with Apple grant itself, open <em>Settings → [Your Name] → Sign in with Apple</em> on your iPhone and tap <em>Stop using Apple ID</em> for BOBA Playbook. That is Apple's side of the deletion, separate from ours.
+    </div>
+  </section>
+
+  <section>
+    <h2>What Does NOT Get Deleted</h2>
+    <p>For transparency, these are the only things tied to a deleted account that survive — none of them identify you personally:</p>
+    <ul>
+      <li><strong>Card-catalog corrections / image overrides</strong> you submitted as a moderator. The corrections themselves remain (so the catalog stays accurate for everyone), but your user ID is cleared from the record. The result is an anonymous audit trail with no link back to you.</li>
+      <li><strong>Anonymous aggregate page hit counts</strong> from Cloudflare Web Analytics on the web app — these are cookieless visitor counts, not user-attributable, so there is nothing of yours to "delete" in the first place. See our <a href="/privacy/">Privacy Policy</a> for details.</li>
+    </ul>
+    <p>We do not retain your data for "marketing purposes," sell it, share it with affiliates, or transfer it to a third party in any other form. The above is the complete residual set.</p>
+  </section>
+
+  <section>
+    <h2>Cancellation Window</h2>
+    <p>Account deletion is immediate and irreversible. There is no recovery period. If you delete and want to come back, you can sign up again with the same email — but your previous collection, decks, and profile cannot be restored.</p>
+  </section>
+
+  <section>
+    <h2>Need Help?</h2>
+    <p>If you have any questions about deletion — what data we hold, how to identify your account, anything else — email <a href="mailto:privacy@bobaplaybook.com">privacy@bobaplaybook.com</a>. We respond personally; this address is not behind a ticketing system.</p>
+    <p>See also: <a href="/privacy/">Privacy Policy</a> for what we collect and how it is used.</p>
+  </section>
+
+</main>
+
+<footer>
+  <p>© 2026 BOBA Playbook · <a href="/privacy/">Privacy</a> · <a href="https://bobaplaybook.com">Home</a></p>
+</footer>
+
+</body>
+</html>

@@ -2543,7 +2543,16 @@
   }
 
   function updateResultsCount() {
-    searchCount.textContent = `${filteredCards.length.toLocaleString()} cards`;
+    // Tick 353 — surface active non-default sort in the count label so
+    // users see what's ordering their results without opening the
+    // dropdown. Reads the dropdown's <option> label (already
+    // human-friendly) rather than mapping sort keys to labels twice.
+    const sortLabel = (() => {
+      if (!filters.sortBy || filters.sortBy === 'default') return '';
+      const opt = sortBySelect?.querySelector(`option[value="${filters.sortBy}"]`);
+      return opt ? ` · ${opt.textContent}` : '';
+    })();
+    searchCount.textContent = `${filteredCards.length.toLocaleString()} cards${sortLabel}`;
     // Tick 298 — Surprise pill mirrors iOS v2.317 menu label: shows
     // the pool size so users know what Surprise is drawing from.
     // Tick 303 — aria-label now sentence-form for screen readers

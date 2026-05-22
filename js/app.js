@@ -2494,6 +2494,8 @@
     searchCount.textContent = `${filteredCards.length.toLocaleString()} cards`;
     // Tick 298 — Surprise pill mirrors iOS v2.317 menu label: shows
     // the pool size so users know what Surprise is drawing from.
+    // Tick 303 — aria-label now sentence-form for screen readers
+    // ("Surprise me — 12,345 cards") + aria-disabled for SR cue.
     const surpriseBtn = document.getElementById('surprise-me-btn');
     if (surpriseBtn) {
       const n = filteredCards.length;
@@ -2501,6 +2503,12 @@
         ? `🎲 Surprise (${n.toLocaleString()})`
         : '🎲 Surprise';
       surpriseBtn.disabled = n === 0;
+      surpriseBtn.setAttribute(
+        'aria-label',
+        n > 0
+          ? `Surprise me — random card from ${n.toLocaleString()} matching ${n === 1 ? 'card' : 'cards'}`
+          : 'Surprise me — no cards match the current filter',
+      );
     }
   }
 

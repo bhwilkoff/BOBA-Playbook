@@ -1551,15 +1551,19 @@
 
     statusEl.textContent = 'Scanning…';
 
-    // Resize frame to max 400px wide before encoding (keeps payload small for AI)
-    const maxW = 640;
+    // Capture at higher resolution — the small printed card number on
+    // the bottom-left is the most-discriminating OCR signal and needs
+    // enough pixels to survive JPEG encoding. iOS Vision captures at
+    // 1080-1280px; matching here. JPEG quality bumped 0.85 → 0.92 for
+    // the same reason — 0.85 chroma-subsamples small dark text badly.
+    const maxW = 1280;
     const vw = video.videoWidth  || maxW;
-    const vh = video.videoHeight || 480;
+    const vh = video.videoHeight || 720;
     const scale = Math.min(1, maxW / vw);
     canvas.width  = Math.round(vw * scale);
     canvas.height = Math.round(vh * scale);
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+    const base64 = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
 
     try {
       const res  = await fetch(`${WORKER_URL}/ocr`, {
@@ -1571,24 +1575,24 @@
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       const { cardNumber, rawText } = data;
 
-      // Primary: card number match — exact, no ambiguity
-      const numberMatches = cardNumber
-        ? (cardsByNumber.get(String(cardNumber).toUpperCase()) ?? [])
-        : [];
+      // Unified score-based resolver — ports the iOS ScanMatching
+      // approach (DECISIONS.md #035): every signal contributes evidence,
+      // hero-name top-left vetoes mismatched candidates, no single
+      // filter can lock out the right card. Returns ranked candidates
+      // with a `chosen` if confidence + margin gates pass.
+      const { chosen, candidates } = resolveScanCandidates({
+        cardNumber: cardNumber ? String(cardNumber).toUpperCase() : '',
+        rawText:    rawText || '',
+      });
 
-      // Fallback: hero + power + element scoring, returns ranked candidates
-      const textCandidates = (!numberMatches.length && rawText)
-        ? findCardsByOCRText(rawText)
-        : [];
-
-      const candidates = numberMatches.length ? numberMatches : textCandidates;
-
-      if (candidates.length === 1) {
-        showScanMatch(resultEl, candidates[0]);
-        statusEl.textContent = `Found: ${candidates[0].name}`;
-      } else if (candidates.length > 1) {
+      if (chosen) {
+        showScanMatch(resultEl, chosen);
+        statusEl.textContent = `Found: ${chosen.name}`;
+      } else if (candidates.length >= 1) {
         showScanCandidates(resultEl, candidates);
-        statusEl.textContent = `${candidates.length} possible matches — select the right card.`;
+        statusEl.textContent = candidates.length === 1
+          ? 'One possible match — confirm before adding.'
+          : `${candidates.length} possible matches — select the right card.`;
       } else if (cardNumber) {
         statusEl.textContent = `Detected #${cardNumber} — not in catalog.`;
         showScanRetry(resultEl);
@@ -1605,71 +1609,212 @@
     captureBtn.disabled = false;
   }
 
-  // Multi-facet OCR matching — mirrors iOS secondary path but returns ALL ranked candidates.
-  // Scores each card by how many facets agree with the transcribed text.
-  // Caller shows a picker when > 1 result.
-  const OCR_ELEMENTS = ['FIRE','ICE','HEX','STEEL','BRAWL','GLOW','GUM','SUPER'];
-  // Words in OCR text that hint at a set name
-  const OCR_SET_HINTS = [
-    { words: ['griffey'],               sets: ['Griffey Edition'] },
-    { words: ['alpha blast'],           sets: ['Alpha Blast'] },
-    { words: ['alpha update'],          sets: ['Alpha Update'] },
-    { words: ['alpha'],                 sets: ['Alpha Edition', 'Alpha Blast', 'Alpha Update'] },
-    { words: ['world champion'],        sets: ['World Champions'] },
-    { words: ['big league'],            sets: ['Big League Chew'] },
-    { words: ['national'],              sets: ['National Starter Set'] },
-    { words: ['battle trainer'],        sets: ['Battle Trainer Kit'] },
-  ];
+  /* ────────────────────────────────────────────────────────────────
+     Score-based scan resolver — iOS ScanMatching.swift port (DECISIONS.md
+     #035). Each signal contributes evidence; hero-name top-left vetoes
+     candidates whose hero conflicts; cardNumber exact + fuzzy +
+     digit-suffix all combine. Returns top candidates ranked by score,
+     with `chosen` populated when confidence + margin gates pass.
+  ──────────────────────────────────────────────────────────────── */
 
-  function findCardsByOCRText(rawText) {
-    const text    = rawText.toLowerCase();
-    const textUp  = rawText.toUpperCase();
+  // Confidence floor + margin to runner-up. Below either → return
+  // candidates list without auto-committing. Same shape as the iOS
+  // resolver's kMinConfidence / kMinMargin gates.
+  const SCAN_MIN_SCORE  = 1.5;
+  const SCAN_MIN_MARGIN = 0.3;
 
-    // 2–3 digit integers (powers run ~60–200)
-    const nums = new Set(
+  // Levenshtein for fuzzy cardNumber match. Caps at distance 2 (early
+  // exit) — anything farther isn't a real OCR misread, it's noise.
+  function _edit1(a, b) {
+    if (a === b) return 0;
+    const la = a.length, lb = b.length;
+    if (Math.abs(la - lb) > 1) return 2;
+    if (la === 0 || lb === 0) return Math.max(la, lb);
+    // Single-char distance fast path
+    if (la === lb) {
+      let diffs = 0;
+      for (let i = 0; i < la; i++) {
+        if (a[i] !== b[i]) { diffs++; if (diffs > 1) return 2; }
+      }
+      return diffs;
+    }
+    // Length differs by 1 → one insert/delete
+    const [shorter, longer] = la < lb ? [a, b] : [b, a];
+    let i = 0, j = 0, diffs = 0;
+    while (i < shorter.length && j < longer.length) {
+      if (shorter[i] === longer[j]) { i++; j++; }
+      else { diffs++; if (diffs > 1) return 2; j++; }
+    }
+    return diffs + (longer.length - j);
+  }
+
+  function _heroIdentity(card) {
+    return (card.hero || card.name || '').toLowerCase().trim();
+  }
+
+  function resolveScanCandidates({ cardNumber, rawText }) {
+    const text   = rawText.toLowerCase();
+    const textUp = rawText.toUpperCase();
+    // Top-left scope = first 25% of the OCR transcript. iOS reads it
+    // from a literal top-left quadrant via Vision rect filtering; web
+    // approximates with text-order ranking since LLM transcripts tend
+    // to read top-down left-to-right.
+    const topQuarter = text.slice(0, Math.max(40, Math.floor(text.length * 0.25)));
+
+    // Pull all hero identities mentioned in the top quarter — used both
+    // for scoring and for the veto. A "clear" identity needs at least
+    // one word ≥ 4 chars matching (filters out 1-letter false positives).
+    const allHeroIdentities = new Set(displayCards.map(_heroIdentity).filter(Boolean));
+    const heroIdentitiesInTopLeft = new Set();
+    for (const id of allHeroIdentities) {
+      if (id.length < 4) continue;
+      // Match hero identity as a whole word OR as the entire identity
+      // (some heroes are 2-word names like "ChetMate" — strip space).
+      const compact = id.replace(/\s+/g, '');
+      if (topQuarter.includes(id) || topQuarter.includes(compact)) {
+        heroIdentitiesInTopLeft.add(id);
+      }
+    }
+    const hasStrongHero = heroIdentitiesInTopLeft.size > 0;
+
+    // Element-word counting. Following iOS: an element word needs ≥2
+    // mentions in fullText before we trust it as a signal (raw OCR
+    // text is noisy and a single "GLOW" appearing once can come from
+    // a flavor sentence, not the weapon tag).
+    const ELEMENT_WORDS = ['FIRE','ICE','HEX','STEEL','BRAWL','GLOW','GUM','SUPER'];
+    const strongElements = new Set();
+    for (const el of ELEMENT_WORDS) {
+      const matches = textUp.match(new RegExp(`\\b${el}\\b`, 'g'));
+      if (matches && matches.length >= 2) strongElements.add(el);
+    }
+
+    // Set hints — same shape as the legacy findCardsByOCRText.
+    const SET_HINTS = [
+      { words: ['griffey'],               sets: ['Griffey Edition'] },
+      { words: ['alpha blast'],           sets: ['Alpha Blast'] },
+      { words: ['alpha update'],          sets: ['Alpha Update'] },
+      { words: ['alpha'],                 sets: ['Alpha Edition','Alpha Blast','Alpha Update'] },
+      { words: ['world champion'],        sets: ['World Champions'] },
+      { words: ['big league'],            sets: ['Big League Chew'] },
+      { words: ['national'],              sets: ['National Starter Set'] },
+      { words: ['battle trainer'],        sets: ['Battle Trainer Kit'] },
+      { words: ['tecmo'],                 sets: ['Tecmo Bowl Edition'] },
+    ];
+    const hintedSets = new Set();
+    for (const hint of SET_HINTS) {
+      if (hint.words.some(w => text.includes(w))) hint.sets.forEach(s => hintedSets.add(s));
+    }
+
+    // Power numbers in transcript (2-3 digits)
+    const powerNums = new Set(
       [...text.matchAll(/\b(\d{2,3})\b/g)].map(m => parseInt(m[1]))
     );
-    if (nums.size === 0) return [];
 
-    // Which elements appear in the OCR text?
-    const seenElements = new Set(OCR_ELEMENTS.filter(el => textUp.includes(el)));
+    // Extract treatment prefix (leading letters before the hyphen) from
+    // OCR cardNumber. "BLBF-786" → "BLBF", "F1-76" → "F". Used to boost
+    // candidates whose own prefix overlaps as a substring.
+    let ocrPrefix = '';
+    if (cardNumber) {
+      const dashIdx = cardNumber.indexOf('-');
+      if (dashIdx > 0) ocrPrefix = cardNumber.slice(0, dashIdx);
+    }
 
-    // Which sets are hinted?
-    const hintedSets = new Set();
-    for (const hint of OCR_SET_HINTS) {
-      if (hint.words.some(w => text.includes(w))) hint.sets.forEach(s => hintedSets.add(s));
+    // Digit suffix (for cardNumber misreads where the digits survive
+    // but the prefix doesn't).
+    let digitSuffix = '';
+    if (cardNumber) {
+      const m = cardNumber.match(/(\d+)$/);
+      if (m) digitSuffix = m[1];
     }
 
     const scored = [];
     for (const card of displayCards) {
-      if (!card.hero || card.power == null) continue;
+      if (!card.cardNumber && !card.hero) continue;
+      const cardNum  = (card.cardNumber || '').toUpperCase();
+      const heroId   = _heroIdentity(card);
 
-      const heroWords = card.hero.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-      if (!heroWords.length) continue;
-      if (!heroWords.every(w => text.includes(w))) continue;  // hero must match
-      if (!nums.has(card.power)) continue;                     // power must match
-
-      // Score additional facets — more agreement = higher confidence
       let score = 0;
-      if (seenElements.size > 0) {
-        if (seenElements.has(card.element))  score += 3;  // element confirmed
-        else                                  score -= 1;  // different element mentioned
-      }
-      if (hintedSets.size > 0) {
-        if (hintedSets.has(card.set))  score += 2;
-        else                            score -= 1;
-      }
-      if (card.imageFile) score += 1;  // prefer cards with images for visual confirmation
 
-      scored.push({ card, score });
+      // === HERO VETO ===
+      // If OCR clearly named ANY hero in the top quarter and THIS
+      // card's hero isn't one of them, hard penalty. Mirrors iOS
+      // DECISIONS.md #035 — silent-wrong commits used to happen when
+      // a real-but-wrong cardNumber got returned and no hero veto
+      // kicked in. This is the load-bearing safety check.
+      if (hasStrongHero) {
+        if (heroId && heroIdentitiesInTopLeft.has(heroId)) score += 1.5;
+        else                                                 score -= 2.0;
+      } else if (heroId && text.includes(heroId)) {
+        // Hero name appears somewhere (not top-left) — weaker signal.
+        score += 0.6;
+      }
+
+      // === CARD NUMBER ===
+      if (cardNumber) {
+        if (cardNum === cardNumber)                     score += 3.0;
+        else if (digitSuffix && cardNum.endsWith('-' + digitSuffix)) score += 1.2;
+        else if (digitSuffix && cardNum === digitSuffix)             score += 0.8;
+        else if (cardNum && _edit1(cardNum, cardNumber) <= 1)        score += 1.5;
+      }
+
+      // === TREATMENT PREFIX ===
+      if (ocrPrefix && cardNum.includes('-')) {
+        const cardPrefix = cardNum.slice(0, cardNum.indexOf('-'));
+        // Either direction of containment counts — OCR may capture a
+        // shorter or longer prefix than the truth.
+        if (cardPrefix && (cardPrefix.includes(ocrPrefix) || ocrPrefix.includes(cardPrefix))) {
+          score += 0.3;
+        }
+      }
+
+      // === POWER ===
+      if (card.power != null && powerNums.has(card.power)) score += 0.5;
+
+      // === ELEMENT ===
+      if (strongElements.size > 0 && card.element) {
+        if (strongElements.has(card.element)) score += 0.6;
+        else                                   score -= 0.3;
+      }
+
+      // === SET ===
+      if (hintedSets.size > 0 && card.set) {
+        if (hintedSets.has(card.set)) score += 0.4;
+      }
+
+      // === IMAGE AVAILABLE ===
+      // Tiebreaker — prefer cards with art so the user picker is more
+      // useful. Tiny weight so it never overrides real signals.
+      if (card.imageFile) score += 0.05;
+
+      if (score > 0) scored.push({ card, score });
     }
 
-    if (!scored.length) return [];
+    if (!scored.length) return { chosen: null, candidates: [] };
+
     scored.sort((a, b) => b.score - a.score);
 
-    // Cap at 12 to keep the picker usable
-    return scored.slice(0, 12).map(s => s.card);
+    const top = scored[0];
+    const runnerUp = scored[1];
+    const margin = runnerUp ? top.score - runnerUp.score : top.score;
+
+    // Auto-commit when confidence floor + margin floor both met
+    const chosen = (top.score >= SCAN_MIN_SCORE && margin >= SCAN_MIN_MARGIN)
+      ? top.card
+      : null;
+
+    // Show top 8 candidates in the picker — enough to disambiguate
+    // treatment variants without overwhelming the user.
+    const candidates = scored.slice(0, 8).map(s => s.card);
+    return { chosen, candidates };
   }
+
+  // Removed: legacy findCardsByOCRText + OCR_ELEMENTS + OCR_SET_HINTS.
+  // Superseded by resolveScanCandidates above — a score-based fusion
+  // resolver ported from iOS ScanMatching (DECISIONS.md #035). The
+  // legacy filter-based path (hero-words-ALL-match + power-must-match
+  // gates) failed silently when OCR missed the hero name; the new
+  // resolver scores hero-name and cardNumber independently and
+  // surfaces top candidates even when one signal is weak.
 
   function showScanCandidates(container, candidates) {
     container.innerHTML = `
@@ -1680,9 +1825,13 @@
             const imgSrc  = API.cardThumbUrl(card);
             const element = card.element || 'NONE';
             const meta    = [card.set, card.treatment].filter(Boolean).join(' · ');
+            // Power is null for Plays + Sealed Products; the resolver
+            // now includes those candidates, so guard the render.
+            const hasPower = card.power != null;
+            const aria = `${card.name}, ${element}${hasPower ? `, power ${card.power}` : ''}`;
             return `
               <button class="scan-candidate-item" data-index="${i}"
-                      aria-label="${escHtml(card.name)}, ${element}, power ${card.power}">
+                      aria-label="${escHtml(aria)}">
                 ${imgSrc
                   ? `<img class="scan-candidate-img" src="${escHtml(imgSrc)}" alt="" loading="lazy">`
                   : `<div class="scan-candidate-img scan-candidate-placeholder"></div>`}
@@ -1690,7 +1839,7 @@
                   <div class="scan-candidate-name">${escHtml(card.name)}</div>
                   <div class="scan-candidate-meta">
                     <span class="element-badge" data-element="${escHtml(element)}">${escHtml(element)}</span>
-                    <span class="scan-candidate-power">${card.power}</span>
+                    ${hasPower ? `<span class="scan-candidate-power">${card.power}</span>` : ''}
                     ${meta ? `<span class="scan-candidate-set">${escHtml(meta)}</span>` : ''}
                   </div>
                   <div class="scan-candidate-number">#${escHtml(card.cardNumber)}</div>

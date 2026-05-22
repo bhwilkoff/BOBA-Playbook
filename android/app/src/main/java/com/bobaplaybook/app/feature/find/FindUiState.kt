@@ -35,8 +35,12 @@ data class FindUiState(
     val cardPurpose: CardPurpose = CardPurpose.ALL,
     val showcaseId: String? = null,
 
-    // Sort
-    val sortOrder: SortOrder = SortOrder.DEFAULT,
+    // Sort — RECENTLY_ADDED is the user-meaningful default (Ben's
+    // punch-list #4: "default view should be recently added; there
+    // should be no generic 'default view' because that doesn't mean
+    // anything"). DEFAULT was renamed to CATALOG_ORDER below — most
+    // users never want raw catalog order anyway.
+    val sortOrder: SortOrder = SortOrder.RECENTLY_ADDED,
 
     // Derived state
     val isLoading: Boolean = true,
@@ -134,10 +138,12 @@ enum class CardPurpose(val label: String) {
  * (date added, market value, paid).
  */
 enum class SortOrder(val label: String) {
-    DEFAULT         ("Default (has image first)"),
-    // Tick 354 — iOS v2.328 + web tick 283 parity. Reverse catalog
-    // order — newer sets append, so recently-added cards bubble up.
+    // RECENTLY_ADDED leads — it's the new default (FindUiState).
+    // Ben's punch-list #4: dropped the prior "Default (has image
+    // first)" entry as a meaningless label and made the implicit
+    // default explicit instead.
     RECENTLY_ADDED  ("Recently Added"),
+    CATALOG_ORDER   ("Catalog Order"),
     NAME_ASC        ("Name A → Z"),
     NAME_DESC       ("Name Z → A"),
     POWER_DESC      ("Power: High → Low"),

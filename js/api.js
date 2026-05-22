@@ -206,6 +206,16 @@ const API = (() => {
     return supa().auth.signInWithOAuth({ provider: 'discord', options: { redirectTo } });
   }
 
+  // Tick 483 — Sign in with Google on web (Android tick 99-era parity;
+  // iOS doesn't ship it either). Requires Google provider enabled in
+  // Supabase Auth dashboard. Returns Supabase's OAuth promise; the
+  // caller handles errors via the existing supa().auth state-change
+  // listener.
+  function authSignInWithGoogle() {
+    const redirectTo = window.location.origin + window.location.pathname;
+    return supa().auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+  }
+
   async function authSignOut() {
     const { error } = await supa().auth.signOut();
     if (error) throw new Error(error.message);
@@ -905,6 +915,7 @@ const API = (() => {
     authSignIn,
     authSignInWithApple,
     authSignInWithDiscord,
+    authSignInWithGoogle,
     authSignOut,
     authOnStateChange,
     authGetSession: async () => {

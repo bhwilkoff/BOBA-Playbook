@@ -195,7 +195,6 @@ struct RainbowDetailView: View {
     /// chain don't trip SwiftUI's type-inference timeout. The body
     /// itself stays a tiny dispatch.
     @ViewBuilder
-    @ViewBuilder
     private func resolvedScroll(context: Context) -> some View {
         let cards    = matchingCards(for: context.criteria)
         let owned    = ownedIds()

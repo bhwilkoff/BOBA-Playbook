@@ -13,6 +13,8 @@ struct SignInView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
+    @State private var passwordVisible = false
+    @State private var confirmPasswordVisible = false
     @FocusState private var emailFocused: Bool
 
     enum Mode { case signIn, signUp }
@@ -161,24 +163,36 @@ struct SignInView: View {
                     .background(inputBackground)
             }
 
-            // Password field
+            // Password field — Android tick 446 parity: eye-toggle for
+            // visibility. SecureInputField re-asserts isSecureTextEntry on
+            // updateUIView so the toggle survives without losing focus.
             VStack(alignment: .leading, spacing: Design.Spacing.xs) {
                 Text("PASSWORD")
                     .font(Design.Fonts.mono(9, weight: .bold))
                     .foregroundStyle(Design.Colors.textMuted)
                     .tracking(1.5)
-                SecureInputField(
-                    placeholder: "••••••••",
-                    text: $password,
-                    textContentType: mode == .signIn ? .password : .newPassword,
-                    submitLabel: mode == .signIn ? .go : .next,
-                    onSubmit: {
-                        if mode == .signIn { submitSignIn() }
-                        // .next: iOS keyboard will advance to confirmPassword automatically
-                        // via textContentType chaining; no manual focus needed
+                HStack(spacing: Design.Spacing.sm) {
+                    SecureInputField(
+                        placeholder: "••••••••",
+                        text: $password,
+                        textContentType: mode == .signIn ? .password : .newPassword,
+                        submitLabel: mode == .signIn ? .go : .next,
+                        onSubmit: {
+                            if mode == .signIn { submitSignIn() }
+                            // .next: iOS keyboard will advance to confirmPassword automatically
+                            // via textContentType chaining; no manual focus needed
+                        },
+                        isSecure: !passwordVisible
+                    )
+                    .frame(height: 44)
+                    Button { passwordVisible.toggle() } label: {
+                        Image(systemName: passwordVisible ? "eye.slash" : "eye")
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .frame(width: 24, height: 24)
                     }
-                )
-                .frame(height: 44)
+                    .accessibilityLabel(passwordVisible ? "Hide password" : "Show password")
+                    .help(passwordVisible ? "Hide password" : "Show password")
+                }
                 .padding(Design.Spacing.md)
                 .background(inputBackground)
             }
@@ -190,14 +204,24 @@ struct SignInView: View {
                         .font(Design.Fonts.mono(9, weight: .bold))
                         .foregroundStyle(Design.Colors.textMuted)
                         .tracking(1.5)
-                    SecureInputField(
-                        placeholder: "••••••••",
-                        text: $confirmPassword,
-                        textContentType: .newPassword,
-                        submitLabel: .go,
-                        onSubmit: { submitSignUp() }
-                    )
-                    .frame(height: 44)
+                    HStack(spacing: Design.Spacing.sm) {
+                        SecureInputField(
+                            placeholder: "••••••••",
+                            text: $confirmPassword,
+                            textContentType: .newPassword,
+                            submitLabel: .go,
+                            onSubmit: { submitSignUp() },
+                            isSecure: !confirmPasswordVisible
+                        )
+                        .frame(height: 44)
+                        Button { confirmPasswordVisible.toggle() } label: {
+                            Image(systemName: confirmPasswordVisible ? "eye.slash" : "eye")
+                                .foregroundStyle(Design.Colors.textMuted)
+                                .frame(width: 24, height: 24)
+                        }
+                        .accessibilityLabel(confirmPasswordVisible ? "Hide password" : "Show password")
+                        .help(confirmPasswordVisible ? "Hide password" : "Show password")
+                    }
                     .padding(Design.Spacing.md)
                     .background(inputBackground)
                 }

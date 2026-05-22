@@ -497,9 +497,10 @@ struct CardDetailView: View {
         }
     }
 
+    @ViewBuilder
     private func formatRestrictionsBlock(_ notes: [CardRestriction]) -> some View {
         let amber = Design.Colors.bobaOrange
-        return VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
             Text("FORMAT RESTRICTIONS")
                 .font(Design.Fonts.mono(9, weight: .bold))
                 .foregroundStyle(Design.Colors.textMuted)
@@ -1321,12 +1322,13 @@ struct DBSInfoSheet: View {
     /// Android tick 186's DBSInfoSheet header. Red treatment when
     /// projected total exceeds budget.
     @ViewBuilder
+    @ViewBuilder
     private func contextBlock(card: Int, used: Int, budget: Int) -> some View {
         let projected = used + card
         let overCap   = projected > budget
         let surface   = overCap ? Color.red.opacity(0.18) : Design.Colors.surface
         let stroke    = overCap ? Color.red.opacity(0.55) : Design.Colors.glassBorder
-        return VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
             Text("This card costs +\(card) DBS")
                 .font(Design.Fonts.display(15))
                 .foregroundStyle(Design.Colors.textPrimary)

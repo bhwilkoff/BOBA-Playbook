@@ -5,7 +5,6 @@ package com.bobaplaybook.app.feature.purchase
 import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,6 +15,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -165,10 +167,19 @@ fun PurchaseScreen(modifier: Modifier = Modifier) {
                                 onRefresh = { viewModel.refreshBreaks() },
                                 modifier = Modifier.fillMaxSize(),
                             ) {
-                                LazyColumn(
+                                // Tick 509 — adaptive grid (iOS UpcomingBreaksList
+                                // parity, ANDROID-DESIGN.md §6.6). Adaptive 320dp
+                                // min: phones (~390dp) render 1 col; tablet
+                                // landscape (~840dp) renders 2; Chromebook
+                                // (1200dp+) renders 3. Previously LazyColumn
+                                // with full-width tiles which wasted screen
+                                // real estate on wider devices.
+                                LazyVerticalGrid(
+                                    columns = GridCells.Adaptive(minSize = 320.dp),
                                     modifier = Modifier.fillMaxSize(),
                                     contentPadding = PaddingValues(16.dp),
                                     verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
                                     items(
                                         count = state.upcomingBreaks.size,

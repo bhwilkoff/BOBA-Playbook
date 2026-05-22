@@ -68,6 +68,7 @@ import coil3.request.crossfade
 import com.bobaplaybook.core.network.StoreLocation
 import com.bobaplaybook.core.network.WhatnotShow
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
@@ -104,8 +105,10 @@ fun PurchaseScreen(modifier: Modifier = Modifier) {
                 title = { com.bobaplaybook.core.ui.components.BOBAWordmark() },
                 actions = {
                     if (section == PurchaseSection.BREAKS) {
-                        IconButton(onClick = { viewModel.refreshBreaks() }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        BOBAIconTooltip("Refresh upcoming breaks") {
+                            IconButton(onClick = { viewModel.refreshBreaks() }) {
+                                Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                            }
                         }
                     }
                 },

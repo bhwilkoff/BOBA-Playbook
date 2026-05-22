@@ -794,16 +794,21 @@
     async function hydrateRecentBlogPosts() {
       const list = document.getElementById('tournament-blog-list');
       if (!list) return;
-      let posts = [];
+      let bundle = null;
       try {
         const resp = await fetch('assets/data/blog-feed.json', { cache: 'no-cache' });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        posts = await resp.json();
+        bundle = await resp.json();
       } catch (e) {
         list.innerHTML = '<p class="events-empty">Couldn\'t load BoBA news. Try refreshing.</p>';
         return;
       }
-      const top = Array.isArray(posts) ? posts.slice(0, 5) : [];
+      // Tick 243 — bug fix. blog-feed.json is `{ version, posts: [...] }`,
+      // not a bare array. Tick 238 used `Array.isArray(posts)` against the
+      // wrapper which is always false → top was always [] → "No recent
+      // posts." rendered. Same bug shipped on iOS + Android loaders.
+      const posts = Array.isArray(bundle) ? bundle : (bundle?.posts || []);
+      const top = posts.slice(0, 5);
       if (top.length === 0) {
         list.innerHTML = '<p class="events-empty">No recent posts.</p>';
         return;

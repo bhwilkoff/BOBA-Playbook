@@ -2574,13 +2574,21 @@ private struct LearnBlogPost: Decodable, Identifiable {
     let excerpt: String?
 }
 
+// Tick 243 — bug fix. blog-feed.json is `{ version, posts: [...] }`, not a
+// bare array. Tick 237's loader decoded as [LearnBlogPost] which silently
+// failed (JSONDecoder threw → try? returned nil → ?? [] empty), so the
+// Recent BoBA News section never rendered any posts.
+private struct LearnBlogBundle: Decodable {
+    let posts: [LearnBlogPost]
+}
+
 private enum LearnBlogLoader {
     static func load() -> [LearnBlogPost] {
         guard
             let url  = Bundle.main.url(forResource: "blog-feed", withExtension: "json"),
             let data = try? Data(contentsOf: url)
         else { return [] }
-        return (try? JSONDecoder().decode([LearnBlogPost].self, from: data)) ?? []
+        return (try? JSONDecoder().decode(LearnBlogBundle.self, from: data))?.posts ?? []
     }
 }
 

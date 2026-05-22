@@ -22,6 +22,18 @@ data class BlogPost(
     val excerpt: String = "",
 )
 
+// Tick 243 — bug fix. blog-feed.json is wrapped: `{ version, posts: [...] }`
+// not a bare array. Tick 236's loader decoded as List<BlogPost> which
+// silently failed (kotlinx-serialization returns parse error → catch
+// → empty list), so the "Recent BoBA news" section never rendered.
+// Same bug existed on iOS LearnBlogLoader + the web fetch path; all
+// three are corrected in the same commit.
+@Serializable
+private data class BlogFeedBundle(
+    val posts: List<BlogPost> = emptyList(),
+    val lastUpdated: String? = null,
+)
+
 object BlogFeedLoader {
     private val json = Json {
         ignoreUnknownKeys = true
@@ -37,7 +49,7 @@ object BlogFeedLoader {
     fun load(context: Context): List<BlogPost> =
         try {
             val text = context.assets.open("data/blog-feed.json").bufferedReader().use { it.readText() }
-            json.decodeFromString<List<BlogPost>>(text)
+            json.decodeFromString<BlogFeedBundle>(text).posts
         } catch (_: Throwable) {
             emptyList()
         }

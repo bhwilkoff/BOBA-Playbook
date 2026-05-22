@@ -31,12 +31,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.LibraryAdd
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.AssistChip
@@ -206,8 +209,16 @@ fun CardDetailScreen(
                             expanded = addMenuOpen,
                             onDismissRequest = { addMenuOpen = false },
                         ) {
+                            // Tick 474 — leading icons on each menu item, iOS
+                            // CardDetailView parity (Label("To Collection",
+                            // systemImage: "folder.badge.plus")). LibraryAdd
+                            // for collection, PlaylistAdd for deck, LiveTv
+                            // for streamer-only show.
                             DropdownMenuItem(
                                 text = { Text("Add to Collection") },
+                                leadingIcon = {
+                                    Icon(Icons.AutoMirrored.Filled.LibraryAdd, contentDescription = null)
+                                },
                                 onClick = {
                                     addMenuOpen = false
                                     addToCollectionOpen = true
@@ -215,6 +226,9 @@ fun CardDetailScreen(
                             )
                             DropdownMenuItem(
                                 text = { Text("Add to Deck") },
+                                leadingIcon = {
+                                    Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null)
+                                },
                                 onClick = {
                                     addMenuOpen = false
                                     addToDeckOpen = true
@@ -232,6 +246,9 @@ fun CardDetailScreen(
                             if (isStreamer) {
                                 DropdownMenuItem(
                                     text = { Text("Add to Show") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.LiveTv, contentDescription = null)
+                                    },
                                     onClick = {
                                         addMenuOpen = false
                                         scope.launch {

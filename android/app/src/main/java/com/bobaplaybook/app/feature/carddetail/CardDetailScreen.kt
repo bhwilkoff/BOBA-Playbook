@@ -1296,12 +1296,14 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).weight(1f),
         )
-        IconButton(onClick = onRefresh) {
-            Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = "Refresh pricing",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        BOBAIconTooltip("Refresh pricing") {
+            IconButton(onClick = onRefresh) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Refresh pricing",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
     state.marketEstimateUsd?.let { est ->

@@ -281,15 +281,31 @@ fun CardDetailScreen(
     ) { padding ->
         val card = state.card
         if (card == null) {
-            BOBAEmptyState(
-                headline = "Card not found",
-                body = "Couldn't find a card with bobaId `$currentBobaId`.",
-                actionLabel = "Back",
-                onAction = onBack,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-            )
+            // Spinner while the catalog is still streaming in. The
+            // bobaId might live in the Phase-2 chunk that hasn't
+            // decoded yet — showing "Card not found" prematurely
+            // creates a 1-second misleading flash on tap (Ben's
+            // punch-list note 2026-05-22).
+            if (state.isCatalogLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                }
+            } else {
+                BOBAEmptyState(
+                    headline = "Card not found",
+                    body = "Couldn't find a card with bobaId `$currentBobaId`.",
+                    actionLabel = "Back",
+                    onAction = onBack,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                )
+            }
             return@Scaffold
         }
         // Horizontal-drag gesture advances the index in [siblingIds].

@@ -69,8 +69,20 @@ class DecksViewModel @Inject constructor(
      */
     val poolCards: StateFlow<List<Card>> = combine(
         cardRepository.cards,
+        cardRepository.isLoading,
         _poolQuery,
-    ) { catalog, query ->
+    ) { catalog, isLoading, query ->
+        // Wait for Phase 2 to finish before emitting cards. The
+        // catalog loads in two phases: Phase 1 = 500 head bundle
+        // (synchronous), Phase 2 = full 17,915 cards (background).
+        // Without this gate, the user saw the Phase 1 head bundle
+        // for a beat (wrong sort, missing 95% of the catalog) and
+        // then the pool snapped to the correct full list — Ben's
+        // "starts with a specific set of cards and then reloads
+        // with the correct set" complaint. CardPoolGrid renders a
+        // spinner on empty + isLoading so the screen is honest
+        // about waiting instead of showing a partial answer.
+        if (isLoading || catalog.isEmpty()) return@combine emptyList()
         val q = query.trim().lowercase()
         val filtered = catalog.asSequence()
             .filter { card -> card.cardType != "Sealed Product" }

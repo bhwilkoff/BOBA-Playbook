@@ -23,6 +23,13 @@ import kotlinx.coroutines.launch
 @Immutable
 data class CardDetailUiState(
     val card: Card? = null,
+    /**
+     * Catalog is still streaming in. While true and `card` is null,
+     * the screen should show a spinner instead of the "Card not
+     * found" empty state — the requested bobaId may live in the
+     * Phase-2 chunk that hasn't decoded yet.
+     */
+    val isCatalogLoading: Boolean = true,
     val isLoadingPricing: Boolean = false,
     val ebayActive: ImmutableList<PricingListing> = persistentListOf(),
     val ebaySold: ImmutableList<PricingListing> = persistentListOf(),
@@ -92,6 +99,16 @@ class CardDetailViewModel @Inject constructor(
     private val pricingState = MutableStateFlow(PricingState())
 
     fun uiStateFor(bobaId: String): StateFlow<CardDetailUiState> {
+        // Synchronous catalog lookup so the StateFlow's initialValue
+        // already carries the resolved card. Without this, opening
+        // card detail from Decks (or anywhere downstream of a fresh
+        // CardDetailViewModel) rendered "Card not found" for one
+        // frame while `combine` made its async emission, then snapped
+        // to the real card ~1s later (Ben 2026-05-22). The card
+        // is always present in the singleton catalog by the time
+        // any tap can fire — Phase 1 head bundle ran in
+        // BOBAApp init.
+        val seededCard = cardRepository.cards.value.firstOrNull { it.bobaId == bobaId }
         // Kick off pricing on first observation
         viewModelScope.launch {
             cardRepository.cards
@@ -108,8 +125,9 @@ class CardDetailViewModel @Inject constructor(
         }
         return combine(
             cardRepository.cards,
+            cardRepository.isLoading,
             pricingState,
-        ) { cards, pricing ->
+        ) { cards, catalogLoading, pricing ->
             val card = cards.firstOrNull { c -> c.bobaId == bobaId }
             val otherVersions = card?.let { c ->
                 cards.asSequence()
@@ -120,6 +138,13 @@ class CardDetailViewModel @Inject constructor(
             } ?: emptyList()
             CardDetailUiState(
                 card = card,
+                // Catalog priming is a two-phase load — the head bundle
+                // ships before Phase 2 brings in the full 17k. If the
+                // requested card is in the second phase, UI rendered
+                // "Card not found" for ~1s while Phase 2 finished, then
+                // snapped to the real card. Surface a "still loading"
+                // signal so the screen can show a spinner instead.
+                isCatalogLoading = catalogLoading && card == null,
                 isLoadingPricing = pricing.isLoading,
                 ebayActive = pricing.ebayActive[bobaId].orEmpty().toPersistentList(),
                 ebaySold = pricing.ebaySold[bobaId].orEmpty().toPersistentList(),
@@ -132,7 +157,10 @@ class CardDetailViewModel @Inject constructor(
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = CardDetailUiState(),
+            initialValue = CardDetailUiState(
+                card = seededCard,
+                isCatalogLoading = seededCard == null && cardRepository.isLoading.value,
+            ),
         )
     }
 

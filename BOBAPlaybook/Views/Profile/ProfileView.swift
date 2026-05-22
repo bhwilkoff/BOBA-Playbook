@@ -70,6 +70,8 @@ struct ProfileView: View {
     /// installed. Mirrors Android tick 166's clipboard + Snackbar
     /// graceful-fallback pattern.
     @State private var showingFeedbackNoMailAlert = false
+    // Tick 292 — toast confirmation when version is tap-to-copied.
+    @State private var showingVersionCopiedToast  = false
     /// Tick 172 — transient confirmation after Reset hints. iOS pattern
     /// uses an inline checkmark fade (no Snackbar host on iOS Profile).
     @State private var hintsResetConfirm = false
@@ -883,18 +885,36 @@ struct ProfileView: View {
                     Label("Send Feedback", systemImage: "envelope")
                         .foregroundStyle(Design.Colors.bobaCyan)
                 }
-                HStack {
-                    Label("Version", systemImage: "number")
-                        .foregroundStyle(Design.Colors.textPrimary)
-                    Spacer()
-                    Text(versionLine)
-                        .font(Design.Fonts.mono(13))
-                        .foregroundStyle(Design.Colors.textSecondary)
+                // Tick 292 — tap-to-copy version (Android tick 290-era
+                // parity). Helps users include the exact build in bug
+                // reports without retyping. Button is the canonical
+                // SwiftUI way to make a Form row tappable.
+                Button {
+                    UIPasteboard.general.string = versionLine
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    showingVersionCopiedToast = true
+                } label: {
+                    HStack {
+                        Label("Version", systemImage: "number")
+                            .foregroundStyle(Design.Colors.textPrimary)
+                        Spacer()
+                        Text(versionLine)
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                        Image(systemName: "doc.on.doc")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
                 }
             } label: {
                 Label("About", systemImage: "info.circle")
                     .foregroundStyle(Design.Colors.textPrimary)
             }
+        }
+        .alert("Version copied", isPresented: $showingVersionCopiedToast) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Paste into a bug report or feedback email.")
         }
         .alert("No email app found", isPresented: $showingFeedbackNoMailAlert) {
             Button("OK", role: .cancel) {}

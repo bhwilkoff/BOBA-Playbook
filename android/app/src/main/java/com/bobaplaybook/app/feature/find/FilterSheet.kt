@@ -70,13 +70,29 @@ fun FilterSheet(
     state: FindUiState,
     onEvent: (FindEvent) -> Unit,
     onDismiss: () -> Unit,
+    /**
+     * Collection reuses this sheet for its filter dimensions but has
+     * its OWN sort enum (CollectionSortOrder vs Find's SortOrder) and
+     * its own sort dialog reachable from the Collection overflow
+     * menu. Without this gate, the FilterSheet's sort picker mutated
+     * Find's sort state — which Collection's filter pipeline doesn't
+     * read — and the cards never reordered when Ben changed the
+     * picker. Hide the Find sort section when the sheet is opened
+     * from Collection (Ben 2026-05-22).
+     */
+    showSortSection: Boolean = true,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
-        FilterSheetContent(state = state, onEvent = onEvent, onDismiss = onDismiss)
+        FilterSheetContent(
+            state = state,
+            onEvent = onEvent,
+            onDismiss = onDismiss,
+            showSortSection = showSortSection,
+        )
     }
 }
 
@@ -85,6 +101,7 @@ private fun FilterSheetContent(
     state: FindUiState,
     onEvent: (FindEvent) -> Unit,
     onDismiss: () -> Unit,
+    showSortSection: Boolean = true,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         // Sticky header
@@ -114,8 +131,10 @@ private fun FilterSheetContent(
         HorizontalDivider()
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            item { SortSection(state.sortOrder, onChange = { onEvent(FindEvent.SortChanged(it)) }) }
-            item { Spacer(Modifier.height(8.dp)) }
+            if (showSortSection) {
+                item { SortSection(state.sortOrder, onChange = { onEvent(FindEvent.SortChanged(it)) }) }
+                item { Spacer(Modifier.height(8.dp)) }
+            }
             item { CardPurposeSection(state.cardPurpose, onChange = { onEvent(FindEvent.CardPurposeChanged(it)) }) }
             item { Spacer(Modifier.height(8.dp)) }
             item { ShowcaseSection(state.showcaseId, onChange = { onEvent(FindEvent.ShowcaseChanged(it)) }) }

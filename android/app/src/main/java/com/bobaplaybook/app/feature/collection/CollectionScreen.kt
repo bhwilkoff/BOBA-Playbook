@@ -515,17 +515,6 @@ fun CollectionScreen(
                 }
             }
             val entries = remember(filtered, collectionSort) { applySort(filtered, collectionSort) }
-            // Diagnostic log — Ben reported "filters/sort don't work" on
-            // 2026-05-22. This logs the inputs each time the entries
-            // pipeline recomputes so we can verify findState updates
-            // actually reach Collection's filter pass + the sort key
-            // change drives a new applySort call. Drop after confirming.
-            android.util.Log.i(
-                "CollectionScreen",
-                "designation=${designation.key} unsorted=${unsorted.size} filtered=${filtered.size} sort=${collectionSort.name} " +
-                    "fs.weapons=${findState.activeWeapons} fs.treat=${findState.activeTreatment} fs.set=${findState.activeSet} " +
-                    "fs.power=${findState.powerMin}..${findState.powerMax} fs.purpose=${findState.cardPurpose}",
-            )
             // Card-detail swipe-nav siblings — same pattern as Find / Decks.
             // The user's "visible list" is the filtered + sorted entries
             // for the current designation; bobaId is the navigation key.
@@ -660,6 +649,11 @@ fun CollectionScreen(
             state = findState,
             onEvent = findViewModel::onEvent,
             onDismiss = { filterSheetOpen = false },
+            // Hide Find's sort picker here — Collection has its own
+            // sort enum + dialog reachable from the overflow menu.
+            // Without this, picking a sort in the filter sheet wrote
+            // to Find's state and Collection's list never reordered.
+            showSortSection = false,
         )
     }
 

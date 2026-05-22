@@ -51,6 +51,8 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var pendingDeepLink: PendingDeepLink
     // Tick 279 — keyboard 'r' → Find Surprise Me bus.
     @Inject lateinit var findActions: com.bobaplaybook.app.feature.find.FindActions
+    // Tick 309 — keyboard Ctrl+S → Decks save bus.
+    @Inject lateinit var decksActions: com.bobaplaybook.app.feature.decks.DecksActions
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash screen MUST be installed before super.onCreate.
@@ -87,6 +89,7 @@ class MainActivity : ComponentActivity() {
                 connectivityState = connectivityState,
                 pendingDeepLink = pendingDeepLink,
                 findActions = findActions,
+                decksActions = decksActions,
             )
         }
     }

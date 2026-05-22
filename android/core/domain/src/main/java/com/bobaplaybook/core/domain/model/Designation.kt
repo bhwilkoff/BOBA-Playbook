@@ -46,6 +46,11 @@ data class UserCard(
     val estimatedValue: Double? = null,
     /** Mint / Near Mint / Excellent / Good / Poor — surfaced in Edit. */
     val condition: String? = null,
+    /** Tick 239 — third-party grade (e.g. "10", "9.5", "8.5"). Captured
+     *  at add-time; previously dropped on the domain boundary. */
+    val grade: String? = null,
+    /** Tick 239 — grading authority: PSA / BGS / SGC / CGC / etc. */
+    val gradingCompany: String? = null,
     val notes: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
 )

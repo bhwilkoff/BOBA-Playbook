@@ -848,9 +848,17 @@ private fun SignedInContent(
                     .clickable {
                         val v = "${com.bobaplaybook.app.BuildConfig.VERSION_NAME} (${com.bobaplaybook.app.BuildConfig.VERSION_CODE})"
                         val subject = android.net.Uri.encode("BOBA Playbook feedback (v$v)")
+                        // Tick 289 — port iOS v2.314 device+OS body
+                        // pre-fill so Ben can triage faster. 3 blank
+                        // lines for the user's message, then a "---"
+                        // divider with App + Device + Android version.
+                        val device = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
+                        val body = android.net.Uri.encode(
+                            "\n\n\n---\nApp: $v\nDevice: $device · Android ${android.os.Build.VERSION.RELEASE}"
+                        )
                         val intent = android.content.Intent(
                             android.content.Intent.ACTION_VIEW,
-                            android.net.Uri.parse("mailto:ben@bobaplaybook.com?subject=$subject"),
+                            android.net.Uri.parse("mailto:ben@bobaplaybook.com?subject=$subject&body=$body"),
                         )
                         // Tick 166 — was silently swallowed via
                         // runCatching{...}. If no email app is installed

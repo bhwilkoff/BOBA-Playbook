@@ -453,6 +453,10 @@ struct CollectionView: View {
                             .foregroundStyle(Design.Colors.bobaCyan)
                     }
                     .accessibilityLabel("Scan into \(selectedDesignation.displayName)")
+                    // Tick 392 — pointer-hover tooltip parity with Find
+                    // toolbar (.help on tick 387). iPad trackpad / Magic
+                    // Keyboard / Mac Catalyst show the affordance hint.
+                    .help("Scan into \(selectedDesignation.displayName)")
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -686,6 +690,9 @@ struct CollectionView: View {
             Image(systemName: "ellipsis.circle")
                 .foregroundStyle(Design.Colors.bobaOrange)
         }
+        .accessibilityLabel("More")
+        // Tick 392 — pointer-hover tooltip parity with Find toolbar.
+        .help("Display mode + collection actions")
         .walkthroughAnchor("collection.displayMode")
     }
 
@@ -709,6 +716,10 @@ struct CollectionView: View {
                 }
             }
         }
+        .accessibilityLabel("Filters")
+        // Tick 392 — pointer-hover tooltip with active-filter count
+        // (Find tick 387 + web 388 + Android 389 parity).
+        .help(cardStore.activeFilterCount > 0 ? "Filters · \(cardStore.activeFilterCount) active" : "Filters")
     }
 
     private func recalcProgressBanner(current: Int, total: Int) -> some View {

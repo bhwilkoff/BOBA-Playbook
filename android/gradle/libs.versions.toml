@@ -66,6 +66,11 @@ junit-androidx            = "1.2.1"
 espresso                  = "3.6.1"
 coroutines                = "1.9.0"
 okhttp                    = "4.12.0"
+# Google Maps SDK (Find a Store map — parity with iOS MapKit + web Leaflet).
+# play-services-maps 19.x supports Android 16's edge-to-edge inset model.
+# maps-compose 6.x ships GoogleMap composable + Marker + CameraPositionState.
+play-services-maps        = "19.0.0"
+maps-compose              = "6.1.2"
 
 # Project SDK targets (DECISIONS.md #041, #047)
 min-sdk                   = "29"      # Android 10 — >95% device coverage
@@ -100,6 +105,10 @@ androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-ru
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
 androidx-activity-compose   = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-window             = { module = "androidx.window:window", version.ref = "window" }
+
+# ----- Google Maps (Find a Store) -----
+play-services-maps          = { module = "com.google.android.gms:play-services-maps", version.ref = "play-services-maps" }
+maps-compose                = { module = "com.google.maps.android:maps-compose", version.ref = "maps-compose" }
 
 # ----- Navigation 3 — Compose-first new generation -----
 nav3-runtime                = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3" }

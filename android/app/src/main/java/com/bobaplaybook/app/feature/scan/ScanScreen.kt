@@ -13,7 +13,18 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -85,6 +96,17 @@ fun ScanScreen(
 ) {
     val context = LocalContext.current
     val activity = (context as? android.app.Activity)
+    // Scan queue — every successful match also lands in a session-
+    // scoped log so the user can review what they've identified.
+    // Parity with iOS DESIGN.md §6.5 (.tabViewBottomAccessory →
+    // ScanReviewView).
+    val queueHolder: ScanQueueHolderViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val queueEntries by queueHolder.queue.entries
+        .collectAsStateWithLifecycle()
+    var reviewSheetOpen by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(false)
+    }
     var hasPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -129,12 +151,28 @@ fun ScanScreen(
                         )
                     }
                 },
+                actions = {
+                    if (queueEntries.isNotEmpty()) {
+                        androidx.compose.material3.TextButton(
+                            onClick = { reviewSheetOpen = true },
+                        ) {
+                            Text("Recent · ${queueEntries.size}")
+                        }
+                    }
+                },
             )
         },
     ) { padding ->
         if (hasPermission) {
             ScanViewfinder(
-                onMatch = onMatch,
+                onMatch = { bobaId ->
+                    // Log every match to the session queue first, then
+                    // route via the existing onMatch callback. The
+                    // queue is a parallel surface — doesn't change the
+                    // single-shot routing flow.
+                    queueHolder.queue.append(bobaId)
+                    onMatch(bobaId)
+                },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
@@ -167,6 +205,99 @@ fun ScanScreen(
                     .fillMaxSize()
                     .padding(padding),
             )
+        }
+    }
+
+    if (reviewSheetOpen) {
+        ScanReviewSheet(
+            entries = queueEntries,
+            cardRepository = queueHolder.cardRepository,
+            onTap = { bobaId ->
+                reviewSheetOpen = false
+                onMatch(bobaId)
+            },
+            onRemove = { bobaId -> queueHolder.queue.remove(bobaId) },
+            onClearAll = { queueHolder.queue.clear(); reviewSheetOpen = false },
+            onDismiss = { reviewSheetOpen = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScanReviewSheet(
+    entries: List<ScanQueueStore.Entry>,
+    cardRepository: com.bobaplaybook.core.data.catalog.CardRepository,
+    onTap: (bobaId: String) -> Unit,
+    onRemove: (bobaId: String) -> Unit,
+    onClearAll: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val cards by cardRepository.cards.collectAsStateWithLifecycle()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    "Recent scans · ${entries.size}",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                if (entries.isNotEmpty()) {
+                    TextButton(onClick = onClearAll) {
+                        Text("Clear all")
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            if (entries.isEmpty()) {
+                Text(
+                    "No scans this session yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(
+                        items = entries,
+                        key = { entry -> entry.bobaId },
+                    ) { entry ->
+                        val card = cards.firstOrNull { c -> c.bobaId == entry.bobaId }
+                        ListItem(
+                            headlineContent = { Text(card?.displayName ?: entry.bobaId) },
+                            supportingContent = {
+                                val sub = listOfNotNull(
+                                    card?.cardNumber,
+                                    card?.hero?.takeIf { it.isNotBlank() },
+                                ).joinToString(" · ")
+                                if (sub.isNotBlank()) Text(sub)
+                            },
+                            trailingContent = {
+                                IconButton(onClick = { onRemove(entry.bobaId) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Remove from queue",
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onTap(entry.bobaId) },
+                        )
+                        HorizontalDivider()
+                    }
+                }
+            }
         }
     }
 }

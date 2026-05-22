@@ -4,6 +4,7 @@ package com.bobaplaybook.app.feature.carddetail
 
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
@@ -110,7 +111,18 @@ fun CardDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     val viewModel: CardDetailViewModel = hiltViewModel()
-    val state by viewModel.uiStateFor(bobaId).collectAsStateWithLifecycle()
+    // ─── Swipe-nav between sibling cards (parity w/ iOS CardDetailView.swift) ───
+    // Find / Decks / Collection populate CardNavigationStore.set(visibleIds)
+    // before pushing. We seed `currentBobaId` with the incoming route arg
+    // and let horizontal swipes advance the index in-place — no re-push.
+    // If the store is empty (deep link, hero-zoom from somewhere we
+    // haven't wired yet) swipes are no-ops and the row collapses to a
+    // plain detail view.
+    val navStore: CardNavigationStore = hiltViewModel<CardNavigationHolderViewModel>().store
+    val siblingIds by navStore.bobaIds.collectAsStateWithLifecycle()
+    var currentBobaId by remember(bobaId) { mutableStateOf(bobaId) }
+    val state by remember(currentBobaId) { viewModel.uiStateFor(currentBobaId) }
+        .collectAsStateWithLifecycle()
     val decksViewModel: com.bobaplaybook.app.feature.decks.DecksViewModel = hiltViewModel()
     val profileViewModel: com.bobaplaybook.app.feature.profile.ProfileViewModel = hiltViewModel()
     val profile by profileViewModel.profile.collectAsStateWithLifecycle(initialValue = null)
@@ -213,7 +225,7 @@ fun CardDetailScreen(
         if (card == null) {
             BOBAEmptyState(
                 headline = "Card not found",
-                body = "Couldn't find a card with bobaId `$bobaId`.",
+                body = "Couldn't find a card with bobaId `$currentBobaId`.",
                 actionLabel = "Back",
                 onAction = onBack,
                 modifier = Modifier
@@ -222,6 +234,32 @@ fun CardDetailScreen(
             )
             return@Scaffold
         }
+        // Horizontal-drag gesture advances the index in [siblingIds].
+        // `detectHorizontalDragGestures` uses horizontal touch slop so
+        // a vertical-mostly drag never starts the recognizer — the
+        // body's vertical scroll wins. Only fires when there's at
+        // least one sibling to navigate to. Mirrors iOS
+        // CardDetailView.swift simultaneousGesture with ±60pt threshold.
+        val swipeMod = if (siblingIds.size > 1) {
+            Modifier.pointerInput(siblingIds, currentBobaId) {
+                var totalDx = 0f
+                val threshold = 80.dp.toPx()
+                detectHorizontalDragGestures(
+                    onDragStart = { totalDx = 0f },
+                    onDragEnd = {
+                        if (kotlin.math.abs(totalDx) < threshold) return@detectHorizontalDragGestures
+                        val idx = siblingIds.indexOf(currentBobaId)
+                        if (idx < 0) return@detectHorizontalDragGestures
+                        val n = siblingIds.size
+                        val delta = if (totalDx < 0) 1 else -1
+                        // Wrap — matches iOS (`(index + delta + n) % n`).
+                        currentBobaId = siblingIds[((idx + delta) % n + n) % n]
+                    },
+                ) { _, dragAmount ->
+                    totalDx += dragAmount
+                }
+            }
+        } else Modifier
         CardDetailBody(
             card = card,
             state = state,
@@ -229,7 +267,8 @@ fun CardDetailScreen(
             onRefreshPricing = { viewModel.refreshPricing(card.bobaId) },
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .then(swipeMod),
         )
     }
 

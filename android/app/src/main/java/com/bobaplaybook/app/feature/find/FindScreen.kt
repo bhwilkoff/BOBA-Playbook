@@ -118,6 +118,14 @@ fun FindScreen(
     val viewModel: FindViewModel = hiltViewModel()
     val collectionViewModel: com.bobaplaybook.app.feature.collection.CollectionViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Populate CardNavigationStore whenever the visible result set
+    // changes — the detail screen reads it to enable horizontal swipe
+    // between siblings. Mirrors iOS SearchView passing
+    // `store.filteredCards` as the navigation list.
+    val navHolder: com.bobaplaybook.app.feature.carddetail.CardNavigationHolderViewModel = hiltViewModel()
+    androidx.compose.runtime.LaunchedEffect(state.results) {
+        navHolder.store.set(state.results.map { it.bobaId })
+    }
     FindContent(
         state = state,
         onEvent = viewModel::onEvent,

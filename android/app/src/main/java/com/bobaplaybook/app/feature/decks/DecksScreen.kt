@@ -144,6 +144,13 @@ private fun DecksCompactScreen(
     val draft by deckViewModel.draft.collectAsStateWithLifecycle()
     val authState by deckViewModel.authState.collectAsStateWithLifecycle()
     val isSignedIn = authState is com.bobaplaybook.app.auth.AuthState.SignedIn
+    // Card-detail swipe-nav siblings — populate the store whenever the
+    // pool's filtered list changes so a tap → detail → swipe walks
+    // the visible pool. Parity with iOS Decks browser.
+    val navHolder: com.bobaplaybook.app.feature.carddetail.CardNavigationHolderViewModel = hiltViewModel()
+    androidx.compose.runtime.LaunchedEffect(findState.results) {
+        navHolder.store.set(findState.results.map { it.bobaId })
+    }
     val hintsViewModel: HintsViewModel = hiltViewModel()
     val longPressHintDismissed by hintsViewModel
         .isDismissed(HintsStore.Ids.DECKS_LONG_PRESS_TO_ADD)

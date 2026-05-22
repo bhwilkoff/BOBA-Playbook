@@ -65,8 +65,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.bobaplaybook.core.network.StoreLocation
 import com.bobaplaybook.core.network.WhatnotShow
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.maps.android.compose.CameraPositionState
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 
 /**
  * Purchase tab — the acquirer (ANDROID-DESIGN.md §8.5).
@@ -362,6 +373,19 @@ private fun StoresList(
         )
         return
     }
+    // Open the system "view this place" picker for a store. Same shape
+    // as iOS — tapping a row OR a marker hands off to Google Maps /
+    // Waze. Pulled out so both call sites share it.
+    val openInMaps: (StoreLocation) -> Unit = remember(context) {
+        { store ->
+            val geoUri = "geo:0,0?q=${store.lat},${store.lng}" +
+                "(${android.net.Uri.encode(store.name)})"
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, android.net.Uri.parse(geoUri))
+            )
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         // Query + filter row
         Row(
@@ -393,6 +417,18 @@ private fun StoresList(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        // ───── Embedded map ─────
+        // Parity with iOS MapKit (StoreLocatorView::mapSection): fixed
+        // 240dp band above the list, markers per visible store, camera
+        // auto-fits to the filtered set. Limited to 500 markers so
+        // big-box +1,800 doesn't pile up onto the GPU.
+        StoresMap(
+            stores = state.filteredStores,
+            onStoreSelected = openInMaps,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(240.dp),
+        )
         androidx.compose.material3.pulltorefresh.PullToRefreshBox(
             isRefreshing = state.isLoadingStores,
             onRefresh = { viewModel.refreshStores() },
@@ -402,18 +438,69 @@ private fun StoresList(
                 items(items = state.filteredStores, key = { it.id }) { store ->
                     StoreRow(
                         store = store,
-                        onClick = {
-                            // Open in maps via geo: URI — system picker handles
-                            // routing (Google Maps, Waze, etc.)
-                            val geoUri = "geo:0,0?q=${store.lat},${store.lng}(${android.net.Uri.encode(store.name)})"
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, android.net.Uri.parse(geoUri)),
-                            )
-                        },
+                        onClick = { openInMaps(store) },
                     )
                     androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun StoresMap(
+    stores: List<StoreLocation>,
+    onStoreSelected: (StoreLocation) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Cap markers at 500 — same ceiling iOS uses. The big-box dataset
+    // pushes ~1,800 + the indie ~330; throwing the whole set onto the
+    // map melts the GPU and confuses the marker-cluster pass.
+    val visible = remember(stores) { stores.take(500) }
+    val cameraPositionState: CameraPositionState = rememberCameraPositionState()
+
+    // Recenter / re-fit when the visible set changes.
+    androidx.compose.runtime.LaunchedEffect(visible) {
+        if (visible.isEmpty()) return@LaunchedEffect
+        if (visible.size == 1) {
+            val s = visible.first()
+            cameraPositionState.position =
+                CameraPosition.fromLatLngZoom(LatLng(s.lat, s.lng), 11f)
+            return@LaunchedEffect
+        }
+        val bounds = LatLngBounds.builder().apply {
+            visible.forEach { include(LatLng(it.lat, it.lng)) }
+        }.build()
+        runCatching {
+            cameraPositionState.move(
+                com.google.android.gms.maps.CameraUpdateFactory
+                    .newLatLngBounds(bounds, 80)
+            )
+        }
+    }
+
+    GoogleMap(
+        modifier = modifier,
+        cameraPositionState = cameraPositionState,
+        uiSettings = MapUiSettings(
+            zoomControlsEnabled = false,
+            compassEnabled = true,
+            myLocationButtonEnabled = false,
+        ),
+        properties = MapProperties(isMyLocationEnabled = false),
+    ) {
+        visible.forEach { store ->
+            Marker(
+                state = MarkerState(position = LatLng(store.lat, store.lng)),
+                title = store.name,
+                snippet = listOfNotNull(store.city, store.state)
+                    .joinToString(", ")
+                    .takeIf { it.isNotBlank() },
+                onClick = {
+                    onStoreSelected(store)
+                    true  // we handled it; suppress the default info window
+                },
+            )
         }
     }
 }

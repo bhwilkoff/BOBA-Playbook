@@ -392,6 +392,7 @@ struct LearnView: View {
                 Image(systemName: "ellipsis.circle")
             }
             .accessibilityLabel("Learn options")
+            .help("Learn options")
         }
     }
 }

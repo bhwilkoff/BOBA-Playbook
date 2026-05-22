@@ -39,7 +39,6 @@ struct CollectionView: View {
     /// `collectionIdentifiers` by hero name and card number.
     @State private var searchText: String  = ""
     @State private var walkthrough: BOBAWalkthrough.Script? = nil
-    @State private var showingProfile      = false
     @State private var showingWall         = false
     @State private var showingShowcase     = false
     /// Custom-rainbow creation sheet trigger (v2.219).
@@ -191,10 +190,6 @@ struct CollectionView: View {
         }
         .sheet(isPresented: $showingSignIn) {
             SignInView()
-        }
-        .sheet(isPresented: $showingProfile) {
-            ProfileView()
-                .presentationCompactAdaptation(.popover)
         }
         .sheet(isPresented: $showingWall) {
             // Wall presents on top of the existing Collection view; on

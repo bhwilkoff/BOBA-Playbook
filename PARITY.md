@@ -166,7 +166,7 @@ Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan resul
 | DBS explainer modal | ✅ | ✅ | ✅ | iOS sheet · web native `<dialog>` · Android `ModalBottomSheet` |
 | Pricing refresh button | ✅ | ✅ | ✅ | All three platforms; web sends `fresh=1` to Worker for cache bypass |
 | Tap-price hint | ✅ | n/a | ✅ | Mobile-only first-run hint |
-| Card detail swipe nav (left/right) | ✅ | ✅ | 🔮 | iOS shipped v2.287 across Find / Decks / Collection. Web shipped in modal: ArrowLeft/Right keys + touch-swipe (>60px horizontal threshold + dx > 1.5×dy) wired to `navigateModal(±1)` in app.js. Audit 2026-05-20 corrected the prior "n/a" claim. |
+| Card detail swipe nav (left/right) | ✅ | ✅ | ✅ | iOS shipped v2.287 across Find / Decks / Collection + v2.315 added Cmd+arrow keyboard parity. Web shipped in modal: ArrowLeft/Right keys + touch-swipe (>60px threshold + dx > 1.5×dy) wired to `navigateModal(±1)`. Android shipped: CardNavigationStore (Hilt singleton) populated by Find / Decks / Collection LaunchedEffects; CardDetailScreen owns `detectHorizontalDragGestures` (80dp threshold, wrap-around). Audit 2026-05-22. |
 
 ---
 

@@ -22,6 +22,13 @@ struct CardDetailView: View {
     // The card currently being displayed — may change via prev/next navigation.
     @State private var card: Card
 
+    // Tick 523 — true horizontal swipe animation between cards (replaces
+    // the prior fade). +1 = swipe-left/next (new card slides in from
+    // trailing); -1 = swipe-right/prev (slides in from leading). Set
+    // BEFORE the withAnimation block in advanceCard so the transition
+    // modifier picks up the correct edge.
+    @State private var swipeDirection: Int = 1
+
     // Zoom state (reset on card change)
     @State private var scale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
@@ -96,7 +103,12 @@ struct CardDetailView: View {
         // haptics. selectionChanged is the closest "stepped through a
         // list" feedback iOS exposes.
         UISelectionFeedbackGenerator().selectionChanged()
-        withAnimation(.easeInOut(duration: 0.18)) {
+        swipeDirection = delta
+        // Tick 523 — spring-curve slide (Photos.app feel). The
+        // `.transition(.asymmetric(.move...))` on the inner stack
+        // does the actual horizontal slide; this animation just
+        // drives the timing.
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
             card = navigationCards[next]
             // Reset zoom state on every nav so the new card starts at
             // its natural size with no leftover pan.
@@ -169,6 +181,15 @@ struct CardDetailView: View {
                     artPanel
                     infoPanel
                 }
+                // Tick 523 — true horizontal swipe transition. `.id(card.id)`
+                // gives each card a fresh identity, so the OUTGOING content
+                // slides off and the INCOMING slides in from the opposite
+                // edge (asymmetric .move) instead of cross-fading.
+                .id(card.id)
+                .transition(.asymmetric(
+                    insertion: .move(edge: swipeDirection > 0 ? .trailing : .leading),
+                    removal:   .move(edge: swipeDirection > 0 ? .leading  : .trailing)
+                ))
             }
             // Horizontal-swipe nav between cards. Only fires when:
             //   - we have a navigation list (navigationCards non-empty)

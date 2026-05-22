@@ -45,6 +45,10 @@ struct CollectionCardDetailView: View {
     /// the constructor's `bobaId` parameter on first appearance.
     @State private var currentBobaId: String? = nil
 
+    // Tick 523 — true horizontal swipe animation (replaces fade). See
+    // CardDetailView's matching swipeDirection for the same shape.
+    @State private var swipeDirection: Int = 1
+
     /// The bobaId actually displayed. Falls back to the init-time
     /// parameter until the @State has been seeded.
     private var activeBobaId: String { currentBobaId ?? bobaId }
@@ -83,7 +87,8 @@ struct CollectionCardDetailView: View {
         let n = list.count
         let next = ((i + delta) % n + n) % n
         guard next != i else { return }
-        withAnimation(.easeInOut(duration: 0.18)) {
+        swipeDirection = delta
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
             currentBobaId = list[next]
         }
     }
@@ -113,6 +118,8 @@ struct CollectionCardDetailView: View {
     var body: some View {
         navStackIfNeeded {
             ScrollView {
+                // Tick 523 — true horizontal swipe transition. activeBobaId
+                // identity changes drive the slide; see swipeDirection.
                 VStack(spacing: 0) {
                     if let card = catalogCard {
                         artPanel(for: card)
@@ -151,6 +158,11 @@ struct CollectionCardDetailView: View {
                     .padding(.top, Design.Spacing.lg)
                     .padding(.bottom, Design.Spacing.lg)
                 }
+                .id(activeBobaId)
+                .transition(.asymmetric(
+                    insertion: .move(edge: swipeDirection > 0 ? .trailing : .leading),
+                    removal:   .move(edge: swipeDirection > 0 ? .leading  : .trailing)
+                ))
             }
             // Swipe left/right between owned cards (beta feedback
             // 2026-05-20). Mirrors the CardDetailView gesture — only

@@ -922,6 +922,23 @@ struct CardDetailView: View {
                                 CardImageView(card: variant, size: .thumb)
                                     .frame(width: 80, height: 112)
                                     .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
+                                    .overlay(alignment: .topTrailing) {
+                                        // Tick 462 — print-run badge for Other Versions
+                                        // (Android tick 461 parity). Inline here because
+                                        // BOBACardCell's badge gate is size == .full and
+                                        // these tiles ship .thumb. Same color rules as
+                                        // BOBACardCell.PrintRunBadge.
+                                        if let label = variant.printRunLabel, !label.isEmpty {
+                                            Text(label)
+                                                .font(Design.Fonts.mono(9, weight: .bold))
+                                                .foregroundStyle(label == "SSP" ? Design.Colors.bobaOrange : Design.Colors.bobaCyan)
+                                                .padding(.horizontal, 4)
+                                                .padding(.vertical, 1)
+                                                .background(Color.black.opacity(0.62))
+                                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                                                .padding(3)
+                                        }
+                                    }
 
                                 Text(variant.treatment ?? variant.set)
                                     .font(Design.Fonts.mono(9))

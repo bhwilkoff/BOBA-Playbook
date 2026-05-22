@@ -118,20 +118,40 @@ const Auth = (() => {
           </div>
           <div class="form-field">
             <label class="form-label" for="auth-password">PASSWORD</label>
-            <input class="form-input" type="password" id="auth-password"
-                   autocomplete="${_mode === 'signIn' ? 'current-password' : 'new-password'}"
-                   required aria-required="true"
-                   ${_mode === 'signUp' ? 'minlength="6" aria-describedby="auth-password-hint"' : ''}
-                   placeholder="••••••••">
+            <div class="form-password-wrap">
+              <input class="form-input form-input--with-toggle" type="password" id="auth-password"
+                     autocomplete="${_mode === 'signIn' ? 'current-password' : 'new-password'}"
+                     required aria-required="true"
+                     ${_mode === 'signUp' ? 'minlength="6" aria-describedby="auth-password-hint"' : ''}
+                     placeholder="••••••••">
+              <button type="button" class="form-password-toggle" data-target="auth-password"
+                      aria-label="Show password" title="Show password">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
             ${_mode === 'signUp' ? '<p id="auth-password-hint" class="auth-field-hint">6 characters minimum.</p>' : ''}
           </div>
           ${_mode === 'signUp' ? `
           <div class="form-field">
             <label class="form-label" for="auth-confirm">CONFIRM PASSWORD</label>
-            <input class="form-input" type="password" id="auth-confirm"
-                   autocomplete="new-password"
-                   required aria-required="true" minlength="6"
-                   placeholder="••••••••">
+            <div class="form-password-wrap">
+              <input class="form-input form-input--with-toggle" type="password" id="auth-confirm"
+                     autocomplete="new-password"
+                     required aria-required="true" minlength="6"
+                     placeholder="••••••••">
+              <button type="button" class="form-password-toggle" data-target="auth-confirm"
+                      aria-label="Show password" title="Show password">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
           </div>` : ''}
           <p class="auth-error" id="auth-error" hidden role="alert"></p>
           <p class="auth-info"  id="auth-info"  hidden role="status"></p>
@@ -180,6 +200,36 @@ const Auth = (() => {
 
     emailInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') passwordInput?.focus();
+    });
+
+    // Tick 453 — Password visibility toggle (iOS tick 452 + Android
+    // tick 446 parity). Click eye → flip input type + swap icon to
+    // eye-slash + update aria-label/title. Same eye/eye-slash SF
+    // Symbol idiom iOS uses.
+    box.querySelectorAll('.form-password-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = box.querySelector(`#${btn.dataset.target}`);
+        if (!input) return;
+        const becomingVisible = input.type === 'password';
+        input.type = becomingVisible ? 'text' : 'password';
+        const labelText = becomingVisible ? 'Hide password' : 'Show password';
+        btn.setAttribute('aria-label', labelText);
+        btn.setAttribute('title', labelText);
+        // Swap SVG between eye and eye-slash (Lucide shapes).
+        btn.innerHTML = becomingVisible
+          ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+               <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+               <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+               <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+               <line x1="2" y1="2" x2="22" y2="22"/>
+             </svg>`
+          : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+               <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+               <circle cx="12" cy="12" r="3"/>
+             </svg>`;
+      });
     });
   }
 

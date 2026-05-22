@@ -243,13 +243,39 @@ object LearnCorpus {
                 "Used — face-down spent Plays",
             ),
         ),
-        LearnSection.Bullets(
+        // Tick 274 — iOS EdgeCasesSection depth port. iOS Rules has 7
+        // detailed edge cases; Android was carrying 3 short bullets and
+        // one of them ("Tied Power → coin flip in casual") was wrong vs
+        // the iOS-verified rule ("Honors stays with the same player").
+        // This port replaces with iOS's authoritative 7-case set.
+        LearnSection.Term(
             heading = "Edge cases",
-            items = listOf(
-                "Tied Power at Resolve → coin flip in casual; sudden-death in tournament",
-                "Both coaches reveal identical Plays → ties resolve by base Power",
-                "No eligible Hero for next Bench → concede (BR-12)",
-            ),
+            term = "Substitution cost is always 2",
+            definition = "Cost-modifier plays (e.g., Dog On Inflation, +2 to plays) do NOT affect Substitution. Substitution always costs 2 Hot Dogs regardless of active modifiers.",
+        ),
+        LearnSection.Term(
+            term = "Pull The Plug only cancels rest-of-game effects",
+            definition = "Persistent effects scoped to specific battles (next 2 battles, battle 7, etc.) survive Pull The Plug. Only effects that would otherwise apply for the rest of the game are cancelled.",
+        ),
+        LearnSection.Term(
+            term = "Recycle clears attached effects",
+            definition = "When a Play is shuffled out of your discard back into your Playbook, any rest-of-game effect it had stops applying. Recycling Flash Sale removes its −1 cost discount on future plays.",
+        ),
+        LearnSection.Term(
+            term = "Play Booster recounts every time",
+            definition = "Play Booster's draw amount equals the number of plays used this battle, including itself. Played twice in the same battle? The second recount includes the first Play Booster.",
+        ),
+        LearnSection.Term(
+            term = "Deck exhaustion auto-reshuffles",
+            definition = "If your Playbook runs out, shuffle the discard pile back into the Playbook and continue. The same applies to the Hero Deck during Sudden Death — shuffle the Discard back if needed.",
+        ),
+        LearnSection.Term(
+            term = "Bonus Plays don't count against the 30-card limit",
+            definition = "Bonus Plays (gold-treatment cards) are extras. They enter through element-trigger effects mid-game and don't count against the 30-Play deckbuilding cap.",
+        ),
+        LearnSection.Term(
+            term = "Tied battle keeps Honors",
+            definition = "If both Heroes have equal Power and no Super-weapon tiebreaker applies, the battle is a draw. No trophy is awarded; Honors stays with the same player who had it going in.",
         ),
     )
 

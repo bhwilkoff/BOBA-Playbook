@@ -187,7 +187,7 @@ struct CollectionCardDetailView: View {
                         .foregroundStyle(Design.Colors.textPrimary)
                         .lineLimit(1)
                 }
-                if #available(iOS 18.0, *), catalogCard != nil {
+                if catalogCard != nil {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             showingHeroShot = true
@@ -270,7 +270,7 @@ struct CollectionCardDetailView: View {
                 }
             }
             .fullScreenCover(isPresented: $showingHeroShot) {
-                if #available(iOS 18.0, *), let card = catalogCard {
+                if let card = catalogCard {
                     HeroShotView(card: card)
                 }
             }

@@ -473,6 +473,13 @@ object LearnCorpus {
         LearnSection.Term(term = "Rainbow", definition = "Community collecting goal — owning every treatment variation of a single hero (Base + all foils + autos). Tracked in the Collection tab's Rainbow view."),
         LearnSection.Term(term = "Chillin' / Grillen", definition = "Chillin' is an active treatment name (Chillin' Battlefoil). In older Spec rules, players sometimes say 'chillin' for Ice and 'grillen' for Fire — those are legacy slang for the weapon elements. The current rules use Ice and Fire."),
         LearnSection.Term(term = "Double-Up (Press / Fold)", definition = "Optional betting mechanic any game mode can add. Each Coach gets one Press per game to double the game's point value; the opponent then Folds (ends the game) or Presses back. A whole new \"Laundry Phase\" between battles."),
+        // Tick 229 — Set Ascension glossary terms (web tick 228 parity).
+        // Picked up automatically by GlossaryAwareBody since it pulls
+        // from LearnCorpus.glossaryGame.
+        LearnSection.Term(term = "Set Ascension", definition = "BoBA's framework for organizing play across three formats based on when cards released. Older sets don't fade — they ascend into legacy formats. The three tiers are Modern (active era), Hall of Fame (ascended era), and AlphaTrilogy (founders era). See Learn → Collect for the full article."),
+        LearnSection.Term(term = "Modern", definition = "The Active-Era format in BoBA's Set Ascension. Cards from the past 2 years. Primary competitive format; best entry point for new players. Where most gameplay happens."),
+        LearnSection.Term(term = "Hall of Fame", definition = "The Ascended-Era format in BoBA's Set Ascension. Cards released 2+ years ago (as of January 1). Larger card pool with complex interactions; reserved for special, high-skill events. Emphasizes mastery over volume."),
+        LearnSection.Term(term = "AlphaTrilogy", definition = "The Founders-Era format in BoBA's Set Ascension. Exclusively original Alpha-era cards (first year). Celebrated annually with dedicated events. Alpha cards are also playable in Hall of Fame — preserves BoBA's foundation."),
     )
 
     // Verbatim port from iOS LearnView.swift tradingTerms array.

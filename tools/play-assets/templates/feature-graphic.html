@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>BOBA Playbook · feature graphic</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    /* Play Console feature graphic: 1024×500 JPG or PNG, no alpha.
+       The graphic is the top-of-listing hero; Play also crops it for
+       store-page banners on various device sizes, so keep critical
+       content within a ~60% safe zone (no text/logos in the corners). */
+    html, body {
+      width:  1024px;
+      height: 500px;
+    }
+    .canvas {
+      width:  1024px;
+      height: 500px;
+      background: var(--boba-near-black);
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      align-items: center;
+    }
+    /* Diagonal gradient sweep — adds visual energy without competing
+       with the wordmark. Anchored to bottom-right so the brand text
+       sits on a darker canvas. */
+    .canvas::before {
+      content: "";
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 22% 50%, rgba(255, 77, 0, 0.30) 0%, transparent 38%),
+        radial-gradient(circle at 78% 80%, rgba(0, 245, 255, 0.18) 0%, transparent 42%),
+        radial-gradient(circle at 95% 8%,  rgba(139, 0, 255, 0.18) 0%, transparent 35%);
+    }
+    .xoxo-wrap {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .xoxo-wrap .xoxo-mark {
+      width:  240px;
+      height: 240px;
+      filter: drop-shadow(0 8px 32px rgba(255, 77, 0, 0.5));
+    }
+    .copy {
+      position: relative;
+      z-index: 1;
+      padding-right: 56px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .wordmark {
+      font-family: "Bebas Neue Fallback", Impact, sans-serif;
+      font-size: 92px;
+      line-height: 1.0;
+      letter-spacing: 0.02em;
+      color: var(--boba-text);
+      text-transform: uppercase;
+    }
+    .wordmark .accent {
+      color: var(--boba-orange);
+    }
+    .tagline {
+      font-family: "Chakra Petch Fallback", "Helvetica Neue", sans-serif;
+      font-size: 26px;
+      line-height: 1.25;
+      letter-spacing: 0.08em;
+      color: var(--boba-text-2);
+      text-transform: uppercase;
+    }
+    .tagline .dot { color: var(--boba-cyan); padding: 0 8px; }
+    .subline {
+      font-family: "Chakra Petch Fallback", "Helvetica Neue", sans-serif;
+      font-size: 18px;
+      line-height: 1.4;
+      color: var(--boba-text-mute);
+      max-width: 540px;
+    }
+  </style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="xoxo-wrap">
+      <svg class="xoxo-mark" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
+        <g fill="none" stroke="#FF4D00" stroke-width="11" stroke-linecap="round">
+          <path d="M22,22 L52,52 M52,22 L22,52" />
+          <path d="M71,37 m-15,0 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0" />
+          <path d="M37,71 m-15,0 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0" />
+          <path d="M56,56 L86,86 M86,56 L56,86" />
+        </g>
+      </svg>
+    </div>
+    <div class="copy">
+      <div class="wordmark">BOBA<br /><span class="accent">PLAYBOOK</span></div>
+      <div class="tagline">
+        Search<span class="dot">·</span>Scan<span class="dot">·</span>Collect
+      </div>
+      <div class="subline">
+        The companion app for the Bo Jackson Battle Arena trading card game.
+        17,000+ cards, on-device scanning, deck building.
+      </div>
+    </div>
+  </div>
+</body>
+</html>

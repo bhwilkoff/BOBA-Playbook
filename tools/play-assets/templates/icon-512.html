@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>BOBA Playbook · 512 icon</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    /* Play Console requires 512×512, 32-bit PNG, NO alpha channel.
+       The body is sized to exactly the export dimensions so headless
+       Chrome captures pixel-perfect. */
+    html, body {
+      width: 512px;
+      height: 512px;
+    }
+    .canvas {
+      width: 512px;
+      height: 512px;
+      background: var(--boba-near-black);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    /* Subtle radial glow behind the XOXO mark — adds depth at the
+       small launcher / Play Store thumbnail sizes without competing
+       with the foreground. */
+    .canvas::before {
+      content: "";
+      position: absolute; inset: 0;
+      background: radial-gradient(
+        circle at center,
+        rgba(255, 77, 0, 0.15) 0%,
+        rgba(255, 77, 0, 0.05) 35%,
+        transparent 65%
+      );
+    }
+    .xoxo-wrap {
+      --size: 360px;
+      position: relative;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="xoxo-wrap" style="--xoxo-color: var(--boba-orange);">
+      <!-- iframe-include the XOXO via inline copy; chrome-headless
+           resolves relative paths fine but inlining is simpler. -->
+      <svg class="xoxo-mark" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
+        <g fill="none" stroke="#FF4D00" stroke-width="11" stroke-linecap="round">
+          <path d="M22,22 L52,52 M52,22 L22,52" />
+          <path d="M71,37 m-15,0 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0" />
+          <path d="M37,71 m-15,0 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0" />
+          <path d="M56,56 L86,86 M86,56 L56,86" />
+        </g>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

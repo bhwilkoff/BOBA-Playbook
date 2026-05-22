@@ -3043,9 +3043,16 @@ private struct DoubleUpSection: View {
             Text("DOUBLE-UP (OPTIONAL ADD-ON)")
                 .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
             VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-                Text("Simple Press-and-Fold wagering layered onto any game mode. Adds the depth of a backgammon doubling cube to BoBA.")
-                    .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                // Tick 367 — body + bullets wired through GlossaryAwareText
+                // so terms like Hot Dogs / Hero Deck / Sudden Death / Top
+                // Deck / Foil tap to define (web tick 363 parity — web's
+                // wireInlineGlossary covers Tournament panel prose; iOS
+                // wraps via GlossaryAwareText). Plain Text was the gap.
+                GlossaryAwareText(
+                    raw: "Simple Press-and-Fold wagering layered onto any game mode. Adds the depth of a backgammon doubling cube to BoBA.",
+                    font: Design.Fonts.mono(13),
+                    color: Design.Colors.textSecondary,
+                )
                 bullet("Each Game of 7 Battles starts worth 1 point. First Coach to 7 points wins the match-up.")
                 bullet("Each Coach gets one Press per Game — called after hands are dealt, or between Battles.")
                 bullet("Opponent responds: Accept the Press, Press back (if they haven't used theirs), or Fold and end the game.")
@@ -3062,8 +3069,7 @@ private struct DoubleUpSection: View {
     @ViewBuilder private func bullet(_ text: String) -> some View {
         HStack(alignment: .top, spacing: 6) {
             Text("•").font(Design.Fonts.mono(13, weight: .bold)).foregroundStyle(Design.Colors.bobaCyan)
-            Text(text).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            GlossaryAwareText(raw: text, font: Design.Fonts.mono(12), color: Design.Colors.textSecondary)
         }
     }
 }
@@ -3084,15 +3090,21 @@ private struct MadnessSection: View {
         VStack(alignment: .leading, spacing: Design.Spacing.sm) {
             Text("MADNESS (TEAM PLAY)")
                 .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-            Text("4-Coach team formats. Each Coach brings 4 of their favorite Foil Hot Dogs to display as team mascots at every match.")
-                .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
+            // Tick 367 — body + variant descriptions wired through
+            // GlossaryAwareText so Apex deck / Foil Hot Dogs / Spec 160 /
+            // Granny's Gum / Brawl / Tecmo Bowl / High Ball / Low Ball
+            // become tappable definitions (web tick 363 parity).
+            GlossaryAwareText(
+                raw: "4-Coach team formats. Each Coach brings 4 of their favorite Foil Hot Dogs to display as team mascots at every match.",
+                font: Design.Fonts.mono(13),
+                color: Design.Colors.textSecondary,
+            )
+            .padding(.bottom, Design.Spacing.xs)
             VStack(spacing: 1) {
                 ForEach(variants, id: \.0) { v in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(v.0).font(Design.Fonts.mono(13, weight: .bold)).foregroundStyle(v.2)
-                        Text(v.1).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        GlossaryAwareText(raw: v.1, font: Design.Fonts.mono(12), color: Design.Colors.textSecondary)
                     }
                     .padding(Design.Spacing.md)
                     .frame(maxWidth: .infinity, alignment: .leading)

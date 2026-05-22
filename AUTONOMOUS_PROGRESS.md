@@ -3,7 +3,7 @@
 **Started:** 2026-05-20 (post-sealed-products commit)
 **Owner instruction:** *"Create a persistent loop (surviving compacting) to iterate on (1) cross-platform parity across iOS / web / Android and (2) all documented deferred features. Use agents, project docs, and platform-specific Claude skills. Significant + well-documented progress over a few hours."*
 
-This document is the persistent state — every loop tick reads + updates it. Each tick: pick the highest-priority item, implement, verify, commit + push, update this doc.
+This document is the pre-compaction tick-log archive (ticks 1–201). The current active log lives in `WAKE_UP.md`; new tick entries land there. The backlog section at the top of this file is still the canonical priority-ordered queue.
 
 ---
 

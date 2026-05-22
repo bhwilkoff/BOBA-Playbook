@@ -1902,7 +1902,7 @@ private struct GlossaryView: View {
         // Tick 347 — `.searchable` over the corpus. Native iOS search
         // affordance; iOS 26 docks the field below nav, taps to expand,
         // honors Cancel + clear-on-empty.
-        .searchable(text: $query, placement: .navigationBarDrawer(.always),
+        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always),
                     prompt: "Search glossary terms…")
     }
 

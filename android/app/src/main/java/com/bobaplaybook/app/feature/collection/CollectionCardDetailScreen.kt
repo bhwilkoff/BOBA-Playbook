@@ -286,6 +286,7 @@ fun CollectionCardDetailScreen(
                             com.bobaplaybook.core.ui.components.BOBACardCell(
                                 imageFile = other.imageFile,
                                 contentDescription = other.displayName,
+                                printRunLabel = other.printRunLabel,
                             )
                         }
                     }

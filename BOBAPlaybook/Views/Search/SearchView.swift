@@ -176,6 +176,27 @@ struct SearchView: View {
         await quickAddCard(card, designation: .personal)
     }
 
+    // Tick 267 — Surprise Me. Pick a random card from currently-filtered
+    // results; 30% bias toward Inspired Ink / Superfoil / Kanjifoil to
+    // surface something notable. Pushes detail via the same path as a
+    // tap.
+    private func surpriseMe() {
+        let pool = store.filteredCards
+        guard !pool.isEmpty else { return }
+        let pick: Card
+        if Double.random(in: 0..<1) < 0.30 {
+            let rares = pool.filter { card in
+                let t = (card.treatment ?? "").lowercased()
+                return card.isInspiredInk || t.contains("superfoil") || t.contains("kanji")
+            }
+            pick = rares.randomElement() ?? pool.randomElement()!
+        } else {
+            pick = pool.randomElement()!
+        }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        store.findNavigationPath.append(CardRoute(card: pick))
+    }
+
     // Tick 262 — designation-aware quick-add. The bare version routes
     // to Personal (existing behavior); the contextMenu's "Mark as
     // Wanted" passes .wanted to skip the full Add sheet.
@@ -366,6 +387,16 @@ struct SearchView: View {
                     }
                 }
                 Divider()
+                // Tick 267 — Surprise Me (Android tick 264 + 266 parity).
+                // Discovery affordance for the 17,974-card catalog.
+                // Biases 30% of picks toward Inspired Ink / Superfoil /
+                // Kanjifoil so the surprise actually surfaces something
+                // notable instead of yet-another-Battlefoil.
+                Button {
+                    surpriseMe()
+                } label: {
+                    Label("Surprise me 🎲", systemImage: "sparkles")
+                }
                 Button {
                     WalkthroughsManager.shared.relaunch(.findTab)
                     walkthrough = .findTab

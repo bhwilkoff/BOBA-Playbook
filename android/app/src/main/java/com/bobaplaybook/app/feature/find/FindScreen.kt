@@ -57,6 +57,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
@@ -70,6 +71,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -125,13 +127,13 @@ fun FindScreen(
     // between siblings. Mirrors iOS SearchView passing
     // `store.filteredCards` as the navigation list.
     val navHolder: com.bobaplaybook.app.feature.carddetail.CardNavigationHolderViewModel = hiltViewModel()
-    androidx.compose.runtime.LaunchedEffect(state.results) {
+    LaunchedEffect(state.results) {
         navHolder.store.set(state.results.map { it.bobaId })
     }
     // Tick 279 — keyboard 'r' shortcut from BOBAApp root key handler.
     // Singleton FindActions bus emits surpriseRequested; collect here
     // and run the same pick logic the overflow Menu uses.
-    androidx.compose.runtime.LaunchedEffect(Unit) {
+    LaunchedEffect(Unit) {
         viewModel.findActions.surpriseRequested.collect {
             val pool = state.results
             if (pool.isEmpty()) return@collect
@@ -539,7 +541,7 @@ private fun FindOverflowMenu(
                 onClick = { onGridColumnsChange(n); onDismiss() },
             )
         }
-        androidx.compose.material3.HorizontalDivider()
+        HorizontalDivider()
         // Toggle commands — tapping inverts state. Check icon shows when on.
         DropdownMenuItem(
             text = { Text("Card Showcases") },
@@ -557,7 +559,7 @@ private fun FindOverflowMenu(
             },
             onClick = { onQuickAddChange(!quickAdd); onDismiss() },
         )
-        androidx.compose.material3.HorizontalDivider()
+        HorizontalDivider()
         // Tick 264 — Surprise Me discovery action. Picks a random card
         // from the currently-visible results (or full catalog if none
         // filtered) and pushes its detail. Real value for collectors

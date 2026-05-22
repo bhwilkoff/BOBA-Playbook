@@ -282,9 +282,19 @@ object LearnCorpus {
                 "Late Hit (+35 in Battle 7) and The Closer (+40 in Battle 7) amplify back-loaded positioning.",
             ),
         ),
+        // Tick 269 — iOS SubstitutionStrategySection depth port.
         LearnSection.Body(
             heading = "Substitution strategy",
-            text = "Sub for tempo, not desperation. A planned Battle-3 sub that drops in a fresh persistent installer beats an emergency Battle-5 sub trying to hold the line. Use Hot Dog parallels to extend Bonus Play capacity if your deck leans on them.",
+            text = "10 Hot Dogs total — max 5 substitutions all game. Pay 2 to substitute a Hero. Pay 0–6 to play Play cards. Both come out of the same 10 Hot Dogs. Sub for tempo, not desperation — a planned Battle-3 sub that drops in a fresh persistent installer beats an emergency Battle-5 sub trying to hold the line.",
+        ),
+        LearnSection.Bullets(
+            heading = "When to substitute",
+            items = listOf(
+                "Substitute only when the power gap justifies the cost. -45 → +5 is a steal; -2 → +2 may not be worth it.",
+                "Watch your opponent's Hot Dog count. At 0 they can't sub or play paid cards — your strongest attacking window.",
+                "Honors means you act first. Sometimes passing forces your opponent to commit before you respond.",
+                "Save subs for Battles 5–7. Early battles rarely decide games; late battles always do.",
+            ),
         ),
         LearnSection.Body(
             heading = "Weapon synergy",
@@ -313,9 +323,20 @@ object LearnCorpus {
             cardNames = listOf("Add Firepower", "First Draw", "Crystal Ball", "Frozen Resolve", "Steel Shield", "Forced Substitution"),
             playsOnly = true,
         ),
+        // Tick 269 — iOS ResourceManagementSection depth port.
         LearnSection.Body(
             heading = "Resource management",
-            text = "Bonus Plays are bounded (6 in Rookie, more with Hot Dogs). Don't blow your Bonus budget in Battles 1–2; the back half is where Bonus Plays compound. HD is its own resource — spending HD to win one Battle can cost you the next.",
+            text = "Start with 4 Plays in hand. Draw 1 at the end of each battle — up to 11 total across a full game. Your Playbook has 30 unique Plays; spent Plays are visible and countable. Bonus Plays are bounded (6 in Rookie, more with Hot Dogs).",
+        ),
+        LearnSection.Bullets(
+            heading = "Play card economy",
+            items = listOf(
+                "Hot Dogs fund both subs (2 each) and Plays — every paid Play is a potential sub foregone.",
+                "Free (0-cost) Plays are disproportionately strong — they preserve Hot Dogs while adding power.",
+                "At 0 Hot Dogs, a player cannot sub or play paid cards. The most exploitable position in the game.",
+                "Count the opponent's Play count. Heavy early spending depletes their options in the critical late battles.",
+                "Don't blow your Bonus budget in Battles 1–2; the back half is where Bonus Plays compound.",
+            ),
         ),
         LearnSection.CardExamples(
             heading = "Hot Dogs",

@@ -195,13 +195,14 @@ struct RainbowDetailView: View {
     /// chain don't trip SwiftUI's type-inference timeout. The body
     /// itself stays a tiny dispatch.
     @ViewBuilder
+    @ViewBuilder
     private func resolvedScroll(context: Context) -> some View {
         let cards    = matchingCards(for: context.criteria)
         let owned    = ownedIds()
         let ownedN   = cards.filter { owned.contains($0.id) }.count
         let missingN = cards.count - ownedN
         let visible  = filtered(cards: cards, owned: owned, lens: lens)
-        return ScrollView {
+        ScrollView {
             header(name: context.title, summary: context.summary,
                    owned: ownedN, total: cards.count)
             if cards.isEmpty {

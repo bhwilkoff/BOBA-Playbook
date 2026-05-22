@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as GSize
@@ -142,45 +143,66 @@ fun ScanScreen(
             activity, Manifest.permission.CAMERA,
         )
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text("Scan") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                        )
-                    }
-                },
-                actions = {
-                    if (queueEntries.isNotEmpty()) {
-                        androidx.compose.material3.TextButton(
-                            onClick = { reviewSheetOpen = true },
-                        ) {
-                            Text("Recent · ${queueEntries.size}")
-                        }
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    // iOS-parity layout: camera fills the screen edge-to-edge with a
+    // transparent overlay TopAppBar. The prior Scaffold + opaque
+    // TopAppBar pushed the viewfinder down by the bar's height and
+    // ALSO occluded the top of the card area — Ben's punch-list #7
+    // "persistent language on top of the scanner covers the card
+    // area where you are trying to scan." Scaffold removed; the
+    // back button + Recent counter ride a top-gradient strip that
+    // dims the camera enough to read white text without hiding
+    // what's behind it.
+    Box(modifier = modifier.fillMaxSize()) {
         if (hasPermission) {
             ScanViewfinder(
                 onMatch = { bobaId ->
-                    // Log every match to the session queue first, then
-                    // route via the existing onMatch callback. The
-                    // queue is a parallel surface — doesn't change the
-                    // single-shot routing flow.
                     queueHolder.queue.append(bobaId)
                     onMatch(bobaId)
                 },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                modifier = Modifier.fillMaxSize(),
             )
+            // Top gradient + chrome (back + Recent counter). Gradient
+            // is 96dp tall, fades to fully transparent so the card
+            // guide frame below stays visible.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(96.dp)
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(
+                                androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.65f),
+                                androidx.compose.ui.graphics.Color.Transparent,
+                            ),
+                        ),
+                    ),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = androidx.compose.ui.graphics.Color.White,
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                if (queueEntries.isNotEmpty()) {
+                    androidx.compose.material3.TextButton(
+                        onClick = { reviewSheetOpen = true },
+                    ) {
+                        Text(
+                            "Recent · ${queueEntries.size}",
+                            color = androidx.compose.ui.graphics.Color.White,
+                        )
+                    }
+                }
+            }
         } else if (permanentlyDenied) {
             BOBAEmptyState(
                 icon = Icons.Default.CameraAlt,
@@ -194,9 +216,7 @@ fun ScanScreen(
                     ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
                 },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                modifier = Modifier.fillMaxSize(),
             )
         } else {
             BOBAEmptyState(
@@ -205,9 +225,7 @@ fun ScanScreen(
                 body = "BOBA Playbook uses the camera to recognize printed card numbers on-device. Photos never leave your phone.",
                 actionLabel = "Allow",
                 onAction = { launcher.launch(Manifest.permission.CAMERA) },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }

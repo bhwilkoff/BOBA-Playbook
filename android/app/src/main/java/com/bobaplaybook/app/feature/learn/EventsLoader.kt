@@ -28,11 +28,15 @@ data class EventEntry(
 )
 
 @Serializable
-private data class EventsBundle(val events: List<EventEntry>)
+data class EventsBundle(
+    val events:       List<EventEntry>,
+    @SerialName("lastUpdated")
+    val lastUpdated:  String? = null,
+)
 
 /**
  * Synchronous decoder — events.json is tiny (~1 KB at v1), no
- * background-task needed. Falls back to an empty list when the file
+ * background-task needed. Falls back to an empty bundle when the file
  * is missing or malformed so the Tournament page renders cleanly
  * even on a partially-corrupted install.
  */
@@ -43,11 +47,16 @@ object EventsLoader {
         isLenient = true
     }
 
-    fun load(context: Context): List<EventEntry> =
+    fun loadBundle(context: Context): EventsBundle =
         try {
             val text = context.assets.open("data/events.json").bufferedReader().use { it.readText() }
-            json.decodeFromString<EventsBundle>(text).events
+            json.decodeFromString<EventsBundle>(text)
         } catch (_: Throwable) {
-            emptyList()
+            EventsBundle(events = emptyList(), lastUpdated = null)
         }
+
+    // Compat shim — keeps the one-call-site List<EventEntry> consumer
+    // working without a forced ripple. Future tick can drop once
+    // every caller migrates to loadBundle.
+    fun load(context: Context): List<EventEntry> = loadBundle(context).events
 }

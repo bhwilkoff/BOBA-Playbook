@@ -6862,6 +6862,26 @@ a.event-row {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+/* Tick 258 — "See all N posts" link below the 5-post preview list. */
+.blog-feed-see-all {
+  display: block;
+  margin-top: 0.4rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--boba-cyan);
+  text-decoration: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(0,245,255,0.05);
+  border: 1px solid rgba(0,245,255,0.2);
+  transition: background 0.12s, border-color 0.12s;
+}
+.blog-feed-see-all:hover {
+  background: rgba(0,245,255,0.12);
+  border-color: rgba(0,245,255,0.45);
+}
 .event-open {
   margin-left: auto;
   font-family: var(--font-mono);

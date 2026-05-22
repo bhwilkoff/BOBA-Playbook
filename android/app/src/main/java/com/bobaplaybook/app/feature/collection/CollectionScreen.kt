@@ -649,6 +649,7 @@ private fun CollectionGrid(
                     isSealed = entry.card.isSealed,
                     contentDescription = entry.card.displayName,
                     printRunLabel = entry.card.printRunLabel,
+                    formatLegalityHint = com.bobaplaybook.core.domain.model.CardFormatEligibility.restrictedLegalAbbrev(entry.card),
                     modifier = Modifier
                         .cardSharedBounds(entry.card.bobaId)
                         .clickable { onCardClick(entry.card.bobaId) },

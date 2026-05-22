@@ -269,6 +269,7 @@ private fun RainbowTile(card: Card, owned: Boolean, onClick: () -> Unit) {
             isSealed = card.isSealed,
             contentDescription = card.displayName,
             printRunLabel = card.printRunLabel,
+            formatLegalityHint = com.bobaplaybook.core.domain.model.CardFormatEligibility.restrictedLegalAbbrev(card),
             modifier = Modifier.clickable(onClick = onClick),
         )
         if (!owned) {

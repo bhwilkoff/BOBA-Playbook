@@ -944,6 +944,7 @@ private fun CardCarousel(
                     contentDescription = card.displayName,
                     isSealed = card.isSealed,
                     printRunLabel = card.printRunLabel,
+                    formatLegalityHint = CardFormatEligibility.restrictedLegalAbbrev(card),
                     modifier = Modifier
                         .cardSharedBounds(card.bobaId)
                         .clickable { onCardClick(card.bobaId) },

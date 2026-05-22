@@ -260,7 +260,27 @@ object LearnCorpus {
     val strategy: List<LearnSection> = listOf(
         LearnSection.Body(
             heading = "Power curve",
-            text = "A healthy deck spreads Power across low / mid / high tiers. Low-Power Heroes win opening Battles cheaply; high-Power Heroes anchor closing Battles after the opponent has burned reactive Plays.",
+            text = "A healthy deck spreads Power across low / mid / high tiers. Low-Power Heroes win opening Battles cheaply; high-Power Heroes anchor closing Battles after the opponent has burned reactive Plays. The 6-per-power-value rule forces you to spread across levels — a smart build balances three tiers.",
+        ),
+        // Tick 251 — iOS PowerCurveSection content port. iOS shows mini-
+        // card samples + tier captions; Android renders the same tiering
+        // logic as a bullet list (simpler than wiring image samples in
+        // LearnSection).
+        LearnSection.Bullets(
+            heading = "Three power tiers",
+            items = listOf(
+                "LOW (85-115) — position wisely. Use early to bait reactive Plays out of the opponent.",
+                "MID (120-155) — consistency layer. The bulk of a balanced deck sits here.",
+                "HIGH (160+) — save for clutch. Front-loaded for Honors momentum or back-loaded for Battle 5-7 closeouts.",
+            ),
+        ),
+        LearnSection.Bullets(
+            heading = "Positioning tips",
+            items = listOf(
+                "Front-load strong Heroes to establish Honors momentum early.",
+                "Save High-tier Heroes for Battles 5-7 — games are often decided in the final stretch.",
+                "Late Hit (+35 in Battle 7) and The Closer (+40 in Battle 7) amplify back-loaded positioning.",
+            ),
         ),
         LearnSection.Body(
             heading = "Substitution strategy",

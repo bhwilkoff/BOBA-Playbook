@@ -42,6 +42,8 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.RadioButton
@@ -371,31 +373,29 @@ fun CollectionScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            DesignationRow(
-                selected = designation,
-                onChange = { designation = it },
-                counts = state.entriesByDesignation.mapValues { it.value.size },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-            // Count summary — single line below the segmented row so
-            // the chips themselves stay readable on compact widths.
-            // Hide when 0 — the BOBAEmptyState / BOBASignInPrompt
-            // below carries the "nothing here" message; a small
-            // top-left "No personal" caption is redundant chrome.
-            val currentCount = state.entriesByDesignation[designation]?.size ?: 0
-            if (currentCount > 0) {
-                Text(
-                    text = "$currentCount ${designation.label.lowercase()} card${if (currentCount == 1) "" else "s"}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+            // Signed-out wall before any collection chrome — nothing
+            // below is useful without a synced collection.
+            if (!state.isSignedIn) {
+                BOBASignInPrompt(
+                    title = "Sign in to see your collection",
+                    body = "Your collection, decks, and wanted list sync across iOS, web, and Android.",
+                    onAction = onSignInRequest,
                 )
+                return@Scaffold
             }
 
-            // Totals — flip between the whole collection (default) and
-            // just the active designation subset. Mirrors iOS
-            // CollectionView's TotalsMode toggle (DESIGN.md §8.4 value
-            // summary). Hidden when there's no value yet.
+            // 1. Search on top — Ben's punch-list #2. Used to live below
+            //    the designation segmented control; surface it first
+            //    because "find the card I know I own" is the primary
+            //    intent on the Collection tab.
+            CollectionSearchPill(
+                query = collectionQuery,
+                onQueryChange = { collectionQuery = it },
+            )
+
+            // 2. Totals — flip between the whole collection and the
+            // active designation subset. Mirrors iOS CollectionView's
+            // TotalsMode toggle (DESIGN.md §8.4 value summary).
             val filterEntries = state.entriesByDesignation[designation].orEmpty()
             val filterValue = remember(filterEntries) {
                 filterEntries.sumOf { it.userCard.estimatedValue ?: 0.0 }
@@ -416,22 +416,27 @@ fun CollectionScreen(
                 )
             }
 
-            if (!state.isSignedIn) {
-                BOBASignInPrompt(
-                    title = "Sign in to see your collection",
-                    body = "Your collection, decks, and wanted list sync across iOS, web, and Android.",
-                    onAction = onSignInRequest,
-                )
-                return@Scaffold
-            }
-
-            // Collection-scoped search pill — iOS Collection has
-            // .searchable over owned cards; we keep the pill compact and
-            // single-line per DESIGN.md §5.3 small-multiples density.
-            CollectionSearchPill(
-                query = collectionQuery,
-                onQueryChange = { collectionQuery = it },
+            // 3. Designation chips — sections of the collection. The
+            // M3 SegmentedButton row was truncating "Personal" → "Persona"
+            // at compact width because 5 fixed-width slots couldn't fit
+            // the longest label. Switched to a scrollable FilterChip
+            // FlowRow so every label renders in full and the right edge
+            // hint-scrolls when overflowing the viewport.
+            DesignationRow(
+                selected = designation,
+                onChange = { designation = it },
+                counts = state.entriesByDesignation.mapValues { it.value.size },
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             )
+            val currentCount = state.entriesByDesignation[designation]?.size ?: 0
+            if (currentCount > 0) {
+                Text(
+                    text = "$currentCount ${designation.label.lowercase()} card${if (currentCount == 1) "" else "s"}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+                )
+            }
 
             // Cross-designation lookups for iOS-parity badges:
             //  - bobaIdToDesignations: which designations contain this card
@@ -463,19 +468,42 @@ fun CollectionScreen(
                 }
             }
             val unsorted = state.entriesByDesignation[designation].orEmpty()
-            val filtered = remember(unsorted, collectionQuery) {
-                if (collectionQuery.isBlank()) unsorted
-                else unsorted.filter { entry ->
-                    com.bobaplaybook.core.domain.search.CardSearch.matchesFields(
-                        query = collectionQuery,
-                        fields = listOf(
-                            entry.card.name,
-                            entry.card.hero,
-                            entry.card.cardNumber,
-                            entry.card.set,
-                            entry.card.treatment,
-                        ),
-                    )
+            // Wire findState's filters (weapons / treatment / set /
+            // release / power / has-image / card purpose) into the
+            // Collection entry pipeline. The Filter sheet shown by
+            // tapping the toolbar filter chip is the Find feature's
+            // FilterSheet — without this guard the chips toggled
+            // FindViewModel state but Collection ignored it, so the
+            // "Filters · 3 active" badge appeared with zero effect.
+            val filtered = remember(unsorted, collectionQuery, findState) {
+                unsorted.filter { entry ->
+                    val card = entry.card
+                    // Card purpose
+                    when (findState.cardPurpose) {
+                        com.bobaplaybook.app.feature.find.CardPurpose.ALL      -> {}
+                        com.bobaplaybook.app.feature.find.CardPurpose.HEROES   -> if (!card.isHero)   return@filter false
+                        com.bobaplaybook.app.feature.find.CardPurpose.PLAYS    -> if (!card.isPlay)   return@filter false
+                        com.bobaplaybook.app.feature.find.CardPurpose.HOT_DOGS -> if (!card.isHotDog) return@filter false
+                        com.bobaplaybook.app.feature.find.CardPurpose.SEALED   -> if (!card.isSealed) return@filter false
+                    }
+                    if (findState.hasImageOnly && card.imageFile.isNullOrEmpty()) return@filter false
+                    if (findState.activeWeapons.isNotEmpty() &&
+                        card.element.uppercase() !in findState.activeWeapons.map { it.uppercase() }) return@filter false
+                    findState.activeTreatment?.let { t -> if (!card.treatment.equals(t, ignoreCase = true)) return@filter false }
+                    findState.activeSet?.let       { s -> if (!card.set.equals(s, ignoreCase = true))       return@filter false }
+                    findState.activeRelease?.let   { r -> if (!card.release.equals(r, ignoreCase = true))   return@filter false }
+                    val p = card.power
+                    if (findState.powerMin != null && (p == null || p < findState.powerMin!!)) return@filter false
+                    if (findState.powerMax != null && (p == null || p > findState.powerMax!!)) return@filter false
+                    // Free-text search — runs last so non-matching
+                    // entries don't waste filter cycles.
+                    if (collectionQuery.isNotBlank()) {
+                        if (!com.bobaplaybook.core.domain.search.CardSearch.matchesFields(
+                                query = collectionQuery,
+                                fields = listOf(card.name, card.hero, card.cardNumber, card.set, card.treatment),
+                            )) return@filter false
+                    }
+                    true
                 }
             }
             val entries = remember(filtered, collectionSort) { applySort(filtered, collectionSort) }
@@ -625,24 +653,34 @@ private fun DesignationRow(
     modifier: Modifier = Modifier,
 ) {
     val entries = remember { Designation.entries }
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
-        entries.forEachIndexed { index, designation ->
-            SegmentedButton(
+    // Horizontal scrollable FilterChip row — replaces the prior
+    // SingleChoiceSegmentedButtonRow because M3 SegmentedButton
+    // doesn't auto-shrink its label, so 5 equal-width slots at
+    // 360 dp truncated "Personal" → "Persona". FilterChips size
+    // to their content + the row scrolls horizontally when the
+    // total width overflows the viewport (iOS .scrollIndicators
+    // parity).
+    val scrollState = rememberScrollState()
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(scrollState),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        entries.forEach { designation ->
+            val count = counts[designation] ?: 0
+            FilterChip(
                 selected = designation == selected,
                 onClick = { onChange(designation) },
-                shape = SegmentedButtonDefaults.itemShape(index, entries.size),
-                // Drop the default checkmark icon — M3's selected-state
-                // color change (secondaryContainer fill) is already the
-                // affordance; the redundant ✓ visually crowds the pill
-                // and shifts the label off-center on selection.
-                icon = {},
-            ) {
-                Text(
-                    designation.shortLabel,
-                    style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1,
-                )
-            }
+                label = {
+                    Text(
+                        if (count > 0) "${designation.label} ($count)" else designation.label,
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                    )
+                },
+            )
         }
     }
 }
@@ -1185,8 +1223,12 @@ private fun applySort(
     return when (order) {
         CollectionSortOrder.NAME_ASC -> entries.sortedWith(artFirst.thenBy { it.card.displayName.lowercase() })
         CollectionSortOrder.NAME_DESC -> entries.sortedWith(artFirst.thenByDescending { it.card.displayName.lowercase() })
-        CollectionSortOrder.DATE_ADDED_DESC -> entries.sortedWith(artFirst)  // server-roughly date-added already
-        CollectionSortOrder.DATE_ADDED_ASC -> entries.reversed().sortedWith(artFirst)
+        CollectionSortOrder.DATE_ADDED_DESC -> entries.sortedWith(
+            artFirst.thenByDescending { it.userCard.acquiredAtIso ?: "" }
+        )
+        CollectionSortOrder.DATE_ADDED_ASC -> entries.sortedWith(
+            artFirst.thenBy { it.userCard.acquiredAtIso ?: "￿" }
+        )
         CollectionSortOrder.PRICE_DESC -> entries.sortedWith(artFirst.thenByDescending { it.userCard.estimatedValue ?: 0.0 })
         CollectionSortOrder.PRICE_ASC -> entries.sortedWith(artFirst.thenBy { it.userCard.estimatedValue ?: Double.MAX_VALUE })
         CollectionSortOrder.PAID_DESC -> entries.sortedWith(artFirst.thenByDescending { it.userCard.purchasePrice ?: 0.0 })

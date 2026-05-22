@@ -4296,8 +4296,19 @@
       added++;
     }
     try {
-      await API.deckSave(deck.id, deck.name, deck.format, merged);
-      showToast(`Added ${added} card${added===1?'':'s'} to ${deck.name}${skipped?` · ${skipped} duplicate${skipped===1?'':'s'} skipped`:''}`);
+      // Tick 498 — branch the toast on outcome instead of always saying
+      // "Added 0 cards" when every card was a duplicate. Single-card +
+      // already-in is the most common case from the new Card Detail
+      // "Add to Deck" button (tick 478).
+      if (added === 0 && skipped > 0) {
+        await API.deckSave(deck.id, deck.name, deck.format, merged);
+        showToast(skipped === 1
+          ? `Already in ${deck.name}`
+          : `All ${skipped} cards already in ${deck.name}`);
+      } else {
+        await API.deckSave(deck.id, deck.name, deck.format, merged);
+        showToast(`Added ${added} card${added===1?'':'s'} to ${deck.name}${skipped?` · ${skipped} duplicate${skipped===1?'':'s'} skipped`:''}`);
+      }
       exitSelectionMode();
     } catch (e) {
       showToast('Could not save deck. ' + (e?.message || ''));

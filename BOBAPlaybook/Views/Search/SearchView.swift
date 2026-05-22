@@ -349,6 +349,12 @@ struct SearchView: View {
                     .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
             }
             .accessibilityLabel("Profile")
+            // Tick 387 — pointer-hover tooltip on Find toolbar icons
+            // (Android tick 384+386 TooltipBox parity). iPad Stage Manager,
+            // Magic Keyboard trackpad, and Mac Catalyst all surface .help()
+            // tooltips natively; iPhone touch users ignore it. Same
+            // affordance shape as the tick-327 Decks tooltips.
+            .help("Profile")
             .walkthroughAnchor("find.profile")
         }
         ToolbarItem(placement: .principal) {
@@ -363,6 +369,7 @@ struct SearchView: View {
                     .foregroundStyle(Design.Colors.bobaCyan)
             }
             .accessibilityLabel("Scan a card")
+            .help("Scan a card")
             .walkthroughAnchor("find.scan")
         }
         // iPad regular surfaces Filters as a standalone toolbar
@@ -386,6 +393,7 @@ struct SearchView: View {
                     }
                 }
                 .accessibilityLabel("Filters")
+                .help(store.activeFilterCount > 0 ? "Filters · \(store.activeFilterCount) active" : "Filters")
             }
         }
         ToolbarItem(placement: .topBarTrailing) {

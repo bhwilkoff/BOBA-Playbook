@@ -4,38 +4,7 @@
 
 ## Pickup state — 2026-05-21 (pre-compaction)
 
-### What shipped this session
-
-**Cross-platform features**
-- Events refresh: dropped Whatnot from `assets/data/events.json` (lives on Purchase tab only via the existing Worker — see DECISIONS.md #034-adjacent update); stripped "Status: published" boilerplate from Carde.io entries; June 18 Tecmo Bowl release added as a curated entry with the official blog URL; OKC pending-art entry removed.
-- Refresh workflow (`refresh-events.yml`) now mirrors `events.json` to iOS (`BOBAPlaybook/events.json`) + Android (`android/app/src/main/assets/data/events.json`) bundles in the same commit so they can't drift.
-- Web Tournament tab `_eventsHydrated` idempotency removed; fetch revalidates on every tab activate via `cache: 'no-cache'` so stale cache no longer surfaces old "wrong info" rows.
-- Glossary long-press → Copy/Share menu shipped 3-platform (iOS contextMenu, Android DropdownMenu via long-press, web Popover API). Always-visible instruction text added above each glossary list.
-- iOS events parity: new `UpcomingEventsSection` + `EventRow` + `LearnEvent` + `LearnEventsLoader` inlined into `LearnView.swift` per the synchronized-group memory.
-- Daily blog cron: `scripts/refresh_blog.py` scrapes `bobattlearena.com/blog/all` (45 posts) + WP REST dates; `scripts/build_blog_digest.py` writes `docs/blog-digest.md` for autonomous loop mining; new `.github/workflows/refresh-blog.yml` runs daily at 05:17 UTC.
-- Doc trim: DESIGN.md / WEB-DESIGN.md / ANDROID-DESIGN.md / DECISIONS.md all under 40K (was 43.3K / 42.1K / 67.2K / 57.3K — saved ~52K total). TRADE-DESIGN.md was already under.
-
-**Android beta-prep**
-- Maps SDK wired (`maps-compose` + `play-services-maps` deps; `MAPS_API_KEY` from `local.properties` or env via manifestPlaceholder; new in-app `StoresMap` Composable above the Find a Store list — replaces the list-only `geo:` fallback. Markers capped at 500 mirroring iOS, auto-fit camera to filtered set.)
-- Card-detail swipe-nav (Android parity with iOS v2.287): new `CardNavigationStore` (Hilt singleton) + `CardNavigationHolderViewModel`; Find / Decks-compact / Collection screens populate sibling-bobaId list via `LaunchedEffect`; CardDetailScreen owns mutable `currentBobaId` + `detectHorizontalDragGestures` (80dp threshold, wrap-around).
-- Scan queue + review surface: new `ScanQueueStore` (Hilt singleton, 25-cap, de-dup by bobaId) + `ScanQueueHolderViewModel` + `ScanReviewSheet` (ModalBottomSheet w/ card name + number + tap-to-route + per-row remove + Clear all). `ScanScreen` adds "Recent · N" TopAppBar action when queue is non-empty.
-- Release signing config wired in `app/build.gradle.kts` (reads env / local.properties); `ndk.debugSymbolLevel = "SYMBOL_TABLE"` added so every release ships `native-debug-symbols.zip` alongside the AAB.
-- CI `play-store-internal` job uncommented + plumbed with all 5 secrets including `MAPS_API_KEY` + `debugSymbols`. Gated on `v*-android` tag push.
-
-**Play Console asset pipeline**
-- `tools/play-assets/` — full HTML/PIL-based render pipeline. Outputs ready: `out/icon-512.png` (sourced from iOS canonical icon, alpha-flattened) + `out/feature-graphic-1024x500.png` (XOXO + brand wordmark + glows). Plus ONE real Find screenshot at `out/screenshot-real-find.png` (real BOBA cards: Leboss / Showtime / Maverick / Mustang / Burrocious / Dart-Board).
-- `tools/play-assets/capture-screens.sh` — adb-driven real-app capture script. Working for Find; the other 4 screen captures need re-running with Android Studio booting the emulator (CLI cold-boot is unreliable; see `reference_screenshot_capture_pipeline`).
-- `android/distribution/play-console-listing.md` — paste-ready answers for short/long descriptions, Data Safety, IARC content rating, target audience, app access, ads, news/financial/health/government, release notes.
-
-### What's queued for next session (Ben action)
-
-See `WAKE_UP.md` "Things you need to do" for the canonical Ben-action list. Critical path: manual Play Console upload of `app-release.aab` per `reference_android_beta_upload_state` memory + `android/distribution/play-console-listing.md`. Blocker: Play Console API access UI missing for this org account (`reference_play_console_api_access_missing`).
-
-### Autonomous loop pickup hints
-
-- New `docs/blog-digest.md` is now available as a content-mining source. Every blog post on `bobattlearena.com/blog/all` is summarized with date + title + excerpt + URL.
-- `feedback_no_mockup_screenshots` + `feedback_ios_icon_is_canonical_brand_source` + `feedback_kotlin_extension_calls_unqualified` are new memories worth reading before any visual / Kotlin work.
-- Android v0.1.0 build is green; debug APK + signed release AAB both built. Don't waste a tick rebuilding.
+The full session-work log shipped that day (events refresh + scan queue + Maps SDK + Card-detail swipe-nav + Play Console asset pipeline + daily blog cron + doc trim) lives in git history. Ben-action list lives in `WAKE_UP.md` "Things you need to do" — critical path is the manual Play Console upload (per `reference_android_beta_upload_state` memory). Content-mining surface: `docs/blog-digest.md` (daily-refreshed). Build state at session end: Android v0.1.0 green, debug APK + signed release AAB built.
 
 ---
 

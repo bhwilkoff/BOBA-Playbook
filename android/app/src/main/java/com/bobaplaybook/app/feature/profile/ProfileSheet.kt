@@ -4,6 +4,7 @@ package com.bobaplaybook.app.feature.profile
 
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -1328,14 +1329,25 @@ private fun ToggleRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
+    // Tick 506 — make the whole ListItem row toggle the switch (same
+    // pattern as tick 504's CustomRainbow editor). Without this, users
+    // have to thumb-target the 32dp Switch widget exactly even though
+    // the title + subtitle take most of the row width. M3 ListItem
+    // doesn't apply this by default.
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = { Text(subtitle, style = MaterialTheme.typography.labelMedium) },
         leadingContent = { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
         trailingContent = {
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
+            Switch(checked = checked, onCheckedChange = null)
         },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = checked,
+                role = androidx.compose.ui.semantics.Role.Switch,
+                onValueChange = onCheckedChange,
+            ),
     )
 }
 

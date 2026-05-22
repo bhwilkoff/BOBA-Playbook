@@ -220,12 +220,14 @@ private fun SignedOutContent(authManager: AuthManager) {
             else
                 androidx.compose.ui.text.input.PasswordVisualTransformation(),
             trailingIcon = {
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(
-                        imageVector = if (passwordVisible) Icons.Default.VisibilityOff
-                                      else Icons.Default.Visibility,
-                        contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                    )
+                BOBAIconTooltip(if (passwordVisible) "Hide password" else "Show password") {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff
+                                          else Icons.Default.Visibility,
+                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                        )
+                    }
                 }
             },
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(

@@ -1016,6 +1016,16 @@ const Collection = (() => {
     const editAffordance = rainbowId
       ? `<button type="button" class="rainbow-edit-btn" data-rainbow-id="${esc(rainbowId)}" aria-label="Edit ${esc(name)}" title="Edit rainbow">✎</button>`
       : '';
+    // Tick 443 — iOS RainbowDetailView + Android tick 439 parity.
+    // Share rainbow progress: "My X rainbow: 5 of 12 treatments (41%) ·
+    // bobaplaybook.com" — matches the Android Share text shape.
+    // `unit` is "cards" for custom rainbows, "treatments" for auto.
+    const unit = rainbowId ? 'cards' : 'treatments';
+    const shareAffordance = `<button type="button" class="rainbow-share-btn"
+        data-rainbow-name="${esc(name)}" data-rainbow-owned="${ownedMatching.length}"
+        data-rainbow-total="${matching.length}" data-rainbow-pct="${pct}"
+        data-rainbow-unit="${unit}"
+        aria-label="Share ${esc(name)} rainbow progress" title="Share rainbow progress">⇪</button>`;
     // Tick 183 — Discord backlog #2 (web parity for iOS tick 182 +
     // Android tick 181). Lens chips inside the body let the user
     // narrow the 24-thumb strip to Owned / Missing without leaving
@@ -1030,6 +1040,7 @@ const Collection = (() => {
             <span class="rainbow-progress-bar"><span style="width:${pct}%"></span></span>
             <span class="rainbow-progress-pct">${pct}%</span>
           </span>
+          ${shareAffordance}
           ${editAffordance}
         </summary>
         <div class="rainbow-lens" role="tablist">
@@ -1199,6 +1210,7 @@ const Collection = (() => {
         if (r) openCustomRainbowEditor(r);
       });
     });
+    _wireRainbowShareButtons(list);
   }
 
   /// Per-hero Auto Rainbows — one row per unique hero in the user's
@@ -1272,6 +1284,35 @@ const Collection = (() => {
       row.__ownedKeys = ownedKeys;
     });
     _wireRainbowThumbs(list, catalog);
+    _wireRainbowShareButtons(list);
+  }
+
+  /// Wires every `.rainbow-share-btn` inside `containerEl` to the
+  /// global `bobaShareTarget` helper. Share text mirrors Android tick
+  /// 439 + iOS RainbowDetailView shape so all three platforms produce
+  /// identical share payloads.
+  function _wireRainbowShareButtons(containerEl) {
+    containerEl.querySelectorAll('.rainbow-share-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();         // don't toggle the <details>
+        e.stopPropagation();
+        const name  = btn.dataset.rainbowName  || 'BOBA';
+        const owned = btn.dataset.rainbowOwned || '0';
+        const total = btn.dataset.rainbowTotal || '0';
+        const pct   = btn.dataset.rainbowPct   || '0';
+        const unit  = btn.dataset.rainbowUnit  || 'cards';
+        const text  = `My ${name} rainbow: ${owned} of ${total} ${unit} (${pct}%) · bobaplaybook.com`;
+        if (typeof window.bobaShareTarget === 'function') {
+          await window.bobaShareTarget({
+            title: `My ${name} rainbow`,
+            text,
+            url: 'https://bobaplaybook.com',
+          }, btn);
+        } else {
+          try { await navigator.clipboard.writeText(text); } catch (_) {}
+        }
+      });
+    });
   }
 
   function formatAddedDate(iso) {

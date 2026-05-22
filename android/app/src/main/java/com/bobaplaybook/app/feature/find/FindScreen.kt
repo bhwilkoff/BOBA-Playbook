@@ -345,7 +345,7 @@ private fun FindContent(
                     // just the count; any other sort appends "· {label}" so
                     // users see what's ordering results without opening the
                     // overflow menu.
-                    sortLabel = if (state.sortOrder == SortOrder.DEFAULT) null
+                    sortLabel = if (state.sortOrder == SortOrder.NUMBER_ASC) null
                                 else state.sortOrder.label,
                 )
             }

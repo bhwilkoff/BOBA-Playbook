@@ -55,6 +55,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var decksActions: com.bobaplaybook.app.feature.decks.DecksActions
     // Tick 329 — keyboard Ctrl+arrow → Card Detail prev/next bus.
     @Inject lateinit var cardNavigationStore: com.bobaplaybook.app.feature.carddetail.CardNavigationStore
+    @Inject lateinit var tabRefreshBus: com.bobaplaybook.app.navigation.TabRefreshBus
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash screen MUST be installed before super.onCreate.
@@ -93,6 +94,7 @@ class MainActivity : ComponentActivity() {
                 findActions = findActions,
                 decksActions = decksActions,
                 cardNavigationStore = cardNavigationStore,
+                tabRefreshBus = tabRefreshBus,
             )
         }
     }

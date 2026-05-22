@@ -68,8 +68,20 @@ internal fun WatchPageContent() {
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    // Tap → in-app YouTube embed via WebView (iOS WatchView parity).
+    // Custom Tab fallback only kicks in when the URL doesn't expose a
+    // recognizable YouTube video ID (e.g., a channel-page link).
+    var playingVideoId by remember { mutableStateOf<String?>(null) }
     val openVideo: (String) -> Unit = { url ->
-        CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(url))
+        val id = extractYouTubeId(url)
+        if (id != null) {
+            playingVideoId = id
+        } else {
+            CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(url))
+        }
+    }
+    playingVideoId?.let { id ->
+        YouTubePlayerSheet(videoId = id, onDismiss = { playingVideoId = null })
     }
 
     val emptyBundle = state.bundle.upcoming.isEmpty() &&

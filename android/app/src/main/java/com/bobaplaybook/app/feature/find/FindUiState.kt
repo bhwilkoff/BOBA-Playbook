@@ -35,8 +35,12 @@ data class FindUiState(
     val cardPurpose: CardPurpose = CardPurpose.ALL,
     val showcaseId: String? = null,
 
-    // Sort
-    val sortOrder: SortOrder = SortOrder.DEFAULT,
+    // Sort — Card # ascending is the user-honest default. iOS used
+    // a `case default` with the label "Default" that actually sorted
+    // by cardNumber asc; Ben's punch-list #4 + #51 said the label
+    // was meaningless. Dropped DEFAULT entirely + made the implicit
+    // default explicit so the picker says what it does.
+    val sortOrder: SortOrder = SortOrder.NUMBER_ASC,
 
     // Derived state
     val isLoading: Boolean = true,
@@ -134,9 +138,10 @@ enum class CardPurpose(val label: String) {
  * (date added, market value, paid).
  */
 enum class SortOrder(val label: String) {
-    DEFAULT         ("Default (has image first)"),
-    // Tick 354 — iOS v2.328 + web tick 283 parity. Reverse catalog
-    // order — newer sets append, so recently-added cards bubble up.
+    // RECENTLY_ADDED at the top of the menu — iOS Find picker leads
+    // with the same. Dropped the prior DEFAULT entry; its behavior
+    // (cardNumber asc) was identical to NUMBER_ASC below, just with
+    // a meaningless label.
     RECENTLY_ADDED  ("Recently Added"),
     NAME_ASC        ("Name A → Z"),
     NAME_DESC       ("Name Z → A"),

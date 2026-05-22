@@ -253,6 +253,15 @@
       filterBadge.hidden = count === 0;
     }
     filterToggleBtn?.classList.toggle('has-filters', count > 0);
+    // Tick 388 — pointer-hover tooltip (iOS tick 387 .help() + Android
+    // tick 384 TooltipBox parity). When filters are active, suffix
+    // " · N active" so desktop users see the count without opening
+    // the panel.
+    if (filterToggleBtn) {
+      filterToggleBtn.title = count > 0
+        ? `Filters · ${count} active`
+        : 'Filters';
+    }
     renderActiveFilterChips();
   }
 

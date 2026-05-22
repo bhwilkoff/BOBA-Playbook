@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -65,6 +66,15 @@ fun BOBACardCell(
      * product (Booster Boxes etc.) should pass `isSealed = true`.
      */
     isSealed: Boolean = false,
+    /**
+     * Optional print-run badge surfaced as a top-trailing corner chip
+     * (`/5` / `/10` / `/25` / `/50` / `SSP` / `Serial`). Default null
+     * means no chip — call sites opt in by passing `card.printRunLabel`.
+     * Chip is hidden at very small cell widths to keep it legible at
+     * 3-col density. Discord backlog #7 per-cell variant; CardDetailScreen
+     * carries the full explainer-tooltip version (DECISIONS.md #028).
+     */
+    printRunLabel: String? = null,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -92,8 +102,39 @@ fun BOBACardCell(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
+                if (!printRunLabel.isNullOrBlank() && maxWidth >= 120.dp) {
+                    PrintRunBadge(
+                        label = printRunLabel,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp),
+                    )
+                }
             }
         }
+    }
+}
+
+/**
+ * Compact top-trailing chip rendering the print-run label. Orange for
+ * SSP (Superfoil) per the CardDetailScreen pattern; cyan otherwise
+ * (Inspired Ink /5 · /10 · /25 · /50 · Serial). Semi-translucent
+ * background so the card art reads through.
+ */
+@Composable
+private fun PrintRunBadge(label: String, modifier: Modifier = Modifier) {
+    val accent = if (label == "SSP") BobaBrand.Orange else BobaBrand.Cyan
+    Surface(
+        modifier = modifier,
+        color = Color.Black.copy(alpha = 0.62f),
+        shape = RoundedCornerShape(4.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            color = accent,
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+        )
     }
 }
 

@@ -940,6 +940,119 @@ private struct RulesSectionHeader: View {
     }
 }
 
+// Tick 217 — Discord backlog #3 iOS port (closes the trio with
+// Android tick 186 + web tick 208). Inline glossary tap-to-define on
+// Learn article body text. Minimum-viable canary: the ~20 most-common
+// terms are duplicated here from GlossaryView.gameTerms for now; a
+// future tick can hoist the full set to file scope and consolidate.
+// Future ticks: apply GlossaryAwareText to more surfaces (RookieRules,
+// SubstitutionRules, Playmaker, Collect, Tournament).
+fileprivate let boba_inlineGlossary: [(term: String, def: String)] = [
+    ("DBS",         "Deck Balancing System — each Play card has a DBS score (Low / Medium / High / Very High). All Playmaker divisions at the 2026 Nationals cap a deck's total DBS at 1,000 unless specified otherwise."),
+    ("HTD",         "Home Team Discount — a treatment on 60 Play cards in the Alpha Blast set that reduces the Hot Dog cost by 1 when used by the Honors player. Many tournament formats toggle HTD Plays on or off."),
+    ("Bonus Play",  "Card-number prefix BPL. Supplemental Plays (Alpha Update / Griffey / specialty sets) you can include beyond the 30-card Playbook. Some formats toggle Bonus Plays off entirely."),
+    ("Hot Dog",     "The energy resource of the game. Pay Hot Dogs to substitute or play Plays. Your Hot Dog Deck has exactly 10 cards, and they also serve as Power 0 placeholders."),
+    ("Coach",       "How a BoBA player refers to themselves in any gameplay setting. You lead a squad of heroes into battle."),
+    ("Honors",      "The right to act first in a battle — choose to substitute first, play first, and resolve first. After each battle, Honors passes to the battle winner."),
+    ("Playbook",    "The 30 unique-named Plays you bring to the table. Draw 1 after each battle."),
+    ("Rainbow",     "Community collecting goal — owning every treatment variation of a single hero (Base + all foils + autos)."),
+    ("Substitute",  "Swap the revealed Hero for one from your hand by paying 2 Hot Dogs during the Substitution Window."),
+    ("Substitution","Swap the revealed Hero for one from your hand by paying 2 Hot Dogs during the Substitution Window."),
+]
+
+/// AttributedString with glossary terms turned into tappable links via
+/// the `boba-glossary://` URL scheme. The .openURL environment handler
+/// at the GlossaryAwareText level intercepts and shows the definition
+/// sheet without leaving the page.
+fileprivate func boba_glossaryAware(_ text: String) -> AttributedString {
+    var attr = AttributedString(text)
+    // Longest-match-wins by sorting descending. Same regex pattern as
+    // the Android/Web ports: \b for letter-edged terms; lookaround for
+    // non-letter-edged (we have none yet but future-proof).
+    let sorted = boba_inlineGlossary.sorted { $0.term.count > $1.term.count }
+    for entry in sorted {
+        let escaped = NSRegularExpression.escapedPattern(for: entry.term)
+        let first = entry.term.first ?? "a"
+        let last = entry.term.last ?? "a"
+        let letterEdged = first.isLetter && last.isLetter
+        let pattern = letterEdged
+            ? "\\b\(escaped)\\b"
+            : "(?<![A-Za-z0-9])\(escaped)(?![A-Za-z0-9])"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
+        let nsText = text as NSString
+        let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsText.length))
+        // Iterate in reverse so earlier ranges remain valid after each
+        // edit (AttributedString indices shift on attribute changes).
+        for match in matches.reversed() {
+            guard let swiftRange = Range(match.range, in: text),
+                  let attrRange = Range(swiftRange, in: attr) else { continue }
+            // Already-linked? Skip (handles overlapping shorter terms).
+            if attr[attrRange].link != nil { continue }
+            let urlSafe = entry.term.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? entry.term
+            attr[attrRange].link = URL(string: "boba-glossary://\(urlSafe)")
+            attr[attrRange].foregroundColor = Design.Colors.bobaCyan
+            attr[attrRange].underlineStyle = .single
+        }
+    }
+    return attr
+}
+
+/// Text with glossary terms tappable. Tap a highlighted term → present
+/// a sheet with the definition. Pairs with the Android `GlossaryAwareBody`
+/// + web `wireInlineGlossary` surfaces.
+fileprivate struct GlossaryAwareText: View {
+    let raw: String
+    var font: Font = Design.Fonts.mono(14)
+    var color: Color = Design.Colors.textSecondary
+    @State private var openTerm: GlossaryHit? = nil
+    struct GlossaryHit: Identifiable {
+        let id = UUID()
+        let term: String
+        let definition: String
+    }
+    var body: some View {
+        Text(boba_glossaryAware(raw))
+            .font(font)
+            .foregroundStyle(color)
+            .fixedSize(horizontal: false, vertical: true)
+            .environment(\.openURL, OpenURLAction { url in
+                guard url.scheme == "boba-glossary" else { return .systemAction }
+                let host = url.host?.removingPercentEncoding ?? ""
+                if let entry = boba_inlineGlossary.first(where: { $0.term.caseInsensitiveCompare(host) == .orderedSame }) {
+                    openTerm = GlossaryHit(term: entry.term, definition: entry.def)
+                    return .handled
+                }
+                return .handled
+            })
+            .sheet(item: $openTerm) { hit in
+                NavigationStack {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: Design.Spacing.md) {
+                            Text(hit.term)
+                                .font(Design.Fonts.display(22))
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                            Text(hit.definition)
+                                .font(Design.Fonts.mono(14))
+                                .foregroundStyle(Design.Colors.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(Design.Spacing.lg)
+                    }
+                    .navigationTitle("Glossary")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Done") { openTerm = nil }
+                        }
+                    }
+                }
+                .presentationDetents([.medium, .large])
+            }
+    }
+}
+
 private struct RuleCard: View {
     let lines: [RuleLine]
     struct RuleLine: Identifiable {
@@ -954,8 +1067,7 @@ private struct RuleCard: View {
                         if let label = line.label {
                             Text(label).font(Design.Fonts.mono(15, weight: .bold)).foregroundStyle(Design.Colors.textPrimary)
                         }
-                        Text(line.body).font(Design.Fonts.mono(14)).foregroundStyle(Design.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        GlossaryAwareText(raw: line.body)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

@@ -273,6 +273,21 @@ struct RainbowDetailView: View {
                             .stroke(Design.Colors.textMuted.opacity(0.3), lineWidth: 1)
                     }
                 }
+                // Tick 477 — print-run + format-legality badges on Rainbow
+                // tiles (Android tick 459 parity — Android RainbowDetailScreen
+                // surfaces both via BOBACardCell). iOS bypasses BOBACardCell
+                // here so the badges are wired inline via the extracted
+                // PrintRunBadge / FormatLegalityHintBadge structs.
+                .overlay(alignment: .topLeading) {
+                    if let label = card.printRunLabel, !label.isEmpty {
+                        PrintRunBadge(label: label).padding(3)
+                    }
+                }
+                .overlay(alignment: .bottomLeading) {
+                    if let hint = CardFormatEligibility.restrictedLegalAbbrev(for: card) {
+                        FormatLegalityHintBadge(label: hint).padding(3)
+                    }
+                }
                 .overlay(alignment: .topTrailing) {
                     if isOwned {
                         Image(systemName: "checkmark.seal.fill")

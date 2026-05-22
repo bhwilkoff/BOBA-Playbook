@@ -538,6 +538,33 @@ private fun TournamentPage() {
                 }
             }
             items(blogPosts, key = { "blog-${it.id}" }) { post -> BlogPostRow(post) }
+            // Tick 259 — "See all N posts" link to the full archive
+            // (web tick 258 parity). Renders only when the feed has
+            // more posts than the 5-post preview.
+            val totalPosts = blogBundle.posts.size
+            if (totalPosts > blogPosts.size) {
+                item("blog-see-all") {
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            androidx.browser.customtabs.CustomTabsIntent.Builder()
+                                .build()
+                                .launchUrl(
+                                    context,
+                                    android.net.Uri.parse("https://bobattlearena.com/blog/all"),
+                                )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            "See all $totalPosts posts on bobattlearena.com ↗",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = com.bobaplaybook.core.ui.theme.BobaBrand.Cyan,
+                        )
+                    }
+                }
+            }
         }
 
         itemsIndexed(items = sections, key = { i, _ -> "section-$i" }) { _, section ->

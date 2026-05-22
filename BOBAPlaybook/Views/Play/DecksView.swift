@@ -775,9 +775,8 @@ struct DecksView: View {
     }
 
     /// Always-visible header — deck name + legality pill + per-section
-    /// stat cells. The format pill that previously lived here was
-    /// removed because the format chip strip below already shows the
-    /// active format prominently.
+    /// stat cells. Format is shown via the chip strip below; no
+    /// duplicated pill here.
     private var sheetHeaderRow: some View {
         // @Environment(DeckBuilderStore.self) (tick 135) doesn't project
         // `$store`. Local @Bindable promotes the observable so the

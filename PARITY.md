@@ -139,7 +139,7 @@ When shipping any user-facing feature:
 | Hero-name veto | ✅ | 🚫 | ✅ | Per DECISIONS.md #035. |
 | Image-fingerprint matching | ✅ | 🚫 | 🔮 v2 | MediaPipe Image Embedder; parallel `feature-prints-android.bin` |
 | Multi-card grid scan | ✅ | 🚫 | 🔮 v2 | OpenCV port |
-| Scan queue / review surface | ✅ | n/a | ⏳ M3 polish | `BottomAppBar` action slot when active |
+| Scan queue / review surface | ✅ | n/a | ✅ | Android ScanQueueStore (Hilt singleton, 25-cap, de-dup by bobaId) + ScanReviewSheet ModalBottomSheet — commit 54d2124 |
 | Per-tab destination routing (Find/Decks/Collection) | ✅ | n/a | ⏳ M3 polish | Single `ScanCoordinator` |
 
 Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan results when iOS/Android users share them.
@@ -175,23 +175,23 @@ Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan resul
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
 | Sign in with Apple | ✅ | ✅ | 🚫 §12 | iOS brand; Android uses Sign in with Google |
-| Sign in with Google | 🔮 | 🔮 | ⏳ M7 | Credential Manager on Android |
-| Email/password | ✅ | ✅ | ⏳ M7 | Same Supabase shape |
-| Discord OAuth | ✅ | ✅ | ⏳ M7 | Auth Tab (Chrome 132+) on Android |
-| Passkey support | 🔮 | 🔮 | ⏳ M7 | Free via Credential Manager bottom sheet |
-| Biometric gate (sensitive actions) | ✅ Face ID | n/a | ⏳ M7 | `BiometricPrompt` on Android |
-| Username (banned-words gated) | ✅ | ✅ | ⏳ M7 | Two-layer client + server check |
-| Avatar upload | ✅ | ✅ | ⏳ M7 | Same `boba-avatar-upload` Worker |
-| Public collection toggle | ✅ | ✅ | ⏳ M7 | Sharing flag |
-| Generalized role request (mod / streamer) | ✅ | ✅ | ⏳ M7 | Same `request_role` RPC |
-| Account deletion | ✅ | ✅ | ⏳ M7 | Same `boba-account-delete` Worker |
-| Discord identity link (for trading) | ✅ | ✅ | ⏳ M7 | Same OAuth flow, different Custom Tab on Android |
-| Notification toggle (match alerts) | ✅ UI only | ✅ UI only | ⏳ M7 | Match-alerts pipeline deferred per DECISIONS.md #039 |
-| Trading toggle (Discord-gated) | ✅ UI only | ✅ UI only | ⏳ M7 | TRADE-DESIGN.md Phase 1 |
+| Sign in with Google | 🔮 | 🔮 | ✅ | Android Credential Manager (one-tap + passkey-capable bottom sheet) |
+| Email/password | ✅ | ✅ | ✅ | Same Supabase shape on all three |
+| Discord OAuth | ✅ | ✅ | ⏳ M7 polish | Android stub today; Auth Tab / Custom Tabs path remaining |
+| Passkey support | 🔮 | 🔮 | ✅ | Free via Credential Manager bottom sheet on Android |
+| Biometric gate (sensitive actions) | ✅ Face ID | n/a | ⏳ M7 polish | `BiometricPrompt` wiring still pending on Android |
+| Username (banned-words gated) | ✅ | ✅ | ✅ | Same `set_username` / `check_username` RPCs |
+| Avatar upload | ✅ | ✅ | ✅ | Same `boba-avatar-upload` Worker; bind in ProfileSheet w/ avatarPicker |
+| Public collection toggle | ✅ | ✅ | ✅ | Hydration fix landed tick 199 (commit a5c72e9) |
+| Generalized role request (mod / streamer) | ✅ | ✅ | ✅ | Same `request_role` RPC |
+| Account deletion | ✅ | ✅ | ✅ | Same `boba-account-delete` Worker |
+| Discord identity link (for trading) | ✅ | ✅ | ⏳ M7 polish | Pending Discord OAuth Custom Tab implementation |
+| Notification toggle (match alerts) | ✅ UI only | ✅ UI only | ✅ UI only | Match-alerts pipeline deferred per DECISIONS.md #039 |
+| Trading toggle (Discord-gated) | ✅ UI only | ✅ UI only | ⏳ | Surfaces with Discord OAuth M7 polish; TRADE-DESIGN.md Phase 1 |
 | Admin panel | ✅ | ✅ | 🔮 | Role-gated; defer to v2 |
 | Mod panel | ✅ | ✅ | 🔮 | Role-gated; defer to v2 |
 | Mod card edits (add / edit) | ✅ | ✅ | 🔮 | Same Worker `boba-mod-merge` |
-| Sign-in method pill on Profile | ✅ | ✅ | ⏳ M7 | Visual indicator |
+| Sign-in method pill on Profile | ✅ | ✅ | ⏳ M7 polish | Visual indicator pending |
 
 ---
 

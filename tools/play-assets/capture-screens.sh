@@ -27,15 +27,29 @@ mkdir -p "$OUT"
 # ─── Helpers ─────────────────────────────────────────────────────
 dismiss_dialogs() {
   # Best-effort: if a system ANR / permission / wellbeing dialog is
-  # in front of the app, the topResumedActivity will be something
-  # other than com.bobaplaybook.app/.MainActivity. Press BACK up to
-  # 3 times to clear; harmless if no dialog is showing (the app's
-  # back behavior is gracefully no-op at root).
+  # in front of the app, the topResumedActivity will be a DIALOG
+  # activity sitting above us. Press BACK up to 3 times to clear.
+  #
+  # PRE-2026-05-22 BUG: the prior version pressed BACK whenever
+  # topResumedActivity wasn't BOBA — including when the launcher
+  # was still briefly on top during an `am start` transition, OR
+  # when dumpsys returned empty mid-launch (BACK on an empty
+  # string is just home, which the launcher catches → we land on
+  # the home screen instead of in the app). Now we only BACK when
+  # we positively identify a NON-launcher NON-BOBA activity on
+  # top, which is the only situation BACK should be used.
   for _ in 1 2 3; do
     local top
     top="$($ADB shell dumpsys activity activities 2>/dev/null \
             | grep 'topResumedActivity' | head -1 || true)"
-    if [[ "$top" == *"com.bobaplaybook.app"* ]]; then return; fi
+    # Empty → still launching, don't touch
+    [[ -z "$top" ]] && { sleep 1; continue; }
+    # BOBA is on top → done
+    [[ "$top" == *"com.bobaplaybook.app"* ]] && return
+    # Launcher is on top → app hasn't fully started yet, don't BACK
+    # (that would take us deeper into the launcher / home screen)
+    [[ "$top" == *"NexusLauncherActivity"* || "$top" == *"Launcher"* ]] && { sleep 1; continue; }
+    # Something else (genuine dialog) — dismiss it
     $ADB shell input keyevent KEYCODE_BACK >/dev/null 2>&1
     sleep 1
   done
@@ -52,11 +66,14 @@ snap() {
   $ADB exec-out screencap -p > "$OUT/$name"
   echo "  ✓ $name  $(du -h "$OUT/$name" | cut -f1)"
 }
-tap()      { $ADB shell input tap "$1" "$2"; sleep 1.0; }
-back()     { $ADB shell input keyevent KEYCODE_BACK; sleep 1.0; }
+tap()      { $ADB shell input tap "$1" "$2"; sleep 1.5; }
+back()     { $ADB shell input keyevent KEYCODE_BACK; sleep 1.5; }
 home()     { $ADB shell input keyevent KEYCODE_HOME; sleep 0.5; }
 swipe()    { $ADB shell input swipe "$@"; sleep 0.5; }
-launch()   { $ADB shell am start -n "$ACTIVITY" >/dev/null; sleep 3.0; }
+# Bumped post-launch sleep 3s → 6s. The card-art grid is populated
+# by Coil on a background thread after cards.json decode; without
+# this extra wait the Find capture lands on an empty-cell grid.
+launch()   { $ADB shell am start -n "$ACTIVITY" >/dev/null; sleep 6.0; }
 
 # ─── Demo-mode status bar (idempotent) ───────────────────────────
 $ADB shell settings put global sysui_demo_allowed 1
@@ -75,16 +92,17 @@ demo battery -e level 100 -e plugged false
 
 # ─── 1. Find ─────────────────────────────────────────────────────
 # Force-stop + launch so we always land on the Find root tab.
+# launch() includes a 6s settle for Coil to populate the grid art.
 $ADB shell am force-stop "$PKG"
 launch
-sleep 2
+sleep 4    # extra warmup for the first image fetches
 snap "screenshot-1-find.png"
 
 # ─── 2. Card detail (tap the first card in the grid) ─────────────
 # Card cells live in a LazyVerticalGrid; first cell on a 1280-wide
 # Pixel 9 Pro lands around (240, 900). Tune if grid layout shifts.
 tap 240 1000
-sleep 2
+sleep 4    # CardDetailScreen artPanel needs time to render
 snap "screenshot-2-card-detail.png"
 back
 
@@ -106,13 +124,19 @@ snap "screenshot-4-collection.png"
 
 # ─── 5. Learn → Tournament ───────────────────────────────────────
 tap 384 $NAV_Y     # Learn (2nd of 5)
-sleep 2
-# Tournament category — 5th ListItem row in Learn root. ListItem
-# rows are ~140dp tall (~ 224 px at density 480). With a TopAppBar
-# offset of ~330 px, the 5th row centers around y = 330 + 4*224 + 112 = ~1338.
-tap 640 1350
-sleep 2
-snap "screenshot-5-events.png"
+sleep 3
+# Learn root is a 2-column grid of 6 category cards (Rules /
+# Strategy / Collect / Watch / Glossary / Tournament). Tournament
+# is the bottom-right cell. The grid fills the top ~64% of the
+# 1280×2856 canvas (header + empty bottom space below):
+#   col-left  center ≈ 320  ·  col-right center ≈ 940
+#   row-1 (Rules / Strategy)        center ≈  770
+#   row-2 (Collect / Watch)         center ≈ 1185
+#   row-3 (Glossary / Tournament)   center ≈ 1620
+# Tournament is row-3 col-right ≈ (940, 1620).
+tap 940 1620
+sleep 4
+snap "screenshot-5-tournament.png"
 
 echo
 echo "Done. Output:"

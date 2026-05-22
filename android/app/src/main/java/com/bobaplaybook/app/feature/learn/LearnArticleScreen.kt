@@ -50,7 +50,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -755,9 +757,7 @@ private fun EventRow(event: EventEntry) {
 
 @Composable
 private fun GlossaryPage() {
-    var query by androidx.compose.runtime.saveable.rememberSaveable {
-        androidx.compose.runtime.mutableStateOf("")
-    }
+    var query by rememberSaveable { mutableStateOf("") }
     val needle = query.trim().lowercase()
     val context = LocalContext.current
     // Tick 230 — platform ClipboardManager instead of Compose's
@@ -809,7 +809,7 @@ private fun GlossaryPage() {
         // In-corpus filter — iOS DESIGN.md §6 (Search is the universal
         // navigator) + the Glossary's high term density justify a
         // persistent search field over the OutlinedTextField shape.
-        androidx.compose.material3.OutlinedTextField(
+        OutlinedTextField(
             value = query,
             onValueChange = { query = it },
             placeholder = { Text("Filter terms or definitions") },
@@ -883,7 +883,7 @@ private fun TermRow(
     // no-op (the always-visible instruction line above the lists tells
     // users to press-and-hold). Mirrors iOS contextMenu (tick 200) and
     // web Popover menu.
-    var menuOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
     Box {
         Row(
             modifier = Modifier
@@ -1200,7 +1200,7 @@ private fun GlossaryAwareBody(text: String) {
     )
     val hit = openHit
     if (hit != null) {
-        val sheetState = androidx.compose.material3.rememberModalBottomSheetState()
+        val sheetState = rememberModalBottomSheetState()
         ModalBottomSheet(
             onDismissRequest = { openHit = null },
             sheetState = sheetState,

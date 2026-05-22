@@ -403,11 +403,18 @@ struct SearchView: View {
                 // Biases 30% of picks toward Inspired Ink / Superfoil /
                 // Kanjifoil so the surprise actually surfaces something
                 // notable instead of yet-another-Battlefoil.
+                // Tick 297 — surface the pool size so the user knows
+                // how many cards Surprise Me is drawing from. With a
+                // tight filter it can be just a few; with no filter
+                // it's the whole 17,974-card catalog.
                 Button {
                     surpriseMe()
                 } label: {
-                    Label("Surprise me 🎲", systemImage: "sparkles")
+                    let n = store.filteredCards.count
+                    Label("Surprise me 🎲 (\(n.formatted()))",
+                          systemImage: "sparkles")
                 }
+                .disabled(store.filteredCards.isEmpty)
                 Button {
                     WalkthroughsManager.shared.relaunch(.findTab)
                     walkthrough = .findTab

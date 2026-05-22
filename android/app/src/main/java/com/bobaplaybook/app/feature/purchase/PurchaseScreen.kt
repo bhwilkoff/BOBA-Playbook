@@ -431,7 +431,11 @@ private fun StoresList(
             )
             androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
             Text(
-                "${state.filteredStores.size} stores",
+                // Tick 424 — locale-format the store count. The full
+                // catalog hits ~2,000 stores (indie + big-box); "2,130
+                // stores" reads cleaner than "2130". Same pattern as
+                // tick 406 viewer count + tick 414 Collection count.
+                "${java.text.NumberFormat.getInstance(java.util.Locale.US).format(state.filteredStores.size)} stores",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

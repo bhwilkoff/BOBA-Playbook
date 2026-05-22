@@ -812,9 +812,24 @@ struct CollectionCardDetailView: View {
 
     private func variationTile(_ card: Card) -> some View {
         VStack(spacing: Design.Spacing.xs) {
+            // Tick 502 — print-run + format-legality badges on
+            // variation tiles (Android tick 461/469 + iOS Find-tab
+            // tick 462/472 parity). CardImageView bypasses BOBACardCell
+            // so the badges need to be wired inline via the now-
+            // extracted PrintRunBadge / FormatLegalityHintBadge structs.
             CardImageView(card: card, size: .thumb)
                 .frame(width: 80, height: 112)
                 .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
+                .overlay(alignment: .topTrailing) {
+                    if let label = card.printRunLabel, !label.isEmpty {
+                        PrintRunBadge(label: label).padding(3)
+                    }
+                }
+                .overlay(alignment: .bottomLeading) {
+                    if let hint = CardFormatEligibility.restrictedLegalAbbrev(for: card) {
+                        FormatLegalityHintBadge(label: hint).padding(3)
+                    }
+                }
 
             Text(card.treatment ?? card.set)
                 .font(Design.Fonts.mono(9))

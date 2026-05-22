@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 255 (iOS — closes trio)** — Past tournament events dim 0.55α + "· PAST" + drop Open-↗ (ccb5342). **Closes the past-event-styling trio** (web 253, Android 254, iOS today). v2.306/568. Tick was marked opt by cadence but the parity work is more impactful.
 - **tick 254 (Android)** — Past tournament events dim 0.55α + "· PAST" date suffix + drop Open-↗ CTA (606f35a). Mirrors web tick 253. iOS port queued.
 - **tick 253 (web)** — Past tournament events dim to 0.55 opacity + "· PAST" date suffix (25bafbb). Open-↗ CTA dropped on concluded events. iOS + Android parallel ports queued.
 - **tick 252 (iOS)** — Upcoming Events section gains the Last-refreshed stamp inline w/ header (770bae4). Closes Android tick 219 + web tick 218 events-stamp parity. v2.305/567.

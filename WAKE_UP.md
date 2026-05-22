@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 263 (web)** — Find right-click contextMenu (Add to Personal / Mark as Wanted / View card) via Popover API (1c96713). Mirrors iOS tick 262. Mobile users still use Quick Add toggle.
 - **tick 262 (iOS — new feature)** — Find grid contextMenu (long-press card) — Add to Personal / Mark as Wanted / View card (e22ff71). Skips the full Add sheet for common cases. Signed-out users see clear "Sign in to add" alert. v2.309/571.
 - **tick 261 (Android)** — "See all N posts" link upgraded from bare TextButton to cyan-bordered card matching web styling (60c2dfe). Visual parity across all 3 platforms.
 - **tick 260 (iOS → trio close)** — RecentBoBANewsSection gains "See all N posts" link to bobattlearena.com/blog/all (12d0737). **Closes the see-all-archive trio** (web 258, Android 259, iOS today). v2.308/570. Was marked opt by cadence but parity work is more impactful.

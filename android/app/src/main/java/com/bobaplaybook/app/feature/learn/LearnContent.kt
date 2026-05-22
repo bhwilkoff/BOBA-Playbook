@@ -248,8 +248,15 @@ object LearnCorpus {
         // one of them ("Tied Power → coin flip in casual") was wrong vs
         // the iOS-verified rule ("Honors stays with the same player").
         // This port replaces with iOS's authoritative 7-case set.
-        LearnSection.Term(
+        // Tick 296 — section header now lives in its own Body row so all
+        // 7 Term rows render uniformly. Was: first Term had
+        // heading="Edge cases", subsequent rows had none → readers
+        // missed that 6/7 rows were under the same topic.
+        LearnSection.Body(
             heading = "Edge cases",
+            text = "Seven rules the official rulebook clarifies that come up in real games:",
+        ),
+        LearnSection.Term(
             term = "Substitution cost is always 2",
             definition = "Cost-modifier plays (e.g., Dog On Inflation, +2 to plays) do NOT affect Substitution. Substitution always costs 2 Hot Dogs regardless of active modifiers.",
         ),

@@ -2580,35 +2580,71 @@ private struct LearnBlogPost: Decodable, Identifiable {
 // Recent BoBA News section never rendered any posts.
 private struct LearnBlogBundle: Decodable {
     let posts: [LearnBlogPost]
+    let lastUpdated: String?
 }
 
 private enum LearnBlogLoader {
-    static func load() -> [LearnBlogPost] {
+    static func loadBundle() -> LearnBlogBundle {
         guard
             let url  = Bundle.main.url(forResource: "blog-feed", withExtension: "json"),
             let data = try? Data(contentsOf: url)
-        else { return [] }
-        return (try? JSONDecoder().decode(LearnBlogBundle.self, from: data))?.posts ?? []
+        else { return LearnBlogBundle(posts: [], lastUpdated: nil) }
+        return (try? JSONDecoder().decode(LearnBlogBundle.self, from: data))
+            ?? LearnBlogBundle(posts: [], lastUpdated: nil)
+    }
+    static func load() -> [LearnBlogPost] { loadBundle().posts }
+}
+
+// Tick 247 — relative-format YYYY-MM-DD dates for the news rows
+// (Android tick 246 parity). "today" / "yesterday" / "Nd ago" /
+// "Nw ago" within 5 weeks; raw ISO for older.
+private func learnBlogRelativeDate(_ iso: String) -> String {
+    let parts = iso.split(separator: "-").map(String.init)
+    guard parts.count == 3,
+          let y = Int(parts[0]),
+          let m = Int(parts[1]),
+          let d = Int(parts[2]) else { return iso }
+    var comps = DateComponents()
+    comps.year = y; comps.month = m; comps.day = d
+    guard let date = Calendar.current.date(from: comps) else { return iso }
+    let days = Int((Date().timeIntervalSince(date)) / 86_400)
+    switch days {
+    case ..<0:     return iso
+    case 0:        return "today"
+    case 1:        return "yesterday"
+    case 2..<7:    return "\(days)d ago"
+    case 7..<35:   return "\(days / 7)w ago"
+    default:       return iso
     }
 }
 
 private struct RecentBoBANewsSection: View {
     @Environment(\.openURL) private var openURL
-    private let posts: [LearnBlogPost] = Array(LearnBlogLoader.load().prefix(5))
+    private let bundle = LearnBlogLoader.loadBundle()
+    private var posts: [LearnBlogPost] { Array(bundle.posts.prefix(5)) }
 
     var body: some View {
         if posts.isEmpty { EmptyView() } else {
             VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-                Text("RECENT BOBA NEWS")
-                    .font(Design.Fonts.mono(12, weight: .bold))
-                    .foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("RECENT BOBA NEWS")
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+                    // Tick 247 — last-refreshed stamp inline w/ the section
+                    // header (Android tick 244 parity).
+                    if let stamp = bundle.lastUpdated, !stamp.isEmpty {
+                        Text("· refreshed \(learnBlogRelativeDate(stamp))")
+                            .font(Design.Fonts.mono(10))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                }
                 VStack(spacing: Design.Spacing.sm) {
                     ForEach(posts) { post in
                         Button {
                             if let u = URL(string: post.url) { openURL(u) }
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(post.date)
+                                Text(learnBlogRelativeDate(post.date))
                                     .font(Design.Fonts.mono(11, weight: .bold))
                                     .foregroundStyle(Design.Colors.bobaOrange)
                                     .tracking(1.2)

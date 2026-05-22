@@ -917,8 +917,15 @@ fileprivate func boba_glossaryAware(_ text: String) -> AttributedString {
         let first = entry.term.first ?? "a"
         let last = entry.term.last ?? "a"
         let letterEdged = first.isLetter && last.isLetter
+        // Tick 377 — web tick 373 + Android tick 374 parity. Letter-
+        // edged terms whose singular doesn't already end in 's' allow
+        // an optional trailing `s` so "Hot Dogs" / "Hero Decks" /
+        // "Top Decks" / "Bonus Plays" tap-resolve to their singular
+        // glossary entries. Terms ending in 's' keep strict boundary
+        // so e.g. "comp" doesn't accidentally match a "comps" entry.
+        let trailingS = letterEdged && entry.term.last?.lowercased() != "s"
         let pattern = letterEdged
-            ? "\\b\(escaped)\\b"
+            ? (trailingS ? "\\b\(escaped)s?\\b" : "\\b\(escaped)\\b")
             : "(?<![A-Za-z0-9])\(escaped)(?![A-Za-z0-9])"
         guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
         let nsText = text as NSString
@@ -1798,6 +1805,13 @@ private struct GlossaryView: View {
         .init(term: "Apex", definition: "The premier BoBA division — full Apex deck rules, no power cap, $150K prize pool, free to enter at the 2026 Nationals. Apex Madness pairs an Apex deck with Spec 160 teammates."),
         .init(term: "Brawl", definition: "A heritage BoBA format — single-weapon decks where every Hero shares the same weapon. Also a weapon type introduced in 2026 Edition. The Brawl division at the 2026 Nationals offers $20K + product."),
         .init(term: "Tecmo Bowl", definition: "2026 edition (June 18 release) themed around the iconic Tecmo Bowl video game. Retro-themed Heroes and Plays; Tecmo + Pixel art treatments. Its own $50K Nationals division."),
+        // Tick 377 — Android tick 376 parity. Madness + Spec-format
+        // terms surfaced by the Tournament tab Madness section
+        // (DoubleUpSection + MadnessSection now glossary-aware per
+        // tick 367) that had no entry.
+        .init(term: "Spec 160", definition: "BoBA's Spec format with a 160-Power cap. Heroes above 160 Power are illegal. Used in Apex Madness teammate decks (≤160) where Foil Hot Dogs or 10-of-an-insert unlock Apex Heroes above the cap."),
+        .init(term: "High Ball", definition: "HiLo Madness rule for Head Coaches — highest Power Hero wins each battle. The standard BoBA win condition; pairs against teammates playing Low Ball on the same team."),
+        .init(term: "Low Ball", definition: "HiLo Madness rule for teammates — lowest Power Hero wins each battle. Inverts the standard BoBA win condition; rewards Rookie decks with low-power Heroes. Pairs with Head Coaches playing High Ball."),
     ]
 
     fileprivate static let tradingTerms: [Term] = [

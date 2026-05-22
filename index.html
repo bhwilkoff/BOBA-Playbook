@@ -412,6 +412,12 @@
         <h2 class="empty-state-title">No cards match</h2>
         <p class="empty-state-body" id="empty-state-body">Try a different search, or loosen your filters.</p>
         <button class="btn-ghost-sm" id="clear-filters-btn">Clear all filters</button>
+        <!-- Tick 343 — secondary CTA: collapse the two-step
+             "clear → fire Surprise" path into one. Closes the
+             3-platform empty-state-Surprise trio (iOS v2.326 + Android). -->
+        <button class="btn-ghost-sm" id="empty-state-surprise-btn" type="button">
+          🎲 Surprise me from all cards
+        </button>
       </div>
 
       <div class="load-sentinel" id="load-sentinel" aria-hidden="true"></div>

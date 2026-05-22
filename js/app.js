@@ -2146,6 +2146,15 @@
   clearFiltersBtn?.addEventListener('click', resetFilters);
   filterClearAllBtn?.addEventListener('click', resetFilters);
 
+  // Tick 343 — empty-state "Surprise me from all cards" CTA. iOS v2.326
+  // parity. Collapses two clicks (Clear → Surprise) into one. Clear
+  // first, then defer Surprise to the next animation frame so
+  // filteredCards has recomputed before the random pick runs.
+  $('empty-state-surprise-btn')?.addEventListener('click', () => {
+    resetFilters();
+    requestAnimationFrame(() => fireSurpriseMe());
+  });
+
   // Quick Add — toggle click, and auth-change listener so the pill
   // disappears on sign-out. Auth module dispatches 'auth-change' with
   // detail.session set when signed in.

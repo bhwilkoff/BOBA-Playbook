@@ -242,7 +242,7 @@ sealed interface SignInResult {
             Success -> "Signed in"
             Cancelled -> "Sign-in cancelled"
             NoCredentialAvailable ->
-                "No Google account available. Make sure you're signed in to Google on this device, or use email instead."
+                "No Google credential returned. Either (a) no Google account is on this device, or (b) the app's signing-key SHA-1 isn't registered with the Firebase / Google OAuth Android client for com.bobaplaybook.app. Add it in Firebase Console → Project settings → Android app → Add fingerprint."
             is CredentialError -> "Google sign-in error: $msg"
             is SupabaseError   -> "Server rejected sign-in: $msg"
             is UnknownError    -> "Sign-in failed: $msg"

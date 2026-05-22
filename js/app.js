@@ -1679,7 +1679,13 @@
 
     // Build cardsByBobaId: bobaId → Card — used for exact card matching in Collection
     cardsByBobaId.clear();
-    for (const card of cards) {
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      // Tick 283 — stamp catalog index so the 'Recently Added' sort
+      // can use it without re-running indexOf per comparison. Catalog
+      // order is chronological (new sets append), so higher _idx =
+      // newer card.
+      card._idx = i;
       if (card.bobaId) cardsByBobaId.set(String(card.bobaId), card);
     }
 
@@ -1871,6 +1877,11 @@
       if (aImg !== bImg) return aImg ? -1 : 1;
 
       switch (filters.sortBy) {
+        case 'recently-added':
+          // Tick 283 — newest-first via reverse catalog index. iOS
+          // v2.313 + Android 'recentlyAdded' shelf parity (catalog
+          // order is chronological — new sets append).
+          return (b._idx ?? 0) - (a._idx ?? 0);
         case 'name-asc':
           return heroName(a).localeCompare(heroName(b));
         case 'name-desc':

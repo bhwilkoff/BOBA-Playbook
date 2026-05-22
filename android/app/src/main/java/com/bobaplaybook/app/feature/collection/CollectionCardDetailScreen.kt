@@ -61,6 +61,7 @@ import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.domain.model.Designation
 import com.bobaplaybook.core.network.CDN
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.bobaplaybook.core.ui.format.formatUsdAmount
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import com.bobaplaybook.core.ui.components.BOBAStatsGrid
@@ -344,11 +345,15 @@ private fun CopyRow(
             entry.userCard.quantity.takeIf { it > 1 }?.let {
                 Text("×$it", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            IconButton(onClick = { editOpen = true }) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            BOBAIconTooltip("Edit this copy") {
+                IconButton(onClick = { editOpen = true }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
-            IconButton(onClick = { deleteOpen = true }) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+            BOBAIconTooltip("Delete this copy") {
+                IconButton(onClick = { deleteOpen = true }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                }
             }
         }
         // Designation switcher

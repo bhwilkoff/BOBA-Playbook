@@ -6727,6 +6727,36 @@ dialog.modal-overlay[open] {
   margin-bottom: var(--sp-3);
 }
 
+/* Tick 278 — Pro Tour intro section (iOS + Android parity). */
+.protour-intro {
+  background: var(--boba-surface);
+  border: 1px solid rgba(255, 77, 0, 0.3);
+  border-radius: var(--rad-md);
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.protour-prize {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--boba-orange);
+  letter-spacing: 0.02em;
+}
+.protour-coach-heading {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--boba-cyan);
+  margin-top: var(--sp-2);
+}
+.protour-detail {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--boba-text-secondary);
+  margin: 0;
+}
+
 /* Tick 193 — Discord backlog #8: Upcoming Events list on Tournament tab. */
 .events-list {
   display: flex;

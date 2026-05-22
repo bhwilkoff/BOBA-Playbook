@@ -41,6 +41,7 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -160,26 +161,65 @@ fun CollectionScreen(
                 title = { BOBAWordmark() },
                 actions = {
                     val context = LocalContext.current
-                    IconButton(onClick = onScanClick) {
-                        Icon(
-                            imageVector = Icons.Default.QrCodeScanner,
-                            contentDescription = "Scan a card",
-                        )
+                    // Tick 394 — TooltipBox on each TopAppBar IconButton.
+                    // Mouse-hover / long-press affordance hints (Android
+                    // Find tick 384+386+389 + iOS Collection tick 392
+                    // parity). Default below-anchor placement.
+                    androidx.compose.material3.TooltipBox(
+                        positionProvider = androidx.compose.material3.TooltipDefaults
+                            .rememberTooltipPositionProvider(
+                                androidx.compose.material3.TooltipAnchorPosition.Below
+                            ),
+                        tooltip = { PlainTooltip { Text("Scan a card") } },
+                        state = androidx.compose.material3.rememberTooltipState(),
+                    ) {
+                        IconButton(onClick = onScanClick) {
+                            Icon(
+                                imageVector = Icons.Default.QrCodeScanner,
+                                contentDescription = "Scan a card",
+                            )
+                        }
                     }
-                    IconButton(onClick = { filterSheetOpen = true }) {
-                        BadgedBox(
-                            badge = {
-                                if (findState.activeFilterCount > 0) {
-                                    androidx.compose.material3.Badge { Text("${findState.activeFilterCount}") }
-                                }
-                            },
-                        ) {
-                            Icon(Icons.Default.Tune, contentDescription = "Filters")
+                    androidx.compose.material3.TooltipBox(
+                        positionProvider = androidx.compose.material3.TooltipDefaults
+                            .rememberTooltipPositionProvider(
+                                androidx.compose.material3.TooltipAnchorPosition.Below
+                            ),
+                        tooltip = {
+                            PlainTooltip {
+                                Text(
+                                    if (findState.activeFilterCount > 0)
+                                        "Filters · ${findState.activeFilterCount} active"
+                                    else "Filters"
+                                )
+                            }
+                        },
+                        state = androidx.compose.material3.rememberTooltipState(),
+                    ) {
+                        IconButton(onClick = { filterSheetOpen = true }) {
+                            BadgedBox(
+                                badge = {
+                                    if (findState.activeFilterCount > 0) {
+                                        androidx.compose.material3.Badge { Text("${findState.activeFilterCount}") }
+                                    }
+                                },
+                            ) {
+                                Icon(Icons.Default.Tune, contentDescription = "Filters")
+                            }
                         }
                     }
                     Box {
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More")
+                        androidx.compose.material3.TooltipBox(
+                            positionProvider = androidx.compose.material3.TooltipDefaults
+                                .rememberTooltipPositionProvider(
+                                    androidx.compose.material3.TooltipAnchorPosition.Below
+                                ),
+                            tooltip = { PlainTooltip { Text("Display mode + collection actions") } },
+                            state = androidx.compose.material3.rememberTooltipState(),
+                        ) {
+                            IconButton(onClick = { menuOpen = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More")
+                            }
                         }
                         DropdownMenu(
                             expanded = menuOpen,

@@ -928,19 +928,8 @@ struct CardDetailView: View {
                                         }
                                     }
                                     .overlay(alignment: .bottomLeading) {
-                                        // Tick 472 — format-legality hint on Other
-                                        // Versions tiles (Android tick 469 parity).
-                                        // Amber chip surfaces variants with restricted
-                                        // legality (e.g., over-160-power Heroes).
                                         if let hint = CardFormatEligibility.restrictedLegalAbbrev(for: variant) {
-                                            Text(hint)
-                                                .font(Design.Fonts.mono(9, weight: .bold))
-                                                .foregroundStyle(Design.Colors.bobaOrange)
-                                                .padding(.horizontal, 4)
-                                                .padding(.vertical, 1)
-                                                .background(Color.black.opacity(0.62))
-                                                .clipShape(RoundedRectangle(cornerRadius: 3))
-                                                .padding(3)
+                                            FormatLegalityHintBadge(label: hint).padding(3)
                                         }
                                     }
 

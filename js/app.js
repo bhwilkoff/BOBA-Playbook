@@ -2492,6 +2492,16 @@
 
   function updateResultsCount() {
     searchCount.textContent = `${filteredCards.length.toLocaleString()} cards`;
+    // Tick 298 — Surprise pill mirrors iOS v2.317 menu label: shows
+    // the pool size so users know what Surprise is drawing from.
+    const surpriseBtn = document.getElementById('surprise-me-btn');
+    if (surpriseBtn) {
+      const n = filteredCards.length;
+      surpriseBtn.textContent = n > 0
+        ? `🎲 Surprise (${n.toLocaleString()})`
+        : '🎲 Surprise';
+      surpriseBtn.disabled = n === 0;
+    }
   }
 
   /* ================================================================

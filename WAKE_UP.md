@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 298 (web)** — Web Surprise pill mirrors iOS v2.317 pool-size label: `🎲 Surprise (12,345)` shows what the pick is drawn from. Disabled state when pool is empty. Updates inside the existing `updateResultsCount()` callback so it stays in sync with every filter change.
 - **tick 297 (iOS v2.317 / 579)** — Surprise Me menu item now shows the pool size: "Surprise me 🎲 (17,974)" when unfiltered, "(12)" when a tight filter is active. Tells users what Surprise is drawing from. Disabled state when pool is empty (no point firing a no-op pick). Uses `Int.formatted()` for locale-aware thousand separators.
 - **tick 296 (Android, polish)** — Android Learn Edge Cases: pulled the section header out of the first Term row into its own Body row. Was: `Term(heading="Edge cases", term="Substitution cost is always 2", ...)` rendered the section label only above the first row; rows 2-7 had no section context. Now: Body row at top introduces "Seven rules…", followed by 7 uniform Term rows.
 - **tick 295 (opt, −6 lines)** — Removed the AUTONOMOUS_PROGRESS "P2 — Web 'feels native' follow-ups" section. All three items (Walkthroughs, Cmd-K, Web push) are explicitly out-of-scope per WEB-DESIGN.md §11/§2.4/§17, not deferred work. Mixing them with shippable backlog confuses the loop's prioritization. The non-goals are still documented in WEB-DESIGN.md §17 (the binding doc).

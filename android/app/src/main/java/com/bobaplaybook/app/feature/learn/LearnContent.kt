@@ -772,15 +772,36 @@ object LearnCorpus {
         ),
 
         // ─── Penalty reference ─────────────────────────────────
-        LearnSection.Bullets(
+        // Tick 366 — canonical 5-level penalty structure (iOS
+        // PenaltyReferenceSection + web 2092 parity). Was 6 ad-hoc
+        // infraction examples; the official BoBA structure is 5
+        // ascending penalty TYPES, with specific infractions slotted
+        // under them. Aligning with the other 2 platforms so a Coach
+        // who learns the structure on one platform sees the same on
+        // Android.
+        LearnSection.Body(
             heading = "Penalty reference",
+            text = "5 ascending penalty levels — referees apply the lowest that fits, escalating on repeat.",
+        ),
+        LearnSection.Bullets(
+            heading = null,
             items = listOf(
-                "Slow play — warning → game loss on repeat",
-                "Marked card — match loss",
-                "Misrepresentation of deck contents — match loss + investigation",
-                "Unsporting conduct — DQ from event",
-                "Outside assistance during a match — game loss; repeat = match loss",
-                "Tardiness > 10 min — game loss; > 20 min — match loss",
+                "1. Caution — Verbal only, not recorded.",
+                "2. Warning — Recorded. A second Warning for the same infraction upgrades to Game Loss.",
+                "3. Game Loss — You lose the current game in the match.",
+                "4. Match Loss — You lose the entire match.",
+                "5. Disqualification — Removed from the event. Reserved for cheating or gross misconduct.",
+            ),
+        ),
+        LearnSection.Bullets(
+            heading = "Common infractions",
+            items = listOf(
+                "Slow play — Warning → Game Loss on repeat",
+                "Marked card — Match Loss",
+                "Deck-list mismatch — Match Loss + investigation",
+                "Outside assistance — Game Loss; repeat = Match Loss",
+                "Tardiness > 10 min — Game Loss; > 20 min — Match Loss",
+                "Unsporting conduct / cheating — Disqualification",
             ),
         ),
 

@@ -1053,6 +1053,43 @@
     // and opens a sheet). Web uses the same Popover-API helper as the
     // glossary-row long-press menu so the affordance reads consistently.
     wireInlineGlossary();
+    wireGlossarySearch();
+
+    // Tick 348 — substring filter on Glossary tab (iOS v2.327 parity).
+    // Type to narrow both Game + Trading sections; sections hide when
+    // empty; inline empty-state when both go to zero.
+    function wireGlossarySearch() {
+      const input = document.getElementById('glossary-search-input');
+      const empty = document.getElementById('glossary-search-empty');
+      if (!input) return;
+      const apply = () => {
+        const q = (input.value || '').trim().toLowerCase();
+        const sections = document.querySelectorAll('#play-panel-glossary .glossary-section');
+        let totalVisible = 0;
+        sections.forEach(sec => {
+          const rows = sec.querySelectorAll('.glossary-row');
+          let secVisible = 0;
+          rows.forEach(row => {
+            const term = (row.dataset.term || '').toLowerCase();
+            const def  = (row.dataset.def  || '').toLowerCase();
+            const match = !q || term.includes(q) || def.includes(q);
+            row.hidden = !match;
+            if (match) secVisible++;
+          });
+          sec.hidden = secVisible === 0 && q.length > 0;
+          totalVisible += secVisible;
+        });
+        if (empty) {
+          if (q && totalVisible === 0) {
+            empty.textContent = `No glossary terms match "${q}". `;
+            empty.hidden = false;
+          } else {
+            empty.hidden = true;
+          }
+        }
+      };
+      input.addEventListener('input', apply);
+    }
 
     function wireInlineGlossary() {
       // Collect terms from the glossary tab DOM — same data we'd ship

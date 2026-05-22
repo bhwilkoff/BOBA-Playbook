@@ -3469,10 +3469,18 @@
       const thumb = thumbSrc
         ? `<img class="version-thumb" src="${escHtml(thumbSrc)}" alt="${escHtml(v.name)}" loading="lazy">`
         : `<div class="version-thumb-placeholder" aria-hidden="true">NO IMG</div>`;
+      // Tick 463 — print-run badge for Other Versions (iOS tick 462 +
+      // Android tick 461 parity). Positioned top-right on the thumb;
+      // no treatment ribbon to dodge here so the orientation differs
+      // from the main .card-item grid badge (which is top-left).
+      const printRun = printRunLabelFor(v);
+      const printRunBadge = printRun
+        ? `<span class="version-print-run${printRun === 'SSP' ? ' version-print-run--ssp' : ''}" aria-hidden="true">${escHtml(printRun)}</span>`
+        : '';
       return `
         <button class="version-tile" data-version-card="${escHtml(String(v.cardNumber))}"
-                aria-label="${escHtml(v.name)} — ${label}">
-          ${thumb}
+                aria-label="${escHtml(v.name)} — ${label}${printRun ? ' — ' + printRun : ''}">
+          <span class="version-thumb-wrap">${thumb}${printRunBadge}</span>
           <span class="version-label">${label}</span>
         </button>`;
     }).join('');

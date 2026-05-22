@@ -2498,6 +2498,22 @@ dialog.modal-overlay[open] {
   text-align: center;
 }
 .version-tile:hover .version-thumb { border-color: var(--boba-cyan); }
+
+/* Tick 463 — wrap span for absolute-positioning the print-run badge
+   over the version thumb (iOS tick 462 + Android tick 461 parity). */
+.version-thumb-wrap { position: relative; display: inline-block; }
+.version-print-run {
+  position: absolute; top: 3px; right: 3px;
+  padding: 1px 4px;
+  font-family: var(--font-mono); font-size: 0.55rem; font-weight: 700;
+  background: rgba(0, 0, 0, 0.62);
+  color: var(--boba-cyan);
+  border-radius: 3px;
+  letter-spacing: 0.03em;
+  z-index: 2;
+  pointer-events: none;
+}
+.version-print-run--ssp { color: var(--boba-orange); }
 .version-thumb {
   width: 72px; height: 96px;
   object-fit: contain;

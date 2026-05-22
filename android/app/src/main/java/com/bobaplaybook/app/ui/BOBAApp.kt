@@ -225,15 +225,21 @@ fun BOBAApp(
                         if (!event.isCtrlPressed) return@onPreviewKeyEvent false
                         // Tick 329 — Ctrl+→ / Ctrl+← walks Card Detail
                         // sibling list. iOS Cmd+arrow (tick 287) + web
-                        // unmodified ArrowLeft/Right parity. Fires from
-                        // any tab — CardDetailScreen's LaunchedEffect
-                        // only acts if it's currently in the composition
-                        // and its currentBobaId is in the siblings list.
-                        if (event.key == Key.DirectionRight) {
+                        // unmodified ArrowLeft/Right parity.
+                        // Tick 331 — only consume the keystroke when
+                        // CardDetailScreen is in the composition. Else
+                        // typing Ctrl+→ in Find's search field would
+                        // silently lose the "next-word" behavior to a
+                        // no-op nav request.
+                        if (event.key == Key.DirectionRight
+                            && cardNavigationStore.isOnDetail.value
+                        ) {
                             cardNavigationStore.advance(1)
                             return@onPreviewKeyEvent true
                         }
-                        if (event.key == Key.DirectionLeft) {
+                        if (event.key == Key.DirectionLeft
+                            && cardNavigationStore.isOnDetail.value
+                        ) {
                             cardNavigationStore.advance(-1)
                             return@onPreviewKeyEvent true
                         }

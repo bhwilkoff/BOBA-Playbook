@@ -136,6 +136,14 @@ fun CardDetailScreen(
             currentBobaId = ids[((idx + delta) % n + n) % n]
         }
     }
+    // Tick 331 — flag for the root keyboard handler so Ctrl+arrow only
+    // consumes the keystroke when this screen is in the composition.
+    // Otherwise typing Ctrl+→ in Find's search field would silently
+    // lose the "next-word" behavior to a no-op nav request.
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        navStore.setOnDetail(true)
+        onDispose { navStore.setOnDetail(false) }
+    }
     val state by remember(currentBobaId) { viewModel.uiStateFor(currentBobaId) }
         .collectAsStateWithLifecycle()
     val decksViewModel: com.bobaplaybook.app.feature.decks.DecksViewModel = hiltViewModel()

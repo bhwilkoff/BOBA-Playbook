@@ -33,15 +33,22 @@ class CardNavigationStore @Inject constructor() {
 
     // Tick 329 — Ctrl+→ / Ctrl+← keyboard shortcut bus. BOBAApp root
     // emits a delta (+1 / -1) and the CardDetailScreen LaunchedEffect
-    // collects + applies via the existing wrap-around index math. If no
-    // CardDetailScreen is composed (user isn't on card detail), the
-    // collect never runs — the keystroke is a no-op.
+    // collects + applies via the existing wrap-around index math.
     private val _requestAdvance = kotlinx.coroutines.flow.MutableSharedFlow<Int>(
         replay = 0,
         extraBufferCapacity = 1,
     )
     val requestAdvance: kotlinx.coroutines.flow.SharedFlow<Int> =
         _requestAdvance.asSharedFlow()
+
+    // Tick 331 — gate for the root keyboard handler. Without this, a
+    // Ctrl+→ pressed while typing in a TextField on Find would be
+    // consumed (return true) by the root onPreviewKeyEvent and never
+    // reach the TextField's "next-word" handling. CardDetailScreen
+    // DisposableEffect flips this true on mount, false on unmount —
+    // root checks before consuming the keystroke.
+    private val _isOnDetail = MutableStateFlow(false)
+    val isOnDetail: StateFlow<Boolean> = _isOnDetail.asStateFlow()
 
     fun set(ids: List<String>) {
         _bobaIds.value = ids
@@ -53,5 +60,9 @@ class CardNavigationStore @Inject constructor() {
 
     fun advance(delta: Int) {
         _requestAdvance.tryEmit(delta)
+    }
+
+    fun setOnDetail(value: Boolean) {
+        _isOnDetail.value = value
     }
 }

@@ -648,6 +648,7 @@ private fun CollectionGrid(
                     imageFile = entry.card.imageFile,
                     isSealed = entry.card.isSealed,
                     contentDescription = entry.card.displayName,
+                    printRunLabel = entry.card.printRunLabel,
                     modifier = Modifier
                         .cardSharedBounds(entry.card.bobaId)
                         .clickable { onCardClick(entry.card.bobaId) },

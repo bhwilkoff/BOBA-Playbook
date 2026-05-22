@@ -597,6 +597,7 @@ private fun CardPoolGrid(
                     imageFile = card.imageFile,
                     isSealed = card.isSealed,
                     contentDescription = card.displayName,
+                    printRunLabel = card.printRunLabel,
                 )
                 // Tick 161 — iOS DeckBuilderView parity. Cards already in
                 // the draft get a cyan border + checkmark badge so coaches

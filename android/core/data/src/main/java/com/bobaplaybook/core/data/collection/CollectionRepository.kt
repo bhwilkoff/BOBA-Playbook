@@ -180,12 +180,20 @@ class CollectionRepository @Inject constructor(
         askingPrice: Double?,
         condition: String?,
         notes: String?,
+        // Tick 256 — grade + gradingCompany now editable post-create.
+        // AddToCollection captured them since the sheet shipped; the
+        // edit flow couldn't change them. Forward-compatible defaults
+        // so callers that don't care leave both untouched.
+        grade: String? = null,
+        gradingCompany: String? = null,
     ) {
         _ownedCards.value = _ownedCards.value.map {
             if (it.id == userCardId) it.copy(
                 purchasePrice = purchasePrice,
                 askingPrice = askingPrice,
                 condition = condition,
+                grade = grade,
+                gradingCompany = gradingCompany,
                 notes = notes,
             ) else it
         }
@@ -195,6 +203,8 @@ class CollectionRepository @Inject constructor(
                     set("purchase_price", purchasePrice)
                     set("asking_price", askingPrice)
                     set("condition", condition)
+                    set("grade", grade)
+                    set("grading_company", gradingCompany)
                     set("notes", notes)
                 }) {
                     filter { eq("id", userCardId) }

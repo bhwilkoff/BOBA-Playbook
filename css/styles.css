@@ -4764,12 +4764,27 @@ dialog.modal-overlay[open] {
 .rainbow-thumb.owned { opacity: 1; border-color: rgba(0,245,255,0.5); }
 .rainbow-thumb:hover { transform: scale(1.05); border-color: var(--boba-orange); }
 .rainbow-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 3px; }
+/* Tick 518 — rainbow-more is now a clickable button (expand to all
+   matching cards, iOS RainbowDetailView parity). Reset default
+   button chrome + add hover/focus styling so it reads as a soft
+   affordance, not a heavy CTA. */
 .rainbow-more {
   align-self: center;
   font-family: var(--font-mono);
   font-size: 0.7rem;
   color: var(--boba-text-muted);
-  padding: 0 0.5rem;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px dashed var(--boba-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.rainbow-more:hover,
+.rainbow-more:focus-visible {
+  color: var(--boba-cyan);
+  border-color: var(--boba-cyan);
+  outline: none;
 }
 .rainbow-empty {
   color: var(--boba-text-muted);

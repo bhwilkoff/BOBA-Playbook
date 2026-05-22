@@ -1059,9 +1059,13 @@ const Collection = (() => {
   /// Renders the thumbnail strip body for a rainbow row, lens-aware.
   /// Pure function — emits HTML for the given subset. Called on
   /// initial row render and on every lens click.
-  function _renderRainbowThumbs(cards, ownedKeys) {
+  function _renderRainbowThumbs(cards, ownedKeys, expandAll = false) {
     if (cards.length === 0) return '<div class="rainbow-empty">No matching cards.</div>';
-    const visible = cards.slice(0, 24);
+    // Tick 518 — iOS RainbowDetailView shows EVERY matching card;
+    // web capped at 24 with a dead-text "+N more" indicator. Now
+    // "+N more" is a button that expands to show all (matches iOS
+    // density without forcing a separate detail view).
+    const visible = expandAll ? cards : cards.slice(0, 24);
     const thumbs = visible.map(c => {
       const isOwned = ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber);
       const url = API.cardThumbUrl(c) || '';
@@ -1072,7 +1076,7 @@ const Collection = (() => {
               </button>`;
     }).join('');
     const more = cards.length > visible.length
-      ? `<div class="rainbow-more">+${cards.length - visible.length} more</div>`
+      ? `<button type="button" class="rainbow-more" title="Show all ${cards.length} cards">+${cards.length - visible.length} more</button>`
       : '';
     return thumbs + more;
   }
@@ -1089,42 +1093,59 @@ const Collection = (() => {
         }
       });
     });
-    // Lens click handler — event-delegated on each row so each
-    // rainbow has its own independent lens state.
+    // Re-wire taps on freshly-rendered thumbs after any innerHTML
+    // replacement (the originals are gone). Extracted so both lens
+    // click + "+N more" expand share the same wiring path.
+    function rewireRowThumbs(thumbsEl) {
+      thumbsEl?.querySelectorAll('[data-detail-num]').forEach(el => {
+        el.addEventListener('click', () => {
+          const cn = el.dataset.detailNum;
+          if (window.openCardModal) {
+            const card = catalog.find(c => c.cardNumber === cn);
+            if (card) window.openCardModal(card);
+          }
+        });
+      });
+    }
+    // Lens click + "+N more" expand handlers — event-delegated on
+    // each row so each rainbow has its own independent state.
     listEl.querySelectorAll('.rainbow-row').forEach(row => {
       row.addEventListener('click', (e) => {
+        const matching = row.__matching;
+        const ownedKeys = row.__ownedKeys;
+        if (!matching || !ownedKeys) return;
+        const thumbsEl = row.querySelector('.rainbow-thumbs');
+        // Tick 518 — "+N more" expand. Re-renders the current lens
+        // with all cards (no 24-cap), matching iOS RainbowDetailView
+        // density.
+        const moreBtn = e.target.closest('.rainbow-more');
+        if (moreBtn) {
+          e.preventDefault();
+          const activeLens = row.querySelector('.rainbow-lens-btn.active')?.dataset?.lens || 'all';
+          const filtered = activeLens === 'owned'
+            ? matching.filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber))
+            : activeLens === 'missing'
+            ? matching.filter(c => !(ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber)))
+            : matching;
+          if (thumbsEl) thumbsEl.innerHTML = _renderRainbowThumbs(filtered, ownedKeys, /*expandAll*/ true);
+          rewireRowThumbs(thumbsEl);
+          return;
+        }
         const btn = e.target.closest('.rainbow-lens-btn');
         if (!btn) return;
         e.preventDefault();
         const lens = btn.dataset.lens;
-        // Re-render the row's thumbs in the chosen lens
-        const summary = row.querySelector('.rainbow-name')?.textContent || '';
-        // Look up the rainbow's catalog match list. Cached on the
-        // node when the row was rendered.
-        const matching = row.__matching;
-        const ownedKeys = row.__ownedKeys;
-        if (!matching || !ownedKeys) return;
+        // Re-render the row's thumbs in the chosen lens (collapsed).
         const filtered = lens === 'owned'
           ? matching.filter(c => ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber))
           : lens === 'missing'
           ? matching.filter(c => !(ownedKeys.has(c.bobaId) || ownedKeys.has(c.cardNumber)))
           : matching;
-        const thumbsEl = row.querySelector('.rainbow-thumbs');
         if (thumbsEl) thumbsEl.innerHTML = _renderRainbowThumbs(filtered, ownedKeys);
         // Update active state
         row.querySelectorAll('.rainbow-lens-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        // Re-wire taps on the freshly-rendered thumbs (the originals
-        // are gone with innerHTML replacement).
-        thumbsEl?.querySelectorAll('[data-detail-num]').forEach(el => {
-          el.addEventListener('click', () => {
-            const cn = el.dataset.detailNum;
-            if (window.openCardModal) {
-              const card = catalog.find(c => c.cardNumber === cn);
-              if (card) window.openCardModal(card);
-            }
-          });
-        });
+        rewireRowThumbs(thumbsEl);
       });
     });
   }

@@ -187,6 +187,19 @@ struct SearchView: View {
         await quickAddCard(card, designation: .personal)
     }
 
+    // Tick 357 — results-count label with active-sort suffix.
+    // Default sort renders as just the count; any other sort appends
+    // " · {label}" so users see what's ordering the grid without
+    // opening the Filter sheet. Web tick 353 + Android tick 354
+    // parity.
+    private var resultsCountLabel: String {
+        let n = store.filteredCards.count.formatted()
+        if store.sortOrder == .default {
+            return "\(n) cards"
+        }
+        return "\(n) cards · \(store.sortOrder.label)"
+    }
+
     // Tick 267 — Surprise Me. Pick a random card from currently-filtered
     // results; 30% bias toward Inspired Ink / Superfoil / Kanjifoil to
     // surface something notable. Pushes detail via the same path as a
@@ -484,8 +497,12 @@ struct SearchView: View {
     private var resultsHeader: some View {
         // Results count + Quick Add toggle. Authenticated users get
         // the toggle; anonymous users just see the count.
+        // Tick 357 — web tick 353 parity. When a non-default sort is
+        // active, suffix the label so users see what's ordering their
+        // results without opening the Filter sheet. Locale-formats the
+        // count too ("12,345 cards") to match web's toLocaleString.
         HStack {
-            Text("\(store.filteredCards.count) cards")
+            Text(resultsCountLabel)
                 .font(Design.Fonts.mono(12))
                 .foregroundStyle(Design.Colors.textMuted)
             Spacer()

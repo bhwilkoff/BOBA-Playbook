@@ -21,7 +21,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -193,7 +193,12 @@ fun RainbowDetailScreen(
                         else MaterialTheme.colorScheme.primary,
                     )
                 }
-                LinearProgressIndicator(
+                // Tick 216 — M3 Expressive LinearWavyProgressIndicator
+                // (ANDROID-DESIGN.md §6.11). Editorial moment: filling out
+                // your Rainbow is a celebration surface, not a hold-still
+                // load bar. The wavy treatment differentiates from iOS's
+                // flat bar without breaking determinate progress semantics.
+                LinearWavyProgressIndicator(
                     progress = { pctOwned },
                     modifier = Modifier.fillMaxWidth(),
                 )

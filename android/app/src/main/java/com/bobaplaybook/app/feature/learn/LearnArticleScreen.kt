@@ -544,23 +544,36 @@ private fun TournamentPage() {
             val totalPosts = blogBundle.posts.size
             if (totalPosts > blogPosts.size) {
                 item("blog-see-all") {
-                    androidx.compose.material3.TextButton(
-                        onClick = {
-                            androidx.browser.customtabs.CustomTabsIntent.Builder()
-                                .build()
-                                .launchUrl(
-                                    context,
-                                    android.net.Uri.parse("https://bobattlearena.com/blog/all"),
-                                )
-                        },
+                    // Tick 261 — visually distinct cyan-bordered card
+                    // (matching web .blog-feed-see-all style) instead of a
+                    // bare TextButton. Reads as a contained CTA, not a
+                    // borderless label that gets lost at the end of the
+                    // post list.
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = com.bobaplaybook.core.ui.theme.BobaBrand.Cyan.copy(alpha = 0.05f),
+                        border = BorderStroke(1.dp, com.bobaplaybook.core.ui.theme.BobaBrand.Cyan.copy(alpha = 0.3f)),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .clickable {
+                                androidx.browser.customtabs.CustomTabsIntent.Builder()
+                                    .build()
+                                    .launchUrl(
+                                        context,
+                                        android.net.Uri.parse("https://bobattlearena.com/blog/all"),
+                                    )
+                            },
                     ) {
                         Text(
                             "See all $totalPosts posts on bobattlearena.com ↗",
                             style = MaterialTheme.typography.labelMedium,
                             color = com.bobaplaybook.core.ui.theme.BobaBrand.Cyan,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp, horizontal = 12.dp),
                         )
                     }
                 }

@@ -62,8 +62,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -158,8 +161,8 @@ private fun DecksCompactScreen(
     val longPressHintDismissed by hintsViewModel
         .isDismissed(HintsStore.Ids.DECKS_LONG_PRESS_TO_ADD)
         .collectAsStateWithLifecycle(initialValue = true)
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
     // Per-tab grid density — was registered in GridDensityStore.Target.DECKS
     // but the pool grid hardcoded Adaptive(minSize=110.dp). iOS DesksView
@@ -555,7 +558,7 @@ private fun CardPoolGrid(
     }
     // Tick 249 — haptic on long-press → add (parity with Find tab).
     // Pulled outside LazyVerticalGrid since LazyGridScope is non-composable.
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val haptic = LocalHapticFeedback.current
     LazyVerticalGrid(
         modifier = modifier,
         // Sentinel 0 → adaptive (the M3 default that flows with width
@@ -718,7 +721,7 @@ private fun DecksTabletScreen(
     val draft by deckViewModel.draft.collectAsStateWithLifecycle()
     val authState by deckViewModel.authState.collectAsStateWithLifecycle()
     val isSignedIn = authState is com.bobaplaybook.app.auth.AuthState.SignedIn
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
     var wallOpen by remember { mutableStateOf(false) }
 

@@ -1055,6 +1055,27 @@
     wireInlineGlossary();
     wireGlossarySearch();
 
+    // Tick 383 — print-run / SSP chip on card-detail tap-to-explain
+    // (iOS tick 382 + Android tick 379 parity). Delegated listener
+    // since the chip is re-rendered each time the modal opens.
+    document.addEventListener('click', e => {
+      const btn = e.target?.closest?.('.print-run-chip');
+      if (!btn) return;
+      const explain = btn.dataset.printRunExplain;
+      if (!explain) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof window.bobaShowPopoverMenu === 'function') {
+        window.bobaShowPopoverMenu({
+          anchor: btn,
+          title: btn.textContent,
+          items: [{ label: explain, onSelect: () => {} }],
+        });
+      } else {
+        alert(explain);
+      }
+    });
+
     // Tick 348 — substring filter on Glossary tab (iOS v2.327 parity).
     // Type to narrow both Game + Trading sections; sections hide when
     // empty; inline empty-state when both go to zero.
@@ -3446,6 +3467,25 @@
     return null;
   }
 
+  /// Tick 383 — explanation copy for the print-run / SSP chip.
+  /// Android tick 379 + iOS tick 382 ship the same tap-to-explain
+  /// popover; web matches by attaching this string as title= +
+  /// data-print-run-explain on the chip, and opening a popover via
+  /// `bobaShowPopoverMenu` on click. Casual users don't auto-know the
+  /// BoBA Inspired Ink convention (Hex /5 · Glow /10 · Fire /25 · Ice /50
+  /// per DECISIONS.md #028).
+  function printRunExplain(label) {
+    switch (label) {
+      case 'SSP':    return "Superfoil — Super-Short-Print, BoBA's rarest non-numbered treatment.";
+      case '/5':     return "Inspired Ink Hex — limited run of 5 copies (BoBA's rarest serialized treatment).";
+      case '/10':    return 'Inspired Ink Glow — limited run of 10 copies.';
+      case '/25':    return 'Inspired Ink Fire — limited run of 25 copies.';
+      case '/50':    return 'Inspired Ink Ice — limited run of 50 copies.';
+      case 'Serial': return 'Inspired Ink — serialized run; print number not publicly disclosed.';
+      default:       return `${label} print run.`;
+    }
+  }
+
   /// Tick 203 — Discord backlog #4 web parity (Android tick 179).
   /// Returns the 4-chip format legality strip for the card-detail
   /// surface. Mirrors Kotlin CardFormatEligibility.legalFormats:
@@ -3536,8 +3576,16 @@
     ].filter(s => s !== null && s.val !== null && s.val !== undefined);
 
     let statCells = statDefs.map(s => {
+      // Tick 383 — print-run chip becomes a <button> with title= and
+      // data-print-run-explain. Click handler (wired in initCardDetail)
+      // opens a popover with the full explainer (Android tick 379 +
+      // iOS tick 382 parity). Hover gives instant tooltip on desktop.
       const chip = s.extraChip
-        ? `<span class="print-run-chip print-run-${s.extraChip === 'SSP' ? 'ssp' : 'numbered'}">${escHtml(s.extraChip)}</span>`
+        ? (() => {
+            const explain = printRunExplain(s.extraChip);
+            const variant = s.extraChip === 'SSP' ? 'ssp' : 'numbered';
+            return `<button type="button" class="print-run-chip print-run-${variant}" data-print-run-explain="${escHtml(explain)}" title="${escHtml(explain)}" aria-label="${escHtml(s.extraChip + ' — ' + explain)}">${escHtml(s.extraChip)}</button>`;
+          })()
         : '';
       return `<div class="stat-cell${s.full ? ' full' : ''}">
          <div class="stat-label-sm">${escHtml(s.label)}</div>

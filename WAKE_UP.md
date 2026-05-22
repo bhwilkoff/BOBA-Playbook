@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 224 (Android)** — ScanReviewSheet gains 36×50 card thumbnails (c00e8f1). iOS ScanQueueView parity — faster card recognition than text-only rows.
 - **tick 223 (web)** — Google provider pill on Profile (31c7719). Closes parity with Android tick 206 — all 3 brand colors (Google #4285F4 / Discord / Apple) now rendered.
 - **tick 222 (iOS)** — GlossaryAwareText expanded to 3 more high-value prose surfaces (Tournament DBS callout, GameModesSection descriptions, PlaymakerScenario Hot-Dog sidebar) (c0257b8). v2.299/561.
 - **tick 221 (Android)** — DeckSummaryBar gains format-name pill (6e81590). Closes parity gap with iOS DeckSummaryPill — user sees active format without opening editor.

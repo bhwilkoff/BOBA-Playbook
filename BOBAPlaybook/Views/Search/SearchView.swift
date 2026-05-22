@@ -234,7 +234,7 @@ struct SearchView: View {
             try await collection.addCard(entry)
             withAnimation(.easeOut(duration: 0.25)) {
                 let label = designation == .wanted ? "wanted" :
-                            designation == .grail ? "grail" : "your collection"
+                            designation == .grails ? "grails" : "your collection"
                 quickAddToast = "Added \(card.name) to \(label)"
             }
             Task { @MainActor in
@@ -563,7 +563,7 @@ struct SearchView: View {
                         // Auth check inside each branch so signed-out
                         // users see the menu but only get a toast.
                         .contextMenu {
-                            if auth.isSignedIn {
+                            if auth.isAuthenticated {
                                 Button {
                                     Task { await quickAddCard(card, designation: .personal) }
                                 } label: {

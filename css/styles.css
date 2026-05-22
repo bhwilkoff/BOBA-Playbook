@@ -4191,7 +4191,18 @@ dialog.modal-overlay[open] {
   border-radius: 999px;
   margin-left: 0.4rem;
   border: 1px solid;
+  /* Tick 383 — chip is now a <button> for tap-to-explain popover
+     (iOS tick 382 + Android tick 379 parity). Strip the default
+     button chrome so the visual matches the prior <span>. */
+  cursor: pointer;
+  line-height: 1.2;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.65rem;
 }
+.print-run-chip:hover { filter: brightness(1.12); }
+.print-run-chip:focus-visible { outline: 2px solid var(--boba-cyan); outline-offset: 2px; }
 .print-run-numbered {
   color: var(--boba-cyan);
   background: rgba(0,245,255,0.15);

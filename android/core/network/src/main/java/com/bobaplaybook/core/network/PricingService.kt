@@ -67,8 +67,24 @@ class PricingService @Inject constructor(
                 parameter("days", days)
             }.body()
 
+            // Active listings are always eBay; sold comps can be Radish
+            // OR eBay depending on which the Worker found first. Classify
+            // per-item by URL host so the tile label ("Radish" vs "eBay")
+            // matches the actual buyer site the tap-through opens.
             val activeItems = response.active?.items.orEmpty().map { it.toListing(PricingSource.EBAY) }
-            val soldItems = response.sold?.items.orEmpty().map { it.toListing(PricingSource.EBAY) }
+            val soldItems = response.sold?.items.orEmpty().map { item ->
+                val url = item.url.orEmpty()
+                val source = when {
+                    url.contains("radishpriceguide.com", ignoreCase = true) -> PricingSource.RADISH
+                    url.contains("ebay.com", ignoreCase = true) -> PricingSource.EBAY
+                    // Worker default: Radish-first waterfall, so unknown
+                    // URLs (e.g. missing `url`) almost always came from
+                    // Radish. Tagging them EBAY would mislabel; pick
+                    // RADISH for the unknown case.
+                    else -> PricingSource.RADISH
+                }
+                item.toListing(source)
+            }
             // Worker pre-computes the canonical low/average/high over
             // the preferred source (sold first via Radish or Insights;
             // active as fallback). The `priceType` field tags which

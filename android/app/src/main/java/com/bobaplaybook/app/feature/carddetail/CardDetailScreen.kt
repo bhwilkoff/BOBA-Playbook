@@ -1363,36 +1363,64 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
         ListingsRow(listings = state.ebayActive)
     }
 
-    BOBASectionHeader(title = "Sold history")
-    val sold = state.ebaySold.distinctBy { it.url }
+    // "Recent Sales" (iOS parity) groups Radish + eBay sold comps.
+    // The Worker returns whichever it found first; per-item URL is
+    // populated for eBay but often blank for Radish, so the
+    // `radishUrl` from the bundle is the tap-fallback for any
+    // Radish-source tile with an empty url.
+    BOBASectionHeader(title = "Recent Sales")
+    // De-dupe by URL where present; collapsing empty-URL tiles to a
+    // single key was hiding multiple Radish sales. Use index when
+    // URL is blank so each row survives the distinct pass.
+    val sold = state.ebaySold.mapIndexed { i, l ->
+        if (l.url.isBlank()) l.copy(url = "radish-stub-$i") else l
+    }.distinctBy { it.url }
     if (sold.isEmpty()) {
         Text(
-            text = "No sold-comp data yet",
+            text = "No recent sales found",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
     } else {
-        ListingsRow(listings = kotlinx.collections.immutable.persistentListOf<PricingListing>().addAll(sold))
+        ListingsRow(
+            listings = kotlinx.collections.immutable.persistentListOf<PricingListing>().addAll(sold),
+            fallbackUrlForBlankRadish = state.radishUrl,
+        )
     }
 }
 
 @Composable
-private fun ListingsRow(listings: ImmutableList<PricingListing>) {
+private fun ListingsRow(
+    listings: ImmutableList<PricingListing>,
+    /**
+     * Radish landing-page URL from the Worker. Used as the tap-target
+     * for sold-comp tiles where `listing.url` is blank (the Worker
+     * sometimes ships Radish sales without per-item URLs; without
+     * this fallback the user taps and nothing happens).
+     */
+    fallbackUrlForBlankRadish: String? = null,
+) {
     val context = LocalContext.current
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(items = listings, key = { it.url }) { listing ->
+            val effectiveUrl = listing.url
+                .takeIf { it.isNotBlank() && !it.startsWith("radish-stub-") }
+                ?: fallbackUrlForBlankRadish.orEmpty()
             BOBAPriceTile(
                 priceUsd = listing.priceUsd,
                 title = listing.title,
                 thumbUrl = listing.thumbUrl,
-                source = listing.source.name.lowercase().replaceFirstChar { it.uppercase() },
+                source = when (listing.source) {
+                    com.bobaplaybook.core.network.PricingSource.EBAY -> "eBay"
+                    com.bobaplaybook.core.network.PricingSource.RADISH -> "Radish"
+                },
                 date = listing.date,
                 onClick = {
-                    if (listing.url.isNotBlank()) {
+                    if (effectiveUrl.isNotBlank()) {
                         // Custom Tab keeps the BOBA back-arrow context
                         // — user taps Back and lands on the card detail
                         // instead of leaving the app entirely. eBay /
@@ -1402,12 +1430,12 @@ private fun ListingsRow(listings: ImmutableList<PricingListing>) {
                         runCatching {
                             androidx.browser.customtabs.CustomTabsIntent.Builder()
                                 .build()
-                                .launchUrl(context, listing.url.toUri())
+                                .launchUrl(context, effectiveUrl.toUri())
                         }.onFailure {
                             // Fallback for devices without a Custom Tabs
                             // provider (rare; AOSP / older Chrome).
                             runCatching {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, listing.url.toUri()))
+                                context.startActivity(Intent(Intent.ACTION_VIEW, effectiveUrl.toUri()))
                             }
                         }
                     }

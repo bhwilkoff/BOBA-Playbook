@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 340 (opt, −8 lines)** — Trimmed obsolete "Pending iOS asks for tick 192" section from AUTONOMOUS_PROGRESS. Both items (triple-spinner collapse + non-blocking pricing refresh) shipped tick 192 v2.293 / build 555. The queued-asks header was already provenance, not active backlog.
 - **tick 339 (Android, code style)** — ProfileSheet `LocalConfiguration` inline FQN → top-of-file import + short reference. Continues the tick 321/325/330/336 FQN-cleanup pattern. Net 0 lines (added 1 import, collapsed 1 line of inline FQN).
 - **tick 338 (CI fix, urgent)** — Android CI red again (tick 334 cheat sheet). `LocalConfiguration.current` is a @Composable getter; was being read inside the LazyListScope DSL builder (NOT a Composable context). Hoisted the read out of LazyColumn to the enclosing Composable function scope and captured `isPhoneOnlyTouch` in the closure. Should green up next run.
 - **tick 337 (iOS v2.325 / 587)** — Keyboard shortcuts cheat sheet on iOS Profile (web tick 333 + Android tick 334 parity). 6 rows with proper Apple glyphs (⌘ + ⇧ + ← / →). Only renders on `horizontalSizeClass == .regular` (iPad) since iPhone has no keyboard. Accessibility label spells out "Command R" etc. so VoiceOver reads usable text.

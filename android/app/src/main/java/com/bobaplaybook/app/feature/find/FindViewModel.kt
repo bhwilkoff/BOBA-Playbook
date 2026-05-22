@@ -37,6 +37,10 @@ import kotlinx.coroutines.flow.update
 @HiltViewModel
 class FindViewModel @Inject constructor(
     private val cardRepository: CardRepository,
+    // Tick 279 — Hilt singleton bus for root-level (BOBAApp) keyboard
+    // shortcut → FindScreen surprise dispatch. Exposed read-only for
+    // FindScreen to collect in a LaunchedEffect.
+    val findActions: FindActions,
 ) : ViewModel() {
 
     private val query           = MutableStateFlow("")

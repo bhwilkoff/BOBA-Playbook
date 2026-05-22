@@ -2182,6 +2182,26 @@ dialog.modal-overlay[open] {
 }
 .form-input::placeholder { color: var(--boba-text-dim); }
 
+/* Tick 453 — Password visibility toggle (iOS tick 452 + Android tick
+   446 parity). The wrap is position:relative so the eye button can
+   be absolute-positioned over the input's right edge; the input
+   reserves padding-right so text doesn't slide under the icon. */
+.form-password-wrap { position: relative; display: block; }
+.form-input--with-toggle { padding-right: 40px; }
+.form-password-toggle {
+  position: absolute;
+  right: 4px; top: 50%; transform: translateY(-50%);
+  background: transparent; border: none;
+  color: var(--boba-text-dim);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: color 0.15s;
+}
+.form-password-toggle:hover,
+.form-password-toggle:focus-visible { color: var(--boba-text); outline: none; }
+
 .form-select { cursor: pointer; }
 
 .form-row {

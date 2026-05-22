@@ -602,6 +602,14 @@ object LearnCorpus {
         LearnSection.Term(term = "Apex", definition = "The premier BoBA division — full Apex deck rules, no power cap, \$150K prize pool, free to enter at the 2026 Nationals. Apex Madness pairs an Apex deck with Spec 160 teammates."),
         LearnSection.Term(term = "Brawl", definition = "A heritage BoBA format — single-weapon decks where every Hero shares the same weapon. Also a weapon type introduced in 2026 Edition. The Brawl division at the 2026 Nationals offers \$20K + product."),
         LearnSection.Term(term = "Tecmo Bowl", definition = "2026 edition (June 18 release) themed around the iconic Tecmo Bowl video game. Retro-themed Heroes and Plays; Tecmo + Pixel art treatments. Its own \$50K Nationals division."),
+        // Tick 376 — Madness + Spec-format terms surfaced by the
+        // Tournament tab's Madness content. Without these, "Spec 160" /
+        // "High Ball" / "Low Ball" appeared in Madness Bullets but
+        // had no tap-to-define affordance despite tick 371 wiring
+        // bullets through GlossaryAwareBody. iOS + web ports queued.
+        LearnSection.Term(term = "Spec 160", definition = "BoBA's Spec format with a 160-Power cap. Heroes above 160 Power are illegal. Used in Apex Madness teammate decks (≤160) where Foil Hot Dogs or 10-of-an-insert unlock Apex Heroes above the cap."),
+        LearnSection.Term(term = "High Ball", definition = "HiLo Madness rule for Head Coaches — highest Power Hero wins each battle. The standard BoBA win condition; pairs against teammates playing Low Ball on the same team."),
+        LearnSection.Term(term = "Low Ball", definition = "HiLo Madness rule for teammates — lowest Power Hero wins each battle. Inverts the standard BoBA win condition; rewards Rookie decks with low-power Heroes. Pairs with Head Coaches playing High Ball."),
     )
 
     // Verbatim port from iOS LearnView.swift tradingTerms array.

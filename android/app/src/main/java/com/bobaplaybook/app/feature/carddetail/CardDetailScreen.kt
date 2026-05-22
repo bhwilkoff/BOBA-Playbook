@@ -31,8 +31,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.LibraryAdd
-import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.LibraryAdd
+import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
@@ -217,7 +217,7 @@ fun CardDetailScreen(
                             DropdownMenuItem(
                                 text = { Text("Add to Collection") },
                                 leadingIcon = {
-                                    Icon(Icons.AutoMirrored.Filled.LibraryAdd, contentDescription = null)
+                                    Icon(Icons.Default.LibraryAdd, contentDescription = null)
                                 },
                                 onClick = {
                                     addMenuOpen = false
@@ -227,7 +227,7 @@ fun CardDetailScreen(
                             DropdownMenuItem(
                                 text = { Text("Add to Deck") },
                                 leadingIcon = {
-                                    Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null)
+                                    Icon(Icons.Default.PlaylistAdd, contentDescription = null)
                                 },
                                 onClick = {
                                     addMenuOpen = false

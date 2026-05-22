@@ -2,6 +2,7 @@
 
 package com.bobaplaybook.app.feature.collection
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -79,7 +80,9 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import kotlinx.coroutines.launch
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -662,11 +665,34 @@ private fun CollectionGrid(
                         .align(Alignment.BottomEnd)
                         .padding(6.dp),
                 )
+                // iOS-parity price chip — anchored top-leading on the
+                // card image so it sits over the art (an unoccupied
+                // region; print-run is top-trailing per cardThumbBadges,
+                // designation badge is bottom-trailing). Hidden when
+                // estimatedValue is missing or 0.
+                entry.userCard.estimatedValue?.takeIf { it > 0 }?.let { v ->
+                    Text(
+                        text = "$${v.formatUsdAmount()}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = androidx.compose.ui.graphics.Color.White,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(6.dp)
+                            .background(
+                                color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.68f),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
+                }
                 if (entry.userCard.quantity > 1) {
+                    // Bumped quantity badge to bottom-left so it doesn't
+                    // collide with the new price chip (top-left).
                     QuantityBadge(
                         quantity = entry.userCard.quantity,
                         modifier = Modifier
-                            .align(Alignment.TopStart)
+                            .align(Alignment.BottomStart)
                             .padding(6.dp),
                     )
                 }
@@ -680,46 +706,134 @@ private fun CollectionList(
     entries: List<CollectionEntry>,
     onCardClick: (String) -> Unit,
 ) {
+    // iOS-parity list cell (CollectionView.swift::collectionRow):
+    //   [ 60×84 thumb ] [ NAME (large display)              ]  [ $X.XX  ]
+    //                  [ WEAPON · ⚡POWER · CARDNUMBER       ]  [ VALUE  ]   >
+    //                  [ Treatment                          ]
+    //                  [ Added [relative time]              ]
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         items(items = entries, key = { it.userCard.id }) { entry ->
+            val card = entry.card
+            val weapon = card.element.takeIf { it.isNotBlank() }?.uppercase()
+            val acquired = entry.userCard.acquiredAtIso
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onCardClick(entry.card.bobaId) }
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .clickable { onCardClick(card.bobaId) }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Box(modifier = Modifier.width(40.dp).height(56.dp)) {
+                Box(modifier = Modifier.width(60.dp).height(84.dp)) {
                     BOBACardCell(
-                        imageFile = entry.card.imageFile,
-                    isSealed = entry.card.isSealed,
-                        contentDescription = entry.card.displayName,
+                        imageFile = card.imageFile,
+                        isSealed = card.isSealed,
+                        contentDescription = card.displayName,
                     )
                 }
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
                     Text(
-                        entry.card.displayName,
-                        style = MaterialTheme.typography.titleSmall,
+                        card.displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
-                    Text(
-                        "${entry.card.cardNumber} · ${entry.card.element.lowercase().replaceFirstChar { it.uppercase() }}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        if (weapon != null) {
+                            Text(
+                                weapon,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                color = com.bobaplaybook.core.ui.theme.BobaElements.forElement(weapon),
+                            )
+                        }
+                        card.power?.takeIf { it > 0 }?.let { p ->
+                            Text(
+                                "⚡$p",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text(
+                            card.cardNumber,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                        )
+                    }
+                    card.treatment?.takeIf { it.isNotBlank() }?.let { t ->
+                        Text(
+                            t,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                            maxLines = 1,
+                        )
+                    }
+                    acquired?.let {
+                        Text(
+                            "Added ${formatAcquiredRelative(it)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                        )
+                    }
                 }
-                entry.userCard.estimatedValue?.let {
-                    Text(
-                        "$${it.formatUsdAmount()}",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    entry.userCard.estimatedValue?.takeIf { it > 0 }?.let { v ->
+                        Text(
+                            "$${v.formatUsdAmount()}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            "VALUE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+                            letterSpacing = 1.sp,
+                        )
+                    }
                 }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                )
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
         }
+    }
+}
+
+/** Relative time string for the "Added [time]" subtitle. iOS uses
+ *  Foundation's date formatter; on Android we mirror the same 5-tier
+ *  bucket scheme used everywhere else in the app (today / N days ago
+ *  / N weeks ago / N months ago / specific date). */
+private fun formatAcquiredRelative(iso: String): String {
+    val instant = runCatching { java.time.Instant.parse(iso) }.getOrNull() ?: return "recently"
+    val now = java.time.Instant.now()
+    val seconds = java.time.Duration.between(instant, now).seconds
+    return when {
+        seconds < 60 -> "just now"
+        seconds < 86_400 -> {
+            val zone = java.time.ZoneId.systemDefault()
+            val today = java.time.LocalDate.now(zone)
+            val target = instant.atZone(zone).toLocalDate()
+            if (target == today) "today" else "yesterday"
+        }
+        seconds < 86_400 * 7 -> "${seconds / 86_400}d ago"
+        seconds < 86_400 * 30 -> "${seconds / (86_400 * 7)}w ago"
+        seconds < 86_400 * 365 -> "${seconds / (86_400 * 30)}mo ago"
+        else -> "${seconds / (86_400 * 365)}y ago"
     }
 }
 

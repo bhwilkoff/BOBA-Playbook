@@ -4166,6 +4166,42 @@ dialog.modal-overlay[open] {
 .stat-cell.dbs-tier-very-high .stat-val { color: var(--boba-orange); }
 .stat-cell.dbs-tier-very-high .dbs-tier-pill { color: var(--boba-orange); background: rgba(255,77,0,0.15); }
 
+/* Tick 203 — Discord backlog #4 web parity. Format-legality chip strip
+   on the card detail surface. Each chip = 1 format. Leading dot is
+   semantic color (green legal / amber constrained / red illegal).
+   Tooltip via native title="" surfaces the reason. */
+.format-legality-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: -0.35rem 0 0.65rem;
+}
+.format-legality-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.2rem 0.6rem 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-secondary, #bfc3cf);
+  cursor: help;
+}
+.format-legality-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.format-legality-legal       .format-legality-dot { background: #7ecb82; }
+.format-legality-constrained .format-legality-dot { background: #ffd700; }
+.format-legality-illegal     .format-legality-dot { background: #c0392b; }
+.format-legality-illegal     { color: rgba(255,255,255,0.5); }
+
 /* Custom Rainbows — read-only display on the Collection page.
    Each rainbow is a <details>: summary row + thumbnail strip below.
    Parity with iOS CustomRainbowStore + RainbowDetailView (DESIGN.md

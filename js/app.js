@@ -824,6 +824,13 @@
       // Tick 248 — relative-format dates on each row (Android tick 246
       // + iOS tick 247 parity). "today" / "Nd ago" / "Nw ago" reads
       // more naturally than 2026-05-21 verbatim.
+      // Tick 258 — "See all" affordance pointing to the official blog
+      // archive. We surface 5 most-recent posts; users who want deeper
+      // history (45 total in the feed today) get a one-tap path to the
+      // canonical source.
+      const seeAllHtml = posts.length > top.length
+        ? `<a class="blog-feed-see-all" href="https://bobattlearena.com/blog/all" target="_blank" rel="noopener noreferrer">See all ${posts.length} posts on bobattlearena.com ↗</a>`
+        : '';
       list.innerHTML = stampHtml + top.map(p => {
         const url = p.url || '#';
         const excerpt = (p.excerpt || '').slice(0, 220);
@@ -834,7 +841,7 @@
             <h4 class="blog-feed-title">${escHtml(p.title || '')}</h4>
             ${excerpt ? `<p class="blog-feed-excerpt">${escHtml(excerpt)}…</p>` : ''}
           </a>`;
-      }).join('');
+      }).join('') + seeAllHtml;
     }
 
     // Tick 193 — Discord backlog #8: Upcoming Events on Tournament

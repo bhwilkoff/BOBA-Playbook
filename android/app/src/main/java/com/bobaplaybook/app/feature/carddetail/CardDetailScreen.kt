@@ -56,6 +56,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -125,7 +126,7 @@ fun CardDetailScreen(
     // Cmd+arrow tick 287 + web ArrowLeft/Right parity). BOBAApp root
     // emits +1/-1; this LaunchedEffect walks the index with the same
     // wrap-around math as the swipe gesture below.
-    androidx.compose.runtime.LaunchedEffect(Unit) {
+    LaunchedEffect(Unit) {
         navStore.requestAdvance.collect { delta ->
             val ids = siblingIds
             if (ids.size <= 1) return@collect
@@ -140,7 +141,7 @@ fun CardDetailScreen(
     val decksViewModel: com.bobaplaybook.app.feature.decks.DecksViewModel = hiltViewModel()
     val profileViewModel: com.bobaplaybook.app.feature.profile.ProfileViewModel = hiltViewModel()
     val profile by profileViewModel.profile.collectAsStateWithLifecycle(initialValue = null)
-    androidx.compose.runtime.LaunchedEffect(Unit) { profileViewModel.refreshProfile() }
+    LaunchedEffect(Unit) { profileViewModel.refreshProfile() }
     val isStreamer = profile?.role?.contains("streamer", ignoreCase = true) == true ||
         profile?.role?.contains("admin", ignoreCase = true) == true
     // Plain TopAppBar — Large variant was overscaled for a short card

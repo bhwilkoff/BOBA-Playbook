@@ -75,6 +75,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.app.auth.AuthManager
 import com.bobaplaybook.app.auth.AuthState
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import com.bobaplaybook.core.ui.theme.BobaBrand
 import kotlinx.coroutines.launch
@@ -635,30 +636,34 @@ private fun SignedInContent(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            IconButton(onClick = {
-                                val cm = context.getSystemService(android.content.ClipboardManager::class.java)
-                                cm?.setPrimaryClip(
-                                    android.content.ClipData.newPlainText("BOBA Playbook", publicUrl)
-                                )
-                                scope.launch { appSnackbar?.showSnackbar("Link copied") }
-                            }) {
-                                Icon(Icons.Default.ContentCopy,
-                                     contentDescription = "Copy link",
-                                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            IconButton(onClick = {
-                                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(android.content.Intent.EXTRA_SUBJECT, "My BOBA collection")
-                                    putExtra(android.content.Intent.EXTRA_TEXT, publicUrl)
+                            BOBAIconTooltip("Copy public collection link") {
+                                IconButton(onClick = {
+                                    val cm = context.getSystemService(android.content.ClipboardManager::class.java)
+                                    cm?.setPrimaryClip(
+                                        android.content.ClipData.newPlainText("BOBA Playbook", publicUrl)
+                                    )
+                                    scope.launch { appSnackbar?.showSnackbar("Link copied") }
+                                }) {
+                                    Icon(Icons.Default.ContentCopy,
+                                         contentDescription = "Copy link",
+                                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                context.startActivity(
-                                    android.content.Intent.createChooser(intent, "Share collection link")
-                                )
-                            }) {
-                                Icon(Icons.Default.Share,
-                                     contentDescription = "Share link",
-                                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            BOBAIconTooltip("Share public collection link") {
+                                IconButton(onClick = {
+                                    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(android.content.Intent.EXTRA_SUBJECT, "My BOBA collection")
+                                        putExtra(android.content.Intent.EXTRA_TEXT, publicUrl)
+                                    }
+                                    context.startActivity(
+                                        android.content.Intent.createChooser(intent, "Share collection link")
+                                    )
+                                }) {
+                                    Icon(Icons.Default.Share,
+                                         contentDescription = "Share link",
+                                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
                     },

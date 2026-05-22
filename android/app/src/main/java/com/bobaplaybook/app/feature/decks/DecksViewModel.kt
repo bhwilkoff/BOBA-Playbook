@@ -4,13 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bobaplaybook.app.auth.AuthManager
 import com.bobaplaybook.app.auth.AuthState
+import com.bobaplaybook.core.data.catalog.CardRepository
 import com.bobaplaybook.core.data.decks.DeckRepository
 import com.bobaplaybook.core.data.decks.SavedDeck
 import com.bobaplaybook.core.domain.model.Card
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -30,6 +33,7 @@ class DecksViewModel @Inject constructor(
     private val store: DeckStore,
     private val repo: DeckRepository,
     private val authManager: AuthManager,
+    private val cardRepository: CardRepository,
 ) : ViewModel() {
 
     val draft: StateFlow<DeckDraft> = store.draft
@@ -38,6 +42,69 @@ class DecksViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val authState: StateFlow<AuthState> = authManager.authState
+
+    /** Decks-pool search query (DecksScreen pushes here on text change). */
+    private val _poolQuery = MutableStateFlow("")
+    fun setPoolQuery(q: String) { _poolQuery.value = q }
+
+    /**
+     * Catalog loading flag. UI distinguishes "no cards because catalog
+     * hasn't finished decoding" (show spinner) from "no cards because
+     * the user's search trimmed everything out" (show empty state).
+     */
+    val isCatalogLoading: StateFlow<Boolean> = cardRepository.isLoading
+
+    /**
+     * Decks-specific pool stream. Reads the FULL catalog directly
+     * (NOT through FindViewModel — Decks has its own filter pipeline
+     * per iOS DecksView.filteredPoolCards).
+     *
+     *  • Sealed Products excluded — the deck builder builds player decks.
+     *  • Free-text search filters by hero / name / cardNumber / element / treatment.
+     *  • Sort: image-first, then Heroes by power desc, Plays by cost asc,
+     *    then by cardType for the remainder. Matches DecksView.swift L1363-1375.
+     *
+     * Catalog priming runs in init so the stream produces results
+     * even when the user lands on Decks before tapping Find.
+     */
+    val poolCards: StateFlow<List<Card>> = combine(
+        cardRepository.cards,
+        _poolQuery,
+    ) { catalog, query ->
+        val q = query.trim().lowercase()
+        val filtered = catalog.asSequence()
+            .filter { card -> card.cardType != "Sealed Product" }
+            .filter { card ->
+                if (q.isEmpty()) return@filter true
+                card.hero.lowercase().contains(q) ||
+                card.name.lowercase().contains(q) ||
+                card.cardNumber.lowercase().contains(q) ||
+                card.element.lowercase().contains(q) ||
+                (card.treatment ?: "").lowercase().contains(q)
+            }
+            .toList()
+        filtered.sortedWith(
+            compareByDescending<Card> { !it.imageFile.isNullOrEmpty() }
+                .then(Comparator { a, b ->
+                    when {
+                        a.cardType == "Hero" && b.cardType == "Hero" ->
+                            (b.power ?: 0).compareTo(a.power ?: 0)
+                        a.cardType == "Play" && b.cardType == "Play" ->
+                            (a.cost ?: 0).compareTo(b.cost ?: 0)
+                        else -> a.cardType.compareTo(b.cardType)
+                    }
+                })
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    init {
+        // Prime the catalog so the pool fills even when the user lands
+        // on Decks before they've opened Find. primeSync sets the head
+        // bundle (~500 cards) synchronously; primeAsync swaps in the
+        // full 17k-card catalog from a background dispatcher.
+        cardRepository.primeSync()
+        cardRepository.primeAsync()
+    }
 
     fun add(card: Card) = store.add(card)
     fun remove(bobaId: String) = store.remove(bobaId)

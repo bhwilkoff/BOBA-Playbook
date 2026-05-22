@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wallpaper
@@ -125,6 +126,17 @@ fun CollectionScreen(
     var menuOpen by remember { mutableStateOf(false) }
     var filterSheetOpen by rememberSaveable { mutableStateOf(false) }
 
+    // Streamer role gates My Shows in the overflow menu — iOS
+    // CollectionView.collectionMenu has `if auth.isStreamer { ... }`
+    // wrapping the Shows item. Without this gate Android non-streamers
+    // saw the row + tapped it + landed on an empty list, no value.
+    val profileViewModel: com.bobaplaybook.app.feature.profile.ProfileViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val profile by profileViewModel.profile.collectAsStateWithLifecycle(initialValue = null)
+    LaunchedEffect(Unit) { profileViewModel.refreshProfile() }
+    val isStreamer = profile?.role?.contains("streamer", ignoreCase = true) == true ||
+        profile?.role?.contains("admin", ignoreCase = true) == true
+
     // Persistent display mode + sort order — iOS @AppStorage parity
     // via CollectionPrefsStore (DataStore<Preferences>). Stored as
     // enum.name() so the catalog can evolve without breaking saved
@@ -141,9 +153,13 @@ fun CollectionScreen(
     val storedGridColumns by gridDensityVm
         .columnsFor(com.bobaplaybook.app.settings.GridDensityStore.Target.COLLECTION)
         .collectAsStateWithLifecycle(initialValue = 0)
+    // iOS default is LIST (bp_collectionDisplayMode_v2 = "list"). The
+    // previous GRID default broke parity: a freshly-installed Android
+    // user landed in a sparse 3-column grid while an iOS user with the
+    // same account landed in the data-dense list.
     val displayMode = remember(storedDisplayMode) {
         storedDisplayMode?.let { runCatching { DisplayMode.valueOf(it) }.getOrNull() }
-            ?: DisplayMode.GRID
+            ?: DisplayMode.LIST
     }
     val collectionSort = remember(storedSortOrder) {
         storedSortOrder?.let { runCatching { CollectionSortOrder.valueOf(it) }.getOrNull() }
@@ -292,10 +308,40 @@ fun CollectionScreen(
                                 leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
                                 onClick = { menuOpen = false; onRainbowsClick() },
                             )
+                            // Streamer-gated — non-streamers don't see
+                            // the row at all. iOS CollectionView gates
+                            // the same item on `auth.isStreamer`.
+                            if (isStreamer) {
+                                DropdownMenuItem(
+                                    text = { Text("My Shows") },
+                                    leadingIcon = { Icon(Icons.Default.LiveTv, contentDescription = null) },
+                                    onClick = { menuOpen = false; onShowsClick() },
+                                )
+                            }
+                            HorizontalDivider()
+                            // Scan into the active designation (iOS
+                            // collectionMenu compact path). Mirrors iOS
+                            // copy: "Scan into Personal", "Scan into For
+                            // Sale", etc. — destination chosen by the
+                            // segmented row above.
                             DropdownMenuItem(
-                                text = { Text("My Shows") },
-                                leadingIcon = { Icon(Icons.Default.LiveTv, contentDescription = null) },
-                                onClick = { menuOpen = false; onShowsClick() },
+                                text = { Text("Scan into ${designation.label}") },
+                                leadingIcon = { Icon(Icons.Default.QrCodeScanner, contentDescription = null) },
+                                onClick = { menuOpen = false; onScanClick() },
+                            )
+                            // Refresh market values — Android previously
+                            // routed this through pull-to-refresh only,
+                            // but iOS exposes it in the overflow menu
+                            // too. Hidden behind PTR alone is hard for
+                            // a coach who just wants the latest pricing
+                            // without scrolling to the top.
+                            DropdownMenuItem(
+                                text = { Text("Refresh market values") },
+                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                onClick = {
+                                    menuOpen = false
+                                    viewModel.refreshFromServer()
+                                },
                             )
                             HorizontalDivider()
                             // Share moved into the overflow menu — was a
@@ -387,6 +433,35 @@ fun CollectionScreen(
                 onQueryChange = { collectionQuery = it },
             )
 
+            // Cross-designation lookups for iOS-parity badges:
+            //  - bobaIdToDesignations: which designations contain this card
+            //  - bobaIdToTotalCopies: how many copies across ALL designations
+            // iOS CollectionView.collectionGridCell only renders the
+            // multi-designation badge when count > 1; the per-row list
+            // pill renders "×N" or "×N (M here)" when total copies > 1.
+            // Without these lookups the Android UI showed a designation
+            // badge on every cell unconditionally (the "weird overlay
+            // not present on iOS" feedback) and no quantity pill at all
+            // on the list rows.
+            val bobaIdToDesignations = remember(state.entriesByDesignation) {
+                buildMap<String, Set<Designation>> {
+                    state.entriesByDesignation.forEach { (d, entries) ->
+                        entries.forEach { e ->
+                            val existing = get(e.card.bobaId) ?: emptySet()
+                            put(e.card.bobaId, existing + d)
+                        }
+                    }
+                }
+            }
+            val bobaIdToTotalCopies = remember(state.entriesByDesignation) {
+                buildMap<String, Int> {
+                    state.entriesByDesignation.forEach { (_, entries) ->
+                        entries.forEach { e ->
+                            put(e.card.bobaId, (get(e.card.bobaId) ?: 0) + e.userCard.quantity)
+                        }
+                    }
+                }
+            }
             val unsorted = state.entriesByDesignation[designation].orEmpty()
             val filtered = remember(unsorted, collectionQuery) {
                 if (collectionQuery.isBlank()) unsorted
@@ -516,8 +591,13 @@ fun CollectionScreen(
                         entries = entries,
                         onCardClick = onCardClick,
                         columns = storedGridColumns,
+                        bobaIdToDesignations = bobaIdToDesignations,
                     )
-                    DisplayMode.LIST -> CollectionList(entries = entries, onCardClick = onCardClick)
+                    DisplayMode.LIST -> CollectionList(
+                        entries = entries,
+                        onCardClick = onCardClick,
+                        bobaIdToTotalCopies = bobaIdToTotalCopies,
+                    )
                     DisplayMode.WALL -> CollectionWall(
                         entries = entries,
                         onCardClick = onCardClick,
@@ -645,6 +725,13 @@ private fun CollectionGrid(
      * @AppStorage("bp_collectionGridColumns_v1") parity.
      */
     columns: Int = 0,
+    /**
+     * Per-bobaId set of designations the user has assigned to this
+     * card. The multi-designation icon strip only renders when the
+     * set has ≥2 entries (iOS CollectionView.collectionGridCell).
+     * Empty map = treat every card as single-designation.
+     */
+    bobaIdToDesignations: Map<String, Set<Designation>> = emptyMap(),
 ) {
     LazyVerticalGrid(
         columns = if (columns > 0) GridCells.Fixed(columns)
@@ -669,12 +756,29 @@ private fun CollectionGrid(
                         .cardSharedBounds(entry.card.bobaId)
                         .clickable { onCardClick(entry.card.bobaId) },
                 )
-                DesignationBadge(
-                    designation = entry.userCard.designation,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(6.dp),
-                )
+                // Multi-designation badge — only render when this
+                // bobaId is present in ≥2 designations. iOS shows the
+                // designation icons stacked in a top-trailing row so
+                // a coach browsing Personal sees that the same card
+                // is also listed For Sale. A per-cell badge on every
+                // card (the previous behavior) added visual noise
+                // and didn't match iOS at all.
+                val cellDesignations = bobaIdToDesignations[entry.card.bobaId] ?: emptySet()
+                if (cellDesignations.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        cellDesignations.sortedBy { it.ordinal }.forEach { d ->
+                            DesignationBadge(
+                                designation = d,
+                                modifier = Modifier,
+                            )
+                        }
+                    }
+                }
                 // iOS-parity price chip — anchored top-leading on the
                 // card image so it sits over the art (an unoccupied
                 // region; print-run is top-trailing per cardThumbBadges,
@@ -696,16 +800,10 @@ private fun CollectionGrid(
                             .padding(horizontal = 6.dp, vertical = 2.dp),
                     )
                 }
-                if (entry.userCard.quantity > 1) {
-                    // Bumped quantity badge to bottom-left so it doesn't
-                    // collide with the new price chip (top-left).
-                    QuantityBadge(
-                        quantity = entry.userCard.quantity,
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(6.dp),
-                    )
-                }
+                // iOS doesn't render a per-cell QuantityBadge in grid
+                // mode — quantity surfaces on the list cell's title
+                // pill instead. Don't reintroduce it here without first
+                // updating iOS to match.
             }
         }
     }
@@ -715,6 +813,14 @@ private fun CollectionGrid(
 private fun CollectionList(
     entries: List<CollectionEntry>,
     onCardClick: (String) -> Unit,
+    /**
+     * Total copies of each bobaId across EVERY designation. The
+     * "×N" pill next to the title shows the full collection-wide
+     * count so a coach browsing For Sale still sees they own 3 total
+     * (1 for sale + 2 personal). iOS collectionRow uses the same
+     * total-across-designations math (CollectionView.swift L1470).
+     */
+    bobaIdToTotalCopies: Map<String, Int> = emptyMap(),
 ) {
     // iOS-parity list cell (CollectionView.swift::collectionRow):
     //   [ 60×84 thumb ] [ NAME (large display)              ]  [ $X.XX  ]
@@ -745,13 +851,46 @@ private fun CollectionList(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    Text(
-                        card.displayName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    )
+                    val totalAllDesignations =
+                        bobaIdToTotalCopies[card.bobaId] ?: entry.userCard.quantity
+                    val copiesHere = entry.userCard.quantity
+                    // Title + qty pill on one row. iOS uses display font
+                    // (Bebas Neue) at ~18sp here — switching from
+                    // titleMedium (Roboto Flex 16sp) brings the name
+                    // visually in line with the iOS row.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            card.displayName,
+                            fontSize = 18.sp,
+                            fontFamily = com.bobaplaybook.core.ui.theme.DisplayFontFamily,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        if (totalAllDesignations > 1) {
+                            val label = if (totalAllDesignations == copiesHere) {
+                                "×$totalAllDesignations"
+                            } else {
+                                "×$totalAllDesignations ($copiesHere here)"
+                            }
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = com.bobaplaybook.core.ui.theme.BobaBrand.Cyan,
+                                modifier = Modifier
+                                    .background(
+                                        color = com.bobaplaybook.core.ui.theme.BobaBrand.Cyan.copy(alpha = 0.15f),
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 1.dp),
+                            )
+                        }
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),

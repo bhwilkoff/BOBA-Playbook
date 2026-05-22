@@ -245,7 +245,7 @@ fun CollectionScreen(
                                         text = { Text("$col column${if (col > 1) "s" else ""}") },
                                         leadingIcon = {
                                             if (storedGridColumns == col) {
-                                                Icon(androidx.compose.material.icons.Icons.Default.Check, contentDescription = "Active")
+                                                Icon(Icons.Default.Check, contentDescription = "Active")
                                             } else {
                                                 androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(24.dp))
                                             }

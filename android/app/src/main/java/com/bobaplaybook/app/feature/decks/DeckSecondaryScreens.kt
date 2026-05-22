@@ -111,7 +111,7 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     singleLine = true,
                     leadingIcon = {
                         Icon(
-                            androidx.compose.material.icons.Icons.Default.Search,
+                            Icons.Default.Search,
                             contentDescription = null,
                         )
                     },
@@ -119,7 +119,7 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         {
                             IconButton(onClick = { query = "" }) {
                                 Icon(
-                                    androidx.compose.material.icons.Icons.Default.Clear,
+                                    Icons.Default.Clear,
                                     contentDescription = "Clear",
                                 )
                             }

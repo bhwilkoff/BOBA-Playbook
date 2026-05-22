@@ -1435,6 +1435,28 @@ body[data-find-density="l"] #view-search .card-grid { grid-template-columns: rep
   z-index: 2;
 }
 
+/* Tick 458 — Print-run cell badge (Android tick 456 + iOS tick 457
+   parity / Discord backlog #7 per-cell). Top-LEFT placement on web —
+   the treatment ribbon already lives at top-right, so left avoids
+   overlap on Inspired Ink + Superfoil cards. Cyan default for /5
+   /10 /25 /50 / Serial; orange for SSP via the --ssp modifier.
+   Container query hides at the 'S' density (≤130px cell) since
+   labelSmall would be illegible there. */
+.print-run-cell-badge {
+  position: absolute; top: 8px; left: 8px;
+  padding: 2px 5px;
+  font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700;
+  background: rgba(0, 0, 0, 0.62);
+  color: var(--boba-cyan);
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  z-index: 2;
+}
+.print-run-cell-badge--ssp { color: var(--boba-orange); }
+@container card-cell (max-width: 130px) {
+  .print-run-cell-badge { display: none; }
+}
+
 /* Treatment ribbon colors */
 .tf-colosseum    .card-treatment-ribbon { background: linear-gradient(90deg,#5C1A00,#A0522D); color: #FFD5B0; }
 .tf-battlefoil   .card-treatment-ribbon { background: linear-gradient(90deg,#8B6914,#C9A227); color: #000; }

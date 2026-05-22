@@ -2,6 +2,8 @@ package com.bobaplaybook.app.feature.learn
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bobaplaybook.app.navigation.AppDestination
+import com.bobaplaybook.app.navigation.TabRefreshBus
 import com.bobaplaybook.core.network.YouTubeFeedBundle
 import com.bobaplaybook.core.network.YouTubeFeedService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -9,6 +11,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
 /**
@@ -21,12 +24,23 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class WatchViewModel @Inject constructor(
     private val service: YouTubeFeedService,
+    private val tabRefreshBus: TabRefreshBus,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WatchUiState(isLoading = true))
     val state: StateFlow<WatchUiState> = _state.asStateFlow()
 
-    init { refresh() }
+    init {
+        refresh()
+        // Tab-tap refresh recovery (Ben's punch-list #6). Re-fetch
+        // whenever the user taps the Learn tab — covers stuck-blank
+        // screens after a Worker failure when the user comes back.
+        viewModelScope.launch {
+            tabRefreshBus.events
+                .filter { it == AppDestination.LEARN }
+                .collect { refresh() }
+        }
+    }
 
     fun refresh() {
         viewModelScope.launch {

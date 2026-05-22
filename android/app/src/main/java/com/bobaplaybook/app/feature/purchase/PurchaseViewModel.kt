@@ -3,6 +3,8 @@ package com.bobaplaybook.app.feature.purchase
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bobaplaybook.app.navigation.AppDestination
+import com.bobaplaybook.app.navigation.TabRefreshBus
 import com.bobaplaybook.core.network.StoreLocatorService
 import com.bobaplaybook.core.network.StoreLocation
 import com.bobaplaybook.core.network.WhatnotService
@@ -15,6 +17,7 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
 @Immutable
@@ -47,6 +50,7 @@ data class PurchaseUiState(
 class PurchaseViewModel @Inject constructor(
     private val whatnotService: WhatnotService,
     private val storeLocatorService: StoreLocatorService,
+    private val tabRefreshBus: TabRefreshBus,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PurchaseUiState())
@@ -55,12 +59,28 @@ class PurchaseViewModel @Inject constructor(
     init {
         refreshBreaks()
         refreshStores()
+        // Tab-tap refresh recovery (Ben's punch-list #6). When the
+        // user comes back to Purchase after a Worker failure, a tab
+        // tap re-fetches both Breaks + Stores so blank screens
+        // recover.
+        viewModelScope.launch {
+            tabRefreshBus.events
+                .filter { it == AppDestination.PURCHASE }
+                .collect {
+                    refreshBreaks()
+                    refreshStores()
+                }
+        }
     }
 
     fun refreshBreaks() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoadingBreaks = true, breaksError = null)
-            val shows = whatnotService.upcomingBreaks()
+            // Wrap the network call so a Worker timeout / parse error
+            // doesn't leave the UI stuck on the spinner. iOS surfaces
+            // the same failure via a retry button.
+            val shows = runCatching { whatnotService.upcomingBreaks() }
+                .getOrDefault(emptyList())
             _state.value = _state.value.copy(
                 isLoadingBreaks = false,
                 upcomingBreaks = shows.toPersistentList(),
@@ -72,10 +92,12 @@ class PurchaseViewModel @Inject constructor(
     fun refreshStores() {
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoadingStores = true)
-            val stores = storeLocatorService.fetchStores()
+            val stores = runCatching { storeLocatorService.fetchStores() }
+                .getOrDefault(emptyList())
             // Tick 431 — fetch manifest in parallel-ish (sequential but
             // fast) so the "Updated" stamp populates on first render.
-            val scrapedAt = storeLocatorService.fetchScrapedAt()
+            val scrapedAt = runCatching { storeLocatorService.fetchScrapedAt() }
+                .getOrNull()
             _state.value = _state.value.copy(
                 isLoadingStores = false,
                 stores = stores.toPersistentList(),

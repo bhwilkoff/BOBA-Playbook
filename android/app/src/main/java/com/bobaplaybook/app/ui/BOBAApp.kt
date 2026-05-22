@@ -93,6 +93,7 @@ fun BOBAApp(
     findActions: com.bobaplaybook.app.feature.find.FindActions,
     decksActions: com.bobaplaybook.app.feature.decks.DecksActions,
     cardNavigationStore: com.bobaplaybook.app.feature.carddetail.CardNavigationStore,
+    tabRefreshBus: com.bobaplaybook.app.navigation.TabRefreshBus,
 ) {
     BobaTheme {
         // One NavController per tab so back stacks don't cross-pollute.
@@ -284,6 +285,13 @@ fun BOBAApp(
                                     } else {
                                         currentDestination = destination
                                     }
+                                    // Ben's punch-list #6: surface a refresh
+                                    // pulse on every tab tap so per-tab VMs
+                                    // can re-fetch network data (Watch /
+                                    // Purchase Upcoming Breaks / etc.). VMs
+                                    // collect tabRefreshBus.events filtered
+                                    // on their own destination.
+                                    tabRefreshBus.signalTap(destination)
                                 },
                             )
                         }

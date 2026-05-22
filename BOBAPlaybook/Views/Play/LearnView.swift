@@ -1787,6 +1787,17 @@ private struct GlossaryView: View {
         .init(term: "Modern", definition: "The Active-Era format in BoBA's Set Ascension. Cards from the past 2 years. Primary competitive format; best entry point for new players. Where most gameplay happens."),
         .init(term: "Hall of Fame", definition: "The Ascended-Era format in BoBA's Set Ascension. Cards released 2+ years ago (as of January 1). Larger card library with complex interactions; reserved for special, high-skill events. Emphasizes mastery over volume."),
         .init(term: "AlphaTrilogy", definition: "The Founders-Era format in BoBA's Set Ascension. Exclusively original Alpha-era cards (first year). Celebrated annually with dedicated events. Alpha cards are also playable in Hall of Fame — preserves BoBA's foundation."),
+        // Tick 372 — web tick 368 + Android tick 369 parity. Game-
+        // mechanic + division terms used by Double-Up + Madness +
+        // Nationals sections that had no glossary entry before, so
+        // boba_glossaryAware had nothing to bite on for those terms.
+        .init(term: "Hero Deck", definition: "Your stack of Heroes you'll send into battle. Reveal the top one each battle; if your Hero Deck runs out during Sudden Death, reshuffle the Discard back in."),
+        .init(term: "Sudden Death", definition: "The 8th battle that fires when a game ends 3–3 after 7 battles. Coaches reveal Heroes until one wins outright. No more substitutions — the next deck-top decides it."),
+        .init(term: "Top Deck", definition: "Reveal the top card of your Hero Deck. Used as the Sudden Death and Double-Up tiebreaker — highest Power wins. Each tied game keeps Top Decking until a Coach pulls higher."),
+        .init(term: "Laundry Phase", definition: "The window between battles when Coaches can offer or accept a Press in a Double-Up game. Named because Coaches often switch to laundry-themed weapon trash-talk while deciding."),
+        .init(term: "Apex", definition: "The premier BoBA division — full Apex deck rules, no power cap, $150K prize pool, free to enter at the 2026 Nationals. Apex Madness pairs an Apex deck with Spec 160 teammates."),
+        .init(term: "Brawl", definition: "A heritage BoBA format — single-weapon decks where every Hero shares the same weapon. Also a weapon type introduced in 2026 Edition. The Brawl division at the 2026 Nationals offers $20K + product."),
+        .init(term: "Tecmo Bowl", definition: "2026 edition (June 18 release) themed around the iconic Tecmo Bowl video game. Retro-themed Heroes and Plays; Tecmo + Pixel art treatments. Its own $50K Nationals division."),
     ]
 
     fileprivate static let tradingTerms: [Term] = [

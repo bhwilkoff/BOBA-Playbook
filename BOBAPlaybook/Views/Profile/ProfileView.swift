@@ -913,7 +913,17 @@ struct ProfileView: View {
     private var feedbackMailto: URL? {
         let subject = "BOBA Playbook feedback (v\(versionLine))"
             .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        return URL(string: "mailto:ben@bobaplaybook.com?subject=\(subject)")
+        // Tick 286 — pre-fill device + OS context in the body so Ben can
+        // triage faster. Two blank lines at top reserve space for the
+        // user's actual message; system info lands below "---" divider.
+        let device = UIDevice.current
+        let body = """
+        \n\n\n---
+        App: \(versionLine)
+        Device: \(device.model) · iOS \(device.systemVersion)
+        """
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        return URL(string: "mailto:ben@bobaplaybook.com?subject=\(subject)&body=\(body)")
     }
 
     // MARK: - Sign out + delete

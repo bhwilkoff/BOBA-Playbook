@@ -50,6 +50,35 @@ object CardFormatEligibility {
         )
     }
 
+    /**
+     * Tick 464 — Discord backlog #4 carry-forward (per-cell badge half).
+     * Returns a compact abbreviation of formats where the card is LEGAL
+     * for use as a corner overlay on card cells (e.g., `"S+ C"` for a
+     * card playable in Spec+ and Checklist only). Returns null when the
+     * card is legal in all 4 formats — most cards — so the badge only
+     * surfaces unusual cards. CONSTRAINED treated as legal (the card is
+     * still playable; tiered-slot detail belongs on Card Detail).
+     */
+    fun restrictedLegalAbbrev(card: Card): String? {
+        val chips = legalFormats(card)
+        if (chips.isEmpty()) return null
+        val abbrev = chips.mapNotNull { chip ->
+            if (chip.status == FormatStatus.ILLEGAL) return@mapNotNull null
+            when (chip.format) {
+                "Spec" -> "S"
+                "Spec+" -> "S+"
+                "Brawl" -> "B"
+                "Checklist" -> "C"
+                else -> null
+            }
+        }
+        // All 4 legal → no badge (typical 99% case).
+        if (abbrev.size == 4) return null
+        // No formats legal → defensive null (no useful info).
+        if (abbrev.isEmpty()) return null
+        return abbrev.joinToString(" ")
+    }
+
     private fun specLegality(card: Card): FormatLegality {
         // Spec: Power ≤ 160 for Heroes. Plays / BP / HTD allowed.
         val p = if (card.isHero) card.power else null

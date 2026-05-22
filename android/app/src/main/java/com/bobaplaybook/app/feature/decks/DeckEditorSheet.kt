@@ -48,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bobaplaybook.core.domain.model.Card
@@ -625,7 +626,15 @@ private fun EmptyDeckCTA(modifier: Modifier = Modifier) {
                                 1.5.dp,
                                 accent.copy(alpha = 0.5f),
                                 androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
-                            ),
+                            )
+                            // Tick 316 — TalkBack skips the monogram tile;
+                            // it's a decorative repeat of template.name's
+                            // first letter, which the Text rows below
+                            // already read. Without this, blind users
+                            // hear "L. Lockdown Locker." (letter + name).
+                            // clearAndSetSemantics drops the child Text's
+                            // a11y info AND replaces it with nothing.
+                            .clearAndSetSemantics { },
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(

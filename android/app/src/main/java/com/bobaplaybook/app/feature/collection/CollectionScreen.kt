@@ -377,6 +377,13 @@ fun CollectionScreen(
                 }
             }
             val entries = remember(filtered, collectionSort) { applySort(filtered, collectionSort) }
+            // Card-detail swipe-nav siblings — same pattern as Find / Decks.
+            // The user's "visible list" is the filtered + sorted entries
+            // for the current designation; bobaId is the navigation key.
+            val navHolder: com.bobaplaybook.app.feature.carddetail.CardNavigationHolderViewModel = hiltViewModel()
+            androidx.compose.runtime.LaunchedEffect(entries) {
+                navHolder.store.set(entries.map { it.card.bobaId })
+            }
             if (entries.isEmpty()) {
                 if (collectionQuery.isNotBlank()) {
                     BOBAEmptyState(

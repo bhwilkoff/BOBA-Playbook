@@ -40,6 +40,15 @@
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="34">
 
+        <!-- Google Maps SDK key (Find a Store map). Injected from
+             android/local.properties or the MAPS_API_KEY env var via
+             manifestPlaceholders in app/build.gradle.kts. Restricted
+             in Google Cloud Console to com.bobaplaybook.app + the
+             upload + Play App Signing SHA-1 fingerprints. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

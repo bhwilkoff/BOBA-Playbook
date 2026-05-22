@@ -1,4 +1,29 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+
+// ---------------------------------------------------------------------
+// Read secrets / config out of (in order): the matching env var (CI),
+// then android/local.properties (local dev). Empty string fallback —
+// the affected surface degrades but the rest of the app still builds.
+// ---------------------------------------------------------------------
+fun loadLocalProp(name: String): String {
+    val env = System.getenv(name)
+    if (!env.isNullOrBlank()) return env
+    val f = rootProject.file("local.properties")
+    if (!f.exists()) return ""
+    return Properties().apply { load(f.inputStream()) }.getProperty(name, "")
+}
+
+val mapsApiKey: String = loadLocalProp("MAPS_API_KEY")
+
+// Release-signing creds — set via env vars in CI, or via local.properties
+// for local release smoke-tests. Missing values trigger an unsigned
+// release build (still useful for R8 / minify validation) — Play
+// Console upload requires a signed AAB.
+val uploadKeystorePath:     String = loadLocalProp("UPLOAD_KEYSTORE_PATH")
+val uploadKeystorePassword: String = loadLocalProp("UPLOAD_KEYSTORE_PASSWORD")
+val uploadKeyAlias:         String = loadLocalProp("UPLOAD_KEY_ALIAS").ifBlank { "boba-upload" }
+val uploadKeyPassword:      String = loadLocalProp("UPLOAD_KEY_PASSWORD")
 
 plugins {
     alias(libs.plugins.android.application)
@@ -42,6 +67,32 @@ android {
             "GOOGLE_WEB_CLIENT_ID",
             "\"350111546071-8nr3kumje5uor60t3vufl6a005a8os93.apps.googleusercontent.com\""
         )
+
+        // Thread the Maps API key into the manifest as a placeholder.
+        // The <meta-data android:name="com.google.android.geo.API_KEY">
+        // element in AndroidManifest.xml references ${MAPS_API_KEY}.
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+    }
+
+    // Release signing — wired when UPLOAD_KEYSTORE_PATH +
+    // UPLOAD_KEYSTORE_PASSWORD + UPLOAD_KEY_PASSWORD are present (in
+    // env vars on CI, or in local.properties for local builds). When
+    // any field is blank we skip configuring the signing config; the
+    // release build will produce an unsigned AAB, which the Play
+    // upload step then rejects — but `assembleRelease` still runs for
+    // R8 / minify validation.
+    signingConfigs {
+        if (uploadKeystorePath.isNotBlank() &&
+            uploadKeystorePassword.isNotBlank() &&
+            uploadKeyPassword.isNotBlank()
+        ) {
+            create("release") {
+                storeFile     = file(uploadKeystorePath)
+                storePassword = uploadKeystorePassword
+                keyAlias      = uploadKeyAlias
+                keyPassword   = uploadKeyPassword
+            }
+        }
     }
 
     buildTypes {
@@ -62,9 +113,17 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Signing config bound at CI time via Play App Signing.
-            // For local release builds, configure via ~/.gradle/gradle.properties
-            // (see android/SETUP.md).
+            // Bind the release signing config when it exists. Resolves
+            // by-name so a missing config (creds not set) silently
+            // leaves the release build unsigned.
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+            // Ship native-debug-symbols.zip alongside the AAB so Play
+            // Console can symbolicate any ML Kit native crashes. ML Kit
+            // Text Recognition ships the only non-Kotlin/Java .so files
+            // in our build (per ANDROID-DEV.md §8.6). SYMBOL_TABLE keeps
+            // function names but not line numbers; ~3-5 MB additional
+            // upload. Use "FULL" if you need line-precision later.
+            ndk.debugSymbolLevel = "SYMBOL_TABLE"
         }
     }
 
@@ -123,6 +182,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.browser)         // Chrome Custom Tabs for Discord OAuth + ToS / Privacy links
+    implementation(libs.play.services.maps)       // Google Maps SDK — Find a Store map (Purchase tab)
+    implementation(libs.maps.compose)             // GoogleMap composable + Marker + CameraPositionState
     implementation(libs.datastore.preferences)    // grid-density + first-run hint dismissal
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

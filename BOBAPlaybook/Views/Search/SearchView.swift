@@ -588,6 +588,23 @@ struct SearchView: View {
     @ViewBuilder
     private var featuredRibbons: some View {
         LazyVStack(alignment: .leading, spacing: Design.Spacing.xl) {
+            // Tick 282 — Recently added ribbon (Android tick 174 parity).
+            // Last 24 catalog cards with art, reversed so newest-first
+            // (catalog is appended chronologically by set release).
+            // Anchors the no-search state with "what's new" before the
+            // larger curated shelves.
+            if let recent = recentlyAdded() {
+                VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                    BOBASectionHeader("Recently Added")
+                    ribbon(
+                        title: "From the newest sets",
+                        subtitle: nil,
+                        tint: Design.Colors.bobaCyan,
+                        cards: recent,
+                    )
+                }
+            }
+
             // Card Showcases (renamed from Featured Collections to
             // match the term used in the filter sheet, per user
             // feedback). Hand-curated cross-cuts that aren't easily
@@ -623,6 +640,15 @@ struct SearchView: View {
     /// first 20 matches in raw catalog order, which surfaced
     /// image-pending placeholders. This sorter pushes art-bearing
     /// cards to the front of every ribbon.
+    // Tick 282 — last 24 catalog cards w/ art, reversed (Android
+    // FindViewModel takeLast(24).reversed parity). Returns nil if the
+    // catalog hasn't loaded enough yet so the section just doesn't render.
+    private func recentlyAdded() -> [Card]? {
+        let withArt = store.displayCards.filter { !($0.imageFile ?? "").isEmpty }
+        guard withArt.count >= 12 else { return nil }
+        return Array(withArt.suffix(24).reversed())
+    }
+
     private func sortedWithArt(_ cards: [Card]) -> [Card] {
         cards.sorted { a, b in
             let aImg = !(a.imageFile ?? "").isEmpty

@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 310 (opt, −5 lines)** — Trimmed stale provenance from LearnView.swift file header: "No Browse — Browse moved to Find per §8.1" + "Original 6-section middle picker + Read/Watch toggle + nested Rookie/Sub/Playmaker mode picker collapsed from depth 4 → depth 2." Both describe what the file USED to be; preserved in git history (commits from Apr 2026). Per project rule on avoiding stale provenance.
 - **tick 309 (Android, save shortcut)** — Ctrl+S triggers Save Deck on Android Decks (iOS Cmd+S + web Ctrl+S parity, trio closed). New `DecksActions` Hilt singleton mirrors the FindActions pattern (tick 279); BOBAApp root key handler emits on Ctrl+S when current destination is DECKS; DecksScreen collects via DecksActionsHolderViewModel + LaunchedEffect, fires the existing save closure (extracted) only when editor open + signed in + non-empty deck.
 - **tick 308 (web)** — Cmd/Ctrl+S triggers Save Deck on Decks view (iOS v2.319 parity). Gated on: Decks view active + no input focus (so browser's "save page" doesn't fire when typing in the deck-name field) + no dialog open. preventDefault() suppresses the browser default.
 - **tick 307 (iOS v2.319 / 581)** — Cmd+S keyboard shortcut on the Decks SAVE pill. Universal save idiom (Apple HIG). SwiftUI honors `.disabled()` for shortcuts so the keystroke only fires when the button is enabled (auth + non-empty deck + not already saving). iPad keyboard / external keyboard / Chromebook parity.

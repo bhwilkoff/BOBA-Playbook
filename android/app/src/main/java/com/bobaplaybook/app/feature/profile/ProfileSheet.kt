@@ -66,6 +66,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -424,8 +425,8 @@ private fun SignedInContent(
     // Hoisted from inside LazyColumn so the cheat-sheet block can
     // close over the value without invoking a Composable from a
     // non-Composable context. Fixes tick 334 CI red.
-    val isPhoneOnlyTouch = androidx.compose.ui.platform.LocalConfiguration.current
-        .keyboard == android.content.res.Configuration.KEYBOARD_NOKEYS
+    val isPhoneOnlyTouch = LocalConfiguration.current.keyboard ==
+        android.content.res.Configuration.KEYBOARD_NOKEYS
 
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),

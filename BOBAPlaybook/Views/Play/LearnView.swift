@@ -2679,6 +2679,29 @@ private struct RecentBoBANewsSection: View {
                         .buttonStyle(.plain)
                     }
                 }
+                // Tick 260 — "See all N posts" link to the full archive
+                // (web tick 258 + Android tick 259 parity). Renders only
+                // when the feed has more than the 5-post preview.
+                if bundle.posts.count > posts.count,
+                   let archiveURL = URL(string: "https://bobattlearena.com/blog/all") {
+                    Button {
+                        openURL(archiveURL)
+                    } label: {
+                        Text("See all \(bundle.posts.count) posts on bobattlearena.com ↗")
+                            .font(Design.Fonts.mono(11, weight: .semibold))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Design.Spacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                    .fill(Design.Colors.bobaCyan.opacity(0.05))
+                                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                        .strokeBorder(Design.Colors.bobaCyan.opacity(0.2), lineWidth: 1))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Opens the BoBA blog archive in your browser")
+                }
             }
         }
     }

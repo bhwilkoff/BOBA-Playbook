@@ -250,6 +250,8 @@ private data class UserCardRow(
         askingPrice = askingPrice,
         estimatedValue = estimatedValue,
         condition = condition,
+        grade = grade,                       // tick 239 — was dropped
+        gradingCompany = gradingCompany,     // tick 239 — was dropped
         notes = notes,
     )
 }

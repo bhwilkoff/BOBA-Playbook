@@ -71,16 +71,16 @@ fun FilterSheet(
     onEvent: (FindEvent) -> Unit,
     onDismiss: () -> Unit,
     /**
-     * Collection reuses this sheet for its filter dimensions but has
-     * its OWN sort enum (CollectionSortOrder vs Find's SortOrder) and
-     * its own sort dialog reachable from the Collection overflow
-     * menu. Without this gate, the FilterSheet's sort picker mutated
-     * Find's sort state — which Collection's filter pipeline doesn't
-     * read — and the cards never reordered when Ben changed the
-     * picker. Hide the Find sort section when the sheet is opened
-     * from Collection (Ben 2026-05-22).
+     * Optional custom sort section. Collection passes its own
+     * CollectionSortOrder picker here (the enum + DataStore live
+     * in the Collection feature, not in Find). When null, the
+     * sheet renders Find's CardSortOrder picker as before.
+     *
+     * iOS solves the same conflict via a conditional Picker in
+     * FilterSheetView; Android does it via a Composable slot
+     * because the two sort enums don't share a parent type.
      */
-    showSortSection: Boolean = true,
+    sortSlot: (@Composable () -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
@@ -91,7 +91,7 @@ fun FilterSheet(
             state = state,
             onEvent = onEvent,
             onDismiss = onDismiss,
-            showSortSection = showSortSection,
+            sortSlot = sortSlot,
         )
     }
 }
@@ -101,7 +101,7 @@ private fun FilterSheetContent(
     state: FindUiState,
     onEvent: (FindEvent) -> Unit,
     onDismiss: () -> Unit,
-    showSortSection: Boolean = true,
+    sortSlot: (@Composable () -> Unit)? = null,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         // Sticky header
@@ -131,7 +131,10 @@ private fun FilterSheetContent(
         HorizontalDivider()
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            if (showSortSection) {
+            if (sortSlot != null) {
+                item { sortSlot() }
+                item { Spacer(Modifier.height(8.dp)) }
+            } else {
                 item { SortSection(state.sortOrder, onChange = { onEvent(FindEvent.SortChanged(it)) }) }
                 item { Spacer(Modifier.height(8.dp)) }
             }

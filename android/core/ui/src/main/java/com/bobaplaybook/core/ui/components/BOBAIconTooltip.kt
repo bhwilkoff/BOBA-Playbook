@@ -14,15 +14,10 @@ import androidx.compose.runtime.Composable
  * M3 long-press / mouse-hover tooltip wrapping a single child
  * (typically an [androidx.compose.material3.IconButton]).
  *
- * Extracted at tick 400 after 11 near-identical TooltipBox call
- * sites accumulated across Find / Decks / Collection / Card detail
- * TopAppBars (ticks 379 / 384 / 386 / 389 / 394 / 396 / 399).
- *
- * Each call site previously carried ~8 lines of TooltipBox
- * boilerplate; this helper collapses the boilerplate to a single
- * line per site. The non-letter-edged `TooltipAnchorPosition` enum
- * default matches the Find/Collection convention (below the
- * anchor — top of the TopAppBar gives plenty of room downward).
+ * Collapses ~8 lines of TooltipBox boilerplate (positionProvider +
+ * PlainTooltip + Text + rememberTooltipState + content slot) to a
+ * single line per call site. Default anchor is below — matches the
+ * TopAppBar convention which has plenty of room downward.
  */
 @Composable
 fun BOBAIconTooltip(

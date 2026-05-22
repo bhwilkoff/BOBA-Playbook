@@ -1141,8 +1141,15 @@ private fun detectGlossaryHits(text: String, terms: List<LearnSection.Term>): Li
         // fall back to a (^|non-letter) prefix + (end|non-letter)
         // suffix lookaround so they're still bracketed correctly.
         val esc = Regex.escape(t.term)
+        // Tick 374 — web tick 373 parity. Letter-edged terms whose
+        // singular form doesn't already end in 's' now match an
+        // optional trailing `s` so "Hot Dogs" / "Hero Decks" /
+        // "Top Decks" / "Bonus Plays" tap-resolve to their singulars.
+        // Terms ending in 's' (e.g. "comps") keep the strict
+        // boundary to avoid mismatching "comp" → comps' definition.
         val pattern = if (t.term.first().isLetterOrDigit() && t.term.last().isLetterOrDigit()) {
-            "\\b$esc\\b"
+            if (t.term.last().equals('s', ignoreCase = true)) "\\b$esc\\b"
+            else "\\b${esc}s?\\b"
         } else {
             "(?<![A-Za-z0-9])$esc(?![A-Za-z0-9])"
         }

@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as GSize
@@ -143,15 +144,16 @@ fun ScanScreen(
             activity, Manifest.permission.CAMERA,
         )
 
-    // iOS-parity layout: camera fills the screen edge-to-edge with a
-    // transparent overlay TopAppBar. The prior Scaffold + opaque
-    // TopAppBar pushed the viewfinder down by the bar's height and
-    // ALSO occluded the top of the card area — Ben's punch-list #7
-    // "persistent language on top of the scanner covers the card
-    // area where you are trying to scan." Scaffold removed; the
-    // back button + Recent counter ride a top-gradient strip that
-    // dims the camera enough to read white text without hiding
-    // what's behind it.
+    // iOS-parity layout (ScanView.swift):
+    //  • Camera fills the screen edge-to-edge
+    //  • 140dp top gradient (65% black → transparent) shades the
+    //    status bar + wordmark area without occluding the guide
+    //  • 220dp bottom gradient (transparent → 75% black) shades
+    //    the mode pills + detection chip area
+    //  • Back + queue counter ride the top gradient
+    //  • BOBAWordmark centered in the top chrome
+    //  • Mode pills + (when a card is matched) detection chip
+    //    ride the bottom gradient
     Box(modifier = modifier.fillMaxSize()) {
         if (hasPermission) {
             ScanViewfinder(
@@ -161,13 +163,12 @@ fun ScanScreen(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
-            // Top gradient + chrome (back + Recent counter). Gradient
-            // is 96dp tall, fades to fully transparent so the card
-            // guide frame below stays visible.
+
+            // Top gradient — 140dp, 65% black → transparent
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(96.dp)
+                    .height(140.dp)
                     .background(
                         androidx.compose.ui.graphics.Brush.verticalGradient(
                             colors = listOf(
@@ -177,32 +178,65 @@ fun ScanScreen(
                         ),
                     ),
             )
-            Row(
+            // Top bar — back + centered BOBAWordmark + queue counter
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .statusBarsPadding(),
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = androidx.compose.ui.graphics.Color.White,
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                if (queueEntries.isNotEmpty()) {
-                    androidx.compose.material3.TextButton(
-                        onClick = { reviewSheetOpen = true },
-                    ) {
-                        Text(
-                            "Recent · ${queueEntries.size}",
-                            color = androidx.compose.ui.graphics.Color.White,
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = androidx.compose.ui.graphics.Color.White,
                         )
                     }
+                    Spacer(modifier = Modifier.weight(1f))
+                    if (queueEntries.isNotEmpty()) {
+                        androidx.compose.material3.TextButton(
+                            onClick = { reviewSheetOpen = true },
+                        ) {
+                            Text(
+                                "Queue · ${queueEntries.size}",
+                                color = androidx.compose.ui.graphics.Color.White,
+                            )
+                        }
+                    } else {
+                        // Visual balance — keep the wordmark centered
+                        // even when no queue button is showing.
+                        Spacer(modifier = Modifier.width(48.dp))
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(top = 4.dp),
+                ) {
+                    com.bobaplaybook.core.ui.components.BOBAWordmark()
                 }
             }
+
+            // Bottom gradient — 220dp, transparent → 75% black
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.75f),
+                            ),
+                        ),
+                    ),
+            )
         } else if (permanentlyDenied) {
             BOBAEmptyState(
                 icon = Icons.Default.CameraAlt,
@@ -430,6 +464,10 @@ private fun ScanViewfinder(
         }
     }
 
+    // Most-recent committed match (full Card, not just name) — drives
+    // the iOS-parity detection chip at the bottom.
+    var detectedCard by remember { mutableStateOf<com.bobaplaybook.core.domain.model.Card?>(null) }
+
     Box(
         modifier = modifier.onSizeChanged { size ->
             previewW = size.width
@@ -441,66 +479,131 @@ private fun ScanViewfinder(
             factory = { ctx -> PreviewView(ctx).apply { setController(controller) } },
         )
 
-        // iOS-parity overlay: 5:7 aspect guide rectangle with corner
-        // hint text below. Always visible — no card on screen = idle
-        // state; user needs to know where to aim.
+        // Guide overlay — element-coloured stroke when a card is
+        // committed (iOS swaps from orange → weapon colour). Default
+        // is BOBA orange.
+        val accent = detectedCard?.let { c ->
+            com.bobaplaybook.core.ui.theme.BobaElements.forElement(c.element.uppercase())
+        } ?: Color(0xFFFF4D00)
         ScanGuideOverlay(
             modifier = Modifier.fillMaxSize(),
+            accentColor = accent,
         )
 
-        // First-run hint — "hold steady for ~2s". Permanently
-        // dismissible per HintsStore. Renders only before first
-        // commit so it doesn't compete with the status chip.
-        val hintsViewModel: com.bobaplaybook.app.hints.HintsViewModel =
-            androidx.hilt.navigation.compose.hiltViewModel()
-        val scanHintDismissed by hintsViewModel
-            .isDismissed(com.bobaplaybook.app.hints.HintsStore.Ids.SCAN_HOLD_STEADY)
-            .collectAsStateWithLifecycle(initialValue = true)
-        if (!scanHintDismissed && lastMatchedDisplayName == null) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(top = 16.dp),
-                contentAlignment = Alignment.TopCenter,
-            ) {
-                com.bobaplaybook.core.ui.components.BOBAHintBanner(
-                    title = "Hold steady",
-                    body = "Frame one card inside the rectangle and keep the phone still for ~2 seconds. BOBA reads the card number and hero name on-device.",
-                    onDismiss = {
-                        hintsViewModel.dismiss(com.bobaplaybook.app.hints.HintsStore.Ids.SCAN_HOLD_STEADY)
-                    },
-                )
-            }
+        // Bottom detection chip — only renders on a committed match
+        // (per ScanFrameStabilizer). The verbose "Scoring N/M" /
+        // "Ready" / "Scanning…" mid-frame status text was the
+        // "misfires (card not found)" leakage Ben flagged — those
+        // states no longer show, only the final committed card.
+        val committed = detectedCard
+        if (committed != null) {
+            ScanDetectionChip(
+                card = committed,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .align(Alignment.BottomCenter),
+            )
         }
+    }
 
-        // Live status chip — surfaces in-progress scoring AND the
-        // committed match, so the user always sees something happening.
-        ScanStatusChip(
-            state = scanState,
-            committedName = lastMatchedDisplayName,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .align(Alignment.BottomCenter),
-        )
+    // Sync detectedCard with the stabilizer's committed state — drives
+    // both the guide-frame accent colour swap AND the bottom chip.
+    LaunchedEffect(scanState) {
+        val st = scanState
+        if (st is ScanFrameStabilizer.State.Committed) {
+            detectedCard = st.result.card
+        }
     }
 }
 
 /**
- * 5:7 aspect guide rect centered on screen with a dimmed surround
- * (drawn as four rects around the cutout) and a "Position card inside
- * the frame" hint. Mirrors iOS ScanView's guide overlay.
+ * Bottom detection chip — mirrors iOS ScanDetectionChipView.
+ * Renders the matched card's thumbnail + name + weapon · power
+ * caption with a tap-to-open arrow. Quick-save (+ quantity)
+ * deferred to follow-up; the tap-to-open path is enough for the
+ * first cut.
  */
 @Composable
-private fun ScanGuideOverlay(modifier: Modifier = Modifier) {
+private fun ScanDetectionChip(
+    card: com.bobaplaybook.core.domain.model.Card,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        color = Color.Black.copy(alpha = 0.78f),
+        shape = RoundedCornerShape(14.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            val thumb = com.bobaplaybook.core.network.CDN.thumbUrl(card)
+            coil3.compose.AsyncImage(
+                model = thumb,
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier
+                    .width(44.dp)
+                    .height(62.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    card.displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+                val caption = listOfNotNull(
+                    card.element.takeIf { it.isNotBlank() }?.uppercase(),
+                    card.power?.takeIf { it > 0 }?.let { "⚡$it" },
+                    card.cardNumber.takeIf { it.isNotBlank() },
+                ).joinToString(" · ")
+                if (caption.isNotBlank()) {
+                    Text(
+                        caption,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.72f),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Card guide overlay matching iOS ScanView.cardGuideFrame:
+ *  • 5:7 aspect rounded rect centered on screen (with a vertical
+ *    offset upward so the bottom controls don't crowd the guide)
+ *  • Dimmed surround (35% black) outside the guide, cut out via
+ *    Canvas band-rects rather than alpha masks (Compose doesn't
+ *    have luminanceToAlpha)
+ *  • 2px element-coloured stroke around the guide — orange when
+ *    no detection, weapon-coloured when a card is detected
+ *  • Four corner accent marks (L-shaped) at the guide's corners
+ *  • Tilt hint below the guide ("TILT PHONE SLIGHTLY FOR GLOSSY
+ *    CARDS"), faint-white
+ */
+@Composable
+private fun ScanGuideOverlay(
+    modifier: Modifier = Modifier,
+    accentColor: Color = Color(0xFFFF4D00),  // BOBA orange — iOS default when no detection
+) {
     Box(modifier = modifier) {
-        // Compute the guide rect once; reuse for shadow + stroke + hint placement
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
-            val cardW = w * 0.7f
+            val cardW = w * 0.75f
             val cardH = cardW * 7f / 5f
             val finalW: Float; val finalH: Float
-            if (cardH > h * 0.65f) {
-                finalH = h * 0.65f
+            if (cardH > h * 0.62f) {
+                finalH = h * 0.62f
                 finalW = finalH * 5f / 7f
             } else {
                 finalW = cardW
@@ -509,45 +612,55 @@ private fun ScanGuideOverlay(modifier: Modifier = Modifier) {
             val left = (w - finalW) / 2f
             val top = (h - finalH) / 2f - h * 0.04f
 
-            val dim = Color.Black.copy(alpha = 0.50f)
-            // Top band
+            val dim = Color.Black.copy(alpha = 0.35f)
             drawRect(color = dim, topLeft = Offset(0f, 0f), size = GSize(w, top))
-            // Bottom band
             drawRect(color = dim, topLeft = Offset(0f, top + finalH), size = GSize(w, h - top - finalH))
-            // Left band
             drawRect(color = dim, topLeft = Offset(0f, top), size = GSize(left, finalH))
-            // Right band
             drawRect(color = dim, topLeft = Offset(left + finalW, top), size = GSize(w - left - finalW, finalH))
 
-            // Cyan stroke around guide
+            // Element-coloured stroke (transitions on detection)
             drawRoundRect(
-                color = Color(0xFF00F5FF),
+                color = accentColor,
                 topLeft = Offset(left, top),
                 size = GSize(finalW, finalH),
-                cornerRadius = CornerRadius(20f, 20f),
-                style = Stroke(width = 6f),
+                cornerRadius = CornerRadius(28f, 28f),
+                style = Stroke(width = 5f),
             )
+
+            // Four corner accent marks (L-shapes ~22dp). Matches iOS
+            // CornerMark — short legs pointing inward from each
+            // guide corner.
+            val markLen = 28f
+            val markStroke = 4f
+            val accent = accentColor
+            // TL
+            drawLine(accent, Offset(left, top + markLen), Offset(left, top), strokeWidth = markStroke)
+            drawLine(accent, Offset(left, top), Offset(left + markLen, top), strokeWidth = markStroke)
+            // TR
+            drawLine(accent, Offset(left + finalW - markLen, top), Offset(left + finalW, top), strokeWidth = markStroke)
+            drawLine(accent, Offset(left + finalW, top), Offset(left + finalW, top + markLen), strokeWidth = markStroke)
+            // BL
+            drawLine(accent, Offset(left, top + finalH - markLen), Offset(left, top + finalH), strokeWidth = markStroke)
+            drawLine(accent, Offset(left, top + finalH), Offset(left + markLen, top + finalH), strokeWidth = markStroke)
+            // BR
+            drawLine(accent, Offset(left + finalW - markLen, top + finalH), Offset(left + finalW, top + finalH), strokeWidth = markStroke)
+            drawLine(accent, Offset(left + finalW, top + finalH), Offset(left + finalW, top + finalH - markLen), strokeWidth = markStroke)
         }
 
-        // Hint pill — anchored below center
+        // Tilt hint below the guide — iOS ScanView line 170.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.height(200.dp))
-            Surface(
-                color = Color.Black.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(20.dp),
-            ) {
-                Text(
-                    text = "Position card inside the frame",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            }
+            Spacer(modifier = Modifier.height(240.dp))
+            Text(
+                text = "TILT PHONE SLIGHTLY FOR GLOSSY CARDS",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.5f),
+                letterSpacing = 1.sp,
+            )
         }
     }
 }

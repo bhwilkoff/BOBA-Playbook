@@ -422,6 +422,8 @@ struct ShowDetailView: View {
                             Image(systemName: "square.and.arrow.up")
                                 .foregroundStyle(Design.Colors.bobaCyan)
                         }
+                        .accessibilityLabel("Share wall image")
+                        .help("Share wall image")
                     }
                 }
             }

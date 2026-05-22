@@ -72,6 +72,26 @@
   --boba-text-muted:   #7878A0;
   --boba-text-dim:     #4A4A6A;
 
+  /* Stale-name aliases — earlier theme refactors left ~50 call sites
+     referencing token names that were never defined in :root. Without
+     these aliases, `border: 1px solid var(--boba-border)` resolves
+     to `border: 1px solid` → invalid → no border at all → content
+     visually bleeds between adjacent panels. Same for missing text
+     colors → unstyled text inherits from parent. These aliases keep
+     legacy names valid pointing at the canonical token. */
+  --boba-border:         var(--boba-glass-border);
+  --boba-text-1:         var(--boba-text);
+  --boba-text-3:         var(--boba-text-dim);
+  --boba-text-primary:   var(--boba-text);
+  --boba-text-secondary: var(--boba-text-2);
+  --text-muted:          var(--boba-text-muted);
+  --text-primary:        var(--boba-text);
+  --rad-sm:              6px;
+  --rad-md:              10px;
+  --rad-lg:              14px;
+  --radius-sm:           6px;
+  --radius-md:           10px;
+
   /* Element colors */
   --el-FIRE:   #FF4D00; --el-FIRE-glow:  rgba(255,77,0,0.35);
   --el-ICE:    #00BFFF; --el-ICE-glow:   rgba(0,191,255,0.35);
@@ -92,7 +112,7 @@
 
   /* Spacing */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
-  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+  --sp-5: 20px; --sp-6: 24px; --sp-7: 28px; --sp-8: 32px;
 
   /* Layout */
   --sidebar-w: 240px;
@@ -5931,6 +5951,21 @@ dialog.modal-overlay[open] {
   color: var(--boba-orange);
   font-family: var(--font-mono);
   font-size: 0.82rem;
+}
+
+/* Tournament Formats / Madness / Match Structure tables have
+   descriptive sentences in column 2 (not numeric data). The default
+   nth-child(2) styling (orange + mono + nowrap) was wrong for them:
+   orange-mono on body text reads as eye candy, nowrap forces
+   horizontal scroll. This modifier resets column 2 to standard body
+   styling, keeps column 1 (Format / Variant / Level) as the
+   identifier. Apply via `class="rules-table rules-table--text"`. */
+.rules-table--text td:nth-child(2) {
+  white-space: normal;
+  color: var(--boba-text-2);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
 
 .rules-table tbody tr:last-child td {

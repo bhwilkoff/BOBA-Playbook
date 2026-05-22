@@ -72,6 +72,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
@@ -804,7 +805,7 @@ private fun CollectionWall(
             Text(
                 "Showing the first ${nf.format(HARD_CAP)} of ${nf.format(entries.size)} cards — capture caps at ${nf.format(HARD_CAP)} for safe bitmap memory. Narrow the scope (e.g. switch designation) for a wall of every card.",
                 style = MaterialTheme.typography.bodySmall,
-                color = androidx.compose.ui.graphics.Color(0xFFD9C566),  // GLOW-y, informational
+                color = Color(0xFFD9C566),  // GLOW-y, informational
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 6.dp),

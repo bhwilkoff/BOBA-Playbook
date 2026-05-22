@@ -70,6 +70,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -632,7 +633,7 @@ private fun CardDetailBody(
                                     // green iOS uses (Color(hex:"4CAF50")) so
                                     // owned/wanted indicators feel identical
                                     // across platforms.
-                                    tint = if (isOwned) androidx.compose.ui.graphics.Color(0xFF4CAF50)
+                                    tint = if (isOwned) Color(0xFF4CAF50)
                                            else BobaBrand.Orange,
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
@@ -863,11 +864,11 @@ private fun FormatLegalityStrip(card: Card) {
 private fun FormatLegalityChip(chip: com.bobaplaybook.core.domain.model.FormatLegality) {
     val color = when (chip.status) {
         com.bobaplaybook.core.domain.model.FormatStatus.LEGAL ->
-            androidx.compose.ui.graphics.Color(0xFF4CAF50)
+            Color(0xFF4CAF50)
         com.bobaplaybook.core.domain.model.FormatStatus.CONSTRAINED ->
             com.bobaplaybook.core.ui.theme.BobaBrand.Orange
         com.bobaplaybook.core.domain.model.FormatStatus.ILLEGAL ->
-            androidx.compose.ui.graphics.Color(0xFFE53935)
+            Color(0xFFE53935)
     }
     val tooltipState = androidx.compose.material3.rememberTooltipState()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -932,7 +933,7 @@ private fun HeroStatRow(card: Card) {
                     Stat(
                         number = "FREE",
                         label = "COST",
-                        color = androidx.compose.ui.graphics.Color(0xFF7ECB82),
+                        color = Color(0xFF7ECB82),
                     )
                 } else {
                     Stat(
@@ -1140,11 +1141,11 @@ internal fun DBSInfoSheet(
             ) {
                 Column {
                     DbsTierRow("Low", "1–20",
-                        androidx.compose.ui.graphics.Color(0xFF7ECB82))
+                        Color(0xFF7ECB82))
                     DbsTierRow("Medium", "21–40",
                         com.bobaplaybook.core.ui.theme.BobaBrand.Cyan)
                     DbsTierRow("High", "41–60",
-                        androidx.compose.ui.graphics.Color(0xFFFFD700))
+                        Color(0xFFFFD700))
                     DbsTierRow("Very High", "67+",
                         com.bobaplaybook.core.ui.theme.BobaBrand.Orange)
                 }

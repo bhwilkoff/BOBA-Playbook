@@ -53,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.filled.Language
@@ -266,7 +267,7 @@ private fun WhatnotTile(
                     )
                     if (show.isLive) {
                         Surface(
-                            color = androidx.compose.ui.graphics.Color(0xFFFF4D00),
+                            color = Color(0xFFFF4D00),
                             shape = RoundedCornerShape(4.dp),
                             modifier = Modifier
                                 .align(Alignment.TopStart)
@@ -358,7 +359,7 @@ private fun WhatnotTile(
                         Text(
                             text = timeLabel,
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (show.isLive) androidx.compose.ui.graphics.Color(0xFFFF4D00)
+                            color = if (show.isLive) Color(0xFFFF4D00)
                                     else MaterialTheme.colorScheme.primary,
                         )
                     }

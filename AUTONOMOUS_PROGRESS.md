@@ -24,6 +24,7 @@ Order = (impact × shipping cost⁻¹). Higher impact + cheaper to ship = sooner
 ### P0 — Quick wins from beta feedback / verified bugs
 
 - [ ] **9 sealed products still missing R2 art** — surface them in `assets/data/missing-sealed.json` so the next sourcing pass picks them up.
+- [ ] **iOS DeckBuilderView orphan struct (~1,200 lines)** — Tick 415 audit confirmed the `struct DeckBuilderView: View {}` at top of `BOBAPlaybook/Views/Play/DeckBuilderView.swift` has zero call sites in the app. The file is still pulled in for shared helpers (`DeckCardRow`, `DeckManagementSheet`, `BrowserCardCell`, `BrowserCardDetailSheet`). Real opt opportunity: split helpers into their own files, delete the orphan view. Defer until a dedicated tick — too risky for the ambient opt cadence.
 
 ### P1 — Cross-platform parity (pulled from PARITY.md)
 

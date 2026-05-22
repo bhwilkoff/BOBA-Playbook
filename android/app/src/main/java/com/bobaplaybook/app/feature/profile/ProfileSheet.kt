@@ -418,6 +418,15 @@ private fun SignedInContent(
         }
     }
 
+    // Tick 338 — LocalConfiguration.current is a @Composable getter
+    // and must be read at the Composable scope, not inside
+    // LazyListScope (which is a DSL builder, not @Composable).
+    // Hoisted from inside LazyColumn so the cheat-sheet block can
+    // close over the value without invoking a Composable from a
+    // non-Composable context. Fixes tick 334 CI red.
+    val isPhoneOnlyTouch = androidx.compose.ui.platform.LocalConfiguration.current
+        .keyboard == android.content.res.Configuration.KEYBOARD_NOKEYS
+
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(bottom = 32.dp),
@@ -922,12 +931,10 @@ private fun SignedInContent(
         }
 
         // Tick 334 — Keyboard shortcuts cheat sheet (web tick 333 parity).
-        // Useful on Chromebook + tablets with paired keyboard. Hidden on
-        // phone via touchscreen-mode check: if the device has no
-        // hardware keyboard configured, the cheat sheet adds noise more
-        // than value.
-        val isPhoneOnlyTouch = androidx.compose.ui.platform.LocalConfiguration.current
-            .keyboard == android.content.res.Configuration.KEYBOARD_NOKEYS
+        // Useful on Chromebook + tablets with paired keyboard. Hidden
+        // when no hardware keyboard via the hoisted isPhoneOnlyTouch
+        // flag (LocalConfiguration must be read at Composable scope,
+        // not inside LazyListScope — tick 338 fix).
         if (!isPhoneOnlyTouch) {
             item("shortcuts-header") {
                 BOBASectionHeader(title = "Keyboard shortcuts")

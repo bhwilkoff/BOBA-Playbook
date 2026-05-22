@@ -979,8 +979,14 @@ private fun SectionRenderer(section: LearnSection) {
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.secondary,
                         )
-                        Text(
-                            item,
+                        // Tick 371 — bullet items now glossary-aware
+                        // (iOS tick 367 + web tick 363 parity). Body
+                        // sections already had it via GlossaryAwareBody
+                        // at line 967; bullets were the gap. Same
+                        // primitive, just passing through a Row-context
+                        // style + zero-padding modifier.
+                        GlossaryAwareBody(
+                            text = item,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f),
                         )
@@ -1153,7 +1159,11 @@ private fun detectGlossaryHits(text: String, terms: List<LearnSection.Term>): Li
 }
 
 @Composable
-private fun GlossaryAwareBody(text: String) {
+private fun GlossaryAwareBody(
+    text: String,
+    style: androidx.compose.ui.text.TextStyle? = null,
+    modifier: Modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+) {
     val terms = remember { allGlossaryTerms() }
     val hits = remember(text) { detectGlossaryHits(text, terms) }
     var openHit by remember { mutableStateOf<GlossaryHit?>(null) }
@@ -1190,13 +1200,18 @@ private fun GlossaryAwareBody(text: String) {
             if (cursor < text.length) append(text.substring(cursor))
         }
     }
+    // Tick 371 — caller can override style + modifier so bullet rows
+    // and other in-row contexts can reuse the same glossary-aware
+    // tappable rendering without inheriting the standalone Body's
+    // padding. Default keeps the prior shape so existing call sites
+    // are unaffected.
     Text(
         text = annotated,
-        style = MaterialTheme.typography.bodyMedium.copy(
+        style = style ?: MaterialTheme.typography.bodyMedium.copy(
             color = MaterialTheme.colorScheme.onSurface,
             lineHeight = 22.sp,
         ),
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = modifier,
     )
     val hit = openHit
     if (hit != null) {

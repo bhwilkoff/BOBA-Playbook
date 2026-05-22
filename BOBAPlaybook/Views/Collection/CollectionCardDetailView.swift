@@ -820,16 +820,7 @@ struct CollectionCardDetailView: View {
             CardImageView(card: card, size: .thumb)
                 .frame(width: 80, height: 112)
                 .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
-                .overlay(alignment: .topTrailing) {
-                    if let label = card.printRunLabel, !label.isEmpty {
-                        PrintRunBadge(label: label).padding(3)
-                    }
-                }
-                .overlay(alignment: .bottomLeading) {
-                    if let hint = CardFormatEligibility.restrictedLegalAbbrev(for: card) {
-                        FormatLegalityHintBadge(label: hint).padding(3)
-                    }
-                }
+                .cardThumbBadges(for: card)
 
             Text(card.treatment ?? card.set)
                 .font(Design.Fonts.mono(9))

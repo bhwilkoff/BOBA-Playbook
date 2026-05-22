@@ -922,16 +922,7 @@ struct CardDetailView: View {
                                 CardImageView(card: variant, size: .thumb)
                                     .frame(width: 80, height: 112)
                                     .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
-                                    .overlay(alignment: .topTrailing) {
-                                        if let label = variant.printRunLabel, !label.isEmpty {
-                                            PrintRunBadge(label: label).padding(3)
-                                        }
-                                    }
-                                    .overlay(alignment: .bottomLeading) {
-                                        if let hint = CardFormatEligibility.restrictedLegalAbbrev(for: variant) {
-                                            FormatLegalityHintBadge(label: hint).padding(3)
-                                        }
-                                    }
+                                    .cardThumbBadges(for: variant)
 
                                 Text(variant.treatment ?? variant.set)
                                     .font(Design.Fonts.mono(9))

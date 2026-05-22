@@ -864,6 +864,32 @@ struct PrintRunBadge: View {
     }
 }
 
+// MARK: - Card thumb badge overlays
+
+extension View {
+    /// Applies print-run + format-legality corner badges over a card
+    /// thumbnail. `printRunAlignment` defaults to `.topTrailing`; pass
+    /// `.topLeading` for surfaces (RainbowDetailView) where top-trailing
+    /// is already used by an owned-checkmark.
+    func cardThumbBadges(
+        for card: Card,
+        printRunAlignment: Alignment = .topTrailing,
+        padding: CGFloat = 3
+    ) -> some View {
+        self
+            .overlay(alignment: printRunAlignment) {
+                if let label = card.printRunLabel, !label.isEmpty {
+                    PrintRunBadge(label: label).padding(padding)
+                }
+            }
+            .overlay(alignment: .bottomLeading) {
+                if let hint = CardFormatEligibility.restrictedLegalAbbrev(for: card) {
+                    FormatLegalityHintBadge(label: hint).padding(padding)
+                }
+            }
+    }
+}
+
 // MARK: - BOBACardGridItem
 //
 // Unified grid cell used by Find, Decks, and Collection. Card art

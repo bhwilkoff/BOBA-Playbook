@@ -1584,13 +1584,8 @@ private struct ResourceManagementSection: View {
 // MARK: Archetypes
 
 private struct ArchetypesSection: View {
-    // Replaced 2026-04-28: the previous five archetypes (Fire Aggro,
-    // Ice Control, Steel Wall, Mixed Toolbox, Economy/Attrition) were
-    // reasoned-from-first-principles templates from before the
-    // 2026-04-27 DBS rebalance. The current five mirror the meta-
-    // informed Deck Builder starters (TemplateDeck.json keys) so
-    // coaches reading the Learn tab and tapping a starter in the
-    // Builder see the same playable archetype taxonomy.
+    // Mirrors the Deck Builder starter templates (TemplateDeck.json
+    // keys) so Learn-tab archetypes match what the Builder offers.
     private let archetypes: [Archetype] = [
         Archetype(name: "Lockdown Locker",     element: "STEEL",
                   tagline: "Steel-anchored disruption; close mid-game with high-DBS lockouts",

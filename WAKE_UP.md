@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 217 (iOS)** — Inline glossary tap-to-define on RuleCard body (91b6b8b). **Closes Discord backlog #3 trio** (Android 186, web 208, iOS today). AttributedString-based; tap cyan term → NavigationStack sheet w/ definition. v2.298/560.
 - **tick 216 (Android)** — Rainbow progress upgraded to M3 Expressive `LinearWavyProgressIndicator` (7427050). First M3 Expressive API ship on Android; collection-completion now feels alive. Differentiates from iOS flat bar.
 - **tick 215 (opt)** — Squash 4 compile warnings: dead Elvis on Card.set (non-null); Json hoisted to companion (perf win on cache miss); 2 unnecessary safe-calls on appSnackbar; stale capture-screens comment fixed (15ed095). Build still green.
 - **tick 214 (Android)** — BOBAEmptyState gains secondary-action support; Purchase "No breaks" empty state now offers "Browse Whatnot" Custom Tab as alternative path (9e240fb). Closes dead-end when Worker offline.

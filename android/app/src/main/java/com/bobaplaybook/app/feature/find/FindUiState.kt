@@ -134,16 +134,19 @@ enum class CardPurpose(val label: String) {
  * (date added, market value, paid).
  */
 enum class SortOrder(val label: String) {
-    DEFAULT     ("Default (has image first)"),
-    NAME_ASC    ("Name A → Z"),
-    NAME_DESC   ("Name Z → A"),
-    POWER_DESC  ("Power: High → Low"),
-    POWER_ASC   ("Power: Low → High"),
-    NUMBER_ASC  ("Card # Ascending"),
-    NUMBER_DESC ("Card # Descending"),
-    COST_ASC    ("Hot Dog Cost: Low → High"),
-    COST_DESC   ("Hot Dog Cost: High → Low"),
-    VARIATION   ("Variation");
+    DEFAULT         ("Default (has image first)"),
+    // Tick 354 — iOS v2.328 + web tick 283 parity. Reverse catalog
+    // order — newer sets append, so recently-added cards bubble up.
+    RECENTLY_ADDED  ("Recently Added"),
+    NAME_ASC        ("Name A → Z"),
+    NAME_DESC       ("Name Z → A"),
+    POWER_DESC      ("Power: High → Low"),
+    POWER_ASC       ("Power: Low → High"),
+    NUMBER_ASC      ("Card # Ascending"),
+    NUMBER_DESC     ("Card # Descending"),
+    COST_ASC        ("Hot Dog Cost: Low → High"),
+    COST_DESC       ("Hot Dog Cost: High → Low"),
+    VARIATION       ("Variation");
 }
 
 /** Power-range presets (iOS FilterSheetView.presetRow). */

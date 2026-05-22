@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 250 (opt → parity)** — iOS GlossaryView gains 4 Set Ascension terms (Set Ascension / Modern / Hall of Fame / AlphaTrilogy) — was inconsistency with the inline tap-to-define helper that already had them since tick 242 (e678236). Milestone tick — closes web tick 228 + Android tick 229 to 3-platform glossary parity.
 - **tick 249 (Android)** — Haptic feedback on long-press → Quick Add / pool add (f46c1b0). iOS parity (UIImpactFeedbackGenerator); previously the long-press action fired silently.
 - **tick 248 (web)** — Recent BoBA news gains relative dates + Last-refreshed stamp (6efcd30). **Closes the relative-dates + freshness-stamp trio** (Android 244+246, iOS 247, web today).
 - **tick 247 (iOS)** — Recent BoBA news gains relative-format dates + Last-refreshed stamp inline w/ section header (2390e33). Closes Android tick 244+246 parity. v2.304/566. Web port queued.

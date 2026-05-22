@@ -3486,10 +3486,18 @@
       const printRunBadge = printRun
         ? `<span class="version-print-run${printRun === 'SSP' ? ' version-print-run--ssp' : ''}" aria-hidden="true">${escHtml(printRun)}</span>`
         : '';
+      // Tick 473 — format-legality hint for Other Versions (iOS tick 472
+      // + Android tick 469 parity). Bottom-left, amber chip, only when
+      // the variant is legal in less than 4 formats.
+      const formatHint = restrictedLegalAbbrevFor(v);
+      const formatHintBadge = formatHint
+        ? `<span class="version-format-hint" aria-hidden="true">${escHtml(formatHint)}</span>`
+        : '';
+      const ariaHints = [label, printRun, formatHint].filter(Boolean).join(' — ');
       return `
         <button class="version-tile" data-version-card="${escHtml(String(v.cardNumber))}"
-                aria-label="${escHtml(v.name)} — ${label}${printRun ? ' — ' + printRun : ''}">
-          <span class="version-thumb-wrap">${thumb}${printRunBadge}</span>
+                aria-label="${escHtml(v.name)} — ${ariaHints}">
+          <span class="version-thumb-wrap">${thumb}${printRunBadge}${formatHintBadge}</span>
           <span class="version-label">${label}</span>
         </button>`;
     }).join('');

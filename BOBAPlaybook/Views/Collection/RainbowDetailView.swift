@@ -68,6 +68,7 @@ struct RainbowDetailView: View {
                             .foregroundStyle(Design.Colors.bobaOrange)
                     }
                     .accessibilityLabel("Edit rainbow")
+                    .help("Edit rainbow")
                 }
             }
         }

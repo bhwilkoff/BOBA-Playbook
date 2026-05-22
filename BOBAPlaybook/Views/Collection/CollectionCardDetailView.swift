@@ -615,6 +615,8 @@ struct CollectionCardDetailView: View {
                     .foregroundStyle(Design.Colors.textMuted)
                     .frame(width: 32, height: 32)
             }
+            .accessibilityLabel("Edit this copy")
+            .help("Edit this copy")
         }
         .padding(Design.Spacing.md)
         .background(

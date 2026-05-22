@@ -782,7 +782,9 @@ private fun FormatLegalityChip(chip: com.bobaplaybook.core.domain.model.FormatLe
     val reason = chip.reason
     androidx.compose.material3.TooltipBox(
         positionProvider = androidx.compose.material3.TooltipDefaults
-            .rememberPlainTooltipPositionProvider(),
+            .rememberTooltipPositionProvider(
+                androidx.compose.material3.TooltipAnchorPosition.Above
+            ),
         tooltip = {
             PlainTooltip { Text(reason ?: "${chip.format}: legal") }
         },

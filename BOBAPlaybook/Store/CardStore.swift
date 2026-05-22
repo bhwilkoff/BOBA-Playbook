@@ -15,31 +15,33 @@ enum CardPurpose: String, CaseIterable, Identifiable {
 }
 
 enum CardSortOrder: String, CaseIterable, Identifiable {
-    case `default`   = "default"
-    case nameAsc     = "name_asc"
-    case nameDesc    = "name_desc"
-    case powerDesc   = "power_desc"
-    case powerAsc    = "power_asc"
-    case numberAsc   = "number_asc"
-    case numberDesc  = "number_desc"
-    case costAsc     = "cost_asc"
-    case costDesc    = "cost_desc"
-    case variation   = "variation"
+    case `default`       = "default"
+    case recentlyAdded   = "recently_added"
+    case nameAsc         = "name_asc"
+    case nameDesc        = "name_desc"
+    case powerDesc       = "power_desc"
+    case powerAsc        = "power_asc"
+    case numberAsc       = "number_asc"
+    case numberDesc      = "number_desc"
+    case costAsc         = "cost_asc"
+    case costDesc        = "cost_desc"
+    case variation       = "variation"
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .default:   return "Default"
-        case .nameAsc:   return "Name A → Z"
-        case .nameDesc:  return "Name Z → A"
-        case .powerDesc: return "Power: High → Low"
-        case .powerAsc:  return "Power: Low → High"
-        case .numberAsc: return "Card # Ascending"
-        case .numberDesc: return "Card # Descending"
-        case .costAsc:   return "Hot Dog Cost: Low → High"
-        case .costDesc:  return "Hot Dog Cost: High → Low"
-        case .variation: return "Variation"
+        case .default:        return "Default"
+        case .recentlyAdded:  return "Recently Added"
+        case .nameAsc:        return "Name A → Z"
+        case .nameDesc:       return "Name Z → A"
+        case .powerDesc:      return "Power: High → Low"
+        case .powerAsc:       return "Power: Low → High"
+        case .numberAsc:      return "Card # Ascending"
+        case .numberDesc:     return "Card # Descending"
+        case .costAsc:        return "Hot Dog Cost: Low → High"
+        case .costDesc:       return "Hot Dog Cost: High → Low"
+        case .variation:      return "Variation"
         }
     }
 }
@@ -112,20 +114,29 @@ final class CardStore {
     /// preserves the fallback the old code did via a second `.first { $0.cardNumber == id }`.
     private(set) var cardsByCardNumber: [String: Card] = [:]
 
+    /// Tick 352 — catalog-order index by bobaId. Used by the
+    /// `.recentlyAdded` sort (catalog order is chronological — new sets
+    /// append). O(1) lookup vs O(n) `displayCards.firstIndex(of:)`.
+    private(set) var catalogOrderById: [String: Int] = [:]
+
     /// Rebuild the two id → Card lookup tables. O(n) over displayCards;
     /// runs only on data-load or image-override application, NOT per
     /// keystroke.
     func rebuildIdIndexes() {
         var byId: [String: Card] = [:]
         var byNum: [String: Card] = [:]
+        var orderById: [String: Int] = [:]
         byId.reserveCapacity(displayCards.count)
         byNum.reserveCapacity(displayCards.count)
-        for c in displayCards {
+        orderById.reserveCapacity(displayCards.count)
+        for (i, c) in displayCards.enumerated() {
             byId[c.id] = c
             if byNum[c.cardNumber] == nil { byNum[c.cardNumber] = c }
+            orderById[c.id] = i
         }
         cardsById = byId
         cardsByCardNumber = byNum
+        catalogOrderById = orderById
     }
 
     /// Resolve a Card by either bobaId or cardNumber. O(1) — replaces
@@ -520,6 +531,13 @@ final class CardStore {
             let bImg = b.imageFile != nil && !b.imageFile!.isEmpty
             if aImg != bImg { return aImg }
             switch sortOrder {
+            case .recentlyAdded:
+                // Reverse catalog order — newer sets append, so higher
+                // index = newer card. Tick 352 (iOS port of web tick 283).
+                let ia = catalogOrderById[a.id] ?? 0
+                let ib = catalogOrderById[b.id] ?? 0
+                return ia != ib ? ia > ib
+                                : a.hero.localizedCompare(b.hero) == .orderedAscending
             case .nameAsc:
                 return a.hero.localizedCompare(b.hero) == .orderedAscending
             case .nameDesc:

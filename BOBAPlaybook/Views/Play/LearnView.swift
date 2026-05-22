@@ -2702,27 +2702,40 @@ private struct LearnEvent: Decodable, Identifiable {
 
 private struct LearnEventsBundle: Decodable {
     let events: [LearnEvent]
+    let lastUpdated: String?
 }
 
 private enum LearnEventsLoader {
-    static func load() -> [LearnEvent] {
+    static func loadBundle() -> LearnEventsBundle {
         guard
             let url  = Bundle.main.url(forResource: "events", withExtension: "json"),
             let data = try? Data(contentsOf: url)
-        else { return [] }
-        return (try? JSONDecoder().decode(LearnEventsBundle.self, from: data))?.events ?? []
+        else { return LearnEventsBundle(events: [], lastUpdated: nil) }
+        return (try? JSONDecoder().decode(LearnEventsBundle.self, from: data))
+            ?? LearnEventsBundle(events: [], lastUpdated: nil)
     }
+    static func load() -> [LearnEvent] { loadBundle().events }
 }
 
 private struct UpcomingEventsSection: View {
-    private let events: [LearnEvent] = LearnEventsLoader.load()
+    private let bundle = LearnEventsLoader.loadBundle()
+    private var events: [LearnEvent] { bundle.events }
 
     var body: some View {
         if events.isEmpty { EmptyView() } else {
             VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-                Text("UPCOMING EVENTS")
-                    .font(Design.Fonts.mono(12, weight: .bold))
-                    .foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("UPCOMING EVENTS")
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+                    // Tick 252 — Last-refreshed stamp inline w/ section
+                    // header (Android tick 219 + web tick 218 parity).
+                    if let stamp = bundle.lastUpdated, !stamp.isEmpty {
+                        Text("· refreshed \(learnBlogRelativeDate(stamp))")
+                            .font(Design.Fonts.mono(10))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                }
                 VStack(spacing: Design.Spacing.sm) {
                     ForEach(events) { ev in EventRow(event: ev) }
                 }

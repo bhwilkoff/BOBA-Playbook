@@ -37,7 +37,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
@@ -580,11 +579,6 @@ private fun FindOverflowMenu(
             leadingIcon = { Icon(Icons.Default.Star, contentDescription = null) },
             enabled = surpriseCount > 0,
             onClick = { onDismiss(); onSurpriseMe() },
-        )
-        DropdownMenuItem(
-            text = { Text("Show walkthrough") },
-            leadingIcon = { Icon(Icons.Default.LocalFireDepartment, contentDescription = null) },
-            onClick = onDismiss,  // M7 polish — actual walkthrough re-launcher
         )
     }
 }

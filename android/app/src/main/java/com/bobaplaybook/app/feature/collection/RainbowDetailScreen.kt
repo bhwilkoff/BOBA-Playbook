@@ -146,19 +146,26 @@ fun RainbowDetailScreen(
                     // short bragging-rights blurb. Coaches share "my 12 of
                     // 15 Maverick rainbow" in Discord all the time; this
                     // skips the screenshot+caption round-trip.
+                    // Tick 489 — guard against tapping Share before data
+                    // loads (iOS tick 482 parity: rainbowShareText returns
+                    // nil when context is null). Disabled state when
+                    // allCards is empty so users don't share a nonsense
+                    // "0 of 0 cards (0%)" payload.
                     BOBAIconTooltip("Share rainbow progress") {
-                        IconButton(onClick = {
-                            val pct = if (allCards.isEmpty()) 0
-                                      else ((ownedCount * 100.0) / allCards.size).toInt()
-                            val unit = if (isCustom) "cards" else "treatments"
-                            val text = "My $title rainbow: $ownedCount of ${allCards.size} $unit ($pct%) · bobaplaybook.com"
-                            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(android.content.Intent.EXTRA_SUBJECT, "My $title rainbow")
-                                putExtra(android.content.Intent.EXTRA_TEXT, text)
-                            }
-                            context.startActivity(android.content.Intent.createChooser(intent, "Share rainbow"))
-                        }) {
+                        IconButton(
+                            enabled = allCards.isNotEmpty(),
+                            onClick = {
+                                val pct = ((ownedCount * 100.0) / allCards.size).toInt()
+                                val unit = if (isCustom) "cards" else "treatments"
+                                val text = "My $title rainbow: $ownedCount of ${allCards.size} $unit ($pct%) · bobaplaybook.com"
+                                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(android.content.Intent.EXTRA_SUBJECT, "My $title rainbow")
+                                    putExtra(android.content.Intent.EXTRA_TEXT, text)
+                                }
+                                context.startActivity(android.content.Intent.createChooser(intent, "Share rainbow"))
+                            },
+                        ) {
                             Icon(Icons.Default.Share,
                                  contentDescription = "Share rainbow progress")
                         }

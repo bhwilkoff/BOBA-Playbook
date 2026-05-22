@@ -2645,20 +2645,29 @@ private struct RecentBoBANewsSection: View {
     private var posts: [LearnBlogPost] { Array(bundle.posts.prefix(5)) }
 
     var body: some View {
-        if posts.isEmpty { EmptyView() } else {
-            VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("RECENT BOBA NEWS")
-                        .font(Design.Fonts.mono(12, weight: .bold))
-                        .foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-                    // Tick 247 — last-refreshed stamp inline w/ the section
-                    // header (Android tick 244 parity).
-                    if let stamp = bundle.lastUpdated, !stamp.isEmpty {
-                        Text("· refreshed \(learnBlogRelativeDate(stamp))")
-                            .font(Design.Fonts.mono(10))
-                            .foregroundStyle(Design.Colors.textMuted)
-                    }
+        // Tick 422 — render the header + stamp even when posts is empty
+        // (Android tick 421 + iOS tick 417 events-empty pattern). Users
+        // see the feed IS being refreshed even on quiet days. Was
+        // returning EmptyView() before so the section silently disappeared.
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("RECENT BOBA NEWS")
+                    .font(Design.Fonts.mono(12, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+                // Tick 247 — last-refreshed stamp inline w/ the section
+                // header (Android tick 244 parity).
+                if let stamp = bundle.lastUpdated, !stamp.isEmpty {
+                    Text("· refreshed \(learnBlogRelativeDate(stamp))")
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.textMuted)
                 }
+            }
+            if posts.isEmpty {
+                Text("No recent posts. Check back as the BoBA team publishes.")
+                    .font(Design.Fonts.mono(13))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
                 VStack(spacing: Design.Spacing.sm) {
                     ForEach(posts) { post in
                         Button {

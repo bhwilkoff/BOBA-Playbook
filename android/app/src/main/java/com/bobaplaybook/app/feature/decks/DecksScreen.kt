@@ -80,6 +80,7 @@ import com.bobaplaybook.app.feature.find.FindViewModel
 import com.bobaplaybook.app.hints.HintsStore
 import com.bobaplaybook.app.hints.HintsViewModel
 import com.bobaplaybook.core.domain.model.Card
+import com.bobaplaybook.core.domain.model.CardFormatEligibility
 import com.bobaplaybook.core.ui.adaptive.isCompactWidth
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
@@ -598,7 +599,7 @@ private fun CardPoolGrid(
                     isSealed = card.isSealed,
                     contentDescription = card.displayName,
                     printRunLabel = card.printRunLabel,
-                    formatLegalityHint = com.bobaplaybook.core.domain.model.CardFormatEligibility.restrictedLegalAbbrev(card),
+                    formatLegalityHint = CardFormatEligibility.restrictedLegalAbbrev(card),
                 )
                 // Tick 161 — iOS DeckBuilderView parity. Cards already in
                 // the draft get a cyan border + checkmark badge so coaches

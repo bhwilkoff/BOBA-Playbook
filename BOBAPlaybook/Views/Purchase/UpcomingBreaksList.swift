@@ -153,7 +153,10 @@ struct UpcomingBreaksList: View {
                         .tracking(1)
                 }
                 if show.viewerCount > 0 {
-                    Text("\(show.viewerCount) \(show.isLiveShow ? "watching" : "interested")")
+                    // Tick 407 — Android tick 406 parity. Locale-format
+                    // the count so 4-digit streams render "1,234 watching"
+                    // instead of "1234 watching".
+                    Text("\(show.viewerCount.formatted()) \(show.isLiveShow ? "watching" : "interested")")
                         .font(Design.Fonts.mono(8))
                         .foregroundStyle(Design.Colors.textMuted)
                 }

@@ -723,12 +723,14 @@ object LearnCorpus {
         LearnSection.Bullets(
             heading = "2026 Nationals divisions",
             items = listOf(
-                "Apex — premier open division. No power cap. Standard deck rules.",
-                "AlphaTrilogy — Alpha Edition + Alpha Update + Alpha Blast only.",
-                "Granny's Gum — themed-foil only. Bubble Gum + Grandma's Linoleum + Great Grandma's Linoleum.",
-                "Brawl — single-weapon Brawl decks. Bo Jackson Battle Arena's heritage format.",
-                "Tecmo Bowl — retro-themed format. Tecmo + Pixel art treatments only.",
-                "Spec — single-weapon open. Pick your weapon and live with it for the event.",
+                "Apex — \$150,000 · free to enter. No power cap. Premier open division.",
+                "AlphaTrilogy — \$100,000. Alpha Edition + Alpha Update + Alpha Blast only.",
+                "Tecmo Bowl — \$50,000. Retro-themed format. Tecmo + Pixel art treatments only.",
+                "Open — up to \$40,000. Spec / Elite / SPEC+ Rookie Double-Up. Mono-insert decks may double their prize.",
+                "Blast — \$20,000. All-Blast Substitution + Low Ball variants.",
+                "Brawl — \$20,000. Single-weapon Brawl decks. BoBA's heritage format.",
+                "Granny's Gum — \$20,000. Themed-foil only — Bubble Gum + Grandma's Linoleum + Great Grandma's Linoleum.",
+                "Power Glove — \$15,000. Set Builder Bracket; full-set verification unlocks a \$5,000 bonus.",
             ),
         ),
 

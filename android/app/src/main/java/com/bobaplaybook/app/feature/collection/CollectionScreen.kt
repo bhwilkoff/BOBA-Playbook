@@ -791,8 +791,11 @@ private fun CollectionWall(
             // GLOW-yellow informational note (matches web tick 43).
             // Honest signal that what the user is about to share isn't
             // every card in the designation.
+            // Tick 409 — locale-format the count. Serious collectors hit
+            // 1,000+ cards; "1,234" reads cleaner than "1234".
+            val nf = java.text.NumberFormat.getInstance(java.util.Locale.US)
             Text(
-                "Showing the first $HARD_CAP of ${entries.size} cards — capture caps at $HARD_CAP for safe bitmap memory. Narrow the scope (e.g. switch designation) for a wall of every card.",
+                "Showing the first ${nf.format(HARD_CAP)} of ${nf.format(entries.size)} cards — capture caps at ${nf.format(HARD_CAP)} for safe bitmap memory. Narrow the scope (e.g. switch designation) for a wall of every card.",
                 style = MaterialTheme.typography.bodySmall,
                 color = androidx.compose.ui.graphics.Color(0xFFD9C566),  // GLOW-y, informational
                 modifier = Modifier

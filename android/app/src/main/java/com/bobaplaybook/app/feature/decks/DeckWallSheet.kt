@@ -126,8 +126,10 @@ private fun DeckWallContent(
         if (truncated) {
             // GLOW-yellow informational note — same pattern as
             // CollectionWall (tick 64) + iOS CollectionWallSheet (tick 72).
+            // Tick 409 — locale-format the counts (CollectionScreen parity).
+            val nf = java.text.NumberFormat.getInstance(java.util.Locale.US)
             Text(
-                "Showing the first $HARD_CAP of ${cards.size} cards — capture caps at $HARD_CAP for safe bitmap memory.",
+                "Showing the first ${nf.format(HARD_CAP)} of ${nf.format(cards.size)} cards — capture caps at ${nf.format(HARD_CAP)} for safe bitmap memory.",
                 style = MaterialTheme.typography.bodySmall,
                 color = androidx.compose.ui.graphics.Color(0xFFD9C566),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),

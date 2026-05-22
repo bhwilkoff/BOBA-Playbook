@@ -15,10 +15,15 @@ struct SecureInputField: UIViewRepresentable {
     var submitLabel: UIReturnKeyType = .done
     var onSubmit: (() -> Void)?
     var focused: Bool = false
+    /// When false, the field renders text in cleartext (eye-toggle off).
+    /// Default true preserves the existing behavior for unparameterized
+    /// call sites. Threaded via updateUIView so a parent @State flip
+    /// re-asserts isSecureTextEntry without losing focus or caret position.
+    var isSecure: Bool = true
 
     func makeUIView(context: Context) -> UITextField {
         let field = UITextField()
-        field.isSecureTextEntry = true
+        field.isSecureTextEntry = isSecure
         field.textColor = .white
         field.tintColor = .white
         field.keyboardAppearance = .dark
@@ -48,6 +53,12 @@ struct SecureInputField: UIViewRepresentable {
         field.textColor = .white
         field.textContentType = textContentType
         field.returnKeyType = submitLabel
+        // Re-assert secure-entry state on every SwiftUI update so the
+        // eye-toggle in the parent (Android tick 446 parity) flips the
+        // field without rebuilding the UITextField.
+        if field.isSecureTextEntry != isSecure {
+            field.isSecureTextEntry = isSecure
+        }
 
         // First-responder management
         DispatchQueue.main.async {

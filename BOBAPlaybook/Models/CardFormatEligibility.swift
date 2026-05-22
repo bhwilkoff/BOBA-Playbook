@@ -18,7 +18,69 @@ struct CardRestriction: Identifiable {
     let detail: String  // One-sentence explanation rendered beneath
 }
 
+// Tick 207 — Discord backlog #4 (positive legality answer). Restrictions
+// tell you what's BANNED; this tells you what's LEGAL. Discord §11
+// finding: ~30-35% of rules Qs are "is this legal in Spec / Spec+ /
+// Brawl / Checklist?" — we surface a 4-chip at-a-glance strip. Closes
+// the iOS half of the trio (Android tick 179, web tick 203).
+enum FormatStatus {
+    case legal, constrained, illegal
+}
+
+struct FormatLegality: Identifiable {
+    let id = UUID()
+    let format: String       // "Spec" / "Spec+" / "Brawl" / "Checklist"
+    let status: FormatStatus
+    let reason: String?      // Detail tooltip for constrained/illegal. nil when legal.
+}
+
 enum CardFormatEligibility {
+
+    /// 4-chip strip for the card-detail header. Order matches the user
+    /// mental model (Spec → Spec+ → Brawl → Checklist). Sealed products
+    /// return empty (no format meaning).
+    static func legalFormats(for card: Card) -> [FormatLegality] {
+        if card.cardType.lowercased() == "sealed product" { return [] }
+        return [
+            specLegality(for: card),
+            specPlusLegality(for: card),
+            brawlLegality(for: card),
+            checklistLegality(for: card),
+        ]
+    }
+
+    private static func specLegality(for card: Card) -> FormatLegality {
+        let p: Int? = card.isHero ? card.power : nil
+        if let p = p, p > 160 {
+            return .init(format: "Spec", status: .illegal, reason: "Power \(p) exceeds Spec's 160 cap.")
+        }
+        return .init(format: "Spec", status: .legal, reason: nil)
+    }
+
+    private static func specPlusLegality(for card: Card) -> FormatLegality {
+        let p: Int? = card.isHero ? card.power : nil
+        if let p = p, p > 200 {
+            return .init(format: "Spec+", status: .illegal, reason: "Power \(p) exceeds the SPEC+ 200 ceiling.")
+        }
+        if let p = p, p > 160 {
+            return .init(format: "Spec+", status: .constrained, reason: "Power \(p) fits SPEC+'s 165-200 tiered slots (max 1-2 per deck by power).")
+        }
+        return .init(format: "Spec+", status: .legal, reason: nil)
+    }
+
+    private static func brawlLegality(for card: Card) -> FormatLegality {
+        let p: Int? = card.isHero ? card.power : nil
+        if let p = p, p > 160 {
+            return .init(format: "Brawl", status: .illegal, reason: "Power \(p) exceeds Brawl's 160 cap.")
+        }
+        return .init(format: "Brawl", status: .legal, reason: nil)
+    }
+
+    private static func checklistLegality(for card: Card) -> FormatLegality {
+        // Checklist accepts the broadest set; Trainer is the only known
+        // restriction (banned in Elite Playmaker, not Checklist itself).
+        return .init(format: "Checklist", status: .legal, reason: nil)
+    }
 
     /// Returns all per-card format restrictions that apply. Empty list
     /// means no badge row — the default outcome for the typical hero

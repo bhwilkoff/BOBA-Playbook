@@ -436,6 +436,42 @@ struct CardDetailView: View {
     // block doesn't appear at all. Deck-building rules (DBS budget,
     // count limits) still live in the Decks tab's legality audit.
     @ViewBuilder
+    // Tick 207 — Discord backlog #4 iOS port. 4-chip strip showing
+    // positive legality across Spec / Spec+ / Brawl / Checklist. Most
+    // cards render 4 green chips (the at-a-glance reassurance is the
+    // point). Hero-power-gated cards show amber (constrained) or red
+    // (illegal) chips with a help-cursor tooltip explaining the cause.
+    private func formatLegalityStrip(_ chips: [FormatLegality]) -> some View {
+        HStack(spacing: 6) {
+            ForEach(chips) { chip in
+                let (dotColor, textColor): (Color, Color) = {
+                    switch chip.status {
+                    case .legal:       return (Color(red: 0.49, green: 0.80, blue: 0.51), Design.Colors.textSecondary)
+                    case .constrained: return (Color(red: 1.00, green: 0.84, blue: 0.00), Design.Colors.textPrimary)
+                    case .illegal:     return (Color(red: 0.75, green: 0.23, blue: 0.14), Design.Colors.textMuted)
+                    }
+                }()
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(dotColor)
+                        .frame(width: 6, height: 6)
+                    Text(chip.format)
+                        .font(Design.Fonts.mono(11, weight: .semibold))
+                        .foregroundStyle(textColor)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill(Design.Colors.surface)
+                        .overlay(Capsule().strokeBorder(Design.Colors.glassBorder, lineWidth: 0.5))
+                )
+                .help(chip.reason ?? "\(chip.format): legal")
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
     private func formatRestrictionsBlock(_ notes: [CardRestriction]) -> some View {
         let amber = Design.Colors.bobaOrange
         VStack(alignment: .leading, spacing: Design.Spacing.xs) {
@@ -667,6 +703,16 @@ struct CardDetailView: View {
                 }
             }
             .walkthroughAnchor("cardDetail.statsGrid")
+
+            // Tick 207 — Discord backlog #4 iOS port (Android tick 179
+            // + web tick 203 closes the trio). At-a-glance positive-
+            // legality answer for Spec / Spec+ / Brawl / Checklist.
+            if !card.isSealed {
+                let chips = CardFormatEligibility.legalFormats(for: card)
+                if !chips.isEmpty {
+                    formatLegalityStrip(chips)
+                }
+            }
 
             // Per-card format restrictions — only renders when the card
             // actually has one (Spec-ineligible hero, Bonus Play / HTD

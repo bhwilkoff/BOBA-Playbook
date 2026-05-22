@@ -296,23 +296,6 @@
   /* -----------------------------------------------------------------
      Rendering
   ----------------------------------------------------------------- */
-  // Tick 428 — local relativeDate helper (mirrors js/app.js
-  // `relativeDate`). Lives here because store-locator.js is its own
-  // IIFE and the app.js helper isn't exported. "today" / "Nd ago" /
-  // "Nw ago" within 5 weeks; "Nmo ago" beyond. Used by renderSummary.
-  function _relativeDate(iso) {
-    if (!iso) return '';
-    const date = new Date(iso);
-    if (isNaN(date)) return '';
-    const days = Math.floor((Date.now() - date.getTime()) / 86400000);
-    if (days < 0)  return '';
-    if (days === 0) return 'today';
-    if (days < 7)  return `${days}d ago`;
-    const weeks = Math.floor(days / 7);
-    if (weeks < 5) return `${weeks}w ago`;
-    return `${Math.floor(days / 30)}mo ago`;
-  }
-
   function renderSummary() {
     const el = $('store-summary');
     if (!el) return;
@@ -327,7 +310,9 @@
     // iOS tick 252+419, web app.js ticks 218+248). Falls back to the
     // ISO date for older scrapes (>5wk).
     const rawUpdated = (state.manifest?.scraped_at || '').slice(0, 10);
-    const updated = rawUpdated ? (_relativeDate(rawUpdated) || rawUpdated) : '';
+    const updated = rawUpdated
+      ? ((window.bobaRelativeDate?.(rawUpdated)) || rawUpdated)
+      : '';
     const hidden  = state.stores.filter(isBigBox).length;
 
     let line;

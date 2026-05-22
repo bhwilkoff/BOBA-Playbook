@@ -150,7 +150,12 @@ class CollectionViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             val auth = authManager.authState.first()
-            val userId = (auth as? AuthState.SignedIn)?.userId ?: return@launch
+            val userId = (auth as? AuthState.SignedIn)?.userId
+            if (userId == null) {
+                android.util.Log.w("CollectionVM.add", "Skipped — user not signed in (bobaId=$cardBobaId)")
+                return@launch
+            }
+            android.util.Log.i("CollectionVM.add", "Adding bobaId=$cardBobaId designation=${designation.key} userId=$userId")
             // Resolve cardNumber via bobaId — CLAUDE.md mantra "One ID
             // per Card; bobaId is the primary key for the card catalog."
             // Parsing the bobaId for cardNumber is ambiguous because

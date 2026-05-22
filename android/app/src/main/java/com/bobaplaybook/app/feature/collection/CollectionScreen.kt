@@ -82,6 +82,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bobaplaybook.core.domain.model.CardFormatEligibility
 import com.bobaplaybook.core.domain.model.Designation
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.format.formatUsdAmount
@@ -649,7 +650,7 @@ private fun CollectionGrid(
                     isSealed = entry.card.isSealed,
                     contentDescription = entry.card.displayName,
                     printRunLabel = entry.card.printRunLabel,
-                    formatLegalityHint = com.bobaplaybook.core.domain.model.CardFormatEligibility.restrictedLegalAbbrev(entry.card),
+                    formatLegalityHint = CardFormatEligibility.restrictedLegalAbbrev(entry.card),
                     modifier = Modifier
                         .cardSharedBounds(entry.card.bobaId)
                         .clickable { onCardClick(entry.card.bobaId) },

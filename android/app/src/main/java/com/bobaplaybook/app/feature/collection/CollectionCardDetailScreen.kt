@@ -58,6 +58,7 @@ import kotlinx.coroutines.launch
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.bobaplaybook.core.domain.model.Card
+import com.bobaplaybook.core.domain.model.CardFormatEligibility
 import com.bobaplaybook.core.domain.model.Designation
 import com.bobaplaybook.core.network.CDN
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
@@ -287,7 +288,7 @@ fun CollectionCardDetailScreen(
                                 imageFile = other.imageFile,
                                 contentDescription = other.displayName,
                                 printRunLabel = other.printRunLabel,
-                                formatLegalityHint = com.bobaplaybook.core.domain.model.CardFormatEligibility.restrictedLegalAbbrev(other),
+                                formatLegalityHint = CardFormatEligibility.restrictedLegalAbbrev(other),
                             )
                         }
                     }

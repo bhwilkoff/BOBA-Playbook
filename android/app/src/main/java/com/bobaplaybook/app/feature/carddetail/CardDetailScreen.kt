@@ -80,6 +80,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.bobaplaybook.app.R
 import com.bobaplaybook.core.domain.model.Card
+import com.bobaplaybook.core.domain.model.CardFormatEligibility
 import com.bobaplaybook.core.network.CDN
 import com.bobaplaybook.core.network.PricingListing
 import com.bobaplaybook.core.ui.components.BOBACardCell
@@ -743,7 +744,7 @@ private fun BadgeRow(card: Card) {
 @Composable
 private fun FormatRestrictionsBlock(card: Card) {
     val notes = remember(card.bobaId) {
-        com.bobaplaybook.core.domain.model.CardFormatEligibility.restrictions(card)
+        CardFormatEligibility.restrictions(card)
     }
     if (notes.isEmpty()) return
     val amber = com.bobaplaybook.core.ui.theme.BobaBrand.Orange
@@ -817,7 +818,7 @@ private fun FormatRestrictionsBlock(card: Card) {
 @Composable
 private fun FormatLegalityStrip(card: Card) {
     val chips = remember(card.bobaId) {
-        com.bobaplaybook.core.domain.model.CardFormatEligibility.legalFormats(card)
+        CardFormatEligibility.legalFormats(card)
     }
     if (chips.isEmpty()) return
     Row(

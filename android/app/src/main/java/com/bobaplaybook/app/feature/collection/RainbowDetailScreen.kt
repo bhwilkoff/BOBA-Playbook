@@ -45,6 +45,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.core.data.catalog.CardRepository
 import com.bobaplaybook.core.domain.model.Card
+import com.bobaplaybook.core.domain.model.CardFormatEligibility
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
@@ -269,7 +270,7 @@ private fun RainbowTile(card: Card, owned: Boolean, onClick: () -> Unit) {
             isSealed = card.isSealed,
             contentDescription = card.displayName,
             printRunLabel = card.printRunLabel,
-            formatLegalityHint = com.bobaplaybook.core.domain.model.CardFormatEligibility.restrictedLegalAbbrev(card),
+            formatLegalityHint = CardFormatEligibility.restrictedLegalAbbrev(card),
             modifier = Modifier.clickable(onClick = onClick),
         )
         if (!owned) {

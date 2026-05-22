@@ -69,19 +69,25 @@ internal fun WatchPageContent() {
     val context = LocalContext.current
 
     // Tap → in-app YouTube embed via WebView (iOS WatchView parity).
-    // Custom Tab fallback only kicks in when the URL doesn't expose a
+    // Custom Tab fallback only when the URL doesn't expose a
     // recognizable YouTube video ID (e.g., a channel-page link).
-    var playingVideoId by remember { mutableStateOf<String?>(null) }
-    val openVideo: (String) -> Unit = { url ->
-        val id = extractYouTubeId(url)
-        if (id != null) {
-            playingVideoId = id
+    // Carry the FULL YouTubeVideo so the sheet can render title +
+    // channel + view count + description, not just the iframe.
+    var playingVideo by remember { mutableStateOf<YouTubeVideo?>(null) }
+    val openVideoTile: (YouTubeVideo) -> Unit = { v ->
+        if (extractYouTubeId(v.url) != null || v.videoId.isNotBlank()) {
+            playingVideo = v
         } else {
-            CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(url))
+            CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(v.url))
         }
     }
-    playingVideoId?.let { id ->
-        YouTubePlayerSheet(videoId = id, onDismiss = { playingVideoId = null })
+    val openVideo: (String) -> Unit = { url ->
+        // Legacy call site (rare — sub-tile links). Falls back to a
+        // Custom Tab since we don't have the YouTubeVideo here.
+        CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(url))
+    }
+    playingVideo?.let { video ->
+        YouTubePlayerSheet(video = video, onDismiss = { playingVideo = null })
     }
 
     val emptyBundle = state.bundle.upcoming.isEmpty() &&
@@ -179,7 +185,7 @@ internal fun WatchPageContent() {
                             items(items, key = { "${tab}-${it.videoId}" }) { v ->
                                 VideoRow(
                                     video = v,
-                                    onClick = { openVideo(v.url) },
+                                    onClick = { openVideoTile(v) },
                                     vertical = (tab == "vertical"),
                                 )
                             }

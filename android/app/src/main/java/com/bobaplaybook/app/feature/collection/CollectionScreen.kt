@@ -127,6 +127,15 @@ fun CollectionScreen(
     var designation by rememberSaveable { mutableStateOf(Designation.PERSONAL) }
     var menuOpen by remember { mutableStateOf(false) }
     var filterSheetOpen by rememberSaveable { mutableStateOf(false) }
+    // Sort dialog visibility hoisted OUT of the DropdownMenu content
+    // lambda. When `menuOpen = false` closed the menu, the inline
+    // `var sortDialogOpen by remember { ... }` was disposed before
+    // the dialog could render — sort taps were silently dropping
+    // the new value. Keeping it here keeps the dialog state alive
+    // across the menu's dispose. iOS CollectionView surfaces the
+    // same sort picker as a NavigationLink push so this scoping
+    // problem doesn't surface there.
+    var sortDialogOpen by remember { mutableStateOf(false) }
 
     // Streamer role gates My Shows in the overflow menu — iOS
     // CollectionView.collectionMenu has `if auth.isStreamer { ... }`
@@ -288,23 +297,14 @@ fun CollectionScreen(
                             // Sort sub-menu — peer-collection iOS parity (P1 #17).
                             // Material 3 doesn't have a built-in nested DropdownMenu;
                             // we expose the active sort label in this row and open a
-                            // dedicated sort dialog when tapped.
-                            var sortDialogOpen by remember { mutableStateOf(false) }
+                            // dedicated sort dialog when tapped. `sortDialogOpen` is
+                            // hoisted to the outer Composable so closing the
+                            // overflow menu doesn't tear down the dialog's state.
                             DropdownMenuItem(
                                 text = { Text("Sort: ${collectionSort.label}") },
                                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null) },
                                 onClick = { menuOpen = false; sortDialogOpen = true },
                             )
-                            if (sortDialogOpen) {
-                                CollectionSortDialog(
-                                    selected = collectionSort,
-                                    onSelected = {
-                                        collectionPrefs.setSortOrder(it.name)
-                                        sortDialogOpen = false
-                                    },
-                                    onDismiss = { sortDialogOpen = false },
-                                )
-                            }
                             DropdownMenuItem(
                                 text = { Text("Rainbow Progress") },
                                 leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
@@ -507,6 +507,17 @@ fun CollectionScreen(
                 }
             }
             val entries = remember(filtered, collectionSort) { applySort(filtered, collectionSort) }
+            // Diagnostic log — Ben reported "filters/sort don't work" on
+            // 2026-05-22. This logs the inputs each time the entries
+            // pipeline recomputes so we can verify findState updates
+            // actually reach Collection's filter pass + the sort key
+            // change drives a new applySort call. Drop after confirming.
+            android.util.Log.i(
+                "CollectionScreen",
+                "designation=${designation.key} unsorted=${unsorted.size} filtered=${filtered.size} sort=${collectionSort.name} " +
+                    "fs.weapons=${findState.activeWeapons} fs.treat=${findState.activeTreatment} fs.set=${findState.activeSet} " +
+                    "fs.power=${findState.powerMin}..${findState.powerMax} fs.purpose=${findState.cardPurpose}",
+            )
             // Card-detail swipe-nav siblings — same pattern as Find / Decks.
             // The user's "visible list" is the filtered + sorted entries
             // for the current designation; bobaId is the navigation key.
@@ -641,6 +652,17 @@ fun CollectionScreen(
             state = findState,
             onEvent = findViewModel::onEvent,
             onDismiss = { filterSheetOpen = false },
+        )
+    }
+
+    if (sortDialogOpen) {
+        CollectionSortDialog(
+            selected = collectionSort,
+            onSelected = {
+                collectionPrefs.setSortOrder(it.name)
+                sortDialogOpen = false
+            },
+            onDismiss = { sortDialogOpen = false },
         )
     }
 }

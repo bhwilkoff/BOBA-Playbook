@@ -1349,20 +1349,90 @@ async function handleOCR(request, env) {
 
   const MODEL = "@cf/meta/llama-3.2-11b-vision-instruct";
   try {
-    const result  = await env.AI.run(MODEL, {
-      messages: [{ role: "user", content: [
-        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
-        { type: "text", text: "Transcribe every piece of text you can see in this image. Include all letters, numbers, words, and codes exactly as printed. Return only the raw text, nothing else." },
-      ]}],
-      max_tokens: 256,
-    });
-    const rawText   = String(result?.response ?? result?.description ?? result ?? "").trim();
+    // Two parallel AI calls: (1) structured JSON with bboxes for the
+    // top-left scope + per-region matching the iOS Vision pipeline
+    // does natively; (2) flat transcript as a backstop in case the
+    // structured model returns malformed JSON. The flat-text path is
+    // also what the client falls back to when regions parse fails.
+    const [structuredResult, transcriptResult] = await Promise.all([
+      env.AI.run(MODEL, {
+        messages: [{ role: "user", content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
+          { type: "text", text: `Identify every text region visible on this trading card. For EACH region, return its text and its approximate location as a fraction of the image (0.0–1.0 for both axes, where (0,0) is top-left and (1,1) is bottom-right).
+
+Return ONLY a JSON array, no prose, no markdown fences. Schema:
+[
+  {"text": "exact text as printed", "x": 0.12, "y": 0.05, "w": 0.4, "h": 0.05},
+  ...
+]
+
+Include card name, hero name, card number, power value, ability text, set/treatment markings, and any other printed text. Use 6 decimal places of precision.` },
+        ]}],
+        max_tokens: 1024,
+      }),
+      env.AI.run(MODEL, {
+        messages: [{ role: "user", content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
+          { type: "text", text: "Transcribe every piece of text you can see in this image. Include all letters, numbers, words, and codes exactly as printed. Return only the raw text, nothing else." },
+        ]}],
+        max_tokens: 256,
+      }),
+    ]);
+
+    const rawText   = String(transcriptResult?.response ?? transcriptResult?.description ?? transcriptResult ?? "").trim();
+    const structuredText = String(structuredResult?.response ?? structuredResult?.description ?? structuredResult ?? "").trim();
+
+    // Best-effort parse of the structured response. Strip markdown
+    // fences (the model wraps in ```json…``` despite the prompt) and
+    // any leading prose; locate the outer [ … ] array.
+    let regions = [];
+    try {
+      let s = structuredText;
+      // Strip code fences
+      s = s.replace(/```(?:json)?\s*/gi, "").replace(/```\s*$/g, "");
+      // Find array bounds
+      const start = s.indexOf("[");
+      const end   = s.lastIndexOf("]");
+      if (start >= 0 && end > start) {
+        const arr = JSON.parse(s.slice(start, end + 1));
+        if (Array.isArray(arr)) {
+          regions = arr
+            .filter(r => r && typeof r.text === "string" && r.text.trim().length > 0)
+            .map(r => ({
+              text: String(r.text).trim(),
+              x: clampFrac(r.x), y: clampFrac(r.y),
+              w: clampFrac(r.w, 0), h: clampFrac(r.h, 0),
+            }));
+        }
+      }
+    } catch { /* fall through to rawText-only path on client */ }
+
     const CARD_RE   = /[A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?/gi;
     const candidates = [...rawText.matchAll(CARD_RE)].map(m => m[0].toUpperCase());
-    return json({ cardNumber: candidates[0] ?? null, candidates, rawText });
+
+    // Build top-left scope text from bbox-tagged regions. iOS uses
+    // Vision rect filtering to pull text from the literal top-left
+    // quadrant; the structured response makes the same thing
+    // available to the web client.
+    const topLeftRegions = regions.filter(r => r.x < 0.55 && r.y < 0.45);
+    const topLeftText = topLeftRegions.map(r => r.text).join(" ").trim();
+
+    return json({
+      cardNumber: candidates[0] ?? null,
+      candidates,
+      rawText,
+      regions,           // new — bbox-tagged text regions
+      topLeftText,       // new — extracted for client convenience
+    });
   } catch (err) {
     return json({ error: String(err), cardNumber: null, candidates: [] }, 500);
   }
+}
+
+function clampFrac(v, defaultVal = 0) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return defaultVal;
+  return Math.max(0, Math.min(1, n));
 }
 
 // ── Radish URL resolver (sitemap-driven, edge-cached) ────────────────────────

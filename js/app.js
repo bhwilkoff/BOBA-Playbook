@@ -1563,7 +1563,18 @@
     canvas.width  = Math.round(vw * scale);
     canvas.height = Math.round(vh * scale);
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    const base64 = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
+
+    // Crop the captured frame to just the card area before sending to
+    // the Worker. Without this, OCR is reading text from the phone
+    // case, the user's fingers, ambient background, etc. — all of
+    // which contributes noise and competes with the actual card text
+    // for the model's attention. The .scan-guide-frame overlay is
+    // 5:7 portrait centered on the video, so we mirror that math
+    // here. iOS Vision does the equivalent via VNDetectRectangles +
+    // perspective rectification; this approximation works because
+    // the user already lines the card up with the visible guide.
+    const cropCanvas = cropToCardGuide(canvas);
+    const base64 = cropCanvas.toDataURL('image/jpeg', 0.92).split(',')[1];
 
     try {
       const res  = await fetch(`${WORKER_URL}/ocr`, {
@@ -1573,7 +1584,24 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      const { cardNumber, rawText } = data;
+      const { cardNumber, rawText, regions, topLeftText } = data;
+
+      // Border-color signature — sample the cropped card's edges and
+      // classify into a color bucket. iOS does the same to discriminate
+      // same-hero treatment variants (Fire Tracks orange vs Blizzard
+      // blue) without relying on OCR. Computed on the CROPPED canvas
+      // (not full frame) so phone-case / background colors don't
+      // pollute the signal.
+      const borderBucket = computeBorderColorBucket(cropCanvas);
+
+      // pHash on the cropped card for visual-similarity ranking. The
+      // precomputed catalog index (assets/data/phash-index.txt) is
+      // lazy-loaded on first scan. Distance lookups are Hamming on
+      // 64-bit hashes — fast enough to scan 16K cards in well under
+      // 10ms. Cropping to the card area is critical here — pHash on
+      // a full frame is hashing the phone case, not the card.
+      const framePhash = computeFramePhash(cropCanvas);
+      const phashRanked = await PhashIndex.distancesRanked(framePhash, 50);
 
       // Unified score-based resolver — ports the iOS ScanMatching
       // approach (DECISIONS.md #035): every signal contributes evidence,
@@ -1583,6 +1611,10 @@
       const { chosen, candidates } = resolveScanCandidates({
         cardNumber: cardNumber ? String(cardNumber).toUpperCase() : '',
         rawText:    rawText || '',
+        topLeftText: topLeftText || '',  // bbox-tagged, from new Worker shape
+        regions:    Array.isArray(regions) ? regions : [],
+        borderBucket,
+        phashRanked,  // [{bobaId, distance}, …] sorted ascending; may be empty
       });
 
       if (chosen) {
@@ -1652,14 +1684,16 @@
     return (card.hero || card.name || '').toLowerCase().trim();
   }
 
-  function resolveScanCandidates({ cardNumber, rawText }) {
+  function resolveScanCandidates({ cardNumber, rawText, topLeftText = '', regions = [], borderBucket = null, phashRanked = [] }) {
     const text   = rawText.toLowerCase();
     const textUp = rawText.toUpperCase();
-    // Top-left scope = first 25% of the OCR transcript. iOS reads it
-    // from a literal top-left quadrant via Vision rect filtering; web
-    // approximates with text-order ranking since LLM transcripts tend
-    // to read top-down left-to-right.
-    const topQuarter = text.slice(0, Math.max(40, Math.floor(text.length * 0.25)));
+    // Top-left scope — prefer real bboxes from the Worker (`topLeftText`
+    // is text from regions with x<0.55 && y<0.45 — the canonical iOS
+    // Vision rect-filter equivalent). Fall back to "first 25% of
+    // transcript" when the structured-JSON Worker response is malformed
+    // and topLeftText comes back empty.
+    const topLeftLow = topLeftText.trim().toLowerCase()
+      || text.slice(0, Math.max(40, Math.floor(text.length * 0.25)));
 
     // Pull all hero identities mentioned in the top quarter — used both
     // for scoring and for the veto. A "clear" identity needs at least
@@ -1671,11 +1705,19 @@
       // Match hero identity as a whole word OR as the entire identity
       // (some heroes are 2-word names like "ChetMate" — strip space).
       const compact = id.replace(/\s+/g, '');
-      if (topQuarter.includes(id) || topQuarter.includes(compact)) {
+      if (topLeftLow.includes(id) || topLeftLow.includes(compact)) {
         heroIdentitiesInTopLeft.add(id);
       }
     }
     const hasStrongHero = heroIdentitiesInTopLeft.size > 0;
+
+    // pHash ranking — turn into a quick {bobaId → rank, distance} map.
+    // Ranks 0-49 (best 50 by Hamming distance to captured frame).
+    const phashByBobaId = new Map();
+    phashRanked.forEach((entry, rank) => {
+      phashByBobaId.set(entry.bobaId, { rank, distance: entry.distance });
+    });
+    const hasPhash = phashRanked.length > 0;
 
     // Element-word counting. Following iOS: an element word needs ≥2
     // mentions in fullText before we trust it as a signal (raw OCR
@@ -1781,6 +1823,44 @@
         if (hintedSets.has(card.set)) score += 0.4;
       }
 
+      // === pHASH VISUAL MATCH ===
+      // iOS analog: the image-fingerprint primary in DECISIONS.md
+      // #035. Web's pHash is less robust than iOS's Vision Feature
+      // Print (no learned features) but still a strong signal —
+      // catches treatment variants OCR can't disambiguate and rules
+      // out cards that look nothing like the captured frame.
+      const phEntry = phashByBobaId.get(card.id);
+      if (phEntry) {
+        // Distance is 0-64 (Hamming on 64-bit hash). Score is
+        // monotonic decreasing on distance with a sharp falloff:
+        // d<8  → +2.0  (visually near-identical)
+        // d<16 → +1.0  (likely same card different lighting)
+        // d<24 → +0.4  (loose match, helps when OCR is broken)
+        // d>=24 → 0    (in top-50 but not visually close)
+        const d = phEntry.distance;
+        if      (d <  8) score += 2.0;
+        else if (d < 16) score += 1.0;
+        else if (d < 24) score += 0.4;
+      } else if (hasPhash) {
+        // Card didn't make pHash top-50 even though we have an index
+        // — small penalty so a card with NO visual match doesn't
+        // beat one with a real (even weak) visual match.
+        score -= 0.4;
+      }
+
+      // === BORDER-COLOR ===
+      // Treatment variants often share central art but differ in
+      // border color (Battlefoil family: red/silver/blue/orange/
+      // green/pink/bubble-gum; Blizzard blue; Fire Tracks orange).
+      // When the captured frame's border classifies as a color
+      // bucket AND a candidate's treatment is associated with that
+      // bucket, boost. Mismatches don't penalize — many treatments
+      // have ambiguous border colors and the signal is unreliable.
+      if (borderBucket && card.treatment) {
+        const expected = TREATMENT_BORDER_BUCKETS[card.treatment];
+        if (expected && expected === borderBucket) score += 0.6;
+      }
+
       // === IMAGE AVAILABLE ===
       // Tiebreaker — prefer cards with art so the user picker is more
       // useful. Tiny weight so it never overrides real signals.
@@ -1807,6 +1887,314 @@
     const candidates = scored.slice(0, 8).map(s => s.card);
     return { chosen, candidates };
   }
+
+  /* ────────────────────────────────────────────────────────────────
+     Crop the full-frame capture to just the card area, matching the
+     `.scan-guide-frame` overlay the user sees during capture. The
+     overlay is 48% wide × 88% tall of the video wrap; we approximate
+     the same on the captured canvas by centering a 5:7 portrait
+     rectangle scaled to fill 88% of the canvas height. This is a
+     pragmatic stand-in for the full perspective-rectification the
+     iOS Vision pipeline does — when the user lines up with the
+     visible guide (which most do, since it's clearly drawn), this
+     mapping gets us a clean card crop and the model no longer
+     reads the phone case / fingers / background.
+  ──────────────────────────────────────────────────────────────── */
+  function cropToCardGuide(srcCanvas) {
+    const W = srcCanvas.width;
+    const H = srcCanvas.height;
+    // Match the .scan-guide-frame box: centered, 88% of canvas height,
+    // 5:7 (wider-than-tall when sideways? — cards are portrait, 5w×7h
+    // is the conventional aspect).
+    const cropH = Math.round(H * 0.88);
+    const cropW = Math.round(cropH * (5 / 7));
+    const cropX = Math.round((W - cropW) / 2);
+    const cropY = Math.round((H - cropH) / 2);
+
+    const out = document.createElement('canvas');
+    out.width = cropW;
+    out.height = cropH;
+    const ctx = out.getContext('2d');
+    ctx.drawImage(srcCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+    return out;
+  }
+
+  /* ────────────────────────────────────────────────────────────────
+     Border-color signature — sample the captured frame's outer
+     strip and classify into a coarse color bucket. iOS samples
+     two horizontal strips (top + bottom border bands where the
+     treatment band lives). Web does the same shape: average HSV
+     across a ring of border pixels, classify the dominant hue.
+     Returns one of the BORDER_BUCKETS values or null when the
+     border is too neutral / too varied to classify confidently.
+  ──────────────────────────────────────────────────────────────── */
+  const BORDER_BUCKETS = ['red','orange','yellow','green','blue','purple','pink','silver','dark'];
+
+  // Treatment → expected border bucket. Maps the most-common
+  // treatment-band colors per the iOS scoring tables. Missing
+  // treatments are intentionally absent so they don't pick up
+  // false border boosts. The 'Battlefoil' variants are deliberately
+  // omitted — they're a family with seven different border colors
+  // (Red/Silver/Blue/Orange/Green/Pink/Bubble Gum) that need their
+  // sub-treatment to map cleanly. iOS handles this via per-subset
+  // treatment names; web's catalog uses the same.
+  const TREATMENT_BORDER_BUCKETS = Object.freeze({
+    'Red Battlefoil':            'red',
+    'Silver Battlefoil':         'silver',
+    'Blue Battlefoil':           'blue',
+    'Orange Battlefoil':         'orange',
+    'Green Battlefoil':          'green',
+    'Pink Battlefoil':           'pink',
+    'Bubble Gum Battlefoil':     'pink',
+    'Blizzard':                  'blue',
+    'Fire Tracks':               'orange',
+    'Power Glove':               'silver',
+    'Headlines':                 'dark',
+    'Logofoil':                  'silver',
+    'Mixtape':                   'purple',
+    'Miami Ice':                 'pink',
+    'Slime':                     'green',
+    'Colosseum':                 'yellow',
+    'Grandma\'s Linoleum':       'pink',
+    'Great Grandma\'s Linoleum': 'pink',
+    'Icon':                      'silver',
+    'Alpha':                     'silver',
+    'Chillin\'':                 'blue',
+    'Grillin\'':                 'red',
+    'Superfoil':                 'silver',
+  });
+
+  function computeBorderColorBucket(canvas) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    if (W < 40 || H < 40) return null;
+
+    // Sample a 4px-wide ring around the frame's outer ~5% margin.
+    // The card itself (after the user frames it in the guide) fills
+    // the center; this captures the actual outer treatment band when
+    // the frame is well-aligned, and merges with the surroundings
+    // gracefully when not.
+    const margin = 4;
+    const stripH = Math.max(4, Math.floor(H * 0.05));
+    const stripW = Math.max(4, Math.floor(W * 0.05));
+    let topData, bottomData, leftData, rightData;
+    try {
+      topData    = ctx.getImageData(margin, margin, W - 2 * margin, stripH);
+      bottomData = ctx.getImageData(margin, H - stripH - margin, W - 2 * margin, stripH);
+      leftData   = ctx.getImageData(margin, margin, stripW, H - 2 * margin);
+      rightData  = ctx.getImageData(W - stripW - margin, margin, stripW, H - 2 * margin);
+    } catch {
+      // CORS-tainted canvas — getImageData throws. Return null and
+      // skip the signal; OCR + pHash still drive matching.
+      return null;
+    }
+
+    const bucketCounts = Object.fromEntries(BORDER_BUCKETS.map(b => [b, 0]));
+    let total = 0;
+    for (const data of [topData, bottomData, leftData, rightData]) {
+      for (let i = 0; i < data.data.length; i += 16) {
+        // Stride by 4 pixels (16 = 4 channels × 4 px) — sampling is
+        // dense enough for a good histogram without scanning every
+        // pixel.
+        const r = data.data[i], g = data.data[i + 1], b = data.data[i + 2];
+        const bucket = classifyRgb(r, g, b);
+        if (bucket) { bucketCounts[bucket]++; total++; }
+      }
+    }
+    if (total === 0) return null;
+
+    // Find the dominant bucket. Require ≥35% of classifiable pixels
+    // to fall into one bucket — otherwise the border is too mixed
+    // to be a useful signal (the captured frame is full of card art,
+    // not a uniform treatment band).
+    let bestBucket = null;
+    let bestCount = 0;
+    for (const [bucket, count] of Object.entries(bucketCounts)) {
+      if (count > bestCount) { bestCount = count; bestBucket = bucket; }
+    }
+    return bestCount / total >= 0.35 ? bestBucket : null;
+  }
+
+  function classifyRgb(r, g, b) {
+    // RGB → HSL conversion (lightness + saturation gates filter out
+    // near-grayscale + near-black pixels that shouldn't classify).
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2 / 255;
+    const d = max - min;
+    if (l < 0.08) return 'dark';
+    // Near-grayscale → silver if light enough, otherwise skip
+    if (d < 25) {
+      if (l >= 0.55 && l <= 0.92) return 'silver';
+      return null;
+    }
+    // Hue (degrees) from RGB
+    let h;
+    if      (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else                h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+
+    if (h < 15  || h >= 345) return 'red';
+    if (h < 40)              return 'orange';
+    if (h < 65)              return 'yellow';
+    if (h < 170)             return 'green';
+    if (h < 260)             return 'blue';
+    if (h < 310)             return 'purple';
+    return 'pink';
+  }
+
+  /* ────────────────────────────────────────────────────────────────
+     pHash — 8×8 DCT-based perceptual hash, 64 bits per image. Same
+     shape as the canonical pHash algorithm (resize to 32×32 →
+     grayscale → DCT → keep top-left 8×8 (excluding DC) → compare
+     against median → bit = above-or-below). Hamming distance on the
+     resulting 64-bit hash is the similarity metric. Catalog index
+     lives at assets/data/phash-index.txt — one line per card, format
+     `bobaId|hex64`. Generator: scripts/build_phash_index.py.
+  ──────────────────────────────────────────────────────────────── */
+
+  function computeFramePhash(canvas) {
+    // Step 1 — downscale to 32×32 grayscale via an offscreen canvas.
+    const small = document.createElement('canvas');
+    small.width = 32; small.height = 32;
+    const sctx = small.getContext('2d');
+    sctx.drawImage(canvas, 0, 0, 32, 32);
+    const img = sctx.getImageData(0, 0, 32, 32).data;
+    const gray = new Float32Array(32 * 32);
+    for (let i = 0, j = 0; i < img.length; i += 4, j++) {
+      gray[j] = 0.299 * img[i] + 0.587 * img[i + 1] + 0.114 * img[i + 2];
+    }
+
+    // Step 2 — 2-D DCT-II via separable 1-D passes. 32×32 cost is
+    // ~1M multiplies; runs in a few ms on any modern phone.
+    const dct = dct2D(gray, 32);
+
+    // Step 3 — extract the top-left 8×8 block (excluding the DC
+    // coefficient at [0,0]), compute the median, build the 64-bit
+    // hash by comparing each kept coefficient to the median.
+    const block = new Float32Array(64);
+    let k = 0;
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        block[k++] = dct[y * 32 + x];
+      }
+    }
+    // Median of [1..63] (drop DC at index 0)
+    const sorted = Array.from(block.slice(1)).sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+
+    // Pack into a BigInt for cheap Hamming distance later
+    let hash = 0n;
+    for (let i = 0; i < 64; i++) {
+      if (block[i] > median) hash |= (1n << BigInt(i));
+    }
+    return hash;
+  }
+
+  // Precomputed DCT-II cosine matrix (lazy-initialized; ~32×32 = 4KB).
+  let _dctMatrix = null;
+  function dctMatrix(N) {
+    if (_dctMatrix && _dctMatrix.length === N * N) return _dctMatrix;
+    const m = new Float32Array(N * N);
+    const c0 = Math.sqrt(1 / N);
+    const c1 = Math.sqrt(2 / N);
+    for (let k = 0; k < N; k++) {
+      const c = k === 0 ? c0 : c1;
+      for (let n = 0; n < N; n++) {
+        m[k * N + n] = c * Math.cos((Math.PI / N) * (n + 0.5) * k);
+      }
+    }
+    _dctMatrix = m;
+    return m;
+  }
+  function dct2D(input, N) {
+    const M = dctMatrix(N);
+    // Row pass: temp[k,n] = Σ_j input[n,j] * M[k,j]
+    const temp = new Float32Array(N * N);
+    for (let n = 0; n < N; n++) {
+      for (let k = 0; k < N; k++) {
+        let s = 0;
+        for (let j = 0; j < N; j++) s += input[n * N + j] * M[k * N + j];
+        temp[n * N + k] = s;
+      }
+    }
+    // Column pass: out[k,l] = Σ_n temp[n,l] * M[k,n]
+    const out = new Float32Array(N * N);
+    for (let l = 0; l < N; l++) {
+      for (let k = 0; k < N; k++) {
+        let s = 0;
+        for (let n = 0; n < N; n++) s += temp[n * N + l] * M[k * N + n];
+        out[k * N + l] = s;
+      }
+    }
+    return out;
+  }
+
+  // Hamming distance on 64-bit BigInt hashes.
+  function hamming64(a, b) {
+    let x = a ^ b;
+    let d = 0;
+    while (x) { d++; x &= x - 1n; }
+    return d;
+  }
+
+  // Lazy-loaded catalog pHash index. Loads `assets/data/phash-index.txt`
+  // on first use; subsequent scans hit the in-memory cache. Format is
+  // one card per line: `bobaId|<16-hex-char>`. ~16K cards ≈ 320KB
+  // uncompressed (~80KB gzipped).
+  const PhashIndex = (() => {
+    let entries = null;       // [{ bobaId, hash: BigInt }, …]
+    let loadingPromise = null;
+
+    async function load() {
+      if (entries) return entries;
+      if (loadingPromise) return loadingPromise;
+      loadingPromise = (async () => {
+        try {
+          const res = await fetch('assets/data/phash-index.txt');
+          if (!res.ok) { entries = []; return entries; }
+          const text = await res.text();
+          const out = [];
+          for (const line of text.split('\n')) {
+            const t = line.trim();
+            if (!t || t.startsWith('#')) continue;
+            const pipe = t.indexOf('|');
+            if (pipe < 0) continue;
+            const bobaId = t.slice(0, pipe);
+            const hex = t.slice(pipe + 1).trim();
+            if (hex.length !== 16) continue;
+            out.push({ bobaId, hash: BigInt('0x' + hex) });
+          }
+          entries = out;
+          console.log(`[scan] pHash index loaded — ${entries.length} cards`);
+        } catch (err) {
+          console.warn('[scan] pHash index unavailable:', err);
+          entries = [];
+        }
+        return entries;
+      })();
+      return loadingPromise;
+    }
+
+    async function distancesRanked(frameHash, topN = 50) {
+      const list = await load();
+      if (!list.length) return [];
+      // Compute distance to every catalog entry, then take top N.
+      // 16K × ~20ns each ≈ 0.3ms on a modern phone — well under
+      // the OCR round-trip latency.
+      const distances = list.map(e => ({
+        bobaId: e.bobaId,
+        distance: hamming64(frameHash, e.hash),
+      }));
+      distances.sort((a, b) => a.distance - b.distance);
+      return distances.slice(0, topN);
+    }
+
+    return { load, distancesRanked };
+  })();
 
   // Removed: legacy findCardsByOCRText + OCR_ELEMENTS + OCR_SET_HINTS.
   // Superseded by resolveScanCandidates above — a score-based fusion

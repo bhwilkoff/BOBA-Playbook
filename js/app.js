@@ -3064,6 +3064,30 @@
     return null;
   }
 
+  /// Tick 203 — Discord backlog #4 web parity (Android tick 179).
+  /// Returns the 4-chip format legality strip for the card-detail
+  /// surface. Mirrors Kotlin CardFormatEligibility.legalFormats:
+  /// every card is LEGAL in every format unless a per-card property
+  /// (currently only hero power) gates it. Sealed → empty.
+  function legalFormatsFor(card) {
+    if (!card || card.cardType === 'Sealed Product') return [];
+    const isHero = card.cardType === 'Hero';
+    const p = isHero ? (typeof card.power === 'number' ? card.power : null) : null;
+    const spec = (p != null && p > 160)
+      ? { format: 'Spec', status: 'illegal', reason: `Power ${p} exceeds Spec's 160 cap.` }
+      : { format: 'Spec', status: 'legal' };
+    const specPlus = (p != null && p > 200)
+      ? { format: 'Spec+', status: 'illegal', reason: `Power ${p} exceeds the SPEC+ 200 ceiling.` }
+      : (p != null && p > 160)
+        ? { format: 'Spec+', status: 'constrained', reason: `Power ${p} fits SPEC+'s 165-200 tiered slots (max 1-2 per deck by power).` }
+        : { format: 'Spec+', status: 'legal' };
+    const brawl = (p != null && p > 160)
+      ? { format: 'Brawl', status: 'illegal', reason: `Power ${p} exceeds Brawl's 160 cap.` }
+      : { format: 'Brawl', status: 'legal' };
+    const checklist = { format: 'Checklist', status: 'legal' };
+    return [spec, specPlus, brawl, checklist];
+  }
+
   function getCardRarity(card) {
     const t = (card.treatment || '').toLowerCase();
     if (t.includes('kanji'))      return { label: 'Kanjifoil',    tier: 5 };
@@ -3288,6 +3312,15 @@
           <div class="modal-stats" aria-label="Card stats">
             ${statCells}
           </div>
+          ${(() => {
+            const chips = legalFormatsFor(card);
+            if (chips.length === 0) return '';
+            return `<div class="format-legality-strip" aria-label="Format legality">
+              ${chips.map(c => `<span class="format-legality-chip format-legality-${c.status}" title="${escHtml(c.reason || `${c.format}: legal`)}">
+                <span class="format-legality-dot" aria-hidden="true"></span>${escHtml(c.format)}
+              </span>`).join('')}
+            </div>`;
+          })()}
           <div class="modal-collection-action">
             <button class="btn-collection-add" data-action="add-to-collection">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

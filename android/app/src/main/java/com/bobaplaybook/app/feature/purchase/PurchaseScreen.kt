@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -181,6 +182,22 @@ fun PurchaseScreen(modifier: Modifier = Modifier) {
                                     verticalArrangement = Arrangement.spacedBy(12.dp),
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
+                                    // Tick 511 — explanatory header caption,
+                                    // iOS UpcomingBreaksList parity (line 31:
+                                    // "Live community streams featuring Bo
+                                    // Jackson Battle Arena"). Spans the full
+                                    // grid width on every device.
+                                    item(span = { GridItemSpan(maxLineSpan) }) {
+                                        Text(
+                                            text = "Live community streams featuring Bo Jackson Battle Arena",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(bottom = 4.dp),
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        )
+                                    }
                                     items(
                                         count = state.upcomingBreaks.size,
                                         // Index-suffix guarantees uniqueness even when

@@ -329,7 +329,13 @@ private fun WhatnotTile(
                                 modifier = Modifier.size(14.dp),
                             )
                             Text(
-                                text = show.viewerCount.toString(),
+                                // Tick 406 — locale-format the viewer count
+                                // so 1,234 doesn't render as "1234". Same
+                                // NumberFormat / Locale.US pattern Find uses
+                                // (tick 359). Streams routinely run into 4-digit
+                                // viewer counts so the thousands separator helps.
+                                text = java.text.NumberFormat.getInstance(java.util.Locale.US)
+                                    .format(show.viewerCount),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

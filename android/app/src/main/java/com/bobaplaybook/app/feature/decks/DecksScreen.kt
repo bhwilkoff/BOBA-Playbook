@@ -528,6 +528,9 @@ private fun CardPoolGrid(
         }
         return
     }
+    // Tick 249 — haptic on long-press → add (parity with Find tab).
+    // Pulled outside LazyVerticalGrid since LazyGridScope is non-composable.
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     LazyVerticalGrid(
         modifier = modifier,
         // Sentinel 0 → adaptive (the M3 default that flows with width
@@ -550,7 +553,10 @@ private fun CardPoolGrid(
                     .cardSharedBounds(card.bobaId)
                     .combinedClickable(
                         onClick = { onCardClick(card.bobaId) },
-                        onLongClick = { onCardLongClick(card) },
+                        onLongClick = {
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                            onCardLongClick(card)
+                        },
                     ),
             ) {
                 BOBACardCell(

@@ -1322,7 +1322,6 @@ struct DBSInfoSheet: View {
     /// Android tick 186's DBSInfoSheet header. Red treatment when
     /// projected total exceeds budget.
     @ViewBuilder
-    @ViewBuilder
     private func contextBlock(card: Int, used: Int, budget: Int) -> some View {
         let projected = used + card
         let overCap   = projected > budget

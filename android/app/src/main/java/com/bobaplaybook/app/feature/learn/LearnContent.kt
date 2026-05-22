@@ -233,14 +233,34 @@ object LearnCorpus {
             heading = "April 2026 update",
             text = "BoBA rebalanced DBS values to restore meaningful decisions: low-cost Plays (especially 0- and 1-cost effects) carry higher DBS than before; key cards that enabled full-deck cycling or repeat loops were rebalanced. Effects like draw, recovery, and manipulation are still powerful — they just come with a real cost now. See bobattlearena.com/blog/dbs-update-live-now for the BoBA team's announcement.",
         ),
+        // Tick 401 — iOS CardZonesSection port (LearnView §1112). The
+        // previous Android "Card zones" heading was actually 5 Hero
+        // STATES (Bench / Active / Retired / Played / Used) — a useful
+        // taxonomy but a different concept from the rulebook's physical
+        // card zones (Hero Deck / Discard / Playbook / Abyss / etc.).
+        // Rename the state taxonomy and add the canonical zones reference.
         LearnSection.Bullets(
-            heading = "Card zones",
+            heading = "Hero states",
             items = listOf(
                 "Bench — face-down Heroes waiting for their Battle",
                 "Active — the Hero currently in a Battle",
                 "Retired — Heroes who lost; out for the match",
                 "Played — face-up Plays applied to the active Hero",
                 "Used — face-down spent Plays",
+            ),
+        ),
+        LearnSection.Bullets(
+            heading = "Card zones reference",
+            items = listOf(
+                "Hero Deck — Your 60-card main deck; the source for battle Heroes",
+                "Battle Slots — 7 face-down positions; one Hero per slot revealed in sequence",
+                "Bench / Hand — 4 Heroes drawn after setup (for substitution) and Play cards drawn from Playbook",
+                "Active Battle — The current face-up Hero in the active battle position",
+                "Discard Pile — Face-up; always public information",
+                "Playbook — Your 30-card Play deck (Playmaker only)",
+                "Hot Dog Pile — 10-card resource pile; count is always public",
+                "Hot Dog Discard — Spent Hot Dogs go here",
+                "Abyss — Removed from game permanently; cannot be retrieved",
             ),
         ),
         // Tick 274 — iOS EdgeCasesSection depth port. iOS Rules has 7

@@ -70,9 +70,11 @@ fun BOBACardCell(
      * Optional print-run badge surfaced as a top-trailing corner chip
      * (`/5` / `/10` / `/25` / `/50` / `SSP` / `Serial`). Default null
      * means no chip — call sites opt in by passing `card.printRunLabel`.
-     * Chip is hidden at very small cell widths to keep it legible at
-     * 3-col density. Discord backlog #7 per-cell variant; CardDetailScreen
-     * carries the full explainer-tooltip version (DECISIONS.md #028).
+     * Hidden below 80dp cell width to skip 40dp suggestion thumbs +
+     * 60dp AddToCollection previews + 72dp DeckEditor in-deck rows;
+     * shows on 80dp "Other versions" tiles and everything bigger.
+     * Discord backlog #7 per-cell variant; CardDetailScreen carries the
+     * full explainer-tooltip version (DECISIONS.md #028).
      */
     printRunLabel: String? = null,
 ) {
@@ -102,7 +104,7 @@ fun BOBACardCell(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
-                if (!printRunLabel.isNullOrBlank() && maxWidth >= 120.dp) {
+                if (!printRunLabel.isNullOrBlank() && maxWidth >= 80.dp) {
                     PrintRunBadge(
                         label = printRunLabel,
                         modifier = Modifier

@@ -3142,6 +3142,10 @@ dialog.modal-overlay[open] {
 .provider-apple   { background: #000; color: #fff;
                     border: 0.5px solid rgba(255,255,255,0.3); }
 .provider-discord { background: #5865F2; color: #fff; }
+/* Tick 223 — Google brand-color pill, matching Android ProviderPill
+   (tick 206). Email/null = unmarked default (no pill); absence is
+   the positive signal "this is a password account." */
+.provider-google  { background: #4285F4; color: #fff; }
 
 /* Username row — inline TextField + status pill, mirrors iOS
    UsernameRow. The @ prefix is decorative; the input itself is the

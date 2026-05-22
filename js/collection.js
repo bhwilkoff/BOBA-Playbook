@@ -1459,6 +1459,7 @@ const Collection = (() => {
                 role === 'moderator' ? '<span class="role-badge mod-badge">MOD</span>' : ''}
               ${provider === 'apple'   ? '<span class="role-badge provider-pill provider-apple">APPLE</span>' : ''}
               ${provider === 'discord' ? '<span class="role-badge provider-pill provider-discord">DISCORD</span>' : ''}
+              ${provider === 'google'  ? '<span class="role-badge provider-pill provider-google">GOOGLE</span>' : ''}
             </div>
           </div>
         </div>

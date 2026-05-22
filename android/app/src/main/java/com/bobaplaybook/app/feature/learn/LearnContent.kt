@@ -432,6 +432,27 @@ object LearnCorpus {
             text = "Collectors who don't separate Treatments from Parallels will undervalue Parallels (scarce by edition limit) and overvalue mid-tier Treatments (scarce only within their treatment family).",
             element = "GLOW",
         ),
+        // Tick 209 — Discord-mined content. Set Ascension explains how
+        // formats evolve as new sets release and old ones graduate into
+        // legacy formats. Source: 2026-02-10 blog post "The BoBA Set
+        // Ascension: How Heroes Progress Through the Arena".
+        LearnSection.Body(
+            heading = "Set Ascension — how formats evolve",
+            text = "BoBA organizes play across three formats based on when cards released. Older sets don't fade — they ascend into legacy formats with their own competitive scene. The framework is intentional: 'time adds context and fond memories' so cards take on new identity over time.",
+        ),
+        LearnSection.Bullets(
+            heading = "Three progression tiers",
+            items = listOf(
+                "Modern (Active Era) — cards from the past 2 years. Primary competitive format; best entry point for new players.",
+                "Hall of Fame (Ascended Era) — cards released 2+ years ago (as of Jan 1). Larger pool, complex interactions; reserved for special high-skill events.",
+                "AlphaTrilogy (Founders Era) — exclusively original Alpha-era cards (first year). Celebrated annually with dedicated events; Alpha cards also playable in Hall of Fame.",
+            ),
+        ),
+        LearnSection.Callout(
+            heading = "Alpha Battlefoils bridge the eras",
+            text = "A special card type that lets newer players participate in Hall of Fame and AlphaTrilogy events without owning original Alpha cards. Connects the modern audience to the game's foundation.",
+            element = "ICE",
+        ),
     )
 
     // ════════════════════════════════════════════════════════════════

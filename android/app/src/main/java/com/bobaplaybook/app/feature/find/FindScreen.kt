@@ -942,6 +942,7 @@ private fun CardCarousel(
                     imageFile = card.imageFile,
                     contentDescription = card.displayName,
                     isSealed = card.isSealed,
+                    printRunLabel = card.printRunLabel,
                     modifier = Modifier
                         .cardSharedBounds(card.bobaId)
                         .clickable { onCardClick(card.bobaId) },
@@ -979,6 +980,7 @@ private fun SearchResultsGrid(
                 imageFile = card.imageFile,
                 contentDescription = card.displayName,
                 isSealed = card.isSealed,
+                printRunLabel = card.printRunLabel,
                 modifier = Modifier
                     .cardSharedBounds(card.bobaId)
                     .combinedClickable(

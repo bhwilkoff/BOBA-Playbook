@@ -224,16 +224,25 @@ fun CardDetailScreen(
                                     addToCollectionOpen = true
                                 },
                             )
-                            DropdownMenuItem(
-                                text = { Text("Add to Deck") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.PlaylistAdd, contentDescription = null)
-                                },
-                                onClick = {
-                                    addMenuOpen = false
-                                    addToDeckOpen = true
-                                },
-                            )
+                            // Tick 481 — gate "Add to Deck" on deckable card
+                            // types (iOS + web parity). Sealed Products aren't
+                            // playable cards, so the option just leads to a
+                            // confused "you can't add this" state.
+                            val cardForGate = state.card
+                            val isDeckable = cardForGate != null &&
+                                (cardForGate.isHero || cardForGate.isPlay || cardForGate.isHotDog)
+                            if (isDeckable) {
+                                DropdownMenuItem(
+                                    text = { Text("Add to Deck") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.PlaylistAdd, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        addMenuOpen = false
+                                        addToDeckOpen = true
+                                    },
+                                )
+                            }
                             // "Add to Show" only renders for users with the
                             // streamer/admin role — non-streamers never see
                             // the option (ANDROID-DESIGN.md §3.7 "show

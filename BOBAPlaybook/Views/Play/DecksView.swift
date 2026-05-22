@@ -606,6 +606,12 @@ struct DecksView: View {
                 .disabled((auth.isAuthenticated && deckIsEmpty) || store.isSaving)
                 .walkthroughAnchor("decksEditor.saveButton")
                 .accessibilityLabel(auth.isAuthenticated ? "Save deck" : "Sign in to save")
+                // Tick 307 — Cmd+S iPad keyboard shortcut. Universal
+                // save idiom (Apple HIG). Only fires when the button
+                // is enabled (auth + non-empty deck + not already
+                // saving) since SwiftUI honors .disabled() for
+                // shortcuts on the same view.
+                .keyboardShortcut("s", modifiers: [.command])
 
                 Menu {
                     Button {

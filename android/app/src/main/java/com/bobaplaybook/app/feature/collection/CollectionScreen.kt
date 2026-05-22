@@ -35,8 +35,15 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wallpaper
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -160,7 +167,7 @@ fun CollectionScreen(
                         )
                     }
                     IconButton(onClick = { filterSheetOpen = true }) {
-                        androidx.compose.material3.BadgedBox(
+                        BadgedBox(
                             badge = {
                                 if (findState.activeFilterCount > 0) {
                                     androidx.compose.material3.Badge { Text("${findState.activeFilterCount}") }
@@ -461,7 +468,7 @@ fun CollectionScreen(
             // server returned (e.g. picks up writes from another
             // device on the same account).
             var isRefreshing by remember { mutableStateOf(false) }
-            androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = {
                     isRefreshing = true
@@ -731,7 +738,7 @@ private fun CollectionWall(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
         ) {
-            androidx.compose.material3.FilterChip(
+            FilterChip(
                 selected = includePrices,
                 onClick = { includePrices = !includePrices },
                 label = { Text("Prices") },
@@ -747,7 +754,7 @@ private fun CollectionWall(
             val profile by profileVm.profile.collectAsStateWithLifecycle(initialValue = null)
             LaunchedEffect(Unit) { profileVm.refreshProfile() }
             val username = profile?.takeIf { it.publicCollectionEnabled }?.username
-            androidx.compose.material3.TextButton(
+            TextButton(
                 onClick = {
                     scope.launch {
                         val img = graphicsLayer.toImageBitmap()
@@ -911,7 +918,7 @@ private fun CollectionSortDialog(
     onSelected: (CollectionSortOrder) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Sort by") },
         text = {
@@ -924,7 +931,7 @@ private fun CollectionSortDialog(
                             .clickable { onSelected(order) }
                             .padding(vertical = 8.dp),
                     ) {
-                        androidx.compose.material3.RadioButton(
+                        RadioButton(
                             selected = order == selected,
                             onClick = { onSelected(order) },
                         )
@@ -934,7 +941,7 @@ private fun CollectionSortDialog(
             }
         },
         confirmButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Done") }
+            TextButton(onClick = onDismiss) { Text("Done") }
         },
     )
 }

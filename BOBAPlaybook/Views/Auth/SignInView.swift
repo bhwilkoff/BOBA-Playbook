@@ -25,6 +25,7 @@ struct SignInView: View {
                 VStack(spacing: Design.Spacing.xl) {
                     header
                     appleButton
+                    googleButton
                     discordButton
                     divider
                     emailForm
@@ -119,6 +120,33 @@ struct SignInView: View {
             .frame(height: 50)
             .background(Color(red: 0.345, green: 0.396, blue: 0.949)) // #5865F2
             .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+        }
+        .disabled(auth.isLoading)
+    }
+
+    // Tick 492 — Sign in with Google (web tick 483 + Android Credential
+    // Manager parity). Apple stays primary on iOS per DECISIONS.md #050;
+    // Google sits as a third option between Apple and Discord for users
+    // who'd rather use their Google account.
+    private var googleButton: some View {
+        Button {
+            Task { await auth.signInWithGoogle() }
+        } label: {
+            HStack(spacing: 10) {
+                GoogleGlyphView()
+                    .frame(width: 18, height: 18)
+                Text(mode == .signIn ? "Sign in with Google" : "Sign up with Google")
+                    .font(Design.Fonts.mono(15, weight: .bold))
+            }
+            .foregroundStyle(Color(red: 0.12, green: 0.12, blue: 0.12))
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+            .overlay(
+                RoundedRectangle(cornerRadius: Design.Radius.md)
+                    .strokeBorder(Color.black.opacity(0.12), lineWidth: 1)
+            )
         }
         .disabled(auth.isLoading)
     }
@@ -296,5 +324,22 @@ private struct DiscordIconView: View {
             .resizable()
             .renderingMode(.template)
             .scaledToFit()
+    }
+}
+
+// MARK: - Google glyph (tick 492)
+// Recognizable "G" in Google brand blue — not the full 4-color brand
+// glyph (that needs a custom Asset / SVG that doesn't ship today), but
+// enough to disambiguate from Apple + Discord at a glance. Future tick:
+// add a multi-color glyph via Assets.xcassets/google-logo.imageset.
+
+private struct GoogleGlyphView: View {
+    var body: some View {
+        ZStack {
+            Circle().fill(Color(red: 0.259, green: 0.522, blue: 0.957)) // #4285F4
+            Text("G")
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+        }
     }
 }

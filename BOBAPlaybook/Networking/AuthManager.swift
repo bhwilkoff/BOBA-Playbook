@@ -378,6 +378,30 @@ final class AuthManager {
         isLoading = false
     }
 
+    // MARK: - Sign in with Google (OAuth + PKCE via ASWebAuthenticationSession)
+    // Tick 492 — web tick 483 + Android Credential Manager parity. Reuses
+    // the same OAuth flow as Discord (provider: "google"). Requires the
+    // Google provider to be enabled in Supabase Auth dashboard.
+
+    func signInWithGoogle() async {
+        isLoading = true
+        error = nil
+        do {
+            let session = try await startOAuthFlow(provider: "google")
+            client.setSession(session)
+            isAuthenticated = true
+            userId = session.userId
+            email  = session.email
+            await fetchRole()
+        } catch is CancellationError {
+            // User dismissed the auth sheet — not an error
+        } catch {
+            self.error = error.localizedDescription
+        }
+        _oauthSession = nil
+        isLoading = false
+    }
+
     private func startOAuthFlow(provider: String) async throws -> SupabaseSession {
         let codeVerifier  = makeCodeVerifier()
         let codeChallenge = makeCodeChallenge(from: codeVerifier)

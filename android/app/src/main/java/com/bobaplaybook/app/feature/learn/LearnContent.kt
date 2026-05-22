@@ -708,15 +708,40 @@ object LearnCorpus {
         ),
 
         // ─── Double-Up ──────────────────────────────────────────
+        // Tick 364 — iOS DoubleUpSection + web tick 358 parity. Was a
+        // 1-paragraph body; iOS ships 5 specific rules bullets that
+        // Android users couldn't see. The "doubling cube" intro adds
+        // the strongest hook (recognizable backgammon analog).
         LearnSection.Body(
             heading = "Double-Up (Press / Fold)",
-            text = "Optional betting mechanic any game mode can add. Each Coach gets one Press per game to double the game's point value; the opponent then Folds (ends the game) or Presses back, doubling again. A whole new \"Laundry Phase\" between battles for offering / accepting Presses.",
+            text = "Simple Press-and-Fold wagering layered onto any game mode. Adds the depth of a backgammon doubling cube to BoBA.",
+        ),
+        LearnSection.Bullets(
+            heading = null,
+            items = listOf(
+                "Each Game of 7 Battles starts worth 1 point. First Coach to 7 points wins the match-up.",
+                "Each Coach gets one Press per Game — called after hands are dealt, or between Battles.",
+                "Opponent responds: Accept the Press, Press back (if they haven't used theirs), or Fold and end the game.",
+                "No Double-Up game ends in a tie — ties resolve by Top Deck (each Coach reveals the top of their Hero Deck until one wins).",
+                "Between-battles Press-and-Fold is called the \"Laundry Phase.\"",
+            ),
         ),
 
         // ─── Madness modes ─────────────────────────────────────
+        // Tick 364 — iOS MadnessSection + web tick 358 parity. Was a
+        // 1-paragraph body; iOS ships separate Apex+AlphaTrilogy and
+        // HiLo variants with detailed rules. Adds the 4-Coach team
+        // framing + Foil Hot Dogs mascot detail.
         LearnSection.Body(
-            heading = "Madness — team play",
-            text = "Apex & AlphaTrilogy pairs two coaches per team — one Apex deck + one AlphaTrilogy deck per side, with strict mid-match swap rules. HiLo pairs one Apex deck with one Rookie deck for handicapped play; the higher-skill coach takes Rookie.",
+            heading = "Madness (team play)",
+            text = "4-Coach team formats. Each Coach brings 4 of their favorite Foil Hot Dogs to display as team mascots at every match.",
+        ),
+        LearnSection.Bullets(
+            heading = null,
+            items = listOf(
+                "Apex & AlphaTrilogy Madness — Head Coach runs a full Apex deck; teammates play Spec 160 decks that can unlock Apex cards by including 10-of-an-insert or 4 Foil Hot Dogs. Max-optimized teammate decks reach 70 Heroes with 6 Apex cards.",
+                "HiLo Madness — Team format where Head Coaches play \"High Ball\" (highest Power wins) while teammates play \"Low Ball\" (lowest Power wins). Used in Granny's Gum, Brawl, and Tecmo Bowl divisions.",
+            ),
         ),
 
         // ─── Nationals divisions ───────────────────────────────

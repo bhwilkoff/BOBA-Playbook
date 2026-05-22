@@ -167,14 +167,18 @@ struct StoreLocatorView: View {
     }
 
     /// Summary line: "X independent  ·  Y of Z shown" depending on mode.
+    /// Tick 427 — locale-format the counts. The full catalog hits
+    /// ~2,000 stores between indie + big-box; "2,130" reads cleaner
+    /// than "2130". Android tick 424 + tick 412/414 (collection)
+    /// parity pattern.
     private var summaryLine: String {
         let shown = store.filtered.count
         let total = store.stores.count
         if !store.includeBigBox {
             let hidden = store.hiddenBigBoxCount
-            return "\(shown) independent retailers  ·  \(hidden) big box hidden"
+            return "\(shown.formatted()) independent retailers  ·  \(hidden.formatted()) big box hidden"
         }
-        return "\(shown) of \(total) authorized retailers"
+        return "\(shown.formatted()) of \(total.formatted()) authorized retailers"
     }
 
     private var nearMeButton: some View {

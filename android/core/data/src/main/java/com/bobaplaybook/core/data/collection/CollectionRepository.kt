@@ -272,6 +272,7 @@ private data class UserCardRow(
     @SerialName("asking_price") val askingPrice: Double? = null,
     @SerialName("estimated_value") val estimatedValue: Double? = null,
     val notes: String? = null,
+    @SerialName("acquired_at") val acquiredAt: String? = null,
 ) {
     fun toDomain(): UserCard = UserCard(
         id = id,
@@ -285,5 +286,6 @@ private data class UserCardRow(
         grade = grade,                       // tick 239 — was dropped
         gradingCompany = gradingCompany,     // tick 239 — was dropped
         notes = notes,
+        acquiredAtIso = acquiredAt,
     )
 }

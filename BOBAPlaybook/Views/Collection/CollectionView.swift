@@ -1415,10 +1415,17 @@ struct CollectionView: View {
                         .padding(4)
                     }
                 }
-                // Price chip — bottom-leading so it doesn't collide with
-                // the designation pills. Hidden when nothing meaningful
-                // to display (no estimate, no paid, no asking).
-                .overlay(alignment: .bottomLeading) {
+                // Price chip — top-leading on the card IMAGE area so it
+                // sits over the art (an unoccupied region; print-run is
+                // top-trailing, format-legality is bottom-leading on the
+                // image, designation badges are top-trailing of the whole
+                // cell). Previously this overlay was bottom-leading of
+                // the WHOLE BOBACardGridItem (image + caption) — at the
+                // user's grid density the overlay landed ON TOP OF the
+                // caption's weapon pill, making the FIRE/STEEL chip
+                // unreadable behind the $X.XX badge. Hidden when nothing
+                // meaningful to display (no estimate, no paid, no asking).
+                .overlay(alignment: .topLeading) {
                     if let p = priceLabel {
                         Text(p)
                             .font(Design.Fonts.mono(10, weight: .bold))

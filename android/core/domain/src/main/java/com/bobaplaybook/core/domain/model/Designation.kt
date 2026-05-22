@@ -53,4 +53,8 @@ data class UserCard(
     val gradingCompany: String? = null,
     val notes: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    /** Server-side `user_cards.acquired_at` ISO timestamp. Null when
+     *  Supabase didn't return it (legacy rows). Surfaced as the
+     *  "Added [time]" subtitle in the Collection list — iOS parity. */
+    val acquiredAtIso: String? = null,
 )

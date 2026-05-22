@@ -3,6 +3,7 @@
 package com.bobaplaybook.app.feature.collection
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,6 +83,10 @@ fun CollectionCardDetailScreen(
     bobaId: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Tick 501 — tap an alt tile in "Other versions" to push that
+     *  variant's detail onto the back stack (iOS CardDetailView L920
+     *  parity). BOBAApp wires this to NavRoutes.collectionCardDetail. */
+    onOtherVersionClick: (String) -> Unit = {},
 ) {
     val viewModel: CollectionViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -269,13 +274,10 @@ fun CollectionCardDetailScreen(
                 }
             }
 
-            // "Other versions" — same hero, different treatment. Tiles
-            // are read-only previews today (each one shows its print-run
-            // + format-legality badges per tick 461/469). Tapping to
-            // navigate to that variant's detail would need an
-            // onOtherVersionClick callback threaded from BOBAApp's nav
-            // host — queued as a polish follow-up; iOS CardDetailView's
-            // Other Versions tiles DO push via NavigationLink (line 920).
+            // "Other versions" — same hero, different treatment. Tap an
+            // alt to push that variant's detail onto the back stack
+            // (iOS CardDetailView L920 parity). Each tile shows its
+            // print-run + format-legality badges per tick 461/469.
             if (otherVersions.isNotEmpty()) {
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 16.dp),
@@ -287,7 +289,11 @@ fun CollectionCardDetailScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(items = otherVersions, key = { it.bobaId }) { other ->
-                        Box(modifier = Modifier.width(80.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .width(80.dp)
+                                .clickable { onOtherVersionClick(other.bobaId) },
+                        ) {
                             com.bobaplaybook.core.ui.components.BOBACardCell(
                                 imageFile = other.imageFile,
                                 contentDescription = other.displayName,

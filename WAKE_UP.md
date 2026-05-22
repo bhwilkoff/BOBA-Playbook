@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 343 (web)** — "🎲 Surprise me from all cards" empty-state CTA on Find (iOS v2.326 parity). resetFilters() then requestAnimationFrame → fireSurpriseMe so filteredCards has rebuilt before the random pick. Closes 3-platform empty-state-Surprise trio's web leg.
 - **tick 342 (iOS v2.326 / 588)** — iOS Find empty-state now offers a secondary "Surprise me from all cards" CTA below "Clear All Filters". Clears filters then fires Surprise on the next runloop (async dispatch so filteredCards recomputes first). Two clicks collapsed into one — useful when user has filtered down to zero and would benefit from a discovery jump rather than fighting the filter.
 - **tick 341 (Android, code style)** — FindScreen: cleaned up 2 missed FQNs from tick 321 (LaunchedEffect call sites at lines 129+135) + 2 HorizontalDivider FQN call sites in the overflow Menu. Both added as proper imports.
 - **tick 340 (opt, −8 lines)** — Trimmed obsolete "Pending iOS asks for tick 192" section from AUTONOMOUS_PROGRESS. Both items (triple-spinner collapse + non-blocking pricing refresh) shipped tick 192 v2.293 / build 555. The queued-asks header was already provenance, not active backlog.

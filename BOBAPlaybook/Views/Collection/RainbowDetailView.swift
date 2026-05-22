@@ -201,7 +201,7 @@ struct RainbowDetailView: View {
         let ownedN   = cards.filter { owned.contains($0.id) }.count
         let missingN = cards.count - ownedN
         let visible  = filtered(cards: cards, owned: owned, lens: lens)
-        ScrollView {
+        return ScrollView {
             header(name: context.title, summary: context.summary,
                    owned: ownedN, total: cards.count)
             if cards.isEmpty {

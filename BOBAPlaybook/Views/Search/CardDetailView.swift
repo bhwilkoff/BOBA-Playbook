@@ -499,7 +499,7 @@ struct CardDetailView: View {
 
     private func formatRestrictionsBlock(_ notes: [CardRestriction]) -> some View {
         let amber = Design.Colors.bobaOrange
-        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+        return VStack(alignment: .leading, spacing: Design.Spacing.xs) {
             Text("FORMAT RESTRICTIONS")
                 .font(Design.Fonts.mono(9, weight: .bold))
                 .foregroundStyle(Design.Colors.textMuted)
@@ -1326,7 +1326,7 @@ struct DBSInfoSheet: View {
         let overCap   = projected > budget
         let surface   = overCap ? Color.red.opacity(0.18) : Design.Colors.surface
         let stroke    = overCap ? Color.red.opacity(0.55) : Design.Colors.glassBorder
-        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+        return VStack(alignment: .leading, spacing: Design.Spacing.xs) {
             Text("This card costs +\(card) DBS")
                 .font(Design.Fonts.display(15))
                 .foregroundStyle(Design.Colors.textPrimary)

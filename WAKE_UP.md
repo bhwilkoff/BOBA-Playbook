@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 248 (web)** — Recent BoBA news gains relative dates + Last-refreshed stamp (6efcd30). **Closes the relative-dates + freshness-stamp trio** (Android 244+246, iOS 247, web today).
 - **tick 247 (iOS)** — Recent BoBA news gains relative-format dates + Last-refreshed stamp inline w/ section header (2390e33). Closes Android tick 244+246 parity. v2.304/566. Web port queued.
 - **tick 246 (Android)** — Recent BoBA news rows render relative-format dates ("today" / "3d ago" / "2w ago" / raw ISO for >5wk) (3c4d95b). iOS port queued.
 - **tick 245 (opt)** — Drop unused "Audit-driven items" backlog placeholder (5d0d4ac). Net -4 lines.

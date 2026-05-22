@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 240 (opt)** — Trim SCRATCHPAD historical sections that duplicated AUTONOMOUS_PROGRESS + git history (8aa4d7a). -51 lines. Memory refs preserved as a single archive paragraph.
 - **tick 239 (Android)** — Stop dropping grade + gradingCompany on the UserCardRow→UserCard domain boundary (f120e43). Data layer was silently losing slab info; research-mined gap from TCG-collector apps. Surface render queued for next tick.
 - **tick 238 (web — NEW FEATURE)** — Recent BoBA News section in Learn → Tournament (dc6232d). **Closes the news-feed trio** (Android 236, iOS 237, web today). refresh-blog.yml now mirrors to all 3 platforms in one daily commit. Orange-tinted card rows; tap opens post in new tab; 2-line CSS clamp.
 - **tick 237 (iOS — NEW FEATURE)** — Recent BoBA News section in Learn → Tournament (15ef4d3). Mirrors Android tick 236. refresh-blog.yml workflow now mirrors to iOS + Android bundles in same daily commit. v2.302/564. Web port queued.

@@ -308,19 +308,25 @@ object LearnCorpus {
                 LearnSection.WeaponSynergy.Row("STEEL", listOf("Steel Boost", "Steel Crew", "Steel Defense", "Steel Shield", "Chrome Will", "Steel Cage")),
             ),
         ),
+        // Tick 271 — iOS PlayCardTypesSection 5-category taxonomy port.
+        // iOS Strategy classifies every Play into one of five archetypes
+        // with a named canonical example. Android was carrying a more
+        // generic 4-bucket version (Tempo / Combo / Value / Control); the
+        // 5-bucket iOS taxonomy maps better to how veteran coaches talk.
         LearnSection.Bullets(
             heading = "Play card types",
             items = listOf(
-                "Tempo — cheap Plays that swing a single Battle's Power",
-                "Combo — persistent installers that compound across Battles",
-                "Value — high Cost, high payoff in the back half",
-                "Control — counter-Plays that neutralize opposing persistents",
+                "Tempo — immediate one-time power boost (e.g. Buff Up 15).",
+                "Value — ongoing effect that compounds across battles (e.g. Fire Boost).",
+                "Disruption — deny opponent options for a battle or permanently (e.g. Bench Blocker).",
+                "Economy — recover Hot Dogs; sustain your resource advantage (e.g. Trash Bandit).",
+                "Game-Changer — high-cost, match-defining effects that flip any battle (e.g. By Any Means Necessary).",
             ),
         ),
         LearnSection.CardExamples(
-            heading = "Example Plays",
+            heading = "One example per type",
             description = "Tap any card to open its detail.",
-            cardNames = listOf("Add Firepower", "First Draw", "Crystal Ball", "Frozen Resolve", "Steel Shield", "Forced Substitution"),
+            cardNames = listOf("Buff Up 15", "Fire Boost", "Bench Blocker", "Trash Bandit", "By Any Means Necessary"),
             playsOnly = true,
         ),
         // Tick 269 — iOS ResourceManagementSection depth port.

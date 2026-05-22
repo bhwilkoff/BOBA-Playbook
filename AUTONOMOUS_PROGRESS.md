@@ -63,10 +63,6 @@ Documented gaps where one platform has shipped but others haven't.
 - [ ] **Practice executor on Android** (DECISIONS.md #048) — admin-gated. M5.5 milestone.
 - [ ] **Personal Showcase on Android + web** (Cast SDK) — iOS-only today.
 
-### Audit-driven items (populated by background agents)
-
-*[Updated as agent results land — currently pending]*
-
 ---
 
 ## Tick log

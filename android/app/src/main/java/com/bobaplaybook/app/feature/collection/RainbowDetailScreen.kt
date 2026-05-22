@@ -268,6 +268,7 @@ private fun RainbowTile(card: Card, owned: Boolean, onClick: () -> Unit) {
             imageFile = card.imageFile,
             isSealed = card.isSealed,
             contentDescription = card.displayName,
+            printRunLabel = card.printRunLabel,
             modifier = Modifier.clickable(onClick = onClick),
         )
         if (!owned) {

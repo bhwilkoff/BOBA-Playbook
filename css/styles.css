@@ -6804,6 +6804,59 @@ a.event-row {
   margin-bottom: 0.5rem;
   letter-spacing: 0.02em;
 }
+
+/* Tick 238 — Recent BoBA news row. Matches event-row aesthetic but
+   tinted orange instead of cyan/orange-mixed since blog posts are
+   discovery content, not date-anchored events. */
+.blog-feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.blog-feed-row {
+  display: block;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  background: var(--boba-surface);
+  border: 1px solid rgba(255, 77, 0, 0.3);
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.12s, border-color 0.12s;
+}
+.blog-feed-row:hover {
+  background: var(--boba-surface-hover, var(--boba-surface));
+  border-color: rgba(255, 77, 0, 0.6);
+}
+.blog-feed-row:focus-visible {
+  outline: 2px solid var(--boba-orange);
+  outline-offset: 2px;
+}
+.blog-feed-date {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--boba-orange);
+  margin-bottom: 0.2rem;
+}
+.blog-feed-title {
+  font-size: 0.98rem;
+  font-weight: 600;
+  margin: 0 0 0.3rem;
+  color: var(--boba-text, #fff);
+  line-height: 1.3;
+}
+.blog-feed-excerpt {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--boba-text-secondary, rgba(255,255,255,0.7));
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .event-open {
   margin-left: auto;
   font-family: var(--font-mono);

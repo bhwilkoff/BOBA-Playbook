@@ -781,9 +781,44 @@
         // Tick 193 — Discord backlog #8: hydrate the Upcoming Events
         // list when the tab first activates. Cheap one-shot fetch of
         // assets/data/events.json; renders inline.
-        if (target === 'tournament') hydrateTournamentEvents();
+        if (target === 'tournament') {
+          hydrateTournamentEvents();
+          hydrateRecentBlogPosts();
+        }
       });
     });
+
+    // Tick 238 — Recent BoBA news on Tournament tab. Daily-refreshed
+    // feed; re-fetches on every tab activate (cache: 'no-cache' so a
+    // user who left the tab open sees fresh posts after the cron).
+    async function hydrateRecentBlogPosts() {
+      const list = document.getElementById('tournament-blog-list');
+      if (!list) return;
+      let posts = [];
+      try {
+        const resp = await fetch('assets/data/blog-feed.json', { cache: 'no-cache' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        posts = await resp.json();
+      } catch (e) {
+        list.innerHTML = '<p class="events-empty">Couldn\'t load BoBA news. Try refreshing.</p>';
+        return;
+      }
+      const top = Array.isArray(posts) ? posts.slice(0, 5) : [];
+      if (top.length === 0) {
+        list.innerHTML = '<p class="events-empty">No recent posts.</p>';
+        return;
+      }
+      list.innerHTML = top.map(p => {
+        const url = p.url || '#';
+        const excerpt = (p.excerpt || '').slice(0, 220);
+        return `
+          <a class="blog-feed-row" href="${escHtml(url)}" target="_blank" rel="noopener noreferrer">
+            <div class="blog-feed-date">${escHtml(p.date || '')}</div>
+            <h4 class="blog-feed-title">${escHtml(p.title || '')}</h4>
+            ${excerpt ? `<p class="blog-feed-excerpt">${escHtml(excerpt)}…</p>` : ''}
+          </a>`;
+      }).join('');
+    }
 
     // Tick 193 — Discord backlog #8: Upcoming Events on Tournament
     // tab. Re-fetches on every Tournament-tab activate (cheap — file

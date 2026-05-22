@@ -1860,6 +1860,18 @@
             </div>
           </section>
 
+          <!-- Tick 238 — Recent BoBA news (Android 236 + iOS 237 parity).
+               Daily-refreshed feed from docs/blog-feed.json (mirrored to
+               assets/data/blog-feed.json by the refresh-blog workflow).
+               Hydrated on Tournament-tab activate; falls back to empty
+               state when fetch fails. -->
+          <section class="tournament-section">
+            <h3 class="tournament-heading">RECENT BOBA NEWS</h3>
+            <div id="tournament-blog-list" class="blog-feed-list" aria-live="polite">
+              <p class="events-empty">Loading…</p>
+            </div>
+          </section>
+
           <section class="tournament-section">
             <h3 class="tournament-heading">TOURNAMENT FORMATS</h3>
             <div class="rules-table-wrap">

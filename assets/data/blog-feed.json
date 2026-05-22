@@ -1,0 +1,327 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-05-21",
+  "source": "https://bobattlearena.com/blog",
+  "_refresh": {
+    "script": "scripts/refresh_blog.py",
+    "workflow": ".github/workflows/refresh-blog.yml",
+    "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
+  },
+  "posts": [
+    {
+      "id": "an-open-letter-to-the-boba-live-selling-ecosystem",
+      "title": "An Open Letter to the BoBA Live Selling Ecosystem",
+      "date": "2026-05-20",
+      "url": "https://bobattlearena.com/blog/an-open-letter-to-the-boba-live-selling-ecosystem",
+      "excerpt": "To our live sellers, breakers, and community builders, Bo Jackson Battle Arena has grown faster than any of us expected. That growth is exciting. It can also be a little messy. Growth creates opport..."
+    },
+    {
+      "id": "an-open-letter-to-the-boba-community-and-our-retail-partners",
+      "title": "An Open Letter to the BoBA Community and Our Retail Partners",
+      "date": "2026-05-19",
+      "url": "https://bobattlearena.com/blog/an-open-letter-to-the-boba-community-and-our-retail-partners",
+      "excerpt": "We are launching the Ripped Restock program to help the stores actively building local BoBA communities get access to more product. How It Works Participating stores can use a lightweight app at che..."
+    },
+    {
+      "id": "150000-for-st-jude",
+      "title": "$150,000 for St. Jude",
+      "date": "2026-05-15",
+      "url": "https://bobattlearena.com/blog/150000-for-st-jude",
+      "excerpt": "Tuesday's 5th Anniversary Card Geeks charity stream was about more than cards. The community across both games raised $120k and Bo Jackson came over the top to get us to $150k An incredible mome..."
+    },
+    {
+      "id": "bo-barry-blind-rank-rbs",
+      "title": "Bo & Barry Blind Rank RBs",
+      "date": "2026-05-14",
+      "url": "https://bobattlearena.com/blog/bo-barry-blind-rank-rbs",
+      "excerpt": "Bo Jackson &amp; Barry Sanders blind ranked 10 legendary RBs in Tecmo Bowl without knowing who comes next. The rankings get controversial fast, the reactions are priceless, and you'll never guess the..."
+    },
+    {
+      "id": "record-sale-for-the-kid",
+      "title": "Record Sale for The Kid!",
+      "date": "2026-05-11",
+      "url": "https://bobattlearena.com/blog/record-sale-for-the-kid",
+      "excerpt": "The Kid Super Auto 1/1 from the Griffey Set sold Saturday night on Goldin Auctions for $73,200. That makes it: • The highest Ken Griffey Jr. pack-pulled single auto non-relic sale in history. • A T..."
+    },
+    {
+      "id": "june-18th-is-going-to-be-worth-the-wait",
+      "title": "June 18th is Going to be Worth the Wait",
+      "date": "2026-05-07",
+      "url": "https://bobattlearena.com/blog/june-18th-is-going-to-be-worth-the-wait",
+      "excerpt": "Monday on our Whatnot stream with Bo and Barry, we shared an important update with the BoBA community: the release of Tecmo Bowl Edition is being pushed back to June 18. We know a lot of you have bee..."
+    },
+    {
+      "id": "dbs-update-live-now",
+      "title": "DBS Update – Live Now",
+      "date": "2026-04-27",
+      "url": "https://bobattlearena.com/blog/dbs-update-live-now",
+      "excerpt": "We’ve made a major update to the Bo Jackson Battle Arena Deck Balancing Score (DBS). This update is focused on one core goal: Restoring balance, reducing play-through loops, and creating more meanin..."
+    },
+    {
+      "id": "final-wave-hobby-box-pre-sale-enters-the-home-stretch",
+      "title": "Final Wave: Hobby Box Pre-Sale Enters the Home Stretch",
+      "date": "2026-04-09",
+      "url": "https://bobattlearena.com/blog/final-wave-hobby-box-pre-sale-enters-the-home-stretch",
+      "excerpt": "Hobby Box Codes – Last Draw We’re down to the final moments of the Hobby Box Pre-Sale and if you’ve been waiting for your shot, this is it. The last wave of codes is about to hit, and with it comes ..."
+    },
+    {
+      "id": "tecmo-bowl-edition-presale-selling-codes",
+      "title": "Tecmo Bowl Edition Presale: Selling Codes",
+      "date": "2026-04-01",
+      "url": "https://bobattlearena.com/blog/tecmo-bowl-edition-presale-selling-codes",
+      "excerpt": "New Codes Can't Be Transferred Following the initial wave of code distribution, we will be implementing stricter controls around code usage. Codes issued moving forward will be non-transferable. Any..."
+    },
+    {
+      "id": "introducing-checklist-format-for-boba",
+      "title": "Introducing Checklist Format for BoBA",
+      "date": "2026-03-27",
+      "url": "https://bobattlearena.com/blog/introducing-checklist-format-for-boba",
+      "excerpt": "We’re excited to introduce a brand new way to experience Bo Jackson Battle Arena: Checklist Format This format is all about fresh gameplay, fun themes, and new ways to build and play. What is the C..."
+    },
+    {
+      "id": "chili-bowl-cincinnati",
+      "title": "Chili Bowl Cincinnati",
+      "date": "2026-03-27",
+      "url": "https://bobattlearena.com/blog/chili-bowl-cincinnati",
+      "excerpt": "Chillin. Grillin. Hot Dogs. Cincinnati is famous for its chili. And if you know Cincinnati, you know what comes with it. Hot Dogs. That’s where this event begins. The Chili Bowl We’re bringing B..."
+    },
+    {
+      "id": "they-dominated-tecmo-bowl-now-theyre-in-the-set",
+      "title": "They Dominated Tecmo Bowl. Now They're in the Set.",
+      "date": "2026-03-20",
+      "url": "https://bobattlearena.com/blog/they-dominated-tecmo-bowl-now-theyre-in-the-set",
+      "excerpt": "If you grew up in the late 80s or 90s, you didn't just watch football. You played Tecmo Bowl And if you played Tecmo Bowl, you had opinions. Strong ones. About which players were unstoppable, which ..."
+    },
+    {
+      "id": "the-grail-card-for-an-entire-generation",
+      "title": "The Grail Card for an Entire Generation",
+      "date": "2026-03-16",
+      "url": "https://bobattlearena.com/blog/the-grail-card-for-an-entire-generation",
+      "excerpt": "If your childhood touched the 80s or 90s, you probably played Tecmo Bowl with your friends. And you probably had a \"No Bo Jackson\" rule. Bo wasn't just dominant in the game. He was a cultural phenom..."
+    },
+    {
+      "id": "tecmo-bowl-double-mega-now-16-packs-160-cards",
+      "title": "Tecmo Bowl Double-Mega: Now 16 Packs, 160 Cards",
+      "date": "2026-02-18",
+      "url": "https://bobattlearena.com/blog/tecmo-bowl-double-mega-now-16-packs-160-cards",
+      "excerpt": "Bo Jackson Battle Arena doesn’t stand still… and for Tecmo Bowl Edition, we knew the Double-Mega had to hit different! So we made the move. The Tecmo Bowl Double-Mega Box will jump from 14 packs to ..."
+    },
+    {
+      "id": "the-boba-set-ascension-how-heroes-progress-through-the-arena",
+      "title": "The BoBA Set Ascension: How Heroes Progress Through the Arena",
+      "date": "2026-02-10",
+      "url": "https://bobattlearena.com/blog/the-boba-set-ascension-how-heroes-progress-through-the-arena",
+      "excerpt": "Bo Jackson Battle Arena is built to grow over time. New Heroes and Plays enter the Arena. The game expands. History takes shape. To keep BoBA clear, exciting, and approachable as it grows, we use ..."
+    },
+    {
+      "id": "500000-prize-pool-coming-to-the-2026-world-championships",
+      "title": "$500,000+ Prize Pool Coming to the 2026 World Championships!",
+      "date": "2026-02-05",
+      "url": "https://bobattlearena.com/blog/500000-prize-pool-coming-to-the-2026-world-championships",
+      "excerpt": "BoBA 2026 is officially here with expanded formats, deeper strategy, and the most ambitious competitive season yet... bigger than anything we’ve ever done. This year features over half a million doll..."
+    },
+    {
+      "id": "apex-madness-comes-to-scg-con-milwaukee",
+      "title": "APEX Madness Comes to SCG Con Milwaukee",
+      "date": "2026-01-21",
+      "url": "https://bobattlearena.com/blog/apex-madness-comes-to-scg-con-milwaukee",
+      "excerpt": "We’re excited to announce that APEX Madness will be running at SCG Con Milwaukee on February 21, 2026. APEX Madness is a high-stakes, team-based Rookie Mode. Rookie Mode is War pushed to its competit..."
+    },
+    {
+      "id": "2026-regional-tournaments-road-to-worlds-starts-here",
+      "title": "2026 Regional Tournaments: Road to Worlds Starts Here",
+      "date": "2026-01-13",
+      "url": "https://bobattlearena.com/blog/2026-regional-tournaments-road-to-worlds-starts-here",
+      "excerpt": "Bo Jackson Battle Arena 2026 Regional Tournaments are almost here! These Regionals are official stops on the BoBA Pro Tour and each stop is a chance to earn prizes, battle for victory, and punch yo..."
+    },
+    {
+      "id": "brawl-brackets-2026-national",
+      "title": "Brawl Brackets for The 2026 National",
+      "date": "2025-12-18",
+      "url": "https://bobattlearena.com/blog/brawl-brackets-2026-national",
+      "excerpt": "Get ready to Brawl in 2026! Up to $75,000+ of cash monies + product/promo prizes (estimated for product and promo - cash portion up to $35k). 3 Standard Brawl Brackets (any current Brawl cards le..."
+    },
+    {
+      "id": "boba-officially-adopts-the-deck-balancing-score-dbs-system",
+      "title": "BoBA Officially Adopts the Deck Balancing Score (“DBS”) System",
+      "date": "2025-12-07",
+      "url": "https://bobattlearena.com/blog/boba-officially-adopts-the-deck-balancing-score-dbs-system",
+      "excerpt": "The BoBA Deck Balancing Score (DBS) system beta is now live! The BoBA DBS will act like a “salary cap” for your Playbook in competitive gameplay. Some plays will be a higher hit to the salary cap, wh..."
+    },
+    {
+      "id": "2026-edition-collectors-guide",
+      "title": "Collector’s Guide for 2026 Edition (aka “The Griffey Set”)",
+      "date": "2025-11-25",
+      "url": "https://bobattlearena.com/blog/2026-edition-collectors-guide",
+      "excerpt": "The countdown to one of the biggest drops in Bo Jackson Battle Arena history is over. BoBA 2026 Edition - better known across the community as The Griffey Set - marks a major leap forward for collecto..."
+    },
+    {
+      "id": "2026-pull-rates-revealed",
+      "title": "Griffey Set (Bo Jackson Battle Arena 2026 Edition) Details by Box Type",
+      "date": "2025-11-14",
+      "url": "https://bobattlearena.com/blog/2026-pull-rates-revealed",
+      "excerpt": "Bo Jackson Battle Arena 2026 Edition, better known as “The Griffey Set,” brings thrills and exciting chases with all-new parallels, inserts, and the biggest autograph lineup in BoBA history! Autogr..."
+    },
+    {
+      "id": "whats-new-in-2026-edition",
+      "title": "What's New In 2026 Edition?",
+      "date": "2025-11-07",
+      "url": "https://bobattlearena.com/blog/whats-new-in-2026-edition",
+      "excerpt": "The next season of Bo Jackson Battle Arena is almost here! 2026 Edition kicks off a brand-new chapter for collectors and playmakers. We’re introducing new Heroes, the Brawl weapon, and an expanded ..."
+    },
+    {
+      "id": "bo-jackson-battle-arena-at-scg-con-houston-baltimore",
+      "title": "Bo Jackson Battle Arena at SCG CON: Houston & Baltimore",
+      "date": "2025-10-06",
+      "url": "https://bobattlearena.com/blog/bo-jackson-battle-arena-at-scg-con-houston-baltimore",
+      "excerpt": "Bo Jackson Battle Arena (BoBA) makes its first-ever SCG CON appearance this October! Join us in Houston (October 17–19) and Baltimore (October 24–26) for a weekend packed with sealed battles, competit..."
+    },
+    {
+      "id": "alpha-blast",
+      "title": "Alpha Blast: The Final Chapter of the Alpha Era Is Here",
+      "date": "2025-09-25",
+      "url": "https://bobattlearena.com/blog/alpha-blast",
+      "excerpt": "If you've been following the rise of Battle Arena throughout our Alpha Era, you already know we don’t hold back when it comes to rare inserts, short prints, and bold card designs. But this release? ..."
+    },
+    {
+      "id": "2026-edition-aka-the-griffey-set-coming-fall-2025",
+      "title": "2026 Edition aka \"The Griffey Set\" Coming Fall 2025!",
+      "date": "2025-08-13",
+      "url": "https://bobattlearena.com/blog/2026-edition-aka-the-griffey-set-coming-fall-2025",
+      "excerpt": "Bo Jackson Battle Arena’s 2026 Edition - known as “The Griffey Set” - is on the horizon, and it’s packed with game-changing cards, legendary signers, and exclusive chases. Whether you’re a seasoned co..."
+    },
+    {
+      "id": "boba-world-championships-the-national-2025-recap-and-highlights",
+      "title": "BoBA World Championships & The National 2025: Recap and Highlights",
+      "date": "2025-08-07",
+      "url": "https://bobattlearena.com/blog/boba-world-championships-the-national-2025-recap-and-highlights",
+      "excerpt": "The National 2025 in Chicago was nothing short of legendary. Bo Jackson Battle Arena took center stage with an electrifying booth packed all weekend long. Players, collectors, and fans from around the..."
+    },
+    {
+      "id": "deck-building-2025-world-championships",
+      "title": "Deck Building for 2025 World Championships",
+      "date": "2025-07-24",
+      "url": "https://bobattlearena.com/blog/deck-building-2025-world-championships",
+      "excerpt": "We wanted to jump in real quick and clear something up a few things as our 2025 World Championship tournaments approach! Let's start with the APEX Madness Deck Guide. There’s one section that’s a lit..."
+    },
+    {
+      "id": "boba-world-championships-at-the-national-2025",
+      "title": "BoBA World Championships at The National 2025",
+      "date": "2025-07-17",
+      "url": "https://bobattlearena.com/blog/boba-world-championships-at-the-national-2025",
+      "excerpt": "Bo Jackson Battle Arena is returning bigger than ever to The National Sports Card Convention in Chicago, IL, from July 30 to August 3, 2025! Come visit us at Booth #346. Mark your calendars and gear u..."
+    },
+    {
+      "id": "battle-at-t-roys-card-shaq-your-road-to-world-championships",
+      "title": "Battle at T-Roy's Card Shaq: Your Road to World Championships",
+      "date": "2025-06-18",
+      "url": "https://bobattlearena.com/blog/battle-at-t-roys-card-shaq-your-road-to-world-championships",
+      "excerpt": "Things are heating up as Bo Jackson Battle Arena makes its way to Galax, Virginia, for another thrilling regional tournament! We’ll see you at T-Roy's Card Shaq on July 12th. Come battle for victory a..."
+    },
+    {
+      "id": "battle-for-victory-at-the-sc-card-show-your-road-to-world-championships",
+      "title": "Battle for Victory at the SC Card Show: Your Road to World Championships!",
+      "date": "2025-05-21",
+      "url": "https://bobattlearena.com/blog/battle-for-victory-at-the-sc-card-show-your-road-to-world-championships",
+      "excerpt": "Are you ready for Battle? Bo Jackson Battle Arena is storming into the South Carolina Card Show for another Regional Tournament ahead of the 2025 World Championships! Mark your calendars for an epic w..."
+    },
+    {
+      "id": "battle-for-victroy-at-the-wisconsin-card-show-regional-tournament",
+      "title": "Battle for Victory at the Wisconsin Card Show Regional Tournament!",
+      "date": "2025-05-01",
+      "url": "https://bobattlearena.com/blog/battle-for-victroy-at-the-wisconsin-card-show-regional-tournament",
+      "excerpt": "Bo Jackson Battle Arena is heading to Wisconsin! Join us May 16th–18th at the Wisconsin Card Show for an unforgettable weekend packed with intense battles, learn to play sessions, and a shot to move o..."
+    },
+    {
+      "id": "level-up-with-alpha-update",
+      "title": "Level Up with Alpha Update!",
+      "date": "2025-05-01",
+      "url": "https://bobattlearena.com/blog/level-up-with-alpha-update",
+      "excerpt": "The wait is almost over! We're excited to share that Bo Jackson Battle Arena Alpha Update will officially hit shelves on July 3rd, 2025! Mark your calendars—this is a release you DO NOT want to miss! ..."
+    },
+    {
+      "id": "battle-at-hoovs-hangout",
+      "title": "Battle at Hoov's Hangout: Your Road to World Championships!",
+      "date": "2025-04-15",
+      "url": "https://bobattlearena.com/blog/battle-at-hoovs-hangout",
+      "excerpt": "Ready to show off your deck, skill, and love for the game? Mark your calendars and gear up, because the Bo Jackson Battle Arena Regional Tournament is coming to Hoov’s Hangout in Alexandria, KY—and it..."
+    },
+    {
+      "id": "the-boba-winter-brawl-your-shot-at-the-2025-world-championship",
+      "title": "The BoBA Winter Brawl: Your Shot at the 2025 World Championship!",
+      "date": "2025-02-19",
+      "url": "https://bobattlearena.com/blog/the-boba-winter-brawl-your-shot-at-the-2025-world-championship",
+      "excerpt": "Get ready for the first official tournament since the release of our Alpha Edition! The Bo Jackson Battle Arena Winter Brawl is bringing the heat to Iron Hill Brewery in Columbia, SC, on Saturday, Fe..."
+    },
+    {
+      "id": "the-2025-boba-world-championships-are-coming-soon",
+      "title": "The 2025 BoBA World Championships Are Coming Soon!",
+      "date": "2025-01-20",
+      "url": "https://bobattlearena.com/blog/the-2025-boba-world-championships-are-coming-soon",
+      "excerpt": "Hey BoBA fans, it’s almost time to flex your Hero decks, rock your snazziest team jerseys, and head to The National Sports Collectors Convention in Chicago for the 2025 Bo Jackson Battle Arena World C..."
+    },
+    {
+      "id": "boba-pack-rush-tournament-the-ultimate-card-game-showdown",
+      "title": "BoBA Pack Rush Break: The Ultimate Card Game Showdown",
+      "date": "2024-12-31",
+      "url": "https://bobattlearena.com/blog/boba-pack-rush-tournament-the-ultimate-card-game-showdown",
+      "excerpt": "Get Ready to Rush! Caster Society is back at it again, January 5th, for the BoBA Pack Rush Break! Boost your BoBA collection with ease—just enter, sit back, and watch the action unfold. It’s that sim..."
+    },
+    {
+      "id": "last-chance-at-alpha-edition-boxes",
+      "title": "Last Chance at Alpha Edition Boxes",
+      "date": "2024-12-10",
+      "url": "https://bobattlearena.com/blog/last-chance-at-alpha-edition-boxes",
+      "excerpt": "Last Chance to Own a Piece of Bo Jackson Battle Arena History! This is it. The moment you've been waiting for! One more chance to snag a Bo Jackson Battle Arena Alpha Collector Booster Box is happeni..."
+    },
+    {
+      "id": "xavier-legette-is-coming-to-the-sc-card-show",
+      "title": "Xavier Legette is Coming to the SC Card Show!",
+      "date": "2024-12-05",
+      "url": "https://bobattlearena.com/blog/xavier-legette-is-coming-to-the-sc-card-show",
+      "excerpt": "Get ready, South Carolina fans! Bo Jackson Battle Arena VIP Experiences is thrilled to announce an unforgettable opportunity to meet one of the most captivating Home Team Heroes—Xavier Legette. This e..."
+    },
+    {
+      "id": "join-bo-jacksons-trade-collect-room",
+      "title": "Join Bo Jackson's \"Trade & Collect\" Room",
+      "date": "2024-11-27",
+      "url": "https://bobattlearena.com/blog/join-bo-jacksons-trade-collect-room",
+      "excerpt": "Battle Arena is the first sports TCG with on-card autographs, and Bo Jackson himself is on the hunt for his 1-of-1 autographed Super: Join Bo Jackson's \"Trade &amp; Collect\" Room to connect with ..."
+    },
+    {
+      "id": "our-philosophy-on-randomized-collation-and-pull-rates",
+      "title": "Our Philosophy on “Randomized Collation and Pull Rates”",
+      "date": "2024-11-25",
+      "url": "https://bobattlearena.com/blog/our-philosophy-on-randomized-collation-and-pull-rates",
+      "excerpt": "&nbsp; At Bo Jackson Battle Arena, we FIRMLY believe the magic of ripping a pack of trading cards should feel more like stepping onto a playground than sitting down to do your taxes. That’s why we ..."
+    },
+    {
+      "id": "bo-jackson-battle-arena-alpha-edition",
+      "title": "Bo Jackson Battle Arena: Unveiling the Alpha Edition",
+      "date": "2024-08-22",
+      "url": "https://bobattlearena.com/blog/bo-jackson-battle-arena-alpha-edition",
+      "excerpt": "Welcome to Bo Jackson Battle Arena, a groundbreaking experience that combines the best elements of sports card collecting with collecting and playing a trading card game (also known as a “TCG”). Some ..."
+    },
+    {
+      "id": "bo-jackson-battle-arena-n24-starter-kits",
+      "title": "Bo Jackson Battle Arena N'24 Starter Kits",
+      "date": "2024-08-12",
+      "url": "https://bobattlearena.com/blog/bo-jackson-battle-arena-n24-starter-kits",
+      "excerpt": "Unveiling the Exclusive Bo Jackson Battle Arena™ N'24 Starter Kits Have you heard about the pre-release cards in Bo Jackson’s new trading card game franchise? The 2024 National Show Starter Kits mark..."
+    },
+    {
+      "id": "2025-battle-arena-world-championship",
+      "title": "2025 Battle Arena World Championship",
+      "date": "2024-08-08",
+      "url": "https://bobattlearena.com/blog/2025-battle-arena-world-championship",
+      "excerpt": "Compete for Glory and $100,000 at the 2025 Battle Arena World Championship! Welcome to Bo Jackson Battle Arena (BoBA), the ultimate battleground where skill, strategy, and thrilling competition colli..."
+    },
+    {
+      "id": "national-24-recap",
+      "title": "National '24 Recap",
+      "date": "2024-08-08",
+      "url": "https://bobattlearena.com/blog/national-24-recap",
+      "excerpt": "2024 National Sports Collectors Convention Recap: A Milestone for Bo Jackson Battle Arena The National Sports Collectors Convention was a monumental launch for Bo Jackson Battle Arena, marking the re..."
+    }
+  ]
+}

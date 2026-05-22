@@ -18,6 +18,7 @@ struct RainbowDetailView: View {
     @Environment(CardStore.self)          private var cardStore
     @Environment(CollectionStore.self)    private var collection
     @Environment(CustomRainbowStore.self) private var rainbowStore
+    @Environment(\.horizontalSizeClass)   private var horizontalSizeClass
 
     enum Kind: Hashable {
         /// Auto-generated rainbow for a single hero — every
@@ -220,8 +221,15 @@ struct RainbowDetailView: View {
                 if visible.isEmpty {
                     lensEmpty(for: lens)
                 } else {
+                    // Tick 517 — iPad regular-width gets 5 cols (DESIGN.md
+                    // §6.6). Compact stays 3 cols (current density on
+                    // iPhone). Rainbow tiles are smaller than catalog
+                    // grids so 5 cols at ~192pt each on iPad landscape
+                    // still gives readable tiles + lets coaches see
+                    // more of the rainbow at once.
+                    let columnCount = horizontalSizeClass == .regular ? 5 : 3
                     LazyVGrid(
-                        columns: Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm), count: 3),
+                        columns: Array(repeating: GridItem(.flexible(), spacing: Design.Spacing.sm), count: columnCount),
                         spacing: Design.Spacing.md
                     ) {
                         ForEach(visible, id: \.id) { card in

@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 254 (Android)** — Past tournament events dim 0.55α + "· PAST" date suffix + drop Open-↗ CTA (606f35a). Mirrors web tick 253. iOS port queued.
 - **tick 253 (web)** — Past tournament events dim to 0.55 opacity + "· PAST" date suffix (25bafbb). Open-↗ CTA dropped on concluded events. iOS + Android parallel ports queued.
 - **tick 252 (iOS)** — Upcoming Events section gains the Last-refreshed stamp inline w/ header (770bae4). Closes Android tick 219 + web tick 218 events-stamp parity. v2.305/567.
 - **tick 251 (Android — content)** — Power Curve content enriched in Learn → Strategy (dfabf4d). 3 tier-band bullets + 3 positioning-tip bullets ported from iOS PowerCurveSection. Closes the Android-iOS content-depth gap for strategy beginners.

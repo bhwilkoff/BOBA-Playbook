@@ -228,11 +228,14 @@ const Collection = (() => {
           <h2 class="view-heading">My Collection</h2>
           <div class="collection-stats-bar">
             <div class="cstat">
-              <span class="cstat-val">${scopeCount}</span>
+              <!-- Tick 413 — locale-format the counts (iOS tick 412 +
+                   Android tick 359 pattern). Serious collectors hit
+                   1,000+ cards; "1,234" reads cleaner than "1234". -->
+              <span class="cstat-val">${scopeCount.toLocaleString()}</span>
               <span class="cstat-label">${esc(ownedLabel)}</span>
             </div>
             <div class="cstat">
-              <span class="cstat-val">${uniqueNums}</span>
+              <span class="cstat-val">${uniqueNums.toLocaleString()}</span>
               <span class="cstat-label">Unique Cards</span>
             </div>
             ${totalCostBasis > 0 ? `

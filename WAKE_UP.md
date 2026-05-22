@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 273 (web)** — Lowercase `r` keyboard shortcut for Surprise Me on Find view. Single-key avoids Ctrl+Shift+R browser hard-reload collision. Suppressed when typing in input/textarea/contentEditable or a `<dialog>` is open. iPad/Chromebook keyboard parity with iOS v2.311.
 - **tick 272 (iOS, v2.311 / 573)** — Cmd+Shift+R keyboard shortcut for Surprise Me on Find tab. Hidden zero-size button in SearchView body registers in the responder chain so the shortcut fires even with the Menu closed. iPad keyboard parity. Same idiom as GitHub's "random repo" shortcut. iPhone w/o keyboard simply ignores.
 - **tick 271 (Android, Learn corpus depth)** — Play card types: replaced Android's generic 4-bucket taxonomy (Tempo / Combo / Value / Control) with iOS's 5-bucket scheme (Tempo / Value / Disruption / Economy / Game-Changer) + named canonical example per type. Example-cards row swapped to one card per type for direct taxonomy-card mapping. Veteran-coach vocabulary parity.
 - **tick 270 (opt, −54 lines)** — iOS LearnView: deleted unused `MiniPlayCardView` struct (0 callers app-wide). Likely left over from a Strategy section that no longer renders Play card thumbnails. Net-remove satisfies the every-5th-tick opt cadence.

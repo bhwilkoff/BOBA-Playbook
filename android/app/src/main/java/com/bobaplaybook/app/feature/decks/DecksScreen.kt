@@ -84,6 +84,7 @@ import com.bobaplaybook.core.ui.adaptive.isCompactWidth
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBAHintBanner
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import com.bobaplaybook.core.ui.components.BOBAWordmark
 import com.bobaplaybook.core.ui.theme.BobaBrand
@@ -227,16 +228,8 @@ private fun DecksCompactScreen(
             CenterAlignedTopAppBar(
                 title = { BOBAWordmark() },
                 actions = {
-                    // Tick 396 — TooltipBox parity with Find tick 384 +
-                    // Collection tick 394. Long-press / mouse-hover hint.
-                    androidx.compose.material3.TooltipBox(
-                        positionProvider = androidx.compose.material3.TooltipDefaults
-                            .rememberTooltipPositionProvider(
-                                androidx.compose.material3.TooltipAnchorPosition.Below
-                            ),
-                        tooltip = { PlainTooltip { Text("Scan into current deck") } },
-                        state = androidx.compose.material3.rememberTooltipState(),
-                    ) {
+                    // Tick 400 — BOBAIconTooltip helper.
+                    BOBAIconTooltip("Scan into current deck") {
                         IconButton(onClick = onScanClick) {
                             Icon(
                                 imageVector = Icons.Default.QrCodeScanner,
@@ -248,14 +241,7 @@ private fun DecksCompactScreen(
                     // The duplicate top-bar Edit button was confusing —
                     // there's now exactly one way to open the editor.
                     Box {
-                        androidx.compose.material3.TooltipBox(
-                            positionProvider = androidx.compose.material3.TooltipDefaults
-                                .rememberTooltipPositionProvider(
-                                    androidx.compose.material3.TooltipAnchorPosition.Below
-                                ),
-                            tooltip = { PlainTooltip { Text("Templates, manage, rules, legality…") } },
-                            state = androidx.compose.material3.rememberTooltipState(),
-                        ) {
+                        BOBAIconTooltip("Templates, manage, rules, legality…") {
                             IconButton(onClick = { menuOpen = true }) {
                                 Icon(
                                     imageVector = Icons.Default.MoreVert,

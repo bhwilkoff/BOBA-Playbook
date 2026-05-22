@@ -93,6 +93,7 @@ import com.bobaplaybook.core.domain.showcase.Showcases
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBACardSkeleton
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import com.bobaplaybook.core.ui.components.BOBAWordmark
 import com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar
@@ -223,18 +224,10 @@ private fun FindContent(
                     val avatarUrl = (authForAvatar as? com.bobaplaybook.app.auth.AuthState.SignedIn)?.let { signed ->
                         profile?.avatarUrl ?: profile?.discordAvatarUrl ?: signed.providerAvatarUrl
                     }
-                    // Tick 386 — TooltipBox parity with tick 384 Filters+Scan.
-                    // Chromebook / tablet hover (mouse) + long-press (touch)
-                    // show "Profile" before firing the action. iOS .help()
-                    // + web title= equivalent.
-                    androidx.compose.material3.TooltipBox(
-                        positionProvider = androidx.compose.material3.TooltipDefaults
-                            .rememberTooltipPositionProvider(
-                                androidx.compose.material3.TooltipAnchorPosition.Below
-                            ),
-                        tooltip = { PlainTooltip { Text("Profile") } },
-                        state = androidx.compose.material3.rememberTooltipState(),
-                    ) {
+                    // Tick 400 — BOBAIconTooltip helper extracted from 11+
+                    // identical TooltipBox call sites. Same affordance:
+                    // mouse-hover / long-press surface "Profile".
+                    BOBAIconTooltip("Profile") {
                         IconButton(onClick = onProfileClick) {
                             if (avatarUrl != null) {
                                 val avatarCtx = androidx.compose.ui.platform.LocalContext.current
@@ -258,15 +251,7 @@ private fun FindContent(
                 },
                 actions = {
                     Box {
-                        // Tick 386 — TooltipBox on overflow menu icon.
-                        androidx.compose.material3.TooltipBox(
-                            positionProvider = androidx.compose.material3.TooltipDefaults
-                                .rememberTooltipPositionProvider(
-                                    androidx.compose.material3.TooltipAnchorPosition.Below
-                                ),
-                            tooltip = { PlainTooltip { Text("More") } },
-                            state = androidx.compose.material3.rememberTooltipState(),
-                        ) {
+                        BOBAIconTooltip("More") {
                             IconButton(onClick = { menuOpen = true }) {
                                 Icon(Icons.Default.MoreVert, contentDescription = "More")
                             }
@@ -520,33 +505,14 @@ private fun FindSearchBar(
                             // Two trailing actions max: Filter (high-frequency,
                             // contextual) + Scan (cross-cutting). Profile +
                             // Overflow live in the TopAppBar above.
-                            // Tick 384 — TooltipBox on both so Chromebook /
-                            // tablet users (mouse hover or long-press) get an
-                            // affordance hint without firing the action.
-                            // Touch users on phone keep the same tap-to-fire
-                            // behavior (TooltipBox just adds the long-press
-                            // tooltip; tap routes through normal onClick).
-                            // iOS .help() + web title= parity.
+                            // Tick 400 — BOBAIconTooltip helper.
+                            // Filters tooltip dynamically shows " · N active"
+                            // when filters are on (tick 389 iOS/web parity).
                             Row {
-                                androidx.compose.material3.TooltipBox(
-                                    positionProvider = androidx.compose.material3.TooltipDefaults
-                                        .rememberTooltipPositionProvider(
-                                            androidx.compose.material3.TooltipAnchorPosition.Below
-                                        ),
-                                    // Tick 389 — iOS tick 387 + web tick 388 parity.
-                                    // Show " · N active" when filters are on so
-                                    // mouse-hover / long-press users see the count
-                                    // without opening the sheet.
-                                    tooltip = {
-                                        PlainTooltip {
-                                            Text(
-                                                if (state.activeFilterCount > 0)
-                                                    "Filters · ${state.activeFilterCount} active"
-                                                else "Filters"
-                                            )
-                                        }
-                                    },
-                                    state = androidx.compose.material3.rememberTooltipState(),
+                                BOBAIconTooltip(
+                                    text = if (state.activeFilterCount > 0)
+                                        "Filters · ${state.activeFilterCount} active"
+                                    else "Filters",
                                 ) {
                                     IconButton(onClick = onFilterClick) {
                                         BadgedBox(
@@ -560,14 +526,7 @@ private fun FindSearchBar(
                                         }
                                     }
                                 }
-                                androidx.compose.material3.TooltipBox(
-                                    positionProvider = androidx.compose.material3.TooltipDefaults
-                                        .rememberTooltipPositionProvider(
-                                            androidx.compose.material3.TooltipAnchorPosition.Below
-                                        ),
-                                    tooltip = { PlainTooltip { Text("Scan a card") } },
-                                    state = androidx.compose.material3.rememberTooltipState(),
-                                ) {
+                                BOBAIconTooltip("Scan a card") {
                                     IconButton(onClick = onScanClick) {
                                         Icon(
                                             imageVector = Icons.Default.QrCodeScanner,

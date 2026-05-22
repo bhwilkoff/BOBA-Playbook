@@ -435,7 +435,17 @@ private fun StoresList(
                 // catalog hits ~2,000 stores (indie + big-box); "2,130
                 // stores" reads cleaner than "2130". Same pattern as
                 // tick 406 viewer count + tick 414 Collection count.
-                "${java.text.NumberFormat.getInstance(java.util.Locale.US).format(state.filteredStores.size)} stores",
+                // Tick 431 — append "Updated 5d ago" when scraped_at
+                // is available (web tick 428 + iOS parity).
+                buildString {
+                    append(java.text.NumberFormat.getInstance(java.util.Locale.US).format(state.filteredStores.size))
+                    append(" stores")
+                    val rel = state.storesScrapedAt?.let { relativeStoreDate(it) }
+                    if (!rel.isNullOrBlank()) {
+                        append("  ·  Updated ")
+                        append(rel)
+                    }
+                },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -616,5 +626,33 @@ private fun formatStreamTime(epochMs: Long): String? {
             val dayFmt = java.time.format.DateTimeFormatter.ofPattern("EEE h:mm a")
             when_.format(dayFmt)
         }
+    }
+}
+
+/**
+ * Tick 431 — Relative date for the stores-manifest scraped_at stamp.
+ * Mirrors `_relativeDate` in js/store-locator.js (tick 428):
+ * "today" / "Nd ago" / "Nw ago" within 5 weeks; "Nmo ago" beyond.
+ * Falls back to the raw ISO date when parse fails so the user still
+ * sees SOMETHING. Local to PurchaseScreen because the freshness-stamp
+ * pattern is currently only used here; LearnArticleScreen has its own
+ * `relativeOrIsoDate` (tick 416) for the events/blog feeds.
+ */
+private fun relativeStoreDate(iso: String): String {
+    val trimmed = iso.trim()
+    val datePart = trimmed.take(10)  // YYYY-MM-DD
+    val parts = datePart.split("-")
+    if (parts.size != 3) return trimmed
+    val y = parts[0].toIntOrNull() ?: return trimmed
+    val m = parts[1].toIntOrNull() ?: return trimmed
+    val d = parts[2].toIntOrNull() ?: return trimmed
+    val cal = java.util.Calendar.getInstance().apply { clear(); set(y, m - 1, d) }
+    val days = ((System.currentTimeMillis() - cal.timeInMillis) / 86_400_000L).toInt()
+    return when {
+        days < 0  -> trimmed
+        days == 0 -> "today"
+        days < 7  -> "${days}d ago"
+        days < 35 -> "${days / 7}w ago"
+        else      -> "${days / 30}mo ago"
     }
 }

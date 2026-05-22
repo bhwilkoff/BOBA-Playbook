@@ -27,6 +27,9 @@ data class PurchaseUiState(
     val stores: ImmutableList<StoreLocation> = persistentListOf(),
     val indieOnly: Boolean = false,
     val storeQuery: String = "",
+    // Tick 431 — scraped_at ISO from stores-manifest.json so the UI
+    // can render "Updated 5d ago" (web tick 428 + iOS parity).
+    val storesScrapedAt: String? = null,
 ) {
     val filteredStores: ImmutableList<StoreLocation>
         get() {
@@ -70,9 +73,13 @@ class PurchaseViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoadingStores = true)
             val stores = storeLocatorService.fetchStores()
+            // Tick 431 — fetch manifest in parallel-ish (sequential but
+            // fast) so the "Updated" stamp populates on first render.
+            val scrapedAt = storeLocatorService.fetchScrapedAt()
             _state.value = _state.value.copy(
                 isLoadingStores = false,
                 stores = stores.toPersistentList(),
+                storesScrapedAt = scrapedAt,
             )
         }
     }

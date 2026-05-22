@@ -28,7 +28,27 @@ class StoreLocatorService @Inject constructor(
             response.mapNotNull { it.toDomain() }
         }.getOrDefault(emptyList())
     }
+
+    /**
+     * Tick 431 — return the `scraped_at` ISO date from stores-manifest.json
+     * so the UI can render a "Updated 5d ago" freshness stamp matching
+     * web (tick 428) + iOS (StoreLocatorStore.lastUpdatedLabel). Null on
+     * any network error or missing field — UI gates rendering on null.
+     */
+    suspend fun fetchScrapedAt(): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            val manifest: StoresManifest = httpClient
+                .get("https://bobaplaybook.com/assets/data/stores-manifest.json")
+                .body()
+            manifest.scrapedAt
+        }.getOrNull()
+    }
 }
+
+@Serializable
+private data class StoresManifest(
+    @kotlinx.serialization.SerialName("scraped_at") val scrapedAt: String? = null,
+)
 
 data class StoreLocation(
     val id: Long,

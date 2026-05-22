@@ -229,6 +229,10 @@ object LearnCorpus {
             heading = "Quick DBS tip",
             text = "Tap the DBS chip on any Play card to see how adding it changes your active deck's total. The chip is purple and lives next to Power / Cost on the card detail.",
         ),
+        LearnSection.Callout(
+            heading = "April 2026 update",
+            text = "BoBA rebalanced DBS values to restore meaningful decisions: low-cost Plays (especially 0- and 1-cost effects) carry higher DBS than before; key cards that enabled full-deck cycling or repeat loops were rebalanced. Effects like draw, recovery, and manipulation are still powerful — they just come with a real cost now. See bobattlearena.com/blog/dbs-update-live-now for the BoBA team's announcement.",
+        ),
         LearnSection.Bullets(
             heading = "Card zones",
             items = listOf(

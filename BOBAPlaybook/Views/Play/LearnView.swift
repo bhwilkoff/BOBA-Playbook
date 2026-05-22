@@ -2118,7 +2118,7 @@ private struct TreatmentsSection: View {
               prefix: "PG",
               description: "Power Glove division themed foil. Tied to the Power Glove tournament division.",
               group: .themed, color: Color(hex: "FF4D00")),
-        .init(id: 9, name: "Great Grandma Linoleum Battlefoil",
+        .init(id: 9, name: "Great Grandma's Linoleum Battlefoil",
               prefix: "GGL",
               description: "2026 Edition exclusive — distinctive linoleum texture. Rarer than the standard GLBF.",
               group: .themed, color: Color(hex: "FFC107")),
@@ -3121,7 +3121,7 @@ private struct NationalsDivisionsSection: View {
                  ], color: Color(hex: "C0392B")),
         Division(name: "Granny's Gum",    prize: "$20,000",
                  events: [
-                    "GG HiLo Madness (team) — all Heroes Grandma's Linoleum, Great Grandma's Linoleum, or Bubblegum · 6 per team, 4 at a time · min 10 of each legal insert type · no power cap",
+                    "GG HiLo Madness (team) — all Heroes Grandma's Linoleum, Great Grandma's Linoleum, or Bubble Gum · 6 per team, 4 at a time · min 10 of each legal insert type · no power cap",
                  ], color: Color(hex: "FFD700")),
         Division(name: "Power Glove",     prize: "$15,000",
                  events: [

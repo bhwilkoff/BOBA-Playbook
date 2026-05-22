@@ -464,6 +464,16 @@ object LearnCorpus {
                 "Hex — rarest. The apex weapon; hardest pull in a standard product run.",
             ),
         ),
+        // Tick 284 — iOS WeaponRaritySection caveat port. Heroes can
+        // also carry Brawl / Super / Alt / Cyber weapons which sit
+        // outside the standard rarity spectrum — Super especially is
+        // tie-breaker-only and typically appears serialized. Required
+        // context for collectors hitting their first Brawl pull from
+        // 2026 Edition / Griffey Set.
+        LearnSection.Body(
+            heading = null,
+            text = "Brawl, Super, Alt, and Cyber sit outside this six-weapon spectrum — Super especially is tie-breaker-only and typically appears serialized.",
+        ),
         LearnSection.Body(
             heading = "Treatments vs Parallels",
             text = "Treatments are DIFFERENT WAYS the same card can be printed. Parallels are ENTIRELY SEPARATE runs that share format but have their own numbering.",

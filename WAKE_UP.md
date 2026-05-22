@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 233 (web — content)** — Checklist Format explainer + glossary term (d9ddede). **Closes the Checklist Format trio** (Android 231, iOS 232, web today). New row in TOURNAMENT FORMATS table + dedicated section below + glossary entry.
 - **tick 232 (iOS — content)** — Checklist Format explainer + glossary term (c912e1c). Mirrors Android tick 231. ChecklistFormatSection in TournamentView w/ 5-bullet list + GLOW "When Checklist fires" callout. v2.301/563. Web port queued.
 - **tick 231 (Android — content)** — Checklist Format explainer in Learn → Tournament + Checklist glossary term (8875b81). Discord-mined from 2026-03-27 blog post; closes real content gap (chip strip referenced Checklist but no Learn article explained it). iOS + web ports queued.
 - **tick 230 (opt)** — Migrate Glossary clipboard off deprecated `LocalClipboardManager`/`ClipboardManager` → platform `android.content.ClipboardManager` (bda50f4). 2 deprecation warnings squashed; 1 remains (ClickableText, bigger refactor).

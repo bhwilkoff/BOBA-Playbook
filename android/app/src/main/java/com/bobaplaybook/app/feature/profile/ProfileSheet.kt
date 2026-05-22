@@ -167,6 +167,8 @@ private fun SignedOutContent(authManager: AuthManager) {
     var emailText by rememberSaveable { mutableStateOf("") }
     var passwordText by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var confirmPasswordText by rememberSaveable { mutableStateOf("") }
+    var confirmPasswordVisible by rememberSaveable { mutableStateOf(false) }
     var feedback by remember { mutableStateOf<String?>(null) }
     var feedbackIsError by remember { mutableStateOf(true) }
     var submitting by remember { mutableStateOf(false) }
@@ -232,10 +234,45 @@ private fun SignedOutContent(authManager: AuthManager) {
             },
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
-                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                imeAction = if (mode == AuthMode.SIGN_UP)
+                    androidx.compose.ui.text.input.ImeAction.Next
+                else
+                    androidx.compose.ui.text.input.ImeAction.Done,
             ),
             modifier = Modifier.fillMaxWidth(),
         )
+
+        // Tick 454 — Confirm password on sign-up (iOS tick 452 + web
+        // tick 453 parity). Hidden in sign-in mode. Validated by the
+        // submit handler before calling signUpWithEmail.
+        if (mode == AuthMode.SIGN_UP) {
+            OutlinedTextField(
+                value = confirmPasswordText,
+                onValueChange = { confirmPasswordText = it; feedback = null },
+                label = { Text("Confirm password") },
+                singleLine = true,
+                visualTransformation = if (confirmPasswordVisible)
+                    androidx.compose.ui.text.input.VisualTransformation.None
+                else
+                    androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                trailingIcon = {
+                    BOBAIconTooltip(if (confirmPasswordVisible) "Hide password" else "Show password") {
+                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                            Icon(
+                                imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff
+                                              else Icons.Default.Visibility,
+                                contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password",
+                            )
+                        }
+                    }
+                },
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
+                    imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
 
         if (feedback != null) {
             Text(
@@ -250,6 +287,11 @@ private fun SignedOutContent(authManager: AuthManager) {
             onClick = {
                 if (emailText.isBlank() || passwordText.length < 6) {
                     feedback = "Enter a valid email and a password of at least 6 characters."
+                    feedbackIsError = true
+                    return@Button
+                }
+                if (mode == AuthMode.SIGN_UP && passwordText != confirmPasswordText) {
+                    feedback = "Passwords don't match."
                     feedbackIsError = true
                     return@Button
                 }

@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 210 (opt)** — SCRATCHPAD trim: 7 shipped "Deferred iPad" items, 4 strikethrough "Active / Next-Up" + 1 trailing TRADE-DESIGN note + 6-step Ben-action punch list collapsed to a WAKE_UP pointer (12a47a8). Net -28 lines.
 - **tick 209 (Android — content mining)** — Set Ascension Learn article (Modern / Hall of Fame / AlphaTrilogy) sourced from 2026-02-10 blog post (0361e04). Filled real gap: catalog ships Hall of Fame + AlphaTrilogy cards but no article explained format evolution. iOS + web ports queued.
 - **tick 208 (web)** — Inline glossary tap-to-define on Learn article prose (77dde05). Wraps term occurrences in Rules/Strategy/Collecting/Tournament panels w/ dotted-cyan underline. Closes Discord backlog #3: 2 of 3 (Android ✅ tick 186, web ✅ today, iOS still pending).
 - **tick 207 (iOS)** — Format-legality chip strip on card detail (a644ae3). Closes Discord backlog #4 across all 3 platforms (Android tick 179, web tick 203, iOS today). v2.296/558. Hero power gates Spec/Brawl/Spec+; .help() surfaces reason.

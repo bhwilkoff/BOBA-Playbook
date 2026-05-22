@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 300 (opt, −6 lines)** — Milestone tick. Trimmed stale "Replaced 2026-04-28" provenance comment block in LearnView ArchetypesSection (preserved in git history); replaced with a tight one-liner about Deck Builder template parity. Per "avoid backwards-compatibility hacks" project rule.
 - **tick 299 (Android)** — Android Surprise Me overflow item shows pool size (iOS v2.317 + web tick 298 parity). `Surprise me 🎲 (12,345)` or `(0)` disabled. New `surpriseCount: Int` param on FindOverflowMenu; passed from FindContent. java.text.NumberFormat(Locale.US) for thousand separators. Trio closed.
 - **tick 298 (web)** — Web Surprise pill mirrors iOS v2.317 pool-size label: `🎲 Surprise (12,345)` shows what the pick is drawn from. Disabled state when pool is empty. Updates inside the existing `updateResultsCount()` callback so it stays in sync with every filter change.
 - **tick 297 (iOS v2.317 / 579)** — Surprise Me menu item now shows the pool size: "Surprise me 🎲 (17,974)" when unfiltered, "(12)" when a tight filter is active. Tells users what Surprise is drawing from. Disabled state when pool is empty (no point firing a no-op pick). Uses `Int.formatted()` for locale-aware thousand separators.

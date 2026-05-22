@@ -86,6 +86,7 @@ import com.bobaplaybook.core.domain.model.Designation
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.format.formatUsdAmount
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.bobaplaybook.core.ui.components.BOBASignInPrompt
 import com.bobaplaybook.core.ui.components.BOBAWordmark
 import com.bobaplaybook.core.ui.theme.BobaBrand
@@ -161,18 +162,9 @@ fun CollectionScreen(
                 title = { BOBAWordmark() },
                 actions = {
                     val context = LocalContext.current
-                    // Tick 394 — TooltipBox on each TopAppBar IconButton.
-                    // Mouse-hover / long-press affordance hints (Android
-                    // Find tick 384+386+389 + iOS Collection tick 392
-                    // parity). Default below-anchor placement.
-                    androidx.compose.material3.TooltipBox(
-                        positionProvider = androidx.compose.material3.TooltipDefaults
-                            .rememberTooltipPositionProvider(
-                                androidx.compose.material3.TooltipAnchorPosition.Below
-                            ),
-                        tooltip = { PlainTooltip { Text("Scan a card") } },
-                        state = androidx.compose.material3.rememberTooltipState(),
-                    ) {
+                    // Tick 400 — BOBAIconTooltip helper (was tick 394's
+                    // 3 inline TooltipBox blocks). Same affordance shape.
+                    BOBAIconTooltip("Scan a card") {
                         IconButton(onClick = onScanClick) {
                             Icon(
                                 imageVector = Icons.Default.QrCodeScanner,
@@ -180,21 +172,10 @@ fun CollectionScreen(
                             )
                         }
                     }
-                    androidx.compose.material3.TooltipBox(
-                        positionProvider = androidx.compose.material3.TooltipDefaults
-                            .rememberTooltipPositionProvider(
-                                androidx.compose.material3.TooltipAnchorPosition.Below
-                            ),
-                        tooltip = {
-                            PlainTooltip {
-                                Text(
-                                    if (findState.activeFilterCount > 0)
-                                        "Filters · ${findState.activeFilterCount} active"
-                                    else "Filters"
-                                )
-                            }
-                        },
-                        state = androidx.compose.material3.rememberTooltipState(),
+                    BOBAIconTooltip(
+                        text = if (findState.activeFilterCount > 0)
+                            "Filters · ${findState.activeFilterCount} active"
+                        else "Filters",
                     ) {
                         IconButton(onClick = { filterSheetOpen = true }) {
                             BadgedBox(
@@ -209,14 +190,7 @@ fun CollectionScreen(
                         }
                     }
                     Box {
-                        androidx.compose.material3.TooltipBox(
-                            positionProvider = androidx.compose.material3.TooltipDefaults
-                                .rememberTooltipPositionProvider(
-                                    androidx.compose.material3.TooltipAnchorPosition.Below
-                                ),
-                            tooltip = { PlainTooltip { Text("Display mode + collection actions") } },
-                            state = androidx.compose.material3.rememberTooltipState(),
-                        ) {
+                        BOBAIconTooltip("Display mode + collection actions") {
                             IconButton(onClick = { menuOpen = true }) {
                                 Icon(Icons.Default.MoreVert, contentDescription = "More")
                             }

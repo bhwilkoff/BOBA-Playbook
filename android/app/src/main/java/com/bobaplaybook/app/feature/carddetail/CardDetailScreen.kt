@@ -84,6 +84,7 @@ import com.bobaplaybook.core.network.CDN
 import com.bobaplaybook.core.network.PricingListing
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.bobaplaybook.core.ui.components.BOBAPriceTile
 import com.bobaplaybook.core.ui.format.formatUsdAmount
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
@@ -184,17 +185,8 @@ fun CardDetailScreen(
                     }
                 },
                 actions = {
-                    // Tick 399 — TooltipBox parity with Find/Decks/Collection
-                    // TopAppBars (ticks 384/394/396). Mouse-hover / long-press
-                    // surface the affordance.
-                    androidx.compose.material3.TooltipBox(
-                        positionProvider = androidx.compose.material3.TooltipDefaults
-                            .rememberTooltipPositionProvider(
-                                androidx.compose.material3.TooltipAnchorPosition.Below
-                            ),
-                        tooltip = { PlainTooltip { Text("Share card") } },
-                        state = androidx.compose.material3.rememberTooltipState(),
-                    ) {
+                    // Tick 400 — BOBAIconTooltip helper.
+                    BOBAIconTooltip("Share card") {
                         IconButton(onClick = {
                             state.card?.let { c ->
                                 scope.launch { CardShareHelper.share(context, c) }
@@ -204,14 +196,7 @@ fun CardDetailScreen(
                         }
                     }
                     Box {
-                        androidx.compose.material3.TooltipBox(
-                            positionProvider = androidx.compose.material3.TooltipDefaults
-                                .rememberTooltipPositionProvider(
-                                    androidx.compose.material3.TooltipAnchorPosition.Below
-                                ),
-                            tooltip = { PlainTooltip { Text("Add to Collection, Deck, or Show") } },
-                            state = androidx.compose.material3.rememberTooltipState(),
-                        ) {
+                        BOBAIconTooltip("Add to Collection, Deck, or Show") {
                             IconButton(onClick = { addMenuOpen = true }) {
                                 Icon(Icons.Default.Add, contentDescription = "Add")
                             }

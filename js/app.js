@@ -1105,11 +1105,18 @@
       // terms with non-letter chars (G&S, F/S) we use lookarounds so
       // the boundary still brackets correctly.
       terms.sort((a, b) => b.term.length - a.term.length);
+      // Tick 363 — extend to `td` cells. Tournament tab's Madness +
+      // Nationals tables, and Match Structure table, all carry glossary-
+      // worthy terms (Hot Dogs / Apex deck / Foil Hot Dogs / Spec 160 /
+      // Brawl / Tecmo Bowl / Sudden Death etc.) inside <td> cells.
+      // Before this, paragraph + list-item content was wired but table
+      // content was bare — same term, different markup, inconsistent
+      // affordance. Skip <th> (column headers, no glossary-worthy text).
       const containers = document.querySelectorAll(
-        '#play-panel-rules p, #play-panel-rules li, ' +
-        '#play-panel-strategy p, #play-panel-strategy li, ' +
-        '#play-panel-collecting p, #play-panel-collecting li, ' +
-        '#play-panel-tournament p, #play-panel-tournament li'
+        '#play-panel-rules p, #play-panel-rules li, #play-panel-rules td, ' +
+        '#play-panel-strategy p, #play-panel-strategy li, #play-panel-strategy td, ' +
+        '#play-panel-collecting p, #play-panel-collecting li, #play-panel-collecting td, ' +
+        '#play-panel-tournament p, #play-panel-tournament li, #play-panel-tournament td'
       );
       // Skip terms with very common short forms that would over-match
       // ("Spec" appears in chip strips; "BP" in shorthand).

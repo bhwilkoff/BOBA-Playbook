@@ -26,6 +26,7 @@ import PhotosUI
 struct ProfileView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     // Discord identity for the Connections row + avatar fallback.
     // DiscordService is re-instantiated per view (existing pattern in
@@ -276,6 +277,7 @@ struct ProfileView: View {
             notificationsSection
             roleAccessSection
             if auth.isMod { moderationSection }
+            keyboardShortcutsSection
             aboutSection
             signOutSection
             deleteAccountSection
@@ -852,6 +854,48 @@ struct ProfileView: View {
                         .foregroundStyle(Design.Colors.bobaOrange)
                 }
             }
+        }
+    }
+
+    // MARK: - Keyboard shortcuts (iPad / external keyboard)
+    //
+    // Tick 337 — surfaces the shortcuts shipped throughout the session
+    // in one discoverable Profile spot (web tick 333 + Android tick 334
+    // parity). iPhone with no keyboard gets a no-op .disabled section —
+    // we only render this when horizontalSizeClass == .regular so
+    // iPhone-compact users don't see iPad-only info.
+    @ViewBuilder
+    private var keyboardShortcutsSection: some View {
+        if horizontalSizeClass == .regular {
+            Section("Keyboard shortcuts") {
+                shortcutRow("⌘1..5",   "Switch tabs")
+                shortcutRow("⌘/",      "Focus search (Find)")
+                shortcutRow("⌘⇧R",     "Surprise me · random card (Find)")
+                shortcutRow("⌘N",      "New deck (Decks)")
+                shortcutRow("⌘S",      "Save deck (Decks)")
+                shortcutRow("⌘← ⌘→",   "Prev / next card (Card detail)")
+            }
+        }
+    }
+
+    private func shortcutRow(_ combo: String, _ desc: String) -> some View {
+        HStack(alignment: .center, spacing: Design.Spacing.md) {
+            Text(combo)
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .foregroundStyle(Design.Colors.textPrimary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(RoundedRectangle(cornerRadius: 4)
+                    .fill(Design.Colors.surface)
+                    .overlay(RoundedRectangle(cornerRadius: 4)
+                        .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)))
+                .accessibilityLabel(combo.replacingOccurrences(of: "⌘", with: "Command ")
+                                          .replacingOccurrences(of: "⇧", with: "Shift ")
+                                          .replacingOccurrences(of: "←", with: "Left arrow ")
+                                          .replacingOccurrences(of: "→", with: "Right arrow "))
+            Text(desc)
+                .font(Design.Fonts.mono(12))
+                .foregroundStyle(Design.Colors.textSecondary)
         }
     }
 

@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 235 (opt)** — Migrate GlossaryAwareBody from deprecated ClickableText → Text + LinkAnnotation.Clickable (69776f0). **Zero Compose deprecation warnings remain on Android.** Captured-term closure pattern documented.
 - **tick 234 (3-platform — content)** — Tecmo Bowl release event description enriched w/ grail-card details mined from 2026-03-16 blog post (Touchdown Bo Jackson 1/1 + /34 Black Variation; $100k livestream bounty) (9c8a5e7). All 3 platforms read events.json so iOS + Android + web Tournament tabs all show the richer text.
 - **tick 233 (web — content)** — Checklist Format explainer + glossary term (d9ddede). **Closes the Checklist Format trio** (Android 231, iOS 232, web today). New row in TOURNAMENT FORMATS table + dedicated section below + glossary entry.
 - **tick 232 (iOS — content)** — Checklist Format explainer + glossary term (c912e1c). Mirrors Android tick 231. ChecklistFormatSection in TournamentView w/ 5-bullet list + GLOW "When Checklist fires" callout. v2.301/563. Web port queued.

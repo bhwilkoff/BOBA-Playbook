@@ -119,8 +119,22 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
         return nil
     }
 
-    // Stable unique id — v2 formula matches boba_id.py: "{cardNumber}-{hero}-{treatment??''}-{variation??''}"
-    var id: String { "\(cardNumber)-\(hero)-\(treatment ?? "")-\(variation ?? "")" }
+    // Stable unique id — v2 formula matches boba_id.py:
+    // "{cardNumber}-{hero or name}-{treatment??''}-{variation??''}".
+    // For Sealed Products (no hero) the `name` field stands in so
+    // the id matches the catalog's canonical bobaId field + the
+    // `Card.bobaId` getter below. Without the name fallback,
+    // `card.id` for sealed produced an "old form" string
+    // ("SEALED-foo---Bundle") that DIDN'T match the canonical
+    // bobaId stored in cards.json — which is what the catalog
+    // index `cardsById` is keyed on. User_cards rows written
+    // with the canonical bobaId then failed to resolve, and
+    // sealed products rendered as their raw bobaId in Collection
+    // (Ben 2026-05-22).
+    var id: String {
+        let identifier = hero.isEmpty ? name : hero
+        return "\(cardNumber)-\(identifier)-\(treatment ?? "")-\(variation ?? "")"
+    }
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: Card, rhs: Card) -> Bool { lhs.id == rhs.id }

@@ -835,6 +835,13 @@ private fun SearchResultsGrid(
     onQuickAdd: (Card) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Tick 249 — haptic confirmation on long-press → Quick Add.
+    // Matches iOS UIImpactFeedbackGenerator(.medium); the user
+    // gets a small bump confirming the card landed before the
+    // snackbar surfaces. Without it, long-press feels like
+    // "did anything happen?" Pulled outside LazyVerticalGrid since
+    // LazyGridScope is non-composable.
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     LazyVerticalGrid(
         modifier = modifier,
         columns = if (columns >= 1) GridCells.Fixed(columns) else GridCells.Adaptive(minSize = 110.dp),
@@ -851,9 +858,17 @@ private fun SearchResultsGrid(
                     .cardSharedBounds(card.bobaId)
                     .combinedClickable(
                         onClick = {
-                            if (quickAdd) onQuickAdd(card) else onCardClick(card.bobaId)
+                            if (quickAdd) {
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                onQuickAdd(card)
+                            } else {
+                                onCardClick(card.bobaId)
+                            }
                         },
-                        onLongClick = { onQuickAdd(card) },
+                        onLongClick = {
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                            onQuickAdd(card)
+                        },
                     )
                     .testTag("card_${card.bobaId}"),
             )

@@ -45,7 +45,6 @@ Documented gaps where one platform has shipped but others haven't.
 
 - [ ] **Walkthrough anchor verification on iPad** — needs simulator validation.
 - [ ] **iPad drag-and-drop between deck slots** — significant; nice-to-have.
-- [ ] **Scan view landscape polish** — fixed guide size feels small on iPad.
 
 ### P2 — Web "feels native" follow-ups (per WEB-DESIGN.md §15 deferred)
 

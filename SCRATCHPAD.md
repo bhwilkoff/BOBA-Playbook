@@ -57,7 +57,6 @@ Historical "What Just Shipped" sections (2026-05-15, 2026-05-20 overnight) trimm
 
 - **Walkthrough anchor verification on iPad** — needs simulator validation that anchors registered in NavigationSplitView sidebar/detail columns resolve correctly through the outer `walkthroughOverlay`. SwiftUI preferences flow up the view tree, so should work, but verify in simulator.
 - **iPad drag-and-drop** — drag cards between deck slots, between Find→Decks/Collection. Significant work; nice-to-have.
-- **Scan view landscape polish** — fixed `kGuideW=300, kGuideH=420` works in iPad landscape but feels small relative to canvas. Could scale guide for regular width.
 
 ## Active / Next-Up
 

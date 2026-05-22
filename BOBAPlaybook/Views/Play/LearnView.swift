@@ -1825,6 +1825,7 @@ private struct GlossaryView: View {
         .init(term: "Rainbow",     definition: "Community collecting goal — owning every treatment variation of a single hero (Base + all foils + autos). Tracked in the Collection tab's Rainbow view."),
         .init(term: "Chillin' / Grillen", definition: "Chillin' is an active treatment name (Chillin' Battlefoil). In older Spec rules, players sometimes say 'chillin' for Ice and 'grillen' for Fire — those are legacy slang for the weapon elements. The current rules use Ice and Fire."),
         .init(term: "Double-Up (Press / Fold)", definition: "Optional betting mechanic any game mode can add. Each Coach gets one Press per game to double the game's point value; the opponent then Folds (ends the game) or Presses back. A whole new \"Laundry Phase\" between battles."),
+        .init(term: "Checklist", definition: "BoBA format where deck-building is restricted to a curated list of Plays (a Checklist). Each event publishes its own theme — high-offense, control, chaos, etc. Core mechanics stay identical; only the available card pool changes. Rewards creativity within constraints rather than finding the 'optimal' build."),
     ]
 
     private let tradingTerms: [Term] = [
@@ -2527,6 +2528,7 @@ private struct TournamentView: View {
                 UpcomingEventsSection()
                 ProTourIntroSection()
                 HeroDeckFormatsSection()
+                ChecklistFormatSection()
                 GameModesSection()
                 DoubleUpSection()
                 MadnessSection()
@@ -2770,6 +2772,77 @@ private struct HeroDeckFormatsSection: View {
                 color: Design.Colors.textMuted
             )
             .padding(.top, Design.Spacing.xs)
+        }
+    }
+}
+
+// Tick 232 — Checklist Format explainer (Android tick 231 parity).
+// Discord-mined from 2026-03-27 blog post. Closes content gap where
+// the format-legality chip strip + format dropdowns referenced
+// "Checklist" but no Learn article explained it.
+private struct ChecklistFormatSection: View {
+    private let bullets: [String] = [
+        "Limited card pool — only Plays from the active Checklist are legal",
+        "Theme-driven gameplay (offense / control / chaos / weapon-focused)",
+        "Rotating or event-specific Checklists ensure variety",
+        "Some overlooked Plays suddenly become stars within their environment",
+        "Players answer 'how do I win in this environment?' rather than 'what's optimal?'",
+    ]
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("CHECKLIST FORMAT")
+                .font(Design.Fonts.mono(12, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1.5)
+            GlossaryAwareText(
+                raw: "Build decks from a curated list of Plays — a Checklist. Each Checklist creates its own gameplay environment with themed restrictions: high-offense, control, chaos, weapon-focused, etc. Core BoBA mechanics stay identical; only the available card pool changes.",
+                font: Design.Fonts.mono(13),
+                color: Design.Colors.textSecondary
+            )
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(bullets, id: \.self) { item in
+                    HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                        Text("·")
+                            .font(Design.Fonts.mono(15))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                        Text(item)
+                            .font(Design.Fonts.mono(12))
+                            .foregroundStyle(Design.Colors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.md)
+                    .fill(Design.Colors.surface)
+                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+            )
+            HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                Image(systemName: "info.circle.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Design.Colors.element("GLOW"))
+                    .padding(.top, 2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("When Checklist fires")
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .foregroundStyle(Design.Colors.element("GLOW"))
+                    Text("Event-specific. Each tournament publishes its active Checklist with the event listing. The Checklist column in the per-card format-legality chip shows green when a card is generally legal under Checklist rules, but the actual event Checklist may exclude it — always check the event's announced Checklist.")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.md)
+                    .fill(Design.Colors.element("GLOW").opacity(0.08))
+                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .strokeBorder(Design.Colors.element("GLOW").opacity(0.3), lineWidth: 1))
+            )
         }
     }
 }

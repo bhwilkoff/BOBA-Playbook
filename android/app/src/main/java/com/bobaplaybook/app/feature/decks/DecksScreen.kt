@@ -153,12 +153,19 @@ private fun DecksCompactScreen(
     val draft by deckViewModel.draft.collectAsStateWithLifecycle()
     val authState by deckViewModel.authState.collectAsStateWithLifecycle()
     val isSignedIn = authState is com.bobaplaybook.app.auth.AuthState.SignedIn
+    // Pool reads the FULL catalog directly through DecksViewModel —
+    // iOS DecksView.filteredPoolCards parity. The previous routing
+    // through FindViewModel.results was empty during the 100ms initial
+    // debounce window AND inherited Find's sort instead of Decks's
+    // (Heroes power desc, Plays cost asc).
+    val poolCards by deckViewModel.poolCards.collectAsStateWithLifecycle()
+    val catalogLoading by deckViewModel.isCatalogLoading.collectAsStateWithLifecycle()
     // Card-detail swipe-nav siblings — populate the store whenever the
     // pool's filtered list changes so a tap → detail → swipe walks
     // the visible pool. Parity with iOS Decks browser.
     val navHolder: com.bobaplaybook.app.feature.carddetail.CardNavigationHolderViewModel = hiltViewModel()
-    LaunchedEffect(findState.results) {
-        navHolder.store.set(findState.results.map { it.bobaId })
+    LaunchedEffect(poolCards) {
+        navHolder.store.set(poolCards.map { it.bobaId })
     }
     val hintsViewModel: HintsViewModel = hiltViewModel()
     val longPressHintDismissed by hintsViewModel
@@ -382,15 +389,16 @@ private fun DecksCompactScreen(
                 query = poolQuery,
                 onQueryChange = { q ->
                     poolQuery = q
-                    findViewModel.onEvent(com.bobaplaybook.app.feature.find.FindEvent.QueryChanged(q))
+                    deckViewModel.setPoolQuery(q)
                 },
             )
             CardPoolGrid(
-                cards = findState.results,
+                cards = poolCards,
+                isLoading = catalogLoading,
                 searchQuery = poolQuery,
                 onClearSearch = {
                     poolQuery = ""
-                    findViewModel.onEvent(com.bobaplaybook.app.feature.find.FindEvent.QueryChanged(""))
+                    deckViewModel.setPoolQuery("")
                 },
                 columns = storedPoolColumns,
                 inDeckBobaIds = remember(draft.cards) { draft.cards.map { it.bobaId }.toSet() },
@@ -525,6 +533,13 @@ private fun CardPoolGrid(
     searchQuery: String = "",
     onClearSearch: (() -> Unit)? = null,
     /**
+     * Catalog-load flag. When the pool is empty AND the catalog is
+     * still decoding, show a spinner — the previous "No cards in
+     * scope" empty-state copy was misleading during the ~0.5–8 s
+     * cold-start window before Phase 2 finishes.
+     */
+    isLoading: Boolean = false,
+    /**
      * Fixed column count (1/2/3) from the user's per-tab grid-density
      * preference. `0` uses the adaptive minSize default (iOS parity:
      * defaults to ~3 cols on a typical phone, 5-7 on tablet).
@@ -539,11 +554,18 @@ private fun CardPoolGrid(
     inDeckBobaIds: Set<String> = emptySet(),
 ) {
     if (cards.isEmpty()) {
-        // Disambiguate: search-driven empty vs filter-driven empty.
-        // When the user typed a query we can offer a one-tap Clear;
-        // when no query is active the catalog is being filtered by
-        // Find tab state (which the user can't manipulate from here
-        // without context-switching) so we just point them there.
+        if (isLoading && searchQuery.isBlank()) {
+            Box(
+                modifier = modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                androidx.compose.material3.CircularProgressIndicator()
+            }
+            return
+        }
+        // Pool reads the catalog directly — empty + not-loading +
+        // no-search means decode failed or returned 0 rows, which is
+        // a real error rather than a filter constraint.
         if (searchQuery.isNotBlank()) {
             BOBAEmptyState(
                 icon = Icons.Default.SearchOff,
@@ -556,8 +578,8 @@ private fun CardPoolGrid(
         } else {
             BOBAEmptyState(
                 icon = Icons.Default.SearchOff,
-                headline = "No cards in scope",
-                body = "Filters set on the Find tab are constraining the catalog. Open Find → Filters and widen or clear them.",
+                headline = "Catalog unavailable",
+                body = "Couldn't load the card catalog. Restart the app to try again.",
                 modifier = modifier,
             )
         }

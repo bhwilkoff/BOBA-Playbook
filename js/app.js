@@ -3435,7 +3435,7 @@
       })
       .join(' · ');
     return `<div class="in-collection-block" role="status">
-      <div class="in-collection-label">IN YOUR COLLECTION (${entries.length})</div>
+      <div class="in-collection-label">IN YOUR COLLECTION (${entries.length.toLocaleString()})</div>
       <div class="in-collection-summary">${escHtml(summary)}</div>
     </div>`;
   }

@@ -353,6 +353,7 @@ private fun SignedInContent(
     val hintsVm: com.bobaplaybook.app.hints.HintsViewModel =
         androidx.hilt.navigation.compose.hiltViewModel()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val hintsEnabled by hintsVm.globalEnabled.collectAsStateWithLifecycle(initialValue = true)
     val usernameStatus by vm.usernameStatus.collectAsStateWithLifecycle(initialValue = null)
     val profile by vm.profile.collectAsStateWithLifecycle(initialValue = null)
@@ -904,6 +905,13 @@ private fun SignedInContent(
                     .clickable {
                         // Tap-to-copy the version string — useful for
                         // including in bug reports.
+                        // Tick 294 — confirm haptic (TextHandleMove) so
+                        // tap feels like it did something even when the
+                        // Snackbar is animating in. Matches the iOS
+                        // success-haptic on the same row.
+                        haptic.performHapticFeedback(
+                            androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
+                        )
                         val v = "${com.bobaplaybook.app.BuildConfig.VERSION_NAME} " +
                             "(${com.bobaplaybook.app.BuildConfig.VERSION_CODE})"
                         val cm = context.getSystemService(android.content.ClipboardManager::class.java)

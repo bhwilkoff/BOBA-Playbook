@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 294 (Android, polish)** — Tap-to-copy Version row now fires a TextHandleMove haptic (iOS v2.316 tick 292 parity). Confirms the tap registered while the Snackbar is animating in. `LocalHapticFeedback.current` lookup added at ProfileSheet composable scope.
 - **tick 293 (web)** — Send Feedback mailto pre-fills body with browser + page-URL context (iOS v2.314 + Android tick 289 parity). 3 blank lines for the user's message, then a "---" divider with "Page: <location.href>" and "Browser: <navigator.userAgent>". Web has no app-version concept (always live deploy), but the URL pins down which view + state the user was on.
 - **tick 292 (iOS v2.316 / 578)** — Tap-to-copy Version row in Profile → About (Android tick 290-era parity). Tapping the Version row copies the full "MAJOR.MINOR (BUILD)" string to UIPasteboard + fires a success haptic + shows a confirmation alert. Faster bug-report flow (no retyping the build number). Added doc.on.doc icon as a visual affordance hint.
 - **tick 291 (Android, polish)** — Haptic feedback on Card Detail swipe-nav. `LocalHapticFeedback.current` fires `TextHandleMove` (subtle tactile bump) on every successful swipe-to-next-card. Same idiom as Find long-press add (tick 249). Subtle enough not to compete with button-tap haptics; just confirms the swipe registered. iOS uses the implicit `.simultaneousGesture` system feedback so no parity port needed.

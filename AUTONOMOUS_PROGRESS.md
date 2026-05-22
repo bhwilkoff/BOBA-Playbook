@@ -2592,24 +2592,16 @@ Each loop tick appends an entry below. Format:
 
 ## Discord-mined feature backlog (May 2026 mining pass)
 
-Pick the top item for each upcoming tick's platform. Strike out shipped items inline. Re-mine when ≤2 items left.
+Status as of tick 460 — 7 of 8 closed across all three platforms. One item remains open (also mirrored in P1 above):
 
-### TIER 1 — high-demand, mostly UI work on existing data
-
-1. **Power-level RANGE filter on Find** (S) — power is sortable but not filterable; Discord saturated with "ISO 140-160 fire" patterns. Add power min/max slider as a `FilterToken`. iOS + Web + Android.
-2. **Set Completion / Rainbow % progress dashboard** (S) — RainbowDetailView shows owned cards but no completion %, no "missing list" panel. Add `X of Y treatments · NN%` headers + "missing" tab. iOS + Web + Android.
-3. **Tap-to-define glossary terms inline in Learn articles** (M) — glossary tab exists but article prose has no tappable terms. Wrap with `TooltipBox` (Android) / Popover (web) / inline sheet (iOS) for HTD / Lino / OBF / G&S / Vouch. All three.
-4. **Format-eligibility badge on every card cell + "legal in" chip strip on detail** (S) — `CardFormatEligibility.swift` exists; expose it visibly. ~30-35% of rules Qs in Discord are "is this legal in Spec+ / Brawl / Checklist?" Tiny corner badge `S | S+ | C` on cells + full strip on detail. All three.
-
-### TIER 2 — moderate effort, sharp value
-
-5. **DBS explainer in Learn → Rules + per-card DBS context tooltip** (S/M) — card detail shows DBS for Plays; nobody explains the system. Add Learn → Rules → "Understanding DBS" page + replace `?` icon with mini-sheet ("This card costs 6 DBS. Your deck has 28/30 DBS used."). All three.
-6. **Wanted-list public sharing surface (`/u/{handle}/wanted`)** (M) — public collection ships, but NOT the Wanted designation. Per-designation public toggle. Web renders read-only `/u/handle/wanted`; iOS+Android set the toggle.
-7. **Print-run / SP / SSP indicator on cards** (M) — players distinguish SP / SSP / "/5 / /10 / /25 / /50" Inspired Ink as a first-class shopping concept. Render print-run chip on card cell + dedicated stat row on detail. All three.
-8. **Tournament / Release calendar page in Learn → Tournament** (M) — "When does Tecmo ship?", "When is nationals?" are constant. Single static page (refreshed via `assets/data/events.json`) listing upcoming events + release windows + format being played. All three.
-
-### Tick 178's own next step
-Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 = 4 → Android, but use punch list anyway since Android is least mature and #1 fits Android cleanly). **Pick: item #1 (Power-level RANGE filter) on Android first** since Android Find filter sheet is the freshest implementation. Then 180 = opt, 181 = Android #1 follow-up to iOS/web, 182 = iOS picks item #2 or #4 (both S, both cross-platform).
+- ~~#1 Power-level RANGE filter~~ — Agent's claim was wrong; already shipped on all 3 platforms.
+- ~~#2 Rainbow %~~ — closed ticks 181/182/183.
+- ~~#3 Tap-to-define glossary~~ — closed ticks 184 + iOS/web mirrors; plural-matching ticks 373/374/377.
+- ~~#4 Format-eligibility chip strip on Card Detail~~ — closed ticks 179/203. Per-cell `S | S+ | C` badge variant remains unimplemented (carry-forward).
+- ~~#5 DBS explainer~~ — closed ticks 186/187/188.
+- **#6 Wanted-list public sharing surface (`/u/{handle}/wanted`)** — STILL OPEN. Per-designation public toggle + schema work + web renderer at `/u/handle/wanted`. Multi-week.
+- ~~#7 Print-run / SP / SSP indicator~~ — Card Detail half closed ticks 189/197/198; per-cell half closed ticks 456/457/458.
+- ~~#8 Tournament / Release calendar page~~ — closed ticks 191/193 + events auto-refresh tick 194.
 
 ### Tick 179 — 2026-05-21 — Android: format-legality chip strip (punch list #4)
 - **Punch-list audit before shipping:** Verified Tier 1 items against actual code (Agent's list was wrong on #1 — power-range filter ALREADY ships on all 3 platforms; #2 partially shipped). Picked #4 (format-eligibility badge) since the existing `CardFormatEligibility.restrictions(...)` only returns EXCEPTIONS — the typical card has no positive-legality affordance, which is the Discord ask.

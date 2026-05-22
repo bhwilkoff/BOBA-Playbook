@@ -124,8 +124,8 @@ When shipping any user-facing feature:
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
 | Upcoming Whatnot breaks | ✅ | ✅ | ✅ | Worker `boba-ebay-proxy /whatnot/upcoming` — Android deserialization fix shipped overnight 2026-05-20 |
-| Find a Store (~330 indie + ~1,800 big-box) | ✅ MapKit | ✅ Leaflet | ⏳ M6 polish | Android needs Google Maps Compose + API key |
-| Filters: radius, indie-only | ✅ | ✅ | ⏳ M6 polish | DropdownMenu on Android pending Maps |
+| Find a Store (~330 indie + ~1,800 big-box) | ✅ MapKit | ✅ Leaflet | ✅ | Android Google Maps Compose shipped tick 202 (commit 54d2124) — `maps-compose` 6.1.2 + `play-services-maps` 19.0.0 |
+| Filters: radius, indie-only | ✅ | ✅ | 🚧 | Android indie-only chip ✅; radius / Near-Me location permission pending |
 | Tap break tile → external Whatnot | ✅ | ✅ | ✅ | Android shipped via `CustomTabsIntent` overnight |
 
 ---
@@ -140,7 +140,7 @@ When shipping any user-facing feature:
 | Image-fingerprint matching | ✅ | 🚫 | 🔮 v2 | MediaPipe Image Embedder; parallel `feature-prints-android.bin` |
 | Multi-card grid scan | ✅ | 🚫 | 🔮 v2 | OpenCV port |
 | Scan queue / review surface | ✅ | n/a | ✅ | Android ScanQueueStore (Hilt singleton, 25-cap, de-dup by bobaId) + ScanReviewSheet ModalBottomSheet — commit 54d2124 |
-| Per-tab destination routing (Find/Decks/Collection) | ✅ | n/a | ⏳ M3 polish | Single `ScanCoordinator` |
+| Per-tab destination routing (Find/Decks/Collection) | ✅ | n/a | 🚧 | Android ScanQueueStore + ScanReviewSheet shipped (ticks 202 + 224); single ScanCoordinator for per-tab destination still pending |
 
 Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan results when iOS/Android users share them.
 
@@ -177,7 +177,7 @@ Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan resul
 | Sign in with Apple | ✅ | ✅ | 🚫 §12 | iOS brand; Android uses Sign in with Google |
 | Sign in with Google | 🔮 | 🔮 | ✅ | Android Credential Manager (one-tap + passkey-capable bottom sheet) |
 | Email/password | ✅ | ✅ | ✅ | Same Supabase shape on all three |
-| Discord OAuth | ✅ | ✅ | ⏳ M7 polish | Android stub today; Auth Tab / Custom Tabs path remaining |
+| Discord OAuth | ✅ | ✅ | ✅ | Android `AuthManager.signInWithDiscord()` wired via supabase-kt's Discord provider + Custom Tabs (DECISIONS.md #049); ProfileSheet Discord-link row branches on linked state (tick 211) |
 | Passkey support | 🔮 | 🔮 | ✅ | Free via Credential Manager bottom sheet on Android |
 | Biometric gate (sensitive actions) | ✅ Face ID | n/a | ⏳ M7 polish | `BiometricPrompt` wiring still pending on Android |
 | Username (banned-words gated) | ✅ | ✅ | ✅ | Same `set_username` / `check_username` RPCs |
@@ -185,7 +185,7 @@ Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan resul
 | Public collection toggle | ✅ | ✅ | ✅ | Hydration fix landed tick 199 (commit a5c72e9) |
 | Generalized role request (mod / streamer) | ✅ | ✅ | ✅ | Same `request_role` RPC |
 | Account deletion | ✅ | ✅ | ✅ | Same `boba-account-delete` Worker |
-| Discord identity link (for trading) | ✅ | ✅ | ⏳ M7 polish | Pending Discord OAuth Custom Tab implementation |
+| Discord identity link (for trading) | ✅ | ✅ | ✅ | Android Profile Discord-link row branches on linked state (tick 211) — captureDiscordIdentity persists discord_user_id + avatar_url |
 | Notification toggle (match alerts) | ✅ UI only | ✅ UI only | ✅ UI only | Match-alerts pipeline deferred per DECISIONS.md #039 |
 | Trading toggle (Discord-gated) | ✅ UI only | ✅ UI only | ⏳ | Surfaces with Discord OAuth M7 polish; TRADE-DESIGN.md Phase 1 |
 | Admin panel | ✅ | ✅ | 🔮 | Role-gated; defer to v2 |
@@ -199,11 +199,11 @@ Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan resul
 
 | Feature | iOS | Web | Android | Notes |
 |---|---|---|---|---|
-| Universal Links / App Links (HTTPS) | ✅ | n/a | ⏳ M0 | `apple-app-site-association` + `assetlinks.json` coexist at `/.well-known/` |
-| Custom scheme (`bobaplaybook://`) | ✅ | n/a | ⏳ M0 | Intent filter on Android |
-| `card`, `search`, `scan`, `learn` routes | ✅ | ✅ | ⏳ M0 | Same URL shape across all platforms |
-| `/u/{username}` (public collection) | n/a | ✅ | ⏳ M7 | Web renders the page; mobile deep-links to it |
-| OAuth callback handling | ✅ via `routeIncoming` | ✅ | ⏳ M0 | `supabase.handleDeeplinks(intent)` on Android |
+| Universal Links / App Links (HTTPS) | ✅ | n/a | ✅ | Android AndroidManifest intent-filter `autoVerify=true` + assetlinks.json at /.well-known/ |
+| Custom scheme (`bobaplaybook://`) | ✅ | n/a | ✅ | Android intent-filter ships |
+| `card`, `search`, `scan`, `learn` routes | ✅ | ✅ | ✅ | Same URL shape across all platforms |
+| `/u/{username}` (public collection) | n/a | ✅ | ✅ | Web renders the page; mobile deep-links route to it |
+| OAuth callback handling | ✅ via `routeIncoming` | ✅ | ✅ | Android `supabase.handleDeeplinks(intent)` ships in MainActivity |
 
 ---
 

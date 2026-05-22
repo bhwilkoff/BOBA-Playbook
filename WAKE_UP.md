@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 244 (Android)** — "Last refreshed" stamp above Recent BoBA news section (f4de13f). Mirrors the events freshness stamp from tick 219. iOS + web ports queued.
 - **tick 243 (3-platform BUGFIX)** — Blog-feed loaders on iOS / Android / web were all decoding as a bare array but the file is `{posts:[...]}` (938e5f0). All 3 platforms' "Recent BoBA news" sections were silently rendering empty. Caught by Python sanity-check. Fixed by adding bundle wrappers.
 - **tick 242 (iOS)** — boba_inlineGlossary +5 terms (Set Ascension / Modern / Hall of Fame / AlphaTrilogy / Checklist) so they're tappable in Tournament + Collect prose (84792dc). v2.303/565.
 - **tick 241 (Android)** — CollectionCardDetail renders condition + slab pills (PSA 10 / BGS 9.5 / etc.) in orange brand color (74d6119). Closes the user-facing half of tick 239's grading-feature data path.

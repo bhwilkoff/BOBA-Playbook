@@ -4054,6 +4054,78 @@ dialog.modal-overlay[open] {
   align-items: flex-start;
 }
 
+/* Native-app CTA — bottom of Scan view + no-camera fallback. Lives
+   here so it tracks the .scan-* family. Two-up grid on desktop, one
+   per row on phone (the surrounding @media [max-width:760px] sets
+   flex-direction column on .scan-wrap, so the cards naturally stack
+   below the camera). */
+.scan-native-apps {
+  max-width: 720px;
+  margin: 2rem auto 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--boba-surface);
+  border: 1px solid var(--boba-glass-border);
+  border-radius: var(--rad-md);
+}
+.scan-native-apps-label {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  color: var(--boba-text);
+  margin: 0 0 0.3rem;
+}
+.scan-native-apps-sub {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--boba-text-muted);
+  margin: 0 0 1rem;
+}
+.scan-native-apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+.scan-native-app-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(0,245,255,0.3);
+  border-radius: 8px;
+  background: rgba(0,245,255,0.05);
+  color: var(--boba-text);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+}
+.scan-native-app-btn:hover,
+.scan-native-app-btn:focus-visible {
+  background: rgba(0,245,255,0.12);
+  border-color: rgba(0,245,255,0.6);
+  outline: none;
+}
+.scan-native-app-btn:active { transform: translateY(1px); }
+.scan-native-app-btn svg {
+  color: var(--boba-cyan);
+  flex-shrink: 0;
+}
+.scan-native-app-btn-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.scan-native-app-btn-title {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  color: var(--boba-text);
+}
+.scan-native-app-btn-sub {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--boba-text-muted);
+}
+
 .scan-camera-area {
   flex: 1;
   display: flex;

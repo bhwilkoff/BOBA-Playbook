@@ -490,61 +490,6 @@ private struct MiniCardView: View {
 }
 
 // ════════════════════════════════════════════════════════════════
-// MARK: - Mini Play Card View
-// ════════════════════════════════════════════════════════════════
-
-private struct MiniPlayCardView: View {
-    let imageFile: String
-    let name: String
-    let cost: Int
-    var width: CGFloat = 86
-
-    var body: some View {
-        VStack(spacing: 5) {
-            AsyncImage(url: CDN.thumb(for: imageFile)) { phase in
-                switch phase {
-                case .success(let img):
-                    img.resizable().aspectRatio(contentMode: .fill)
-                default:
-                    RoundedRectangle(cornerRadius: 8).fill(Design.Colors.glass)
-                        .overlay(Text(String(name.prefix(2)).uppercased())
-                            .font(Design.Fonts.display(22))
-                            .foregroundStyle(Design.Colors.bobaCyan))
-                }
-            }
-            .frame(width: width, height: width * 7 / 5)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(Design.Colors.bobaCyan.opacity(0.5), lineWidth: 1.5))
-
-            VStack(spacing: 2) {
-                Text(name)
-                    .font(Design.Fonts.mono(10, weight: .bold))
-                    .foregroundStyle(Design.Colors.textPrimary)
-                    .lineLimit(2).minimumScaleFactor(0.7)
-                    .multilineTextAlignment(.center)
-                if cost == 0 {
-                    Text("FREE")
-                        .font(Design.Fonts.mono(10, weight: .bold))
-                        .foregroundStyle(Color(hex: "4CAF50"))
-                } else {
-                    HStack(spacing: 3) {
-                        Text("\(cost)")
-                            .font(Design.Fonts.display(18))
-                            .foregroundStyle(Design.Colors.bobaCyan)
-                        Text("HOT DOGS")
-                            .font(Design.Fonts.mono(7, weight: .bold))
-                            .foregroundStyle(Design.Colors.textMuted)
-                            .fixedSize()
-                    }
-                }
-            }
-        }
-        .frame(width: width)
-    }
-}
-
-// ════════════════════════════════════════════════════════════════
 // MARK: - Rules View
 // ════════════════════════════════════════════════════════════════
 

@@ -529,10 +529,14 @@ private fun TournamentPage() {
             item("blog-head") { BOBASectionHeader(title = "Recent BoBA news") }
             // Tick 244 — surface bundle.lastUpdated as a freshness stamp,
             // matching the events list (tick 219). Daily cron drives this.
+            // Tick 416 — use the relativeOrIsoDate helper (already used by
+            // per-post BlogPostRow) so the stamp reads "Last refreshed
+            // today" / "yesterday" / "Nd ago" instead of the raw ISO
+            // "2026-05-22". iOS parity (LearnView line 2657).
             blogBundle.lastUpdated?.takeIf { it.isNotBlank() }?.let { stamp ->
                 item("blog-stamp") {
                     Text(
-                        text = "Last refreshed $stamp",
+                        text = "Last refreshed ${relativeOrIsoDate(stamp)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 0.dp),

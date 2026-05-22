@@ -2755,9 +2755,23 @@ private struct EventRow: View {
         }
     }
 
+    // Tick 255 — past-event detection (web tick 253 + Android tick 254
+    // parity). Concluded events dim + drop the Open-↗ CTA + suffix
+    // "· PAST" so users scan the list and immediately see what's still
+    // upcoming.
+    private var isPast: Bool {
+        guard let d = event.date?.trimmingCharacters(in: .whitespaces), !d.isEmpty else { return false }
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        guard let eventDate = f.date(from: d) else { return false }
+        return eventDate < Calendar.current.startOfDay(for: Date())
+    }
+
     private var dateLabel: String {
-        (event.date?.trimmingCharacters(in: .whitespaces).isEmpty == false)
-            ? event.date! : "Date TBA"
+        guard let raw = event.date?.trimmingCharacters(in: .whitespaces),
+              !raw.isEmpty else { return "Date TBA" }
+        return isPast ? "\(raw) · PAST" : raw
     }
 
     var body: some View {
@@ -2770,7 +2784,7 @@ private struct EventRow: View {
                 Text(dateLabel)
                     .font(Design.Fonts.mono(12))
                     .foregroundStyle(Design.Colors.textSecondary)
-                if event.url != nil {
+                if event.url != nil && !isPast {
                     Spacer()
                     Text("Open ↗")
                         .font(Design.Fonts.mono(11, weight: .bold))
@@ -2807,8 +2821,9 @@ private struct EventRow: View {
                         .strokeBorder(accent.opacity(0.45), lineWidth: 1)
                 )
         )
+        .opacity(isPast ? 0.55 : 1.0)
 
-        if let urlStr = event.url, let url = URL(string: urlStr) {
+        if !isPast, let urlStr = event.url, let url = URL(string: urlStr) {
             Button { openURL(url) } label: { content }
                 .buttonStyle(.plain)
                 .accessibilityHint("Opens the official event page")

@@ -9,6 +9,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +41,11 @@ fun BOBAEmptyState(
     body: String? = null,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    // Optional secondary text-button rendered beneath the primary
+    // action. Use for "alternative path" CTAs (e.g. "Open Whatnot" when
+    // no breaks load), not for repeating the primary intent.
+    secondaryActionLabel: String? = null,
+    onSecondaryAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -79,6 +85,14 @@ fun BOBAEmptyState(
                 modifier = Modifier.padding(top = 24.dp),
             ) {
                 Text(text = actionLabel)
+            }
+        }
+        if (secondaryActionLabel != null && onSecondaryAction != null) {
+            TextButton(
+                onClick = onSecondaryAction,
+                modifier = Modifier.padding(top = 4.dp),
+            ) {
+                Text(text = secondaryActionLabel)
             }
         }
     }

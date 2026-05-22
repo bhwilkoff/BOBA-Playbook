@@ -86,8 +86,9 @@ import com.google.maps.android.compose.rememberCameraPositionState
  *  - TopAppBar (Purchase) with refresh action
  *  - SingleChoiceSegmentedButtonRow — Upcoming Breaks / Find a Store
  *  - Breaks: live tile list from boba-ebay-proxy/whatnot/upcoming
- *  - Stores: placeholder until Google Maps Compose + indie-store
- *    dataset Worker land in M6 polish
+ *  - Stores: embedded Google Maps + indie-store dataset Worker (M6
+ *    polish landed tick 209-adjacent — Maps SDK + StoresMap composable
+ *    above the store list w/ 500-marker cap and auto-fit camera)
  */
 @Composable
 fun PurchaseScreen(modifier: Modifier = Modifier) {
@@ -140,6 +141,18 @@ fun PurchaseScreen(modifier: Modifier = Modifier) {
                                 body = state.breaksError ?: "Pull to refresh or try again later.",
                                 actionLabel = "Refresh",
                                 onAction = { viewModel.refreshBreaks() },
+                                // Tick 214 — alt path when the Worker is offline or
+                                // genuinely no breaks scheduled. Sends the user to
+                                // Whatnot's BoBA-tagged category page in a Custom Tab.
+                                secondaryActionLabel = "Browse Whatnot",
+                                onSecondaryAction = {
+                                    androidx.browser.customtabs.CustomTabsIntent.Builder()
+                                        .build()
+                                        .launchUrl(
+                                            context,
+                                            android.net.Uri.parse("https://www.whatnot.com/category/trading-cards-and-collectibles?search=Bo+Jackson+Battle+Arena"),
+                                        )
+                                },
                             )
                         }
                         else -> {

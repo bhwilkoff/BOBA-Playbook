@@ -49,6 +49,30 @@ enum CardFormatEligibility {
         ]
     }
 
+    /// Compact abbreviation of the formats where the card is LEGAL —
+    /// used as a per-cell corner overlay (Android tick 464 parity /
+    /// Discord backlog #4 carry-forward). Returns nil when the card is
+    /// legal in all 4 formats (typical 99% case → no badge). CONSTRAINED
+    /// treated as legal (the card is still playable; tier detail lives
+    /// on Card Detail).
+    static func restrictedLegalAbbrev(for card: Card) -> String? {
+        let chips = legalFormats(for: card)
+        if chips.isEmpty { return nil }
+        let abbrev: [String] = chips.compactMap { chip in
+            if chip.status == .illegal { return nil }
+            switch chip.format {
+            case "Spec":      return "S"
+            case "Spec+":     return "S+"
+            case "Brawl":     return "B"
+            case "Checklist": return "C"
+            default:          return nil
+            }
+        }
+        if abbrev.count == 4 { return nil }   // legal everywhere → no badge
+        if abbrev.isEmpty    { return nil }   // legal nowhere → defensive nil
+        return abbrev.joined(separator: " ")
+    }
+
     private static func specLegality(for card: Card) -> FormatLegality {
         let p: Int? = card.isHero ? card.power : nil
         if let p = p, p > 160 {

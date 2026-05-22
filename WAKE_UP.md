@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 227 (iOS — content)** — Understanding-DBS Learn appendix section (b73c143). Closes Android tick 186 / web tick 188 trio. RulesView appendix gains GlossaryAware explainer + 5-row RuleCard + Quick-tip callout (cyan) + April-2026 rebalance callout (orange). v2.300/562.
 - **tick 226 (Android)** — FormatLegalityStrip tooltip migrated to non-deprecated TooltipPositionProvider(TooltipAnchorPosition.Above) API (1907862). Squashed 1 warning.
 - **tick 225 (opt)** — Trim AUTONOMOUS_PROGRESS + SCRATCHPAD backlog of shipped items (Web Wall, Custom Rainbows, Android Whatnot/Maps; Android M6 ✅, M7 split into shipped/pending). Net -12 lines. Backlog now reflects reality (6065b9f).
 - **tick 224 (Android)** — ScanReviewSheet gains 36×50 card thumbnails (c00e8f1). iOS ScanQueueView parity — faster card recognition than text-only rows.

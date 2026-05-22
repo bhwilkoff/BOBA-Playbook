@@ -74,6 +74,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -327,6 +328,13 @@ private fun FindContent(
                 ResultsHeader(
                     count = state.results.size,
                     quickAdd = quickAdd,
+                    // Tick 359 — surface active non-default sort as a suffix
+                    // (web tick 353 + iOS v2.329 parity). Default reads as
+                    // just the count; any other sort appends "· {label}" so
+                    // users see what's ordering results without opening the
+                    // overflow menu.
+                    sortLabel = if (state.sortOrder == SortOrder.DEFAULT) null
+                                else state.sortOrder.label,
                 )
             }
 
@@ -783,15 +791,22 @@ private fun ActiveFiltersRow(state: FindUiState, onEvent: (FindEvent) -> Unit) {
 }
 
 @Composable
-private fun ResultsHeader(count: Int, quickAdd: Boolean) {
+private fun ResultsHeader(count: Int, quickAdd: Boolean, sortLabel: String? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Tick 359 — locale-format the count + suffix active sort
+        // (iOS v2.329 + web tick 353 parity).
+        val countLabel = remember(count, sortLabel) {
+            val n = NumberFormat.getInstance(Locale.US).format(count)
+            if (sortLabel.isNullOrBlank()) "$n cards"
+            else "$n cards · $sortLabel"
+        }
         Text(
-            "$count cards",
+            countLabel,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),

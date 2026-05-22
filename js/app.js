@@ -2513,10 +2513,19 @@
       ? `<div class="card-treatment-ribbon" aria-hidden="true">${escHtml(displayTreatment(card.treatment))}</div>`
       : '';
 
+    // Tick 458 — Print-run badge top-trailing on the image (Android
+    // tick 456 + iOS tick 457 parity / Discord backlog #7 per-cell).
+    // Container query hides this at the 'S' density (≤130px cell).
+    const printRunCell = printRunLabelFor(card);
+    const printRunBadgeHtml = printRunCell
+      ? `<span class="print-run-cell-badge${printRunCell === 'SSP' ? ' print-run-cell-badge--ssp' : ''}" aria-hidden="true">${escHtml(printRunCell)}</span>`
+      : '';
+
     el.innerHTML = `
       <div class="card-img-wrap">
         ${imgHtml}
         ${ribbonHtml}
+        ${printRunBadgeHtml}
       </div>
       <div class="card-info">
         <div class="card-number">${escHtml(card.cardType === 'Sealed Product' ? card.set : card.cardNumber)}</div>

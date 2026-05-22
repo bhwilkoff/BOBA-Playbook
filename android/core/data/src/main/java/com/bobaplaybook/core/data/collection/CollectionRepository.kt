@@ -50,6 +50,16 @@ class CollectionRepository @Inject constructor(
     private val _ownedCards = MutableStateFlow<List<UserCard>>(emptyList())
     val ownedCards: Flow<List<UserCard>> = _ownedCards.asStateFlow()
 
+    /** Flips true after the first refresh() completes (success or
+     *  failure). The Collection UI uses this to distinguish
+     *  "haven't asked Supabase yet" from "asked, got 0 rows" — the
+     *  former should show a spinner, the latter the empty state.
+     *  Without this, the empty-state "No personal cards yet" copy
+     *  flashes momentarily on every Collection-tab open before the
+     *  refresh round-trip completes. */
+    private val _hasRefreshedOnce = MutableStateFlow(false)
+    val hasRefreshedOnce: Flow<Boolean> = _hasRefreshedOnce.asStateFlow()
+
     // Dedicated repo scope — survives ViewModel teardown so background
     // refreshes finish even if the user backs out of Collection.
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -92,6 +102,9 @@ class CollectionRepository @Inject constructor(
         }.onFailure { e ->
             Log.e(TAG, "Failed to fetch user_cards", e)
         }
+        // Always flip — even on failure — so the UI stops spinning and
+        // shows the empty / error state rather than spinning forever.
+        _hasRefreshedOnce.value = true
     }
 
     /**
@@ -106,6 +119,7 @@ class CollectionRepository @Inject constructor(
      */
     suspend fun add(
         cardBobaId: String,
+        cardNumber: String,
         designation: Designation,
         userId: String,
         quantity: Int = 1,
@@ -123,25 +137,30 @@ class CollectionRepository @Inject constructor(
         }
         // Insert a new row — Supabase generates `id` + `acquired_at`.
         runCatching {
-            // Card number lives BEFORE the SECOND hyphen in the bobaId
-            // ("BF-217-Stitcher-…" → "BF-217"). The prior code did
-            // substringBefore('-') which returned just "BF", corrupting
-            // every Android-inserted user_cards row.
-            val cardNumber = extractCardNumberFromBobaId(cardBobaId)
-            val payload = buildMap<String, Any?> {
-                put("user_id", userId)
-                put("card_number", cardNumber)
-                put("boba_id", cardBobaId)
-                put("designation", designation.key)
-                // user_cards table has NO `quantity` column (verified
-                // 2026-05-22 via Supabase MCP). Removed the quantity
-                // payload key — inserts with it threw a PostgREST
-                // "column does not exist" error that runCatching
-                // silently swallowed, so adds never landed in DB.
-                purchasePrice?.let { put("purchase_price", it) }
-                askingPrice?.let   { put("asking_price",   it) }
-                condition?.takeIf { it.isNotBlank() }?.let { put("condition", it) }
-                notes?.takeIf     { it.isNotBlank() }?.let { put("notes",     it) }
+            // CardNumber resolves from the catalog (passed in by the
+            // ViewModel), not by parsing the bobaId. Base-Set
+            // cardNumbers are bare digits ("1", "87"); treatment
+            // cardNumbers have one internal hyphen ("BF-217", "RAD-1").
+            // bobaId is `{cardNumber}-{hero}-{treatment}-{variation}`
+            // — the hero/treatment/variation themselves can contain
+            // dashes, so reverse-parsing the bobaId for cardNumber
+            // is ambiguous. The ViewModel has the Card object in scope
+            // and passes the cardNumber explicitly.
+            val effectiveCardNumber = cardNumber.ifEmpty { cardBobaId.substringBefore('-') }
+            // supabase-kt can't serialize Map<String, Any?> (the prior
+            // `buildMap<String, Any?>` shape) — its KotlinXSerializer
+            // throws "Serializer for class 'Any' is not found". The
+            // canonical insert payload type is JsonObject; supabase-kt
+            // handles those directly.
+            val payload = kotlinx.serialization.json.buildJsonObject {
+                put("user_id", kotlinx.serialization.json.JsonPrimitive(userId))
+                put("card_number", kotlinx.serialization.json.JsonPrimitive(effectiveCardNumber))
+                put("boba_id", kotlinx.serialization.json.JsonPrimitive(cardBobaId))
+                put("designation", kotlinx.serialization.json.JsonPrimitive(designation.key))
+                purchasePrice?.let { put("purchase_price", kotlinx.serialization.json.JsonPrimitive(it)) }
+                askingPrice?.let   { put("asking_price",   kotlinx.serialization.json.JsonPrimitive(it)) }
+                condition?.takeIf { it.isNotBlank() }?.let { put("condition", kotlinx.serialization.json.JsonPrimitive(it)) }
+                notes?.takeIf     { it.isNotBlank() }?.let { put("notes",     kotlinx.serialization.json.JsonPrimitive(it)) }
             }
             Log.i(TAG, "Inserting user_card: bobaId=$cardBobaId cardNumber=$cardNumber userId=$userId designation=${designation.key}")
             supabase.postgrest.from("user_cards").insert(payload)
@@ -150,18 +169,6 @@ class CollectionRepository @Inject constructor(
         }.onFailure { e ->
             Log.e(TAG, "Failed to insert user_card (bobaId=$cardBobaId): ${e.javaClass.simpleName}: ${e.message}", e)
         }
-    }
-
-    /** Extract the leading `card_number` portion from a 4-field bobaId.
-     *  cardNumbers themselves contain a hyphen (TREATMENT-DIGITS shape:
-     *  "BF-217", "RAD-1", "HTD-10"), so the cardNumber ends at the
-     *  SECOND hyphen of the bobaId. Fallback to the whole string if
-     *  the bobaId isn't in the expected shape. */
-    private fun extractCardNumberFromBobaId(bobaId: String): String {
-        val first = bobaId.indexOf('-')
-        if (first < 0) return bobaId
-        val second = bobaId.indexOf('-', first + 1)
-        return if (second < 0) bobaId else bobaId.substring(0, second)
     }
 
     suspend fun remove(userCardId: String) {

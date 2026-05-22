@@ -61,7 +61,8 @@ class CollectionViewModel @Inject constructor(
         collectionRepository.ownedCards,
         cardRepository.cards,
         authManager.authState,
-    ) { owned, catalog, auth ->
+        collectionRepository.hasRefreshedOnce,
+    ) { owned, catalog, auth, hasRefreshedOnce ->
         val catalogByBobaId = catalog.associateBy { it.bobaId }
         // Fallback index: cardNumber → first Card with that number. The
         // user_cards table has BOTH `card_number` (legacy) and `boba_id`
@@ -94,11 +95,18 @@ class CollectionViewModel @Inject constructor(
             joined.filter { it.userCard.designation == d }.toPersistentList()
         }
         val totalValue = joined.sumOf { it.userCard.estimatedValue ?: 0.0 }
+        // isLoading is true until BOTH (a) the catalog Phase-2 load has
+        // populated cards AND (b) the first user_cards refresh has
+        // completed. The Collection screen's empty-state check uses
+        // this to distinguish "haven't loaded yet" from "loaded, no
+        // cards" — preventing the "No personal cards yet" flash
+        // every time the Collection tab opens.
+        val isSignedIn = auth is AuthState.SignedIn
         CollectionUiState(
-            isSignedIn = auth is AuthState.SignedIn,
+            isSignedIn = isSignedIn,
             entriesByDesignation = byDesignation,
             totalValueUsd = totalValue,
-            isLoading = false,
+            isLoading = catalog.isEmpty() || (isSignedIn && !hasRefreshedOnce),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -143,8 +151,17 @@ class CollectionViewModel @Inject constructor(
         viewModelScope.launch {
             val auth = authManager.authState.first()
             val userId = (auth as? AuthState.SignedIn)?.userId ?: return@launch
+            // Resolve cardNumber via bobaId — CLAUDE.md mantra "One ID
+            // per Card; bobaId is the primary key for the card catalog."
+            // Parsing the bobaId for cardNumber is ambiguous because
+            // hero/treatment/variation can contain dashes. Catalog
+            // lookup by exact bobaId is unambiguous.
+            val catalog = cardRepository.cards.value
+            val cardNumber = catalog.firstOrNull { it.bobaId == cardBobaId }?.cardNumber
+                ?: cardBobaId.substringBefore('-')  // logged in repo if the lookup misses
             collectionRepository.add(
                 cardBobaId       = cardBobaId,
+                cardNumber       = cardNumber,
                 designation      = designation,
                 userId           = userId,
                 quantity         = quantity,

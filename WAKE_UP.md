@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 208 (web)** — Inline glossary tap-to-define on Learn article prose (77dde05). Wraps term occurrences in Rules/Strategy/Collecting/Tournament panels w/ dotted-cyan underline. Closes Discord backlog #3: 2 of 3 (Android ✅ tick 186, web ✅ today, iOS still pending).
 - **tick 207 (iOS)** — Format-legality chip strip on card detail (a644ae3). Closes Discord backlog #4 across all 3 platforms (Android tick 179, web tick 203, iOS today). v2.296/558. Hero power gates Spec/Brawl/Spec+; .help() surfaces reason.
 - **tick 206 (Android)** — Provider-specific sign-in method pill (iOS parity, 81aa4b4). ProviderPill: Google #4285F4 · Discord #5865F2 · Apple black · email unmarked-default. Closes PARITY row "Sign-in method pill" ✅ all 3.
 - **tick 205 (opt)** — drop dead mockup assets (6.2 MB / 5 PNGs / 5 HTML templates / 3 unused fragments) + PARITY M7 + scan audit (12 row corrections). Net -810 lines (ab97885).

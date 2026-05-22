@@ -184,6 +184,21 @@ struct CardDetailView: View {
             )
             .scrollEdgeEffectStyle(.soft, for: .top)  // §5.6 reading content
             .background(Design.Colors.nearBlack)
+            // Tick 287 — iPad / hardware-keyboard arrow shortcuts for
+            // prev/next card. Matches the swipe gesture above. Hidden
+            // zero-size Buttons register in the responder chain so the
+            // shortcuts fire even when the action Menu isn't open. Web
+            // already has ArrowLeft/Right keys per PARITY row.
+            .background(
+                Group {
+                    Button { advanceCard(by: 1) } label: { EmptyView() }
+                        .keyboardShortcut(.rightArrow, modifiers: [.command])
+                    Button { advanceCard(by: -1) } label: { EmptyView() }
+                        .keyboardShortcut(.leftArrow, modifiers: [.command])
+                }
+                .frame(width: 0, height: 0)
+                .opacity(0)
+            )
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

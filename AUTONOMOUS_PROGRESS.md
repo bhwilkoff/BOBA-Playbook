@@ -33,7 +33,7 @@ Documented gaps where one platform has shipped but others haven't.
 - [ ] **Value history chart** — not built anywhere (🔮 all 3). DESIGN/ANDROID-DESIGN §8.4 describe the surface.
 - [ ] **Saved Searches** — not built anywhere (🔮 all 3).
 - [ ] **Wanted-list public sharing** (`/u/{handle}/wanted`) — Discord backlog #6 trio; needs per-designation toggle + schema.
-- [ ] **Web sign-in with Google** — currently 🔮 web + iOS; Android shipped.
+- [x] **Web sign-in with Google** — shipped tick 483. Requires Supabase Auth → Google provider enabled in dashboard for the OAuth call to succeed. iOS still uses Apple-first; Android Credential Manager already shipped.
 
 ### P1 — Android v1 deferred polish
 

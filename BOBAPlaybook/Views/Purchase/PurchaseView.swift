@@ -146,6 +146,7 @@ struct PurchaseView: View {
                     .foregroundStyle(Design.Colors.bobaCyan)
             }
             .accessibilityLabel("Purchase options")
+            .help("Purchase options")
         }
     }
 

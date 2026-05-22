@@ -665,7 +665,7 @@ private fun EmptyDeckCTA(modifier: Modifier = Modifier) {
 
 /** Match iOS DecksView.templateAccent — element color per archetype id. */
 @Composable
-private fun templateAccent(templateId: String) = when (templateId) {
+internal fun templateAccent(templateId: String) = when (templateId) {
     "lockdown-locker" -> com.bobaplaybook.core.ui.theme.BobaElements.Steel
     "frozen-tempo"    -> com.bobaplaybook.core.ui.theme.BobaElements.Ice
     "draw-and-adapt"  -> com.bobaplaybook.core.ui.theme.BobaBrand.Cyan

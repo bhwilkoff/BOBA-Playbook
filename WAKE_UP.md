@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 326 (Android, polish)** — TemplateGallerySheet (the gallery shown from Decks pool overflow menu) gains monogram tile + accent colors + load-haptic + TalkBack a11y skip. Now visually consistent with EmptyDeckCTA's template gallery (tick 306) — both surfaces show the same templates with the same affordance. Promoted `templateAccent()` from private → internal so both files share it.
 - **tick 325 (opt, code style)** — Android DecksScreen: replaced 3 `androidx.compose.runtime.LaunchedEffect(...)` FQN call sites with the short `LaunchedEffect(...)` via a top-of-file import. Same code, less visual noise at the call site. Mirrors tick 321's similar cleanup on FindScreen.
 - **tick 324 (Android, new-deck shortcut)** — `n` (no modifier) on Decks surfaces the clear-deck confirm dialog. Closes 3-platform new-deck-shortcut trio (iOS Cmd+N v2.322 / web 'n' tick 323 / Android 'n'). New `clearPressed` SharedFlow on DecksActions singleton; BOBAApp root key handler emits when currentDestination == DECKS; DecksScreen LaunchedEffect collects + flips clearConfirmOpen.
 - **tick 323 (web)** — Single-key `n` clears draft = "new deck" idiom on Decks view. iOS Cmd+N (v2.322) parity through a different key since browsers reserve Ctrl/Cmd+N for new-window. Gated on no-input-focus + view-decks active + no dialog open. Surfaces via tooltip "Clear deck (N)". Routes through existing db-clear-btn click → Snackbar + Undo recovery window.

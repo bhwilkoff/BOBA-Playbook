@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 214 (Android)** — BOBAEmptyState gains secondary-action support; Purchase "No breaks" empty state now offers "Browse Whatnot" Custom Tab as alternative path (9e240fb). Closes dead-end when Worker offline.
 - **tick 213 (web — content)** — Set Ascension section in Learn → Collect (5b89004). Closes the Set Ascension trio (Android 209, iOS 212, web today). 3 variation-card tiers + Alpha Battlefoils bridge callout.
 - **tick 212 (iOS — content)** — Set Ascension section in Learn → Collect (80e0683). Mirrors Android tick 209. 3 tiers w/ era pills + Alpha Battlefoils bridge callout in ICE color. Web port queued. v2.297/559.
 - **tick 211 (Android)** — Discord link-state aware Profile row (33c8652). Renders Discord-avatar + CheckCircle in brand #5865F2 when linked; "Link" button only when not linked. Closes the "Link button always shown even when linked" polish gap.

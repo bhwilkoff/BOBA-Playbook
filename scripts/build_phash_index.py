@@ -21,13 +21,22 @@ The hash format MUST stay in sync with `computeFramePhash` in js/app.js:
 Hex encoding: 16 hex chars, big-endian (so `0x` + the string parses
 into the same BigInt JavaScript computes).
 
-Runtime: ~30 minutes for 16K cards (concurrency-limited HTTP fetches to
-R2). Re-run whenever cards.json grows substantially.
+Runtime: ~15-30 minutes for a full rebuild of 16K cards (concurrency-
+limited HTTP fetches to R2). The default mode is INCREMENTAL — read
+the existing phash-index.txt, skip cards already in it, only fetch
++ hash bobaIds not yet covered. A weekly rerun with no catalog growth
+finishes in <10 seconds. Pass `--full` to force a complete rebuild.
+
+CLI:
+  python3 scripts/build_phash_index.py          # incremental (default)
+  python3 scripts/build_phash_index.py --full   # full rebuild
 
 Deps: pip install pillow requests
 """
 
 from __future__ import annotations
+
+import argparse
 
 import json
 import math
@@ -123,42 +132,105 @@ def fetch_and_hash(boba_id: str, image_file: str, is_sealed: bool) -> tuple[str,
         return (boba_id, None)
 
 
+def load_existing_index() -> dict[str, str]:
+    """Read the prior phash-index.txt into a {bobaId: hex_hash} dict.
+    Returns empty when the file doesn't exist yet (first run)."""
+    if not OUTPUT_FILE.exists():
+        return {}
+    out: dict[str, str] = {}
+    for line in OUTPUT_FILE.read_text().splitlines():
+        t = line.strip()
+        if not t or t.startswith("#"):
+            continue
+        if "|" not in t:
+            continue
+        bid, _, h = t.partition("|")
+        h = h.strip()
+        if len(h) == 16:
+            out[bid] = h
+    return out
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Force full rebuild — re-hash every card, ignoring the existing index. "
+             "Default is incremental: only hash bobaIds not already in phash-index.txt.",
+    )
+    args = parser.parse_args()
+
     print(f"Loading {CARDS_JSON}...", flush=True)
     with open(CARDS_JSON) as f:
         cards = json.load(f)
 
-    eligible = [
+    eligible_all = [
         (c["bobaId"], c["imageFile"], c.get("cardType") == "Sealed Product")
         for c in cards
         if c.get("bobaId") and c.get("imageFile")
     ]
-    print(f"Cards with images: {len(eligible)} / {len(cards)}", flush=True)
+    print(f"Cards with images: {len(eligible_all)} / {len(cards)}", flush=True)
 
-    results: dict[str, str] = {}
+    existing = {} if args.full else load_existing_index()
+    if existing:
+        print(f"Loaded existing index: {len(existing)} hashes (incremental mode)", flush=True)
+    elif args.full:
+        print("Full rebuild — ignoring any existing index", flush=True)
+
+    eligible = [
+        (bid, img, sealed)
+        for (bid, img, sealed) in eligible_all
+        if bid not in existing
+    ]
+    print(f"To hash this run: {len(eligible)}", flush=True)
+
+    # Pre-seed results with the carried-over hashes so the final write
+    # contains the complete set.
+    results: dict[str, str] = dict(existing)
     skipped = 0
     started = time.time()
 
-    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-        futures = {
-            pool.submit(fetch_and_hash, bid, img, sealed): bid
-            for bid, img, sealed in eligible
-        }
-        done = 0
-        for fut in as_completed(futures):
-            bid, h = fut.result()
-            if h is not None:
-                results[bid] = h
-            else:
-                skipped += 1
-            done += 1
-            if done % 200 == 0:
-                rate = done / max(0.001, time.time() - started)
-                eta = (len(eligible) - done) / max(0.001, rate)
-                print(f"  {done}/{len(eligible)}  ok={len(results)}  skip={skipped}  rate={rate:.1f}/s  eta={eta/60:.1f}m", flush=True)
+    new_hashed = 0
+    if eligible:
+        with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+            futures = {
+                pool.submit(fetch_and_hash, bid, img, sealed): bid
+                for bid, img, sealed in eligible
+            }
+            done = 0
+            for fut in as_completed(futures):
+                bid, h = fut.result()
+                if h is not None:
+                    results[bid] = h
+                    new_hashed += 1
+                else:
+                    skipped += 1
+                done += 1
+                if done % 200 == 0:
+                    rate = done / max(0.001, time.time() - started)
+                    eta = (len(eligible) - done) / max(0.001, rate)
+                    print(f"  {done}/{len(eligible)}  new={new_hashed}  skip={skipped}  rate={rate:.1f}/s  eta={eta/60:.1f}m", flush=True)
 
     elapsed = time.time() - started
-    print(f"\nHashed {len(results)} cards in {elapsed/60:.1f} min  (skipped {skipped})", flush=True)
+    print(f"\nHashed {new_hashed} new cards in {elapsed/60:.1f} min  (skipped {skipped}, total in index: {len(results)})", flush=True)
+
+    # Detect and report removed cards — bobaIds that USED to be in the
+    # index but are no longer in cards.json. Pruning them keeps the
+    # index clean as the catalog churns.
+    catalog_ids = {bid for (bid, _, _) in eligible_all}
+    pruned = [bid for bid in list(results.keys()) if bid not in catalog_ids]
+    for bid in pruned:
+        del results[bid]
+    if pruned:
+        print(f"Pruned {len(pruned)} hashes for bobaIds no longer in catalog", flush=True)
+
+    # Short-circuit when nothing changed (incremental run with no new
+    # cards + no pruning) — leave the existing file untouched so the
+    # workflow's `git diff` reports no-op cleanly.
+    if not args.full and new_hashed == 0 and not pruned:
+        print("No new cards, no pruning — index unchanged. Exiting without rewriting file.", flush=True)
+        return
 
     # Sort by bobaId for deterministic output (diff-friendly across reruns).
     lines = [f"{bid}|{results[bid]}" for bid in sorted(results.keys())]

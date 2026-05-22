@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -131,7 +132,7 @@ private fun DeckWallContent(
             Text(
                 "Showing the first ${nf.format(HARD_CAP)} of ${nf.format(cards.size)} cards — capture caps at ${nf.format(HARD_CAP)} for safe bitmap memory.",
                 style = MaterialTheme.typography.bodySmall,
-                color = androidx.compose.ui.graphics.Color(0xFFD9C566),
+                color = Color(0xFFD9C566),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
             )
         }

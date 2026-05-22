@@ -31,7 +31,19 @@ data class Card(
     val name: String,
     val hero: String = "",
     val cardType: String,
-    val element: String,                // UPPERCASE in JSON, mixed-case in UI
+    // Sealed Products (Booster Box, Blaster Box, Case, etc.) have
+    // `element: null` in cards.json — they're not playable cards
+    // with a weapon. Without the empty-string default + the
+    // `coerceInputValues = true` Json config, kotlinx.serialization
+    // would fail the FIRST null-element row and abort the full
+    // catalog decode — leaving the in-memory catalog stuck at the
+    // 506 cards from cards-head.json. That silently dropped EVERY
+    // user_cards row in the Collection JOIN because almost all real
+    // cards live past the head-bundle window. Default-to-"" keeps
+    // every downstream `card.element.uppercase()` / `.lowercase()`
+    // call site working without a sweep; sealed-product call sites
+    // already guard via `card.isSealed`.
+    val element: String = "",           // UPPERCASE in JSON when present, "" for Sealed Products, mixed-case in UI
     val set: String,
     @SerialName("subSet") val subSet: String? = null,
     val treatment: String? = null,

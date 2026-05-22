@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 328 (web, polish)** — Brief 360ms cyan-flash animation on the Surprise pill when the `r` keyboard shortcut fires. Without it, the only visible feedback is the card-detail modal opening — keyboard users couldn't see which affordance fired. Honors prefers-reduced-motion.
 - **tick 327 (iOS v2.323 / 585)** — Added `.help()` tooltips surfacing the Cmd+S and Cmd+N keyboard shortcuts on iPad Decks SAVE pill + "+ New deck" sidebar button. Pointer-hover surfaces the shortcut on iPad with attached keyboard or Mac Catalyst-ish targets; iPhone ignores `.help()` (no pointer). Web-tick-318 tooltip parity for iOS.
 - **tick 326 (Android, polish)** — TemplateGallerySheet (the gallery shown from Decks pool overflow menu) gains monogram tile + accent colors + load-haptic + TalkBack a11y skip. Now visually consistent with EmptyDeckCTA's template gallery (tick 306) — both surfaces show the same templates with the same affordance. Promoted `templateAccent()` from private → internal so both files share it.
 - **tick 325 (opt, code style)** — Android DecksScreen: replaced 3 `androidx.compose.runtime.LaunchedEffect(...)` FQN call sites with the short `LaunchedEffect(...)` via a top-of-file import. Same code, less visual noise at the call site. Mirrors tick 321's similar cleanup on FindScreen.

@@ -820,6 +820,20 @@ main {
 }
 .quick-add-icon { font-size: 0.78rem; }
 
+/* Tick 328 — flash animation on the Surprise pill when the keyboard
+   shortcut fires. Visual cue that the shortcut was the trigger
+   (not the modal opening on its own). Honors reduced-motion. */
+@keyframes surpriseFlash {
+  0%   { background: var(--boba-cyan, #00F5FF); color: var(--boba-near-black); }
+  100% { /* return to default */ }
+}
+.quick-add-pill.surprise-flash {
+  animation: surpriseFlash 0.36s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .quick-add-pill.surprise-flash { animation: none; }
+}
+
 /* Quick-add toast — brief success confirmation pinned to the bottom
    of the viewport. Fade-out handled via .quick-add-toast--fadeout. */
 .quick-add-toast {

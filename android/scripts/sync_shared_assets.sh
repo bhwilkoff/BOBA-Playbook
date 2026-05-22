@@ -35,6 +35,7 @@ SHARED_FILES=(
     "${SRC_DATA}/cards-slim.json     ${DEST_ASSETS}/cards.json"
     "${SRC_DATA}/categories.json     ${DEST_ASSETS}/categories.json"
     "${SRC_DATA}/events.json         ${DEST_ASSETS}/events.json"
+    "${REPO_ROOT}/docs/blog-feed.json ${DEST_ASSETS}/blog-feed.json"
 )
 
 # Fonts — copy AND rename to Android's required snake_case naming.

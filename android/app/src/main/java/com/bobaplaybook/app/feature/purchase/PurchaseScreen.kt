@@ -5,6 +5,7 @@ package com.bobaplaybook.app.feature.purchase
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -102,6 +103,21 @@ fun PurchaseScreen(modifier: Modifier = Modifier) {
     var section by rememberSaveable { mutableStateOf(PurchaseSection.BREAKS) }
     val context = LocalContext.current
 
+    // Auto-retry when BREAKS section is empty + not currently loading.
+    // Fixes "stuck loading" bug where the initial refresh in
+    // PurchaseViewModel.init {} could hang silently and the user had
+    // to navigate away + back to retrigger. Now the screen itself
+    // recovers without manual intervention. Keyed on section so the
+    // retry doesn't re-fire on every recomposition.
+    androidx.compose.runtime.LaunchedEffect(section) {
+        if (section == PurchaseSection.BREAKS
+            && state.upcomingBreaks.isEmpty()
+            && !state.isLoadingBreaks
+        ) {
+            viewModel.refreshBreaks()
+        }
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -168,15 +184,15 @@ fun PurchaseScreen(modifier: Modifier = Modifier) {
                                 onRefresh = { viewModel.refreshBreaks() },
                                 modifier = Modifier.fillMaxSize(),
                             ) {
-                                // Tick 509 — adaptive grid (iOS UpcomingBreaksList
-                                // parity, ANDROID-DESIGN.md §6.6). Adaptive 320dp
-                                // min: phones (~390dp) render 1 col; tablet
-                                // landscape (~840dp) renders 2; Chromebook
-                                // (1200dp+) renders 3. Previously LazyColumn
-                                // with full-width tiles which wasted screen
-                                // real estate on wider devices.
+                                // Tick — 2-col fixed grid w/ 5:7 portrait thumbs
+                                // (iOS UpcomingBreaksList parity). The prior
+                                // adaptive(minSize=320) gave 1-col on phone with
+                                // horizontal-cropped wide thumbs — not the iOS
+                                // vertical-rectangle look the user wanted. Two
+                                // cols on phone is the canonical Whatnot card
+                                // density.
                                 LazyVerticalGrid(
-                                    columns = GridCells.Adaptive(minSize = 320.dp),
+                                    columns = GridCells.Fixed(2),
                                     modifier = Modifier.fillMaxSize(),
                                     contentPadding = PaddingValues(16.dp),
                                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -271,162 +287,138 @@ private fun WhatnotTile(
     show: WhatnotShow,
     onClick: () -> Unit,
 ) {
+    // iOS-parity card layout (UpcomingBreaksList.swift::showCard):
+    //   [ 5:7 portrait thumb w/ LIVE pill overlay ]
+    //   [ footer:                                 ]
+    //   [   @host                       time      ]
+    //   [   title (2 lines max)                   ]
+    //   [   CATEGORY · viewers watching           ]
+    // Single column on the card; the grid is 2-col fixed so two
+    // portrait tiles sit side-by-side per row.
     Card(
         onClick = onClick,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
+        shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column {
-            // Hero thumb (when present) — LIVE pill overlays the top-left
-            // corner when the show is currently broadcasting. Mirrors
-            // the YouTube Watch tab live treatment.
-            show.thumbnailUrl?.let { url ->
-                Box {
+            // 5:7 PORTRAIT THUMB. fillMaxWidth + aspectRatio(5f/7f)
+            // gives a tall card-shaped thumbnail (matching iOS's
+            // 5×7 ratio for trading-card UI density). Previously
+            // a hard-coded 160dp horizontal crop.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(5f / 7f)
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            ) {
+                show.thumbnailUrl?.takeIf { it.isNotBlank() }?.let { url ->
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current).data(url).crossfade(150).build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(160.dp)
-                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                        modifier = Modifier.fillMaxSize(),
                     )
-                    if (show.isLive) {
-                        // Tick 514 — BRAWL red (#C0392B) + white-dot prefix
-                        // to match iOS UpcomingBreaksList.swift:118-131.
-                        // Brand orange #FF4D00 was wrong: DESIGN.md §11.2
-                        // reserves orange for primary CTAs / FIRE element;
-                        // "LIVE" is universally red (YouTube / Twitch).
-                        Surface(
-                            color = Color(0xFFC0392B),
-                            shape = RoundedCornerShape(4.dp),
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .padding(8.dp),
+                }
+                if (show.isLive) {
+                    // BRAWL red (#C0392B) + white-dot prefix matching
+                    // iOS UpcomingBreaksList.swift:118-131.
+                    Surface(
+                        color = Color(0xFFC0392B),
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(androidx.compose.ui.graphics.Color.White),
-                                )
-                                Text(
-                                    "LIVE",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = androidx.compose.ui.graphics.Color.White,
-                                )
-                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(androidx.compose.ui.graphics.Color.White),
+                            )
+                            Text(
+                                "LIVE",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = androidx.compose.ui.graphics.Color.White,
+                            )
                         }
                     }
                 }
             }
-            Row(
+            // FOOTER — host + time, then title, then category + viewers.
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                // Tick 519 — drop the dead Person fallback icon. iOS
-                // UpcomingBreaksList doesn't render any host avatar at
-                // all (just @host text in the footer); the Worker
-                // (worker.js:2040-2059) doesn't expose `hostAvatarUrl`
-                // today, so the fallback was always-on visual clutter
-                // showing the same generic Person silhouette on every
-                // tile. Kept the `if (show.hostAvatarUrl != null)`
-                // branch so a future Worker change can render real
-                // avatars without re-wiring.
-                if (show.hostAvatarUrl != null) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current).data(show.hostAvatarUrl).crossfade(150).build(),
-                        contentDescription = show.host,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(40.dp).clip(CircleShape),
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = show.title.ifBlank { "Whatnot show" },
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 2,
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        if (show.host.isNotBlank()) {
-                            Text(
-                                text = "@${show.host}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        if (show.categoryName.isNotBlank()) {
-                            // Tick 516 — iOS UpcomingBreaksList.swift:161-164
-                            // parity. Worker exposes categoryName at
-                            // worker.js:2052; Android just wasn't reading
-                            // the field. Uppercase + labelSmall + muted
-                            // matches the iOS visual treatment.
-                            Text(
-                                text = show.categoryName.uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        if (show.viewerCount > 0) {
-                            Icon(
-                                Icons.Default.Visibility,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Text(
-                                // Tick 406 — locale-format the viewer count
-                                // so 1,234 doesn't render as "1234". Same
-                                // NumberFormat / Locale.US pattern Find uses
-                                // (tick 359). Streams routinely run into 4-digit
-                                // viewer counts so the thousands separator helps.
-                                text = java.text.NumberFormat.getInstance(java.util.Locale.US)
-                                    .format(show.viewerCount),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (show.host.isNotBlank()) {
+                        Text(
+                            text = "@${show.host}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
                     }
-                    // Stream-time label — iOS UpcomingBreaksList.localTimeText
-                    // parity. "Live now" / "Today 7:00 PM" / "Tomorrow 7:00 PM" /
-                    // "Fri 7:00 PM". Renders in the user's local timezone so
-                    // coaches outside PT see the right clock time.
-                    val scheduledAtMs = show.scheduledAt
                     val timeLabel = when {
-                        show.isLive -> "Live now"
-                        scheduledAtMs != null -> formatStreamTime(scheduledAtMs)
+                        show.isLive -> null  // LIVE pill on thumb covers this
+                        show.scheduledAt != null -> formatStreamTime(show.scheduledAt!!)
                         else -> null
                     }
                     if (timeLabel != null) {
                         Text(
                             text = timeLabel,
                             style = MaterialTheme.typography.labelMedium,
-                            // Tick 521 — BRAWL red on "Live now" text
-                            // (iOS UpcomingBreaksList.swift:214 parity;
-                            // tick 514 LIVE pill cleanup).
-                            color = if (show.isLive) Color(0xFFC0392B)
-                                    else MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
                         )
                     }
                 }
-                Icon(
-                    Icons.AutoMirrored.Filled.OpenInNew,
-                    contentDescription = "Open on Whatnot",
-                    tint = MaterialTheme.colorScheme.primary,
+                Text(
+                    text = show.title.ifBlank { "Whatnot show" },
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
+                if (show.categoryName.isNotBlank() || show.viewerCount > 0) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (show.categoryName.isNotBlank()) {
+                            Text(
+                                text = show.categoryName.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        }
+                        if (show.viewerCount > 0) {
+                            val verb = if (show.isLive) "watching" else "interested"
+                            Text(
+                                text = "${java.text.NumberFormat.getInstance(java.util.Locale.US).format(show.viewerCount)} $verb",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

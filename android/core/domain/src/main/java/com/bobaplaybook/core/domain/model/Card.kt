@@ -69,7 +69,7 @@ data class Card(
     val persistent: List<PersistentEffectSpec> = emptyList(),
     val abilityText: String? = null,
     val bonusText: String? = null,
-    val bobaIdField: String? = null,     // when present in JSON, prefer this over computed
+    @SerialName("bobaId") val bobaIdField: String? = null,     // when present in JSON, prefer this over computed
 
     // Play subtype flags. iOS Card.swift lines 31-32. Used by
     // CardFormatEligibility to surface "Bonus Play" / "HTD Play" badges

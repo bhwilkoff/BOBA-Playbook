@@ -87,7 +87,32 @@ private data class StoreRow(
         val a = address ?: return null
         val l = location ?: return null
         val nameLower = (name ?: "").lowercase()
-        val bigBoxMarkers = listOf("dick's", "target", "walmart", "best buy", "barnes & noble")
+        // Canonical big-box keyword list — mirrored from
+        // BOBAPlaybook/Models/StoreLocation.swift::bigBoxKeywords +
+        // js/store-locator.js BIG_BOX_KEYWORDS. The previous 5-entry
+        // list missed most national chains, so the "Indie Only" toggle
+        // was effectively a no-op (the filter passed ~99% of stores
+        // through as "indie" because Hobby Lobby / GameStop / Costco /
+        // etc. never matched). Keep this list in lockstep with iOS +
+        // web so all three platforms classify identically.
+        val bigBoxMarkers = listOf(
+            "dick's sporting", "dicks sporting", "dsg ", "dsg house of sport",
+            "dick's house of sport", "dick's sporting goods combo store",
+            "target",
+            "walmart", "wal-mart",
+            "costco",
+            "meijer",
+            "fred meyer",
+            "scheels",
+            "academy sports",
+            "gamestop",
+            "five below",
+            "best buy",
+            "barnes & noble", "barnes and noble",
+            "books-a-million", "books a million",
+            "hobby lobby",
+            "kohl's", "kohls",
+        )
         val isIndie = bigBoxMarkers.none { nameLower.contains(it) }
         return StoreLocation(
             id = id ?: 0,

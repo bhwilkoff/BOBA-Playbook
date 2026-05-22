@@ -63,10 +63,32 @@ class CollectionViewModel @Inject constructor(
         authManager.authState,
     ) { owned, catalog, auth ->
         val catalogByBobaId = catalog.associateBy { it.bobaId }
+        // Fallback index: cardNumber → first Card with that number. The
+        // user_cards table has BOTH `card_number` (legacy) and `boba_id`
+        // (newer). Rows added before the bobaId migration may have
+        // `boba_id = null`, in which case toDomain() falls back to
+        // cardNumber as the join key. Lookup-by-bobaId would miss
+        // those; lookup-by-cardNumber recovers them. iOS does the
+        // same dual-key lookup (CollectionView.swift). Without this
+        // fallback, legacy rows silently disappear from the Collection
+        // tab — which is the "no cards pulling in" bug.
+        val catalogByCardNumber = catalog.groupBy { it.cardNumber }
+            .mapValues { (_, cards) -> cards.first() }
         val joined = owned.mapNotNull { uc ->
-            catalogByBobaId[uc.cardBobaId]?.let { card ->
-                CollectionEntry(card = card, userCard = uc)
-            }
+            val card = catalogByBobaId[uc.cardBobaId]
+                ?: catalogByCardNumber[uc.cardBobaId]
+            card?.let { CollectionEntry(card = it, userCard = uc) }
+        }
+        if (owned.isNotEmpty() && joined.size < owned.size) {
+            android.util.Log.w(
+                "CollectionViewModel",
+                "Dropped ${owned.size - joined.size}/${owned.size} owned rows in catalog join " +
+                "(catalog has ${catalog.size} cards). Sample missing keys: " +
+                owned.mapNotNull { uc ->
+                    if (catalogByBobaId[uc.cardBobaId] == null &&
+                        catalogByCardNumber[uc.cardBobaId] == null) uc.cardBobaId else null
+                }.take(5).joinToString(),
+            )
         }
         val byDesignation = Designation.entries.associateWith { d ->
             joined.filter { it.userCard.designation == d }.toPersistentList()

@@ -236,9 +236,25 @@ private fun FindContent(
                                 // card from the FindUiState results
                                 // (which mirrors the full catalog when no
                                 // search is active).
-                                state.results.randomOrNull()?.let {
-                                    onCardClick(it.bobaId)
+                                // Tick 266 — bias toward higher-rarity
+                                // pulls (Inspired Ink / Superfoil) so
+                                // Surprise Me actually surfaces something
+                                // notable instead of yet another Base
+                                // Battlefoil. ~30% of picks weight toward
+                                // rare treatments when they exist in the
+                                // current filter scope.
+                                val pool = state.results
+                                if (pool.isEmpty()) return@FindOverflowMenu
+                                val pick = if (kotlin.random.Random.nextDouble() < 0.30) {
+                                    val rares = pool.filter { card ->
+                                        val t = (card.treatment ?: "").lowercase()
+                                        card.isInspiredInk || t.contains("superfoil") || t.contains("kanji")
+                                    }
+                                    rares.randomOrNull() ?: pool.random()
+                                } else {
+                                    pool.random()
                                 }
+                                onCardClick(pick.bobaId)
                             },
                         )
                     }

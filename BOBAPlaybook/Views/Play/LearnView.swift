@@ -2759,20 +2759,30 @@ private struct UpcomingEventsSection: View {
     private var events: [LearnEvent] { bundle.events }
 
     var body: some View {
-        if events.isEmpty { EmptyView() } else {
-            VStack(alignment: .leading, spacing: Design.Spacing.sm) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("UPCOMING EVENTS")
-                        .font(Design.Fonts.mono(12, weight: .bold))
-                        .foregroundStyle(Design.Colors.textMuted).tracking(1.5)
-                    // Tick 252 — Last-refreshed stamp inline w/ section
-                    // header (Android tick 219 + web tick 218 parity).
-                    if let stamp = bundle.lastUpdated, !stamp.isEmpty {
-                        Text("· refreshed \(learnBlogRelativeDate(stamp))")
-                            .font(Design.Fonts.mono(10))
-                            .foregroundStyle(Design.Colors.textMuted)
-                    }
+        // Tick 417 — Android parity: render the section header even when
+        // events list is empty, plus a "no events scheduled yet" hint.
+        // iOS previously returned EmptyView which silently hid the whole
+        // section, leaving Tournament-tab users with no signal that
+        // upcoming events ARE tracked here.
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("UPCOMING EVENTS")
+                    .font(Design.Fonts.mono(12, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+                // Tick 252 — Last-refreshed stamp inline w/ section
+                // header (Android tick 219 + web tick 218 parity).
+                if let stamp = bundle.lastUpdated, !stamp.isEmpty {
+                    Text("· refreshed \(learnBlogRelativeDate(stamp))")
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.textMuted)
                 }
+            }
+            if events.isEmpty {
+                Text("No events scheduled yet. Check back as the BoBA team announces dates.")
+                    .font(Design.Fonts.mono(13))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
                 VStack(spacing: Design.Spacing.sm) {
                     ForEach(events) { ev in EventRow(event: ev) }
                 }

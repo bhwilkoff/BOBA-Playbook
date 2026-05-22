@@ -414,7 +414,10 @@ private fun WhatnotTile(
                         Text(
                             text = timeLabel,
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (show.isLive) Color(0xFFFF4D00)
+                            // Tick 521 — BRAWL red on "Live now" text
+                            // (iOS UpcomingBreaksList.swift:214 parity;
+                            // tick 514 LIVE pill cleanup).
+                            color = if (show.isLive) Color(0xFFC0392B)
                                     else MaterialTheme.colorScheme.primary,
                         )
                     }

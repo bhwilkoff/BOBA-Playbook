@@ -281,8 +281,13 @@ private fun VideoRow(
                     video.streamTimeLabel?.let { label ->
                         Text(
                             label,
+                            // Tick 521 — BRAWL red (#C0392B) on the
+                            // live-indicator text (same as the LIVE pill
+                            // at tick 514). iOS WatchView.swift:298 uses
+                            // the same. DESIGN.md §11.2 — element red,
+                            // not brand orange.
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (video.isLiveNow) Color(0xFFFF4D00)
+                            color = if (video.isLiveNow) Color(0xFFC0392B)
                                     else MaterialTheme.colorScheme.primary,
                             maxLines = 1,
                         )

@@ -11485,7 +11485,10 @@ body.db-rules-open { overflow: hidden; }
   color: var(--boba-cyan);
   margin-top: -2px;
 }
-.watch-card-streamtime-live { color: #ff5544; }
+/* Tick 521 — BRAWL red #C0392B (iOS WatchView.swift:298 + Android
+   tick 521 parity). Web shipped #ff5544 (salmon) which drifted from
+   the canonical element color. */
+.watch-card-streamtime-live { color: #C0392B; }
 .watch-card-streamtime-icon { font-size: 0.9rem; }
 
 /* Update grid class names for new tabs. */

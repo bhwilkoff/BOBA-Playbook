@@ -247,23 +247,14 @@ Final stack in production: Android Studio Panda 4 / AGP 9.2.0 / Kotlin 2.3.21 / 
 - Admin gate via `user_profiles.role` lookup (mirrors iOS DECISIONS.md #033)
 - Practice content stays admin-only at production; admins (Ben + close beta) test on Android device + Chromebook
 
-### ⏳ Android M6 — Purchase
-- `SingleChoiceSegmentedButtonRow` ("Upcoming Breaks" | "Find a Store")
-- Whatnot tile list via `boba-ebay-proxy /whatnot/upcoming`
-- Google Maps Compose for Find a Store with `ModalBottomSheet` store list
-- Tablet: segmented button splits into `NavigableListDetailPaneScaffold`
+### ✅ Android M6 — Purchase (shipped tick 202 + onward)
+- Whatnot tile list + Google Maps Compose Find a Store + segmented picker all shipped. Tablet split-pane is the remaining nice-to-have.
 
-### ⏳ Android M7 — Profile + Auth + deep-link dispatcher
-- Credential Manager (Sign in with Google primary + passkey support)
-- Discord OAuth via Auth Tab (Chrome 132+) / Custom Tabs fallback
-- Email/password fallback
-- Tink-encrypted DataStore for token storage
-- BiometricPrompt gate for sensitive Profile actions
-- Avatar upload via `boba-avatar-upload` Worker
-- Account deletion via `boba-account-delete` Worker
-- Universal Links / deep-link dispatch
-- `assetlinks.json` SHA-256 fingerprints (upload key + Play App Signing key) deployed to `bobaplaybook.com/.well-known/`
-- Public collection deep-link receiver (`/u/{username}`)
+### ⏳ Android M7 — Profile + Auth (mostly shipped, polish remaining)
+- ✅ Credential Manager Sign in with Google · Email/password · Avatar upload · Account deletion · Universal Links / assetlinks · Public collection deep-link · Sign-in method pill · Discord-link state row
+- ⏳ Discord OAuth via Auth Tab / Custom Tabs (stubbed; Google works)
+- ⏳ Tink-encrypted DataStore for token storage (supabase-kt default today)
+- ⏳ BiometricPrompt gate for sensitive Profile actions
 
 ### ⏳ Android M8 — Internal testing + Play Store closed track
 - Play Console setup (Internal testing track)

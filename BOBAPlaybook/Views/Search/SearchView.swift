@@ -173,15 +173,24 @@ struct SearchView: View {
     /// (same bobaId already owned) are allowed — coaches often add
     /// multiple copies of the same hero from a pull.
     private func quickAddCard(_ card: Card) async {
+        await quickAddCard(card, designation: .personal)
+    }
+
+    // Tick 262 — designation-aware quick-add. The bare version routes
+    // to Personal (existing behavior); the contextMenu's "Mark as
+    // Wanted" passes .wanted to skip the full Add sheet.
+    private func quickAddCard(_ card: Card, designation: Designation) async {
         do {
             let entry = NewUserCard(
                 cardNumber: card.cardNumber,
                 bobaId: card.id,
-                designation: .personal
+                designation: designation
             )
             try await collection.addCard(entry)
             withAnimation(.easeOut(duration: 0.25)) {
-                quickAddToast = "Added \(card.name)"
+                let label = designation == .wanted ? "wanted" :
+                            designation == .grail ? "grail" : "your collection"
+                quickAddToast = "Added \(card.name) to \(label)"
             }
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(1.5))
@@ -468,6 +477,36 @@ struct SearchView: View {
                                 Task { await quickAddCard(card) }
                             } else {
                                 store.findNavigationPath.append(CardRoute(card: card))
+                            }
+                        }
+                        // Tick 262 — long-press contextMenu (iOS-native).
+                        // Skips the full Add-to-Collection sheet for the
+                        // common "Mark as Wanted" / "Quick Add" cases.
+                        // Auth check inside each branch so signed-out
+                        // users see the menu but only get a toast.
+                        .contextMenu {
+                            if auth.isSignedIn {
+                                Button {
+                                    Task { await quickAddCard(card, designation: .personal) }
+                                } label: {
+                                    Label("Add to Personal", systemImage: "plus.circle")
+                                }
+                                Button {
+                                    Task { await quickAddCard(card, designation: .wanted) }
+                                } label: {
+                                    Label("Mark as Wanted", systemImage: "star")
+                                }
+                            } else {
+                                Button {
+                                    quickAddError = "Sign in to add cards to your collection."
+                                } label: {
+                                    Label("Sign in to add", systemImage: "person.crop.circle.badge.plus")
+                                }
+                            }
+                            Button {
+                                store.findNavigationPath.append(CardRoute(card: card))
+                            } label: {
+                                Label("View card", systemImage: "magnifyingglass")
                             }
                         }
                         // Anchor ONLY the first cell — PreferenceKey

@@ -1537,6 +1537,10 @@ private struct TemplateCard: View {
             onSelect()
         }) {
             HStack(spacing: Design.Spacing.md) {
+                // Tick 317 — monogram tile is a decorative repeat of
+                // template.name's first letter (Android tick 316 a11y
+                // parity). .accessibilityHidden(true) keeps VoiceOver
+                // from reading "L" before the row's actual name+desc.
                 RoundedRectangle(cornerRadius: 4)
                     .fill(accentColor.opacity(0.25))
                     .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(accentColor.opacity(0.5), lineWidth: 1.5))
@@ -1544,6 +1548,7 @@ private struct TemplateCard: View {
                     .overlay(Text(String(template.name.prefix(1)))
                         .font(Design.Fonts.display(28))
                         .foregroundStyle(accentColor))
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(template.name)

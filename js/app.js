@@ -2911,31 +2911,12 @@
     modalContent.querySelector('[data-action="add-to-collection"]')
       ?.addEventListener('click', () => Collection.openAddSheet(card));
 
-    // Tick 478 — Wire "Add to Deck" button (iOS + Android parity per
-    // tick 474 / CardDetailView L242-247). Reuses the existing
-    // openDeckPicker popover-anchored handler from bulk multi-select
-    // by injecting a single-card cards array via a temporary closure.
+    // Wire "Add to Deck" — reuses the shared promptDeckPickerForCards
+    // helper (tick 485 extraction) with a single-card array and a
+    // card-named title.
     modalContent.querySelector('[data-action="add-to-deck"]')
-      ?.addEventListener('click', async (e) => {
-        if (!Auth.isAuthenticated()) { Auth.open(); return; }
-        let decks;
-        try { decks = await API.deckList(); } catch (err) {
-          showToast('Could not load your decks. ' + (err?.message || ''));
-          return;
-        }
-        if (!decks.length) {
-          showToast('No saved decks yet. Build one in the Decks tab first.');
-          return;
-        }
-        showPopoverMenu({
-          anchor: e.currentTarget,
-          title: `Add ${card.name} to deck…`,
-          items: decks.map(d => ({
-            label:    d.name,
-            sublabel: d.format,
-            onSelect: () => bulkAddToDeck([card], d),
-          })),
-        });
+      ?.addEventListener('click', (e) => {
+        promptDeckPickerForCards([card], e.currentTarget, `Add ${card.name} to deck…`);
       });
 
     // Wire "Share" button — routes through the canonical
@@ -4260,14 +4241,13 @@
     // can hit Clear when done.
   }
 
-  async function openDeckPicker(e) {
-    if (!Auth.isAuthenticated()) {
-      Auth.open();
-      return;
-    }
-    const cards = getSelectedCardObjects();
+  /// Tick 485 — Shared deck-picker popover used by both multi-select
+  /// bulk-add (openDeckPicker) and Card Detail modal "Add to Deck"
+  /// (tick 478). Handles auth gate, decks fetch, empty-state toast,
+  /// and the popover render with title override.
+  async function promptDeckPickerForCards(cards, anchor, titleOverride) {
+    if (!Auth.isAuthenticated()) { Auth.open(); return; }
     if (!cards.length) return;
-    const anchor = e.currentTarget;
     let decks;
     try { decks = await API.deckList(); } catch (err) {
       showToast('Could not load your decks. ' + (err?.message || ''));
@@ -4277,15 +4257,21 @@
       showToast('No saved decks yet. Build one in the Decks tab first.');
       return;
     }
+    const title = titleOverride
+      || `Add ${cards.length} card${cards.length===1?'':'s'} to deck…`;
     showPopoverMenu({
       anchor,
-      title: `Add ${cards.length} card${cards.length===1?'':'s'} to deck…`,
+      title,
       items: decks.map(d => ({
         label:    d.name,
         sublabel: d.format,
         onSelect: () => bulkAddToDeck(cards, d),
       })),
     });
+  }
+
+  function openDeckPicker(e) {
+    return promptDeckPickerForCards(getSelectedCardObjects(), e.currentTarget);
   }
   async function bulkAddToDeck(cards, deck) {
     let existing;

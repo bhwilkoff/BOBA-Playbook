@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 246 (Android)** — Recent BoBA news rows render relative-format dates ("today" / "3d ago" / "2w ago" / raw ISO for >5wk) (3c4d95b). iOS port queued.
 - **tick 245 (opt)** — Drop unused "Audit-driven items" backlog placeholder (5d0d4ac). Net -4 lines.
 - **tick 244 (Android)** — "Last refreshed" stamp above Recent BoBA news section (f4de13f). Mirrors the events freshness stamp from tick 219. iOS + web ports queued.
 - **tick 243 (3-platform BUGFIX)** — Blog-feed loaders on iOS / Android / web were all decoding as a bare array but the file is `{posts:[...]}` (938e5f0). All 3 platforms' "Recent BoBA news" sections were silently rendering empty. Caught by Python sanity-check. Fixed by adding bundle wrappers.

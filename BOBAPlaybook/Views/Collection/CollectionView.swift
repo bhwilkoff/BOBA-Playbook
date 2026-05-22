@@ -789,7 +789,11 @@ struct CollectionView: View {
                     .font(Design.Fonts.mono(9, weight: .bold))
                     .foregroundStyle(Design.Colors.textMuted)
                     .tracking(1.5)
-                Text("\(count)")
+                // Tick 412 — locale-format the cards-owned count. Serious
+                // collectors hit 1,000+ cards; "1,234" reads cleaner than
+                // "1234" at the arena(28) display size. Same pattern as
+                // the Find results-count tick 357.
+                Text(count.formatted())
                     .font(Design.Fonts.arena(28))
                     .foregroundStyle(Design.Colors.textPrimary)
             }

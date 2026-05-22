@@ -291,11 +291,10 @@ private fun DecksCompactScreen(
                                 leadingIcon = { Icon(Icons.Default.Verified, contentDescription = null) },
                                 onClick = { menuOpen = false; onOpenLegality() },
                             )
-                            DropdownMenuItem(
-                                text = { Text("Scan into deck") },
-                                leadingIcon = { Icon(Icons.Default.QrCodeScanner, contentDescription = null) },
-                                onClick = { menuOpen = false /* opens scan modal via parent */ },
-                            )
+                            // (Tick 391 — dropped duplicate "Scan into deck"
+                            // overflow item that was a no-op stub. The top-bar
+                            // Scan icon at line 229 is the canonical entry
+                            // point — same one-way-in pattern as the editor.)
                             androidx.compose.material3.HorizontalDivider()
                             // Grid density picker — iOS DesksView parity.
                             // Sub-menu would clutter; render the 3 options

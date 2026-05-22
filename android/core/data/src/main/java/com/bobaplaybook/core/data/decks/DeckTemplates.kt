@@ -27,11 +27,33 @@ data class DeckTemplate(
     val bonusPlayIds: List<String>,
     val hotDogIds: List<String>,
 ) {
-    /** Expand the template's bobaId arrays into Cards via the live catalog. */
+    /** Expand the template's bobaId arrays into Cards via the live
+     *  catalog. Dual-key lookup: by full bobaId first, then by trailing
+     *  cardNumber if no match. The cardNumber fallback recovers cases
+     *  where a template's stored bobaId encoding differs subtly from
+     *  the catalog's runtime bobaId (curly apostrophes, accents,
+     *  whitespace) — silent drops here were the "templates load with
+     *  wrong cards" symptom the user reported. */
     fun expand(catalog: List<Card>): List<Card> {
         val byBobaId = catalog.associateBy { it.bobaId }
+        val byCardNumber = catalog.groupBy { it.cardNumber }.mapValues { it.value.first() }
         val all = heroIds + playIds + bonusPlayIds + hotDogIds
-        return all.mapNotNull { byBobaId[it] }
+        return all.mapNotNull { templateId ->
+            byBobaId[templateId] ?: run {
+                // Fallback: extract the leading cardNumber from the
+                // bobaId ("IBF-267-Gaveler-Icon Battlefoil-2026 Edition"
+                // → "IBF-267"). cardNumbers themselves contain a hyphen
+                // (TREATMENT-DIGITS shape), so find the SECOND hyphen
+                // and split there.
+                val secondHyphen = templateId.indexOf('-').let { first ->
+                    if (first < 0) -1 else templateId.indexOf('-', first + 1)
+                }
+                val cardNumber = if (secondHyphen > 0)
+                    templateId.substring(0, secondHyphen)
+                else templateId
+                byCardNumber[cardNumber]
+            }
+        }
     }
 }
 

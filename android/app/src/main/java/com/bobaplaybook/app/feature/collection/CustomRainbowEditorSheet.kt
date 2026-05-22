@@ -126,7 +126,16 @@ fun CustomRainbowEditorSheet(
 
             HorizontalDivider()
             BOBASectionHeader(title = "Heroes (any of)")
-            ChipsPicker(options = heroOptions, selected = heroes, onToggle = { heroes = heroes.toggle(it) })
+            // Searchable picker — 200+ heroes would be unusable as a
+            // flat FilterChip FlowRow. Mirrors iOS RainbowEditorView
+            // (search field on top; selected chips shown above the
+            // filtered un-selected list).
+            SearchableChipsPicker(
+                options = heroOptions,
+                selected = heroes,
+                onToggle = { heroes = heroes.toggle(it) },
+                placeholder = "Search heroes…",
+            )
 
             HorizontalDivider()
             BOBASectionHeader(title = "Treatments (any of)")
@@ -222,6 +231,77 @@ private fun ChipsPicker(
                 onClick = { onToggle(opt) },
                 label = { Text(opt) },
             )
+        }
+    }
+}
+
+/** Searchable variant — for high-cardinality dimensions like heroes
+ *  (200+ entries) where a flat FlowRow is unusable. Always shows
+ *  selected chips at the top so the user sees the current choice;
+ *  below: un-selected options filtered by the search query. Cap at
+ *  ~60 visible to keep the sheet scrolling smooth. */
+@Composable
+private fun SearchableChipsPicker(
+    options: List<String>,
+    selected: Set<String>,
+    onToggle: (String) -> Unit,
+    placeholder: String = "Search…",
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val q = query.trim().lowercase()
+    val unselectedFiltered = remember(options, selected, q) {
+        val pool = options.filter { it !in selected }
+        if (q.isEmpty()) pool.take(60)
+        else pool.filter { it.lowercase().contains(q) }.take(60)
+    }
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        androidx.compose.material3.OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            placeholder = { Text(placeholder) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (selected.isNotEmpty()) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                selected.forEach { opt ->
+                    FilterChip(
+                        selected = true,
+                        onClick = { onToggle(opt) },
+                        label = { Text(opt) },
+                    )
+                }
+            }
+        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            unselectedFiltered.forEach { opt ->
+                FilterChip(
+                    selected = false,
+                    onClick = { onToggle(opt) },
+                    label = { Text(opt) },
+                )
+            }
+        }
+        if (q.isNotEmpty()) {
+            val totalMatching = options.filter {
+                it !in selected && it.lowercase().contains(q)
+            }.size
+            if (totalMatching > unselectedFiltered.size) {
+                Text(
+                    "+ ${totalMatching - unselectedFiltered.size} more — keep typing to narrow",
+                    style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

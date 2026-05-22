@@ -53,6 +53,8 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var findActions: com.bobaplaybook.app.feature.find.FindActions
     // Tick 309 — keyboard Ctrl+S → Decks save bus.
     @Inject lateinit var decksActions: com.bobaplaybook.app.feature.decks.DecksActions
+    // Tick 329 — keyboard Ctrl+arrow → Card Detail prev/next bus.
+    @Inject lateinit var cardNavigationStore: com.bobaplaybook.app.feature.carddetail.CardNavigationStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash screen MUST be installed before super.onCreate.
@@ -90,6 +92,7 @@ class MainActivity : ComponentActivity() {
                 pendingDeepLink = pendingDeepLink,
                 findActions = findActions,
                 decksActions = decksActions,
+                cardNavigationStore = cardNavigationStore,
             )
         }
     }

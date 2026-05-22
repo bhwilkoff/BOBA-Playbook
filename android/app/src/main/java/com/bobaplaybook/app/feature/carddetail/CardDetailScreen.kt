@@ -121,6 +121,20 @@ fun CardDetailScreen(
     val navStore: CardNavigationStore = hiltViewModel<CardNavigationHolderViewModel>().store
     val siblingIds by navStore.bobaIds.collectAsStateWithLifecycle()
     var currentBobaId by remember(bobaId) { mutableStateOf(bobaId) }
+    // Tick 329 — Ctrl+→ / Ctrl+← keyboard shortcut nav (iPad iOS
+    // Cmd+arrow tick 287 + web ArrowLeft/Right parity). BOBAApp root
+    // emits +1/-1; this LaunchedEffect walks the index with the same
+    // wrap-around math as the swipe gesture below.
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        navStore.requestAdvance.collect { delta ->
+            val ids = siblingIds
+            if (ids.size <= 1) return@collect
+            val idx = ids.indexOf(currentBobaId)
+            if (idx < 0) return@collect
+            val n = ids.size
+            currentBobaId = ids[((idx + delta) % n + n) % n]
+        }
+    }
     val state by remember(currentBobaId) { viewModel.uiStateFor(currentBobaId) }
         .collectAsStateWithLifecycle()
     val decksViewModel: com.bobaplaybook.app.feature.decks.DecksViewModel = hiltViewModel()

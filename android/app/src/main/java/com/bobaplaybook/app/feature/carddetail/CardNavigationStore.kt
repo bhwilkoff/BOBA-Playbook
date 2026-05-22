@@ -31,11 +31,27 @@ class CardNavigationStore @Inject constructor() {
     private val _bobaIds = MutableStateFlow<List<String>>(emptyList())
     val bobaIds: StateFlow<List<String>> = _bobaIds.asStateFlow()
 
+    // Tick 329 — Ctrl+→ / Ctrl+← keyboard shortcut bus. BOBAApp root
+    // emits a delta (+1 / -1) and the CardDetailScreen LaunchedEffect
+    // collects + applies via the existing wrap-around index math. If no
+    // CardDetailScreen is composed (user isn't on card detail), the
+    // collect never runs — the keystroke is a no-op.
+    private val _requestAdvance = kotlinx.coroutines.flow.MutableSharedFlow<Int>(
+        replay = 0,
+        extraBufferCapacity = 1,
+    )
+    val requestAdvance: kotlinx.coroutines.flow.SharedFlow<Int> =
+        _requestAdvance.asSharedFlow()
+
     fun set(ids: List<String>) {
         _bobaIds.value = ids
     }
 
     fun clear() {
         _bobaIds.value = emptyList()
+    }
+
+    fun advance(delta: Int) {
+        _requestAdvance.tryEmit(delta)
     }
 }

@@ -71,3 +71,4 @@ pipeline/eval/
 __pycache__/
 *.pyc
 *.pyo
+.tmp-logcat.txt

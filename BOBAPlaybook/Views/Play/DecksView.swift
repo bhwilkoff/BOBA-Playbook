@@ -20,10 +20,13 @@
 //    toggle inside the sheet (replaces the 5 filter rows in the legacy view).
 //    Token-driven filtering is a §32 cleanups follow-up.
 //
-//  The legacy `DeckBuilderView` is still used as a sheet from CardDetailView's
-//  "Add to Custom Deck" flow with a `pendingCard`; both views share the same
-//  on-disk DeckBuilderStore draft so adding from a card detail and opening
-//  the Decks tab show the same in-progress deck.
+//  Tick 415 audit — the legacy `DeckBuilderView` struct (in
+//  DeckBuilderView.swift) is no longer referenced by any call site
+//  in the app. The file is still pulled into the build for its shared
+//  helpers (`DeckCardRow`, `DeckManagementSheet`, `BrowserCardCell`,
+//  `BrowserCardDetailSheet`) that DecksView + CollectionCardDetailView
+//  depend on. A future opt tick can split those helpers into their
+//  own files and delete the ~1,200-line orphan `DeckBuilderView` struct.
 //
 
 import SwiftUI

@@ -56,7 +56,7 @@ import com.bobaplaybook.core.ui.components.BOBAEmptyState
  * with M3 tap-to-open via Custom Tab. iOS YouTubeFeedService parity.
  *
  * Worker: `boba-youtube-feed.benwilkoff.workers.dev`
- *  - Live broadcasts surface a brand-orange LIVE pill in the thumb
+ *  - Live broadcasts surface a BRAWL-red LIVE pill in the thumb
  *  - Duration label badge bottom-right (omitted when live)
  *  - Channel + view count subtitle
  *  - Vertical Shorts use a portrait 80×142 thumbnail; horizontal
@@ -216,8 +216,14 @@ private fun VideoRow(
                     )
                 }
                 if (video.isLiveNow) {
+                    // Tick 514 — BRAWL red (#C0392B), not brand orange.
+                    // iOS WatchView.swift:271 uses the same; DESIGN.md
+                    // §11.2 reserves brand orange for primary CTAs +
+                    // FIRE element. "LIVE" is universally red across
+                    // YouTube / Twitch / etc; brand orange diluted the
+                    // signal.
                     Surface(
-                        color = Color(0xFFFF4D00),
+                        color = Color(0xFFC0392B),
                         shape = RoundedCornerShape(4.dp),
                         modifier = Modifier
                             .align(Alignment.TopStart)

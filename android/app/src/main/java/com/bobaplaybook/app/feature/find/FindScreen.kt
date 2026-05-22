@@ -6,6 +6,8 @@
 
 package com.bobaplaybook.app.feature.find
 
+import java.text.NumberFormat
+import java.util.Locale
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -563,12 +565,11 @@ private fun FindOverflowMenu(
         DropdownMenuItem(
             // Tick 299 — pool size in label (iOS v2.317 + web tick 298
             // parity). Tells users what Surprise is drawing from before
-            // they fire it. java.text.NumberFormat for locale-aware
-            // thousand separators (Locale.US to match the rest of the
-            // app's USD formatting convention).
+            // they fire it. NumberFormat / Locale.US matches the rest
+            // of the app's locale-formatting convention.
             text = {
                 val label = if (surpriseCount > 0)
-                    "Surprise me 🎲 (${java.text.NumberFormat.getInstance(java.util.Locale.US).format(surpriseCount)})"
+                    "Surprise me 🎲 (${NumberFormat.getInstance(Locale.US).format(surpriseCount)})"
                 else "Surprise me 🎲"
                 Text(label)
             },

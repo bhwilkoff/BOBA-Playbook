@@ -2,6 +2,8 @@
 
 package com.bobaplaybook.app.feature.decks
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -44,6 +47,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.ui.components.BOBACardCell
@@ -605,11 +610,31 @@ private fun EmptyDeckCTA(modifier: Modifier = Modifier) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ViewModule,
-                        contentDescription = null,
-                        tint = accent,
-                    )
+                    // Tick 306 — 44×60 monogram tile (iOS TemplateCard
+                    // parity, DeckBuilderView.swift L1534-L1540). First
+                    // letter of template name + accent-tinted background
+                    // + accent stroke. Replaces the generic ViewModule
+                    // icon — gives each template a visual identity that
+                    // reads as a card-tile rather than a list-row icon.
+                    Box(
+                        modifier = Modifier
+                            .size(width = 44.dp, height = 60.dp)
+                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                            .background(accent.copy(alpha = 0.25f))
+                            .border(
+                                1.5.dp,
+                                accent.copy(alpha = 0.5f),
+                                androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            template.name.firstOrNull()?.uppercase() ?: "?",
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = accent,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             template.name,

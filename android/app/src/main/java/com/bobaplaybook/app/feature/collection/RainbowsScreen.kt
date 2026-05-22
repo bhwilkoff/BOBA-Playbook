@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 
 /**
@@ -223,22 +224,31 @@ fun RainbowsScreen(
                             }
                         },
                         trailingContent = {
+                            // Tick 429 — BOBAIconTooltip on per-row Edit +
+                            // Delete (extends tick 411's Manage Decks
+                            // pattern). Long-press / hover surfaces the
+                            // action label so users hesitating over the
+                            // red Delete get a clear hint.
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = {
-                                    editorTarget = rainbow.id
-                                    editorOpen = true
-                                }) {
-                                    Icon(
-                                        Icons.Default.Edit,
-                                        contentDescription = "Edit custom rainbow",
-                                    )
+                                BOBAIconTooltip("Edit custom rainbow") {
+                                    IconButton(onClick = {
+                                        editorTarget = rainbow.id
+                                        editorOpen = true
+                                    }) {
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = "Edit custom rainbow",
+                                        )
+                                    }
                                 }
-                                IconButton(onClick = { pendingDeleteId = rainbow.id }) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Delete custom rainbow",
-                                        tint = MaterialTheme.colorScheme.error,
-                                    )
+                                BOBAIconTooltip("Delete custom rainbow") {
+                                    IconButton(onClick = { pendingDeleteId = rainbow.id }) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Delete custom rainbow",
+                                            tint = MaterialTheme.colorScheme.error,
+                                        )
+                                    }
                                 }
                                 Icon(Icons.Default.ChevronRight, contentDescription = null)
                             }

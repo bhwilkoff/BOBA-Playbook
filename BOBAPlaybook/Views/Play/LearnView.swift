@@ -1121,28 +1121,46 @@ private struct CardZonesSection: View {
         ("Hot Dog Discard", "Spent Hot Dogs go here"),
         ("Abyss",           "Removed from game permanently — cannot be retrieved"),
     ]
+    // Tick 402 — Hero-state taxonomy (Android tick 401 parity). Where
+    // a Hero is on the table, expressed as a state rather than a zone.
+    // Different concept from the 9 physical zones above; both are
+    // worth surfacing in the Rules reference.
+    private let heroStates: [(String, String)] = [
+        ("Bench",   "Face-down Heroes waiting for their Battle"),
+        ("Active",  "The Hero currently in a Battle"),
+        ("Retired", "Heroes who lost; out for the match"),
+        ("Played",  "Face-up Plays applied to the active Hero"),
+        ("Used",    "Face-down spent Plays"),
+    ]
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.sm) {
             RulesSectionHeader(title: "Card Zones Reference")
-            VStack(spacing: 1) {
-                ForEach(zones, id: \.0) { zone in
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(zone.0)
-                            .font(Design.Fonts.mono(13, weight: .bold))
-                            .foregroundStyle(Design.Colors.bobaCyan)
-                        Text(zone.1)
-                            .font(Design.Fonts.mono(13))
-                            .foregroundStyle(Design.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Design.Spacing.md).padding(.vertical, Design.Spacing.sm)
-                    .background(Design.Colors.surface)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+            zoneGrid(zones)
+            RulesSectionHeader(title: "Hero States")
+            zoneGrid(heroStates)
         }
+    }
+
+    @ViewBuilder
+    private func zoneGrid(_ rows: [(String, String)]) -> some View {
+        VStack(spacing: 1) {
+            ForEach(rows, id: \.0) { row in
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(row.0)
+                        .font(Design.Fonts.mono(13, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaCyan)
+                    Text(row.1)
+                        .font(Design.Fonts.mono(13))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Design.Spacing.md).padding(.vertical, Design.Spacing.sm)
+                .background(Design.Colors.surface)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+        .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
     }
 }
 

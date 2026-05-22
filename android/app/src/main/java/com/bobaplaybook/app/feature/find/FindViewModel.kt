@@ -110,7 +110,7 @@ class FindViewModel @Inject constructor(
             filtersFlow,
         ) { cards, isLoading, f ->
             val filtered  = applyFilters(cards, f)
-            val sorted    = applySort(filtered, f.sort)
+            val sorted    = applySort(filtered, f.sort, cards)
             val suggestions = buildSuggestions(cards, f.query)
             val featured  = if (cards.isEmpty()) FeaturedShelves.EMPTY
                             else FeaturedShelves.build(cards)
@@ -258,19 +258,32 @@ class FindViewModel @Inject constructor(
      * user's chosen criterion becomes the tiebreaker WITHIN each
      * art-status group.
      */
-    private fun applySort(cards: List<Card>, order: SortOrder): List<Card> {
+    private fun applySort(
+        cards: List<Card>,
+        order: SortOrder,
+        // Tick 354 — full catalog passed in so RECENTLY_ADDED can build
+        // a bobaId → catalog-index Map for O(1) per-comparison lookup.
+        // Built lazily inside the case so the other 9 orders pay no cost.
+        catalog: List<Card> = cards,
+    ): List<Card> {
         val artFirst = compareByDescending<Card> { !it.imageFile.isNullOrEmpty() }
         return when (order) {
-            SortOrder.DEFAULT     -> cards.sortedWith(artFirst.thenBy { it.cardNumber })
-            SortOrder.NAME_ASC    -> cards.sortedWith(artFirst.thenBy { it.displayName.lowercase() })
-            SortOrder.NAME_DESC   -> cards.sortedWith(artFirst.thenByDescending { it.displayName.lowercase() })
-            SortOrder.POWER_DESC  -> cards.sortedWith(artFirst.thenByDescending { it.power ?: 0 })
-            SortOrder.POWER_ASC   -> cards.sortedWith(artFirst.thenBy { it.power ?: Int.MAX_VALUE })
-            SortOrder.NUMBER_ASC  -> cards.sortedWith(artFirst.thenBy { it.cardNumber })
-            SortOrder.NUMBER_DESC -> cards.sortedWith(artFirst.thenByDescending { it.cardNumber })
-            SortOrder.COST_ASC    -> cards.sortedWith(artFirst.thenBy { it.cost ?: Int.MAX_VALUE })
-            SortOrder.COST_DESC   -> cards.sortedWith(artFirst.thenByDescending { it.cost ?: 0 })
-            SortOrder.VARIATION   -> cards.sortedWith(artFirst.thenBy { it.variation ?: "" })
+            SortOrder.DEFAULT         -> cards.sortedWith(artFirst.thenBy { it.cardNumber })
+            SortOrder.RECENTLY_ADDED  -> {
+                val orderByBobaId = catalog.withIndex().associate { it.value.bobaId to it.index }
+                cards.sortedWith(
+                    artFirst.thenByDescending { orderByBobaId[it.bobaId] ?: 0 }
+                )
+            }
+            SortOrder.NAME_ASC        -> cards.sortedWith(artFirst.thenBy { it.displayName.lowercase() })
+            SortOrder.NAME_DESC       -> cards.sortedWith(artFirst.thenByDescending { it.displayName.lowercase() })
+            SortOrder.POWER_DESC      -> cards.sortedWith(artFirst.thenByDescending { it.power ?: 0 })
+            SortOrder.POWER_ASC       -> cards.sortedWith(artFirst.thenBy { it.power ?: Int.MAX_VALUE })
+            SortOrder.NUMBER_ASC      -> cards.sortedWith(artFirst.thenBy { it.cardNumber })
+            SortOrder.NUMBER_DESC     -> cards.sortedWith(artFirst.thenByDescending { it.cardNumber })
+            SortOrder.COST_ASC        -> cards.sortedWith(artFirst.thenBy { it.cost ?: Int.MAX_VALUE })
+            SortOrder.COST_DESC       -> cards.sortedWith(artFirst.thenByDescending { it.cost ?: 0 })
+            SortOrder.VARIATION       -> cards.sortedWith(artFirst.thenBy { it.variation ?: "" })
         }
     }
 

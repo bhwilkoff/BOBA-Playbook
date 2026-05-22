@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 354 (Android)** — Added `RECENTLY_ADDED` to SortOrder enum (closes 3-platform sort trio with iOS v2.328 + web tick 283). Catalog list passed into applySort + lazy Map<bobaId, Int> built only for the RECENTLY_ADDED case so the other 9 sort orders pay no extra cost. Sort by reverse catalog index — newer sets append, so recently-added cards bubble up.
 - **tick 353 (web)** — Active non-default sort surfaced in the results-count label: `12,345 cards · Recently Added`. Reads the dropdown's option label (already human-friendly) so users see what's ordering their results without opening the dropdown. No-op label appended when sort is default.
 - **tick 352 (iOS v2.328 / 590)** — Added `Recently Added` sort option to iOS Find (web tick 283 parity, closing the 3-platform sort trio — iOS already had Recently Added shelf at tick 282, now also has it as a sort). Implementation: new `case recentlyAdded` on CardSortOrder enum + sort by reverse catalog index via a new O(1) `catalogOrderById` Dictionary built alongside the existing id→Card index in `rebuildIdIndexes()`.
 - **tick 351 (Android, code style)** — CollectionScreen 8 more FQN call sites swept: AlertDialog · Badge · BadgedBox · FilterChip · pulltorefresh.PullToRefreshBox · RadioButton · TextButton · Surface (multiple). Added all to imports + body-only sed. Continues tick 350's CollectionScreen pattern (which only covered the runtime + HorizontalDivider FQNs).

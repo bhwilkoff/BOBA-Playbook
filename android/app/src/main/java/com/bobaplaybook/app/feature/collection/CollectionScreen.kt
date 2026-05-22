@@ -487,6 +487,14 @@ fun CollectionScreen(
                         com.bobaplaybook.app.feature.find.CardPurpose.SEALED   -> if (!card.isSealed) return@filter false
                     }
                     if (findState.hasImageOnly && card.imageFile.isNullOrEmpty()) return@filter false
+                    // Showcase filter — iOS Showcases.byId(id).match(card).
+                    // Was missing from the Collection filter pipeline so
+                    // tapping a Showcase chip in the (Find-shared) filter
+                    // sheet did nothing here.
+                    findState.showcaseId?.let { sid ->
+                        val showcase = com.bobaplaybook.core.domain.showcase.Showcases.byId(sid)
+                        if (showcase != null && !showcase.match(card)) return@filter false
+                    }
                     if (findState.activeWeapons.isNotEmpty() &&
                         card.element.uppercase() !in findState.activeWeapons.map { it.uppercase() }) return@filter false
                     findState.activeTreatment?.let { t -> if (!card.treatment.equals(t, ignoreCase = true)) return@filter false }

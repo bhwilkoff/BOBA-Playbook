@@ -269,9 +269,13 @@ fun CollectionCardDetailScreen(
                 }
             }
 
-            // "Other versions" — same hero, different treatment. Tap an
-            // alt to navigate to that card's detail (read-only — Add to
-            // Collection lives in the catalog Find tab card detail).
+            // "Other versions" — same hero, different treatment. Tiles
+            // are read-only previews today (each one shows its print-run
+            // + format-legality badges per tick 461/469). Tapping to
+            // navigate to that variant's detail would need an
+            // onOtherVersionClick callback threaded from BOBAApp's nav
+            // host — queued as a polish follow-up; iOS CardDetailView's
+            // Other Versions tiles DO push via NavigationLink (line 920).
             if (otherVersions.isNotEmpty()) {
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 16.dp),

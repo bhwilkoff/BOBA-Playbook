@@ -71,6 +71,23 @@ struct RainbowDetailView: View {
                     .help("Edit rainbow")
                 }
             }
+            // Tick 482 — Share rainbow progress (Android tick 439 + web tick
+            // 443 parity). iOS tick 439's note that "RainbowDetailView
+            // already uses native ShareLink" was wrong — there was no share
+            // affordance here at all. ShareLink with the same text shape
+            // Android emits: "My X rainbow: 5 of 12 treatments (41%) ·
+            // bobaplaybook.com". Hidden when context is nil (no data yet).
+            if let shareText = rainbowShareText {
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareLink(item: shareText) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                    .accessibilityLabel("Share rainbow progress")
+                    .help("Share rainbow progress")
+                }
+            }
         }
         .sheet(isPresented: $showingEditor) {
             if case .custom(let id) = kind,
@@ -331,5 +348,22 @@ struct RainbowDetailView: View {
     private func progressFraction(owned: Int, total: Int) -> CGFloat {
         guard total > 0 else { return 0 }
         return CGFloat(min(1.0, Double(owned) / Double(total)))
+    }
+
+    /// Tick 482 — Share rainbow progress text (Android tick 439 + web
+    /// tick 443 parity). Same string shape as the other platforms:
+    /// "My X rainbow: 5 of 12 treatments (41%) · bobaplaybook.com".
+    /// Auto-rainbows use "treatments" (every printing of a hero);
+    /// custom rainbows use "cards" (free-form filter). Returns nil
+    /// when context isn't resolved yet (no data → no toolbar item).
+    private var rainbowShareText: String? {
+        guard let ctx = context else { return nil }
+        let cards  = matchingCards(for: ctx.criteria)
+        let owned  = ownedIds()
+        let ownedN = cards.filter { owned.contains($0.id) }.count
+        let total  = cards.count
+        let pct    = percentLabel(owned: ownedN, total: total)
+        let unit   = ctx.isCustom ? "cards" : "treatments"
+        return "My \(ctx.title) rainbow: \(ownedN) of \(total) \(unit) (\(pct)) · bobaplaybook.com"
     }
 }

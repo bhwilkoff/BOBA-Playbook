@@ -60,6 +60,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ListItem
@@ -496,23 +497,48 @@ private fun FindSearchBar(
                             // Two trailing actions max: Filter (high-frequency,
                             // contextual) + Scan (cross-cutting). Profile +
                             // Overflow live in the TopAppBar above.
+                            // Tick 384 — TooltipBox on both so Chromebook /
+                            // tablet users (mouse hover or long-press) get an
+                            // affordance hint without firing the action.
+                            // Touch users on phone keep the same tap-to-fire
+                            // behavior (TooltipBox just adds the long-press
+                            // tooltip; tap routes through normal onClick).
+                            // iOS .help() + web title= parity.
                             Row {
-                                IconButton(onClick = onFilterClick) {
-                                    BadgedBox(
-                                        badge = {
-                                            if (state.activeFilterCount > 0) {
-                                                Badge { Text("${state.activeFilterCount}") }
-                                            }
-                                        },
-                                    ) {
-                                        Icon(Icons.Default.Tune, contentDescription = "Filters")
+                                androidx.compose.material3.TooltipBox(
+                                    positionProvider = androidx.compose.material3.TooltipDefaults
+                                        .rememberTooltipPositionProvider(
+                                            androidx.compose.material3.TooltipAnchorPosition.Below
+                                        ),
+                                    tooltip = { PlainTooltip { Text("Filters") } },
+                                    state = androidx.compose.material3.rememberTooltipState(),
+                                ) {
+                                    IconButton(onClick = onFilterClick) {
+                                        BadgedBox(
+                                            badge = {
+                                                if (state.activeFilterCount > 0) {
+                                                    Badge { Text("${state.activeFilterCount}") }
+                                                }
+                                            },
+                                        ) {
+                                            Icon(Icons.Default.Tune, contentDescription = "Filters")
+                                        }
                                     }
                                 }
-                                IconButton(onClick = onScanClick) {
-                                    Icon(
-                                        imageVector = Icons.Default.QrCodeScanner,
-                                        contentDescription = stringResource(R.string.action_scan),
-                                    )
+                                androidx.compose.material3.TooltipBox(
+                                    positionProvider = androidx.compose.material3.TooltipDefaults
+                                        .rememberTooltipPositionProvider(
+                                            androidx.compose.material3.TooltipAnchorPosition.Below
+                                        ),
+                                    tooltip = { PlainTooltip { Text("Scan a card") } },
+                                    state = androidx.compose.material3.rememberTooltipState(),
+                                ) {
+                                    IconButton(onClick = onScanClick) {
+                                        Icon(
+                                            imageVector = Icons.Default.QrCodeScanner,
+                                            contentDescription = stringResource(R.string.action_scan),
+                                        )
+                                    }
                                 }
                             }
                         }

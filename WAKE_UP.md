@@ -3,11 +3,9 @@
 > Updated by the autonomous /loop. Skim top-down. Things you need to do are at the bottom.
 
 ## Loop config
-- Started: 2026-05-21 (post-compaction)
 - Cadence: every 60s via CronCreate `* * * * *` (session-only — dies if Claude exits)
 - Sentinel: `<<autonomous-loop>>`
 - Platform cadence: tick%5 → 0=opt, 1+4=Android, 2=iOS, 3=web
-- Resuming tick numbering at **202** (last session ended at 201)
 
 ## Standing priorities (from your message)
 1. **Parity across all 3 platforms** — Web should be ~full-featured (modulo 3D); iOS flagship; Android first-class mobile
@@ -17,6 +15,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 370 (opt + research, −3 lines)** — Research: blog-digest scan confirms previously-mined posts still match current app state — no new actionable items surfaced. One discrepancy noted: 2025-12-18 "Brawl Brackets for 2026 National" blog cites $75K total prize pool (up to $35K cash); our Nationals divisions show Brawl at $20K. Likely superseded by later official announcement (the per-division figures sum to ~$500K matching the 2026-02-05 prize-pool reveal) but couldn't verify in one tick — skipped to avoid introducing wrong data. Opt: trimmed stale "Started: 2026-05-21 (post-compaction)" + "Resuming tick numbering at 202" lines from WAKE_UP Loop config block. We're 170 ticks past that point; both lines were just historical noise on every wake-up scan now. Net −3 lines.
 - **tick 369 (Android — same 7 glossary terms shipped on web tick 368)** — Added Hero Deck · Sudden Death · Top Deck · Laundry Phase · Apex · Brawl · Tecmo Bowl to `LearnCorpus.glossaryGame`. Picks up automatically in two places (zero extra wiring): the Glossary tab list AND every `GlossaryAwareBody` render inside Rules / Strategy / Collect / Tournament articles (Android tick 184 patterns). Same definitions as web for cross-platform consistency. iOS port queued for tick 372.
 - **tick 368 (web — 7 glossary entries for tournament + game-mechanic terms)** — Tick 363 extended `wireInlineGlossary` to `<td>` cells, but a check of the matched-terms showed the actual regex had nothing to bite on inside the Tournament Double-Up + Madness + Nationals sections — none of those game-mechanic / division terms were in the glossary. Added 7: **Hero Deck · Sudden Death · Top Deck · Laundry Phase · Apex · Brawl · Tecmo Bowl**. Now tapping any of those in Tournament prose (or anywhere else in Rules / Strategy / Collecting / Tournament panels) opens the definition popover. Closes the parity loop iOS tick 367 implied — both platforms now have the same surface coverage. iOS+Android will inherit via subsequent ticks once their glossary lists pick these up.
 - **tick 367 (iOS v2.331 / 593 — DoubleUp + Madness glossary wiring)** — Both sections were using plain `Text(...)` for body + bullet content; glossary-worthy terms (Hot Dogs · Hero Deck · Top Deck · Sudden Death · Apex deck · Foil Hot Dogs · Spec 160 · Granny's Gum · Brawl · Tecmo Bowl · High Ball · Low Ball · Substitution) weren't tappable. Wrapped via `GlossaryAwareText` (same primitive 6+ other sections already use) so those terms now tap-to-define inline. Web tick 363 made the equivalent change there (extended selector to `<td>` cells). Same `boba_glossaryAware` underlying — no new glossary entries needed, the regex coverage is already complete.

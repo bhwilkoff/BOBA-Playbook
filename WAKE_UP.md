@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 344 (Android)** — "🎲 Surprise me from all cards" secondary CTA on Find empty state. Closes 3-platform trio (iOS v2.326 + web tick 343). BOBAEmptyState already supported secondaryActionLabel/onSecondaryAction (tick 214). Clears filters via FindEvent.ClearAllFilters, then findActions.requestSurprise() routes through the existing LaunchedEffect collector which picks from the freshly-recomputed results.
 - **tick 343 (web)** — "🎲 Surprise me from all cards" empty-state CTA on Find (iOS v2.326 parity). resetFilters() then requestAnimationFrame → fireSurpriseMe so filteredCards has rebuilt before the random pick. Closes 3-platform empty-state-Surprise trio's web leg.
 - **tick 342 (iOS v2.326 / 588)** — iOS Find empty-state now offers a secondary "Surprise me from all cards" CTA below "Clear All Filters". Clears filters then fires Surprise on the next runloop (async dispatch so filteredCards recomputes first). Two clicks collapsed into one — useful when user has filtered down to zero and would benefit from a discovery jump rather than fighting the filter.
 - **tick 341 (Android, code style)** — FindScreen: cleaned up 2 missed FQNs from tick 321 (LaunchedEffect call sites at lines 129+135) + 2 HorizontalDivider FQN call sites in the overflow Menu. Both added as proper imports.

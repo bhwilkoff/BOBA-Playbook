@@ -170,8 +170,14 @@
         </svg>
         <span>Purchase</span>
       </button>
-      <!-- Hidden / utility nav items kept reachable via deep links. -->
-      <button class="sidebar-nav-item" id="nav-scan-btn" data-view="scan" hidden>
+      <!-- Re-surfaced 2026-05-22 per beta-tester request. Three uses:
+           1) Mobile-web camera capture → Worker OCR (experimental).
+           2) Desktop QR-handoff: scan from phone to carry the desktop
+              session onto mobile, where the iOS/Android native apps
+              are the canonical scanner.
+           3) Marketing surface for the native apps (TestFlight +
+              Play Store CTAs surfaced inside the Scan view). -->
+      <button class="sidebar-nav-item" id="nav-scan-btn" data-view="scan">
         <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
           <circle cx="12" cy="13" r="4"/>

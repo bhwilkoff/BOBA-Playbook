@@ -1369,6 +1369,45 @@
     }
   }
 
+  // Native-app CTA block — surfaced inside the Scan view (and again
+   // in the no-camera fallback) per beta-tester request 2026-05-22.
+   // Two reasons: (1) the iOS/Android apps are the canonical scanner
+   // (on-device Vision / ML Kit, no server hop), so anyone who lands
+   // on the web Scan view should know they exist; (2) it's the most
+   // contextually natural place in the app to advertise the native
+   // builds. Beta links: iOS via TestFlight (live), Android via Play
+   // Store (rolling out 2026-05-22).
+   function nativeAppCalloutHTML() {
+    return `
+      <div class="scan-native-apps">
+        <p class="scan-native-apps-label">Faster scanning in the native apps</p>
+        <p class="scan-native-apps-sub">On-device card recognition — no upload, instant match.</p>
+        <div class="scan-native-apps-grid">
+          <a class="scan-native-app-btn" href="https://testflight.apple.com/join/YN52Dgu2"
+             target="_blank" rel="noopener" aria-label="Join the iOS beta on TestFlight">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+              <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+            </svg>
+            <span class="scan-native-app-btn-body">
+              <span class="scan-native-app-btn-title">iOS · TestFlight</span>
+              <span class="scan-native-app-btn-sub">Open beta — ~98 slots</span>
+            </span>
+          </a>
+          <a class="scan-native-app-btn" href="https://play.google.com/store/apps/details?id=com.bobaplaybook.app"
+             target="_blank" rel="noopener" aria-label="Open BOBA Playbook on Google Play">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+              <path d="M3.5 20.5V3.5l13 8.5-13 8.5zM17.6 13.2l3.4-1.7-3.4-1.7-2.6 1.7 2.6 1.7zM4.8 2.4 14.8 8 12 11 4.8 2.4zM4.8 21.6 12 13l2.8 3-9.99 5.6z"/>
+            </svg>
+            <span class="scan-native-app-btn-body">
+              <span class="scan-native-app-btn-title">Android · Google Play</span>
+              <span class="scan-native-app-btn-sub">Rolling out 2026-05-22</span>
+            </span>
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
   async function renderScanCamera(container) {
     const isDesktop = window.innerWidth >= 1024;
 
@@ -1400,6 +1439,7 @@
           </div>
         ` : ''}
       </div>
+      ${nativeAppCalloutHTML()}
     `;
 
     startCamera();
@@ -1713,11 +1753,12 @@
       <div class="view-inner">
         <h2 class="view-heading">Scan</h2>
         <p class="placeholder-text">Camera scanning isn't available in this browser.</p>
-        <p class="placeholder-text">For instant on-device scanning, use the <strong>BOBA Playbook iOS app</strong>.</p>
+        <p class="placeholder-text">For instant on-device scanning, install the native BOBA Playbook app.</p>
         <div class="scan-qr-block">
           <p class="scan-aside-label">Open on your phone:</p>
           <img class="scan-qr-img" src="${escHtml(qrSrc)}" alt="QR code" width="180" height="180">
         </div>
+        ${nativeAppCalloutHTML()}
       </div>
     `;
   }

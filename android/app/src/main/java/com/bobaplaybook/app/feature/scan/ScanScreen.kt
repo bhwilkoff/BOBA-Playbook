@@ -43,6 +43,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PhotoCameraFront
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +59,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -154,10 +157,25 @@ fun ScanScreen(
     //  • BOBAWordmark centered in the top chrome
     //  • Mode pills + (when a card is matched) detection chip
     //    ride the bottom gradient
+    // Scan mode — SINGLE commits open the matched card immediately;
+    // MULTI queues the card and stays in-frame so the user can scan
+    // the next one without leaving the screen. iOS ScanView.modePill
+    // toggles between these two same modes.
+    var scanMode by rememberSaveable { mutableStateOf(ScanMode.SINGLE) }
+
     Box(modifier = modifier.fillMaxSize()) {
         if (hasPermission) {
             ScanViewfinder(
-                onMatch = { bobaId ->
+                scanMode = scanMode,
+                onAutoQueue = { bobaId ->
+                    // MULTI-mode auto-queue path. Append to the
+                    // session queue and DON'T navigate; the user
+                    // keeps scanning the next card.
+                    queueHolder.queue.append(bobaId)
+                },
+                onChipTap = { bobaId ->
+                    // User explicitly tapped the detection chip —
+                    // ALWAYS open the matched card (both modes).
                     queueHolder.queue.append(bobaId)
                     onMatch(bobaId)
                 },
@@ -237,6 +255,29 @@ fun ScanScreen(
                         ),
                     ),
             )
+
+            // Mode pills — iOS ScanView.bottomControls. SINGLE +
+            // MULTI; Grid is the deferred follow-up (#52).
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp)
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                ScanModePill(
+                    label = "SINGLE",
+                    icon = Icons.Default.PhotoCameraFront,
+                    selected = scanMode == ScanMode.SINGLE,
+                    onClick = { scanMode = ScanMode.SINGLE },
+                )
+                ScanModePill(
+                    label = "MULTI",
+                    icon = Icons.Default.PhotoLibrary,
+                    selected = scanMode == ScanMode.MULTI,
+                    onClick = { scanMode = ScanMode.MULTI },
+                )
+            }
         } else if (permanentlyDenied) {
             BOBAEmptyState(
                 icon = Icons.Default.CameraAlt,
@@ -395,9 +436,53 @@ private fun ScanReviewSheet(
     }
 }
 
+/** SINGLE = commit → user taps chip → open card detail. MULTI = commit
+ *  → auto-queue + reset → keep scanning the next card without leaving. */
+enum class ScanMode { SINGLE, MULTI }
+
+/**
+ * iOS-parity mode pill — icon + label, orange when selected, glass
+ * when not. Mirrors iOS ScanView.modePill (single / multi / grid /
+ * show). Grid is the deferred follow-up (#52).
+ */
+@Composable
+private fun ScanModePill(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        color = if (selected) Color(0xFFFF4D00) else Color.Black.copy(alpha = 0.55f),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.width(16.dp).height(16.dp),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White,
+                letterSpacing = 1.sp,
+            )
+        }
+    }
+}
+
 @Composable
 private fun ScanViewfinder(
-    onMatch: (bobaId: String) -> Unit,
+    scanMode: ScanMode,
+    onAutoQueue: (bobaId: String) -> Unit,
+    onChipTap: (bobaId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -407,6 +492,10 @@ private fun ScanViewfinder(
     val stabilizer = remember { ScanFrameStabilizer() }
     var lastMatchedDisplayName by remember { mutableStateOf<String?>(null) }
     var scanState by remember { mutableStateOf<ScanFrameStabilizer.State>(ScanFrameStabilizer.State.Idle) }
+    // Most-recent committed match — drives the detection chip + the
+    // guide-frame element-coloured stroke. Declared BEFORE the
+    // analyzer setup so the analyzer closure captures it.
+    var detectedCard by remember { mutableStateOf<com.bobaplaybook.core.domain.model.Card?>(null) }
 
     val controller = remember {
         LifecycleCameraController(context).apply {
@@ -454,7 +543,13 @@ private fun ScanViewfinder(
                 scanState = stabilizer.state
                 if (stable != null && lastMatchedDisplayName != stable.card.displayName) {
                     lastMatchedDisplayName = stable.card.displayName
-                    onMatch(stable.card.bobaId)
+                    // Set the detection chip card on every commit
+                    // (both modes). MULTI also auto-queues; SINGLE
+                    // waits for the user to tap the chip.
+                    detectedCard = stable.card
+                    if (scanMode == ScanMode.MULTI) {
+                        onAutoQueue(stable.card.bobaId)
+                    }
                 }
             },
         )
@@ -464,9 +559,18 @@ private fun ScanViewfinder(
         }
     }
 
-    // Most-recent committed match (full Card, not just name) — drives
-    // the iOS-parity detection chip at the bottom.
-    var detectedCard by remember { mutableStateOf<com.bobaplaybook.core.domain.model.Card?>(null) }
+    // Auto-clear the detection chip in MULTI mode after 1.6s so the
+    // user sees they can scan the next card. SINGLE mode keeps the
+    // chip visible until the user taps it (or scans a different card).
+    LaunchedEffect(detectedCard, scanMode) {
+        if (detectedCard != null && scanMode == ScanMode.MULTI) {
+            kotlinx.coroutines.delay(1600)
+            // Reset stabilizer so the next commit re-fires the chip.
+            stabilizer.reset()
+            lastMatchedDisplayName = null
+            detectedCard = null
+        }
+    }
 
     Box(
         modifier = modifier.onSizeChanged { size ->
@@ -499,20 +603,16 @@ private fun ScanViewfinder(
         if (committed != null) {
             ScanDetectionChip(
                 card = committed,
+                onTap = { onChipTap(committed.bobaId) },
+                // Pin to ~96dp above the bottom (clears the mode
+                // pills row that lives in the parent at 32dp from
+                // bottom).
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 96.dp)
                     .align(Alignment.BottomCenter),
             )
-        }
-    }
-
-    // Sync detectedCard with the stabilizer's committed state — drives
-    // both the guide-frame accent colour swap AND the bottom chip.
-    LaunchedEffect(scanState) {
-        val st = scanState
-        if (st is ScanFrameStabilizer.State.Committed) {
-            detectedCard = st.result.card
         }
     }
 }
@@ -527,10 +627,11 @@ private fun ScanViewfinder(
 @Composable
 private fun ScanDetectionChip(
     card: com.bobaplaybook.core.domain.model.Card,
+    onTap: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.clickable { onTap() },
         color = Color.Black.copy(alpha = 0.78f),
         shape = RoundedCornerShape(14.dp),
     ) {

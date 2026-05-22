@@ -86,9 +86,13 @@
     const time = localTimeText(show);
     const cat = show.categoryName || '';
     const isLive = !!show.isLive;
+    // Tick 408 — Android tick 406 + iOS tick 407 parity. Locale-format
+    // the viewer count so 4-digit streams render "1,234 watching"
+    // instead of "1234 watching".
+    const viewerCountFmt = show.viewerCount > 0 ? show.viewerCount.toLocaleString() : '';
     const viewerLabel = isLive
-      ? (show.viewerCount > 0 ? `${show.viewerCount} watching` : '')
-      : (show.viewerCount > 0 ? `${show.viewerCount} interested` : '');
+      ? (show.viewerCount > 0 ? `${viewerCountFmt} watching` : '')
+      : (show.viewerCount > 0 ? `${viewerCountFmt} interested` : '');
     const thumbHtml = thumb
       ? `<img class="pshow-thumb" src="${escapeHTML(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">`
       : '<div class="pshow-thumb pshow-thumb-fallback">📺</div>';

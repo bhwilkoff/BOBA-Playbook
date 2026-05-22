@@ -81,6 +81,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -230,7 +232,7 @@ private fun FindContent(
                     BOBAIconTooltip("Profile") {
                         IconButton(onClick = onProfileClick) {
                             if (avatarUrl != null) {
-                                val avatarCtx = androidx.compose.ui.platform.LocalContext.current
+                                val avatarCtx = LocalContext.current
                                 coil3.compose.AsyncImage(
                                     model = coil3.request.ImageRequest.Builder(avatarCtx)
                                         .data(avatarUrl).crossfade(150).build(),
@@ -964,7 +966,7 @@ private fun SearchResultsGrid(
     // snackbar surfaces. Without it, long-press feels like
     // "did anything happen?" Pulled outside LazyVerticalGrid since
     // LazyGridScope is non-composable.
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val haptic = LocalHapticFeedback.current
     LazyVerticalGrid(
         modifier = modifier,
         columns = if (columns >= 1) GridCells.Fixed(columns) else GridCells.Adaptive(minSize = 110.dp),

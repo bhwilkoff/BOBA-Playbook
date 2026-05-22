@@ -3,6 +3,7 @@
 package com.bobaplaybook.app.feature.purchase
 
 import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -294,19 +295,35 @@ private fun WhatnotTile(
                             .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
                     )
                     if (show.isLive) {
+                        // Tick 514 — BRAWL red (#C0392B) + white-dot prefix
+                        // to match iOS UpcomingBreaksList.swift:118-131.
+                        // Brand orange #FF4D00 was wrong: DESIGN.md §11.2
+                        // reserves orange for primary CTAs / FIRE element;
+                        // "LIVE" is universally red (YouTube / Twitch).
                         Surface(
-                            color = Color(0xFFFF4D00),
+                            color = Color(0xFFC0392B),
                             shape = RoundedCornerShape(4.dp),
                             modifier = Modifier
                                 .align(Alignment.TopStart)
                                 .padding(8.dp),
                         ) {
-                            Text(
-                                "LIVE",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = androidx.compose.ui.graphics.Color.White,
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            )
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(androidx.compose.ui.graphics.Color.White),
+                                )
+                                Text(
+                                    "LIVE",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = androidx.compose.ui.graphics.Color.White,
+                                )
+                            }
                         }
                     }
                 }

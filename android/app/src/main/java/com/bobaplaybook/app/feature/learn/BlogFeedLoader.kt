@@ -29,7 +29,7 @@ data class BlogPost(
 // Same bug existed on iOS LearnBlogLoader + the web fetch path; all
 // three are corrected in the same commit.
 @Serializable
-private data class BlogFeedBundle(
+data class BlogFeedBundle(
     val posts: List<BlogPost> = emptyList(),
     val lastUpdated: String? = null,
 )
@@ -46,11 +46,13 @@ object BlogFeedLoader {
      * needed. Returns an empty list when the file is missing or
      * malformed so the surface renders cleanly even on a partial install.
      */
-    fun load(context: Context): List<BlogPost> =
+    fun load(context: Context): List<BlogPost> = loadBundle(context).posts
+
+    fun loadBundle(context: Context): BlogFeedBundle =
         try {
             val text = context.assets.open("data/blog-feed.json").bufferedReader().use { it.readText() }
-            json.decodeFromString<BlogFeedBundle>(text).posts
+            json.decodeFromString<BlogFeedBundle>(text)
         } catch (_: Throwable) {
-            emptyList()
+            BlogFeedBundle()
         }
 }

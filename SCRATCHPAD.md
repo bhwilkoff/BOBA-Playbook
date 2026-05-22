@@ -145,14 +145,9 @@ Final stack in production: Android Studio Panda 4 / AGP 9.2.0 / Kotlin 2.3.21 / 
 
 **Deferred follow-ups (post-v1):**
 - Material 3 Expressive APIs (FAB Menu / Floating Toolbar / Wavy Indicators) — needs compileSdk 37
-- M3 SearchBar full-screen morph (uses OutlinedTextField for M1)
-- Container transform / sharedBounds animations (M2 polish)
-- Whatnot tile list + Google Maps Find a Store (M6 polish — Worker wiring + Maps API key)
-- Article corpus port from iOS Swift (M5 polish — content work)
-- Custom Rainbows, Wall view, Shows (M2 polish)
+- M3 SearchBar full-screen morph (Android Find uses stable M3 SearchBar; ExpandedFullScreenSearchBar variant pending)
 - Tablet 3-pane Decks editor + NavigableListDetailPaneScaffold rollout (post-M7 polish)
 - **Practice executor engine port** (M5.5 — admin-gated placeholder shipped; full state-machine port is multi-session)
-- Discord OAuth via Auth Tab / Custom Tabs (M7 polish — current Sign in with Google flow is wired; Discord path stubbed)
 - Tink-encrypted token storage (M7 polish — supabase-kt's default SessionManager used today)
 - Image fingerprinting (MediaPipe) + multi-card grid scan (DECISIONS.md #043 — v2)
 

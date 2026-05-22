@@ -53,7 +53,7 @@ between Claude Code and Cowork.
 
 Companion app for the Bo Jackson Battle Arena (BOBA) trading card game:
 1. **Search** — Browse, search, filter 17,739 cards with images
-2. **Scan** — iOS camera identifies cards on-device via Vision OCR
+2. **Scan** — iOS Vision + Android ML Kit identify cards on-device; web ships a fallback camera + Worker-OCR path plus desktop→phone QR handoff (DECISIONS.md #054)
 3. **Play** — Rules, per-card strategy, deck builder
 4. **Collection** — Portfolio tracker with designations, synced via Supabase
 
@@ -279,13 +279,25 @@ Cost + DBS for Plays render BELOW the canonical six.
 
 ---
 
-## Scan Mode (iOS Only)
+## Scan Mode
+
+### iOS (canonical)
 - `AVFoundation` for camera feed, `Vision` for OCR (`VNRecognizeTextRequest`)
 - Pipeline: frame → OCR → card number regex → match `display-cards.json` → show result
 - Card number regex: `#?([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)`
 - Match if card number confidence ≥ 0.7, OR hero name + power both agree
 - **All processing on-device. No image uploaded.**
 - Multi-card: scan queue in `@Observable ScanStore`, running value tally
+
+### Android (canonical)
+- CameraX + ML Kit Text Recognition v2 (bundled). Same regex + match pipeline as iOS.
+- Per DECISIONS.md #043: image-fingerprint matching deferred to v2; OCR-only v1.
+
+### Web (fallback + adjunct — DECISIONS.md #054)
+- `js/app.js::initScanView` — `getUserMedia` → frame → Cloudflare Worker OCR.
+- Less performant than iOS/Android (server round trip, no on-device fingerprint matching). Intentionally framed as a fallback.
+- Desktop also shows a QR encoding `?view=scan&rt={refresh_token}` so phone can pick up the session.
+- Scan view also hosts the canonical native-app CTAs (`nativeAppCalloutHTML()`) — every TestFlight / Play Store link in the web app should route through that helper.
 
 ---
 

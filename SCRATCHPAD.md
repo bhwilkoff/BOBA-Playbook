@@ -46,7 +46,7 @@ Pattern memories from the pre-compaction sessions (preserved across compaction):
 | App icon + branding | ✅ | ✅ | ⏳ M0 | Adaptive icon on Android (foreground + background + monochrome) |
 | Mobile Safari layout | ✅ | n/a | n/a | Body flex column, no viewport-fit=cover |
 | Collection | ✅ | ✅ | ⏳ M2 | All three platforms |
-| Scan Mode (camera OCR) | 🚫 | ✅ | ⏳ M3 | CameraX + ML Kit on Android; web has no camera/Vision parity |
+| Scan Mode (camera OCR) | 🚧 | ✅ | ✅ | iOS canonical (Vision); Android shipped (CameraX + ML Kit); web re-surfaced 2026-05-22 (DECISIONS.md #054) — fallback + desktop QR handoff + native-app gateway |
 | Pricing comps | ✅ | ✅ | ⏳ M3 | Same Worker proxy, same waterfall |
 | Buy Now (active listings) | ✅ | ✅ | ⏳ M3 | eBay + COMC; COMC Turnstile-blocked |
 | Decks builder | ✅ | ✅ | ⏳ M4 | iOS Music-pattern pill + zoom; Android `ModalBottomSheet + sharedBounds`; web side-by-side desktop |

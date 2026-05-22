@@ -520,6 +520,9 @@ struct DecksView: View {
                         .foregroundStyle(Design.Colors.bobaCyan)
                 }
                 .accessibilityLabel("Scan into deck")
+                // Tick 397 — pointer-hover hint (Find tick 387 + Collection
+                // tick 392 + Android Decks tick 396 parity).
+                .help("Scan into current deck")
             }
         }
         ToolbarItem(placement: .topBarTrailing) {
@@ -566,6 +569,8 @@ struct DecksView: View {
                     .foregroundStyle(Design.Colors.bobaCyan)
             }
             .accessibilityLabel("Pool options")
+            // Tick 397 — pointer-hover hint listing what the Menu carries.
+            .help("Filter, columns, scan, walkthrough")
         }
         ToolbarItemGroup(placement: .keyboard) {
             Spacer()

@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 260 (iOS → trio close)** — RecentBoBANewsSection gains "See all N posts" link to bobattlearena.com/blog/all (12d0737). **Closes the see-all-archive trio** (web 258, Android 259, iOS today). v2.308/570. Was marked opt by cadence but parity work is more impactful.
 - **tick 259 (Android)** — Recent BoBA news gains "See all N posts" Custom Tab link (16a71a7). Mirrors web tick 258. iOS port queued.
 - **tick 258 (web)** — "See all N posts on bobattlearena.com ↗" link appended to Recent BoBA news section (aec3da6). Closes discoverability gap to the full 45-post archive.
 - **tick 257 (iOS — refactor)** — boba_inlineGlossary now derives from GlossaryView.gameTerms; gameTerms + tradingTerms hoisted to `fileprivate static` (8838059). Single source of truth for iOS glossary content; future tick edits one array, not two. v2.307/569. Net -4 lines.

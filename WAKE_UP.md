@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 330 (opt, code style)** — CardDetailScreen: replaced 2 inline `androidx.compose.runtime.LaunchedEffect(...)` FQN call sites with top-of-file import + short reference. Pattern continues from tick 321 (FindScreen) + tick 325 (DecksScreen) — every file with multiple LaunchedEffect FQN call sites gets the same canonical import treatment.
 - **tick 329 (Android, Card Detail keyboard)** — Ctrl+→ / Ctrl+← walks Card Detail siblings (iOS Cmd+arrow tick 287 + web ArrowLeft/Right parity). Extended CardNavigationStore singleton with `requestAdvance: SharedFlow<Int>` + `advance(delta)`. MainActivity injects + passes through BOBAApp; root key handler emits on Ctrl+arrow. CardDetailScreen LaunchedEffect collects + applies the existing wrap-around math. Closes the 3-platform card-detail-keyboard-nav trio.
 - **tick 328 (web, polish)** — Brief 360ms cyan-flash animation on the Surprise pill when the `r` keyboard shortcut fires. Without it, the only visible feedback is the card-detail modal opening — keyboard users couldn't see which affordance fired. Honors prefers-reduced-motion.
 - **tick 327 (iOS v2.323 / 585)** — Added `.help()` tooltips surfacing the Cmd+S and Cmd+N keyboard shortcuts on iPad Decks SAVE pill + "+ New deck" sidebar button. Pointer-hover surfaces the shortcut on iPad with attached keyboard or Mac Catalyst-ish targets; iPhone ignores `.help()` (no pointer). Web-tick-318 tooltip parity for iOS.

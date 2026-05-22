@@ -545,6 +545,10 @@ private fun EmptyDeckCTA(modifier: Modifier = Modifier) {
     // alongside the visual change.
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
+    // Tick 301 — haptic on template load. Loading a 60-card deck is
+    // a "big-deal" moment (vs Quick Add of a single card); LongPress
+    // feedback signals the magnitude of what just happened.
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     LazyColumn(
         modifier = modifier,
@@ -584,6 +588,9 @@ private fun EmptyDeckCTA(modifier: Modifier = Modifier) {
                     .clickable {
                         val cards = template.expand(catalog)
                         if (cards.isNotEmpty()) {
+                            haptic.performHapticFeedback(
+                                androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress
+                            )
                             decksVm.clear()
                             decksVm.rename(template.name)
                             cards.forEach { decksVm.add(it) }

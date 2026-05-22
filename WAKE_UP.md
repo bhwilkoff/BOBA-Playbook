@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 219 (Android)** — Tournament events list gains "Last refreshed N" stamp (92fd3c9). EventsBundle now exposes lastUpdated; mirrors web tick 218.
 - **tick 218 (web)** — Tournament events list gains "Last refreshed N ago" stamp from bundle.lastUpdated (d60d2ad). Daily-cron freshness now visible.
 - **tick 217 (iOS)** — Inline glossary tap-to-define on RuleCard body (91b6b8b). **Closes Discord backlog #3 trio** (Android 186, web 208, iOS today). AttributedString-based; tap cyan term → NavigationStack sheet w/ definition. v2.298/560.
 - **tick 216 (Android)** — Rainbow progress upgraded to M3 Expressive `LinearWavyProgressIndicator` (7427050). First M3 Expressive API ship on Android; collection-completion now feels alive. Differentiates from iOS flat bar.

@@ -7,12 +7,8 @@
 //
 //  Pattern: NavigationStack push from a single root list of 5
 //  categories (Rules / Strategy / Collect / Glossary / Tournament).
-//  No Browse — Browse moved to Find per §8.1. No top-level Read/Watch
-//  toggle — Watch is accessible via a toolbar Menu item for now;
-//  future work folds video into per-article scopes (§8.2 anatomy).
-//
-//  Original 6-section middle picker + Read/Watch toggle + nested
-//  Rookie/Sub/Playmaker mode picker collapsed from depth 4 → depth 2.
+//  Watch is accessible via a toolbar Menu item; future work folds
+//  video into per-article scopes (§8.2 anatomy).
 //
 
 import SwiftUI

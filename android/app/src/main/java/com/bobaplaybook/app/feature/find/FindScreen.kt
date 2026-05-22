@@ -223,30 +223,53 @@ private fun FindContent(
                     val avatarUrl = (authForAvatar as? com.bobaplaybook.app.auth.AuthState.SignedIn)?.let { signed ->
                         profile?.avatarUrl ?: profile?.discordAvatarUrl ?: signed.providerAvatarUrl
                     }
-                    IconButton(onClick = onProfileClick) {
-                        if (avatarUrl != null) {
-                            val avatarCtx = androidx.compose.ui.platform.LocalContext.current
-                            coil3.compose.AsyncImage(
-                                model = coil3.request.ImageRequest.Builder(avatarCtx)
-                                    .data(avatarUrl).crossfade(150).build(),
-                                contentDescription = stringResource(R.string.action_profile),
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape),
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.AccountCircle,
-                                contentDescription = stringResource(R.string.action_profile),
-                            )
+                    // Tick 386 — TooltipBox parity with tick 384 Filters+Scan.
+                    // Chromebook / tablet hover (mouse) + long-press (touch)
+                    // show "Profile" before firing the action. iOS .help()
+                    // + web title= equivalent.
+                    androidx.compose.material3.TooltipBox(
+                        positionProvider = androidx.compose.material3.TooltipDefaults
+                            .rememberTooltipPositionProvider(
+                                androidx.compose.material3.TooltipAnchorPosition.Below
+                            ),
+                        tooltip = { PlainTooltip { Text("Profile") } },
+                        state = androidx.compose.material3.rememberTooltipState(),
+                    ) {
+                        IconButton(onClick = onProfileClick) {
+                            if (avatarUrl != null) {
+                                val avatarCtx = androidx.compose.ui.platform.LocalContext.current
+                                coil3.compose.AsyncImage(
+                                    model = coil3.request.ImageRequest.Builder(avatarCtx)
+                                        .data(avatarUrl).crossfade(150).build(),
+                                    contentDescription = stringResource(R.string.action_profile),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape),
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.AccountCircle,
+                                    contentDescription = stringResource(R.string.action_profile),
+                                )
+                            }
                         }
                     }
                 },
                 actions = {
                     Box {
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More")
+                        // Tick 386 — TooltipBox on overflow menu icon.
+                        androidx.compose.material3.TooltipBox(
+                            positionProvider = androidx.compose.material3.TooltipDefaults
+                                .rememberTooltipPositionProvider(
+                                    androidx.compose.material3.TooltipAnchorPosition.Below
+                                ),
+                            tooltip = { PlainTooltip { Text("More") } },
+                            state = androidx.compose.material3.rememberTooltipState(),
+                        ) {
+                            IconButton(onClick = { menuOpen = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More")
+                            }
                         }
                         FindOverflowMenu(
                             expanded = menuOpen,

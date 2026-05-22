@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 221 (Android)** — DeckSummaryBar gains format-name pill (6e81590). Closes parity gap with iOS DeckSummaryPill — user sees active format without opening editor.
 - **tick 220 (opt)** — Drop tracked .pyc + gitignore __pycache__/*.pyc/*.pyo (47f1cd0). Removes 1 binary; prevents future Python bytecode leakage into commits.
 - **tick 219 (Android)** — Tournament events list gains "Last refreshed N" stamp (92fd3c9). EventsBundle now exposes lastUpdated; mirrors web tick 218.
 - **tick 218 (web)** — Tournament events list gains "Last refreshed N ago" stamp from bundle.lastUpdated (d60d2ad). Daily-cron freshness now visible.

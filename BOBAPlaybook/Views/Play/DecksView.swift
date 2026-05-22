@@ -389,6 +389,8 @@ struct DecksView: View {
                 // visible. iPhone compact width has no sidebar; user
                 // discards via the editor toolbar Menu.
                 .keyboardShortcut("n", modifiers: [.command])
+                // Tick 327 — pointer-hover hint.
+                .help("Start a new deck (⌘N)")
             }
 
             if !auth.isAuthenticated {
@@ -618,6 +620,10 @@ struct DecksView: View {
                 // saving) since SwiftUI honors .disabled() for
                 // shortcuts on the same view.
                 .keyboardShortcut("s", modifiers: [.command])
+                // Tick 327 — surface the shortcut on iPad/Mac pointer
+                // hover (parity with web tick 318 tooltip). iPhone
+                // ignores .help() (no pointer).
+                .help(auth.isAuthenticated ? "Save deck (⌘S)" : "Sign in to save (⌘S)")
 
                 Menu {
                     Button {

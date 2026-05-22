@@ -520,9 +520,22 @@ private fun TournamentPage() {
         // (mirrored to android/.../blog-feed.json). Lets users catch up
         // on rules updates, release announcements, and community moments
         // without leaving the app.
-        val blogPosts = BlogFeedLoader.load(context).take(5)
+        val blogBundle = BlogFeedLoader.loadBundle(context)
+        val blogPosts = blogBundle.posts.take(5)
         if (blogPosts.isNotEmpty()) {
             item("blog-head") { BOBASectionHeader(title = "Recent BoBA news") }
+            // Tick 244 — surface bundle.lastUpdated as a freshness stamp,
+            // matching the events list (tick 219). Daily cron drives this.
+            blogBundle.lastUpdated?.takeIf { it.isNotBlank() }?.let { stamp ->
+                item("blog-stamp") {
+                    Text(
+                        text = "Last refreshed $stamp",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 0.dp),
+                    )
+                }
+            }
             items(blogPosts, key = { "blog-${it.id}" }) { post -> BlogPostRow(post) }
         }
 

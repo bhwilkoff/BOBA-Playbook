@@ -3766,7 +3766,8 @@
               </a>` : ''}
             </div>
             <div class="modal-collection-action">
-              <button class="btn-collection-add" data-action="add-to-collection">
+              <button class="btn-collection-add" data-action="add-to-collection"
+                      title="Add this sealed product to your collection">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                      width="15" height="15" aria-hidden="true">
                   <path d="M12 5v14M5 12h14"/>
@@ -3837,7 +3838,8 @@
             </div>`;
           })()}
           <div class="modal-collection-action">
-            <button class="btn-collection-add" data-action="add-to-collection">
+            <button class="btn-collection-add" data-action="add-to-collection"
+                    title="Add this card to your collection">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                    width="15" height="15" aria-hidden="true">
                 <path d="M12 5v14M5 12h14"/>

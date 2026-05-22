@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 213 (web — content)** — Set Ascension section in Learn → Collect (5b89004). Closes the Set Ascension trio (Android 209, iOS 212, web today). 3 variation-card tiers + Alpha Battlefoils bridge callout.
 - **tick 212 (iOS — content)** — Set Ascension section in Learn → Collect (80e0683). Mirrors Android tick 209. 3 tiers w/ era pills + Alpha Battlefoils bridge callout in ICE color. Web port queued. v2.297/559.
 - **tick 211 (Android)** — Discord link-state aware Profile row (33c8652). Renders Discord-avatar + CheckCircle in brand #5865F2 when linked; "Link" button only when not linked. Closes the "Link button always shown even when linked" polish gap.
 - **tick 210 (opt)** — SCRATCHPAD trim: 7 shipped "Deferred iPad" items, 4 strikethrough "Active / Next-Up" + 1 trailing TRADE-DESIGN note + 6-step Ben-action punch list collapsed to a WAKE_UP pointer (12a47a8). Net -28 lines.

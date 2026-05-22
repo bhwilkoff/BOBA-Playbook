@@ -571,9 +571,9 @@ object LearnCorpus {
         // from LearnCorpus.glossaryGame.
         LearnSection.Term(term = "Set Ascension", definition = "BoBA's framework for organizing play across three formats based on when cards released. Older sets don't fade — they ascend into legacy formats. The three tiers are Modern (active era), Hall of Fame (ascended era), and AlphaTrilogy (founders era). See Learn → Collect for the full article."),
         LearnSection.Term(term = "Modern", definition = "The Active-Era format in BoBA's Set Ascension. Cards from the past 2 years. Primary competitive format; best entry point for new players. Where most gameplay happens."),
-        LearnSection.Term(term = "Hall of Fame", definition = "The Ascended-Era format in BoBA's Set Ascension. Cards released 2+ years ago (as of January 1). Larger card pool with complex interactions; reserved for special, high-skill events. Emphasizes mastery over volume."),
+        LearnSection.Term(term = "Hall of Fame", definition = "The Ascended-Era format in BoBA's Set Ascension. Cards released 2+ years ago (as of January 1). Larger card library with complex interactions; reserved for special, high-skill events. Emphasizes mastery over volume."),
         LearnSection.Term(term = "AlphaTrilogy", definition = "The Founders-Era format in BoBA's Set Ascension. Exclusively original Alpha-era cards (first year). Celebrated annually with dedicated events. Alpha cards are also playable in Hall of Fame — preserves BoBA's foundation."),
-        LearnSection.Term(term = "Checklist", definition = "BoBA format where deck-building is restricted to a curated list of Plays (a Checklist). Each event publishes its own theme — high-offense, control, chaos, etc. Core mechanics stay identical; only the available card pool changes. Rewards creativity within constraints rather than finding the 'optimal' build."),
+        LearnSection.Term(term = "Checklist", definition = "BoBA format where deck-building is restricted to a curated list of Plays (a Checklist). Each event publishes its own theme — high-offense, control, chaos, etc. Core mechanics stay identical; only the available card library changes. Rewards creativity within constraints rather than finding the 'optimal' build."),
     )
 
     // Verbatim port from iOS LearnView.swift tradingTerms array.
@@ -658,12 +658,12 @@ object LearnCorpus {
         // chip strip + format dropdowns but never explained in Learn.
         LearnSection.Body(
             heading = "Checklist Format",
-            text = "Build decks from a curated list of Plays — a Checklist. Each Checklist creates its own gameplay environment with themed restrictions: high-offense, control, chaos, weapon-focused, etc. Core BoBA mechanics stay identical; only the available card pool changes.",
+            text = "Build decks from a curated list of Plays — a Checklist. Each Checklist creates its own gameplay environment with themed restrictions: high-offense, control, chaos, weapon-focused, etc. Core BoBA mechanics stay identical; only the available card library changes.",
         ),
         LearnSection.Bullets(
             heading = "What makes Checklist different",
             items = listOf(
-                "Limited card pool — only Plays from the active Checklist are legal",
+                "Limited card library — only Plays from the active Checklist are legal",
                 "Theme-driven gameplay (offense / control / chaos / weapon-focused)",
                 "Rotating or event-specific Checklists ensure variety",
                 "Some overlooked Plays suddenly become stars within their environment",

@@ -14,9 +14,12 @@ import kotlinx.coroutines.flow.asSharedFlow
  * Mirrors [com.bobaplaybook.app.feature.find.FindActions] from
  * tick 279.
  *
- * Currently carries:
+ * Carries:
  *  - [savePressed] — Ctrl+S keyboard shortcut → DecksScreen invokes
  *    save if the editor is open + auth + non-empty deck.
+ *  - [clearPressed] — `n` keyboard shortcut → DecksScreen surfaces
+ *    the clear-deck confirm dialog (or runs clear when draft empty).
+ *    iOS Cmd+N (v2.322) + web 'n' (tick 323) parity.
  */
 @Singleton
 class DecksActions @Inject constructor() {
@@ -26,7 +29,17 @@ class DecksActions @Inject constructor() {
     )
     val savePressed: SharedFlow<Unit> = _savePressed.asSharedFlow()
 
+    private val _clearPressed = MutableSharedFlow<Unit>(
+        replay = 0,
+        extraBufferCapacity = 1,
+    )
+    val clearPressed: SharedFlow<Unit> = _clearPressed.asSharedFlow()
+
     fun requestSave() {
         _savePressed.tryEmit(Unit)
+    }
+
+    fun requestClear() {
+        _clearPressed.tryEmit(Unit)
     }
 }

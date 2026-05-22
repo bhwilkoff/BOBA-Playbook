@@ -212,6 +212,15 @@ fun BOBAApp(
                             findActions.requestSurprise()
                             return@onPreviewKeyEvent true
                         }
+                        // Tick 324 — `n` (no modifier) clears deck draft
+                        // on Decks tab. iOS Cmd+N (v2.322) + web 'n'
+                        // (tick 323) parity. Closes the 3-platform trio.
+                        if (!event.isCtrlPressed && event.key == Key.N
+                            && currentDestination == AppDestination.DECKS
+                        ) {
+                            decksActions.requestClear()
+                            return@onPreviewKeyEvent true
+                        }
                         if (!event.isCtrlPressed) return@onPreviewKeyEvent false
                         // Tick 309 — Ctrl+S fires Save on Decks editor.
                         // iOS Cmd+S (v2.319) + web Ctrl+S parity.

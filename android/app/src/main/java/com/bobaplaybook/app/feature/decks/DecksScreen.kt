@@ -205,6 +205,16 @@ private fun DecksCompactScreen(
             }
         }
     }
+    // Tick 324 — `n` from root → surface the clear-deck confirm
+    // dialog (or no-op if draft is already empty). Matches the
+    // existing Clear-button tap behavior at line 326-327.
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        decksActionsVm.bus.clearPressed.collect {
+            if (draft.cards.isNotEmpty()) {
+                clearConfirmOpen = true
+            }
+        }
+    }
 
     Scaffold(
         modifier = modifier,

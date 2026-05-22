@@ -809,6 +809,22 @@ struct SearchView: View {
                 RoundedRectangle(cornerRadius: Design.Radius.md)
                     .strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 1)
             )
+            // Tick 342 — secondary CTA: discover a card from the full
+            // catalog rather than fighting the filter. Two clicks
+            // collapsed into one. Clears filters then fires surprise.
+            Button {
+                store.clearAllFilters()
+                // Defer surprise until the filteredCards array
+                // recomputes (next runloop). Without the dispatch,
+                // surpriseMe runs against the still-empty old array
+                // and no-ops.
+                DispatchQueue.main.async { surpriseMe() }
+            } label: {
+                Label("Surprise me from all cards", systemImage: "sparkles")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+            }
+            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 80)

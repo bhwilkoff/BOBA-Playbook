@@ -4202,6 +4202,28 @@ dialog.modal-overlay[open] {
 .format-legality-illegal     .format-legality-dot { background: #c0392b; }
 .format-legality-illegal     { color: rgba(255,255,255,0.5); }
 
+/* Tick 208 — Discord backlog #3. Inline glossary tappable terms in
+   Learn article prose. Underlined cyan to read as "this is a defined
+   term, tap me." Match the existing .glossary-term color but kept
+   inline-with-text and dense so the article copy stays readable. */
+.glossary-inline {
+  display: inline;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--boba-cyan);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+.glossary-inline:hover,
+.glossary-inline:focus-visible {
+  background: rgba(0, 245, 255, 0.10);
+  border-radius: 2px;
+}
+
 /* Custom Rainbows — read-only display on the Collection page.
    Each rainbow is a <details>: summary row + thumbnail strip below.
    Parity with iOS CustomRainbowStore + RainbowDetailView (DESIGN.md

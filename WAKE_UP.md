@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 270 (opt, −54 lines)** — iOS LearnView: deleted unused `MiniPlayCardView` struct (0 callers app-wide). Likely left over from a Strategy section that no longer renders Play card thumbnails. Net-remove satisfies the every-5th-tick opt cadence.
 - **tick 269 (Android, Learn corpus depth)** — Substitution + Resource Management strategy ported from iOS depth. Each section: 1 Body + 1 Bullets list (the iOS bullet specificity Android was missing). Adds Honors-first-act, opponent-Hot-Dog tracking, free-Play economics, and Bonus-Play timing rules to Strategy page.
 - **tick 268 (web)** — Surprise Me ported to web (results-bar pill 🎲 Surprise) with the same 30% rarity bias. Closes the 3-platform trio. Opens the existing card-detail modal via openModal.
 - **tick 267 (iOS, v2.310 / 572)** — Surprise Me ported to iOS (Find overflow menu) with the same 30% rarity bias. Pushes detail via the same CardRoute path as a tap.

@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 
 /**
@@ -167,20 +168,27 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                             )
                         },
                         trailingContent = {
+                            // Tick 411 — BOBAIconTooltip for hover/long-press
+                            // affordance hints (extends tick 400's helper to
+                            // Manage Decks per-row actions).
                             Row {
-                                IconButton(onClick = { pendingRename = deck.id }) {
-                                    Icon(
-                                        Icons.Default.Edit,
-                                        contentDescription = "Rename deck",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                                BOBAIconTooltip("Rename deck") {
+                                    IconButton(onClick = { pendingRename = deck.id }) {
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = "Rename deck",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
                                 }
-                                IconButton(onClick = { pendingDelete = deck.id }) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Delete deck",
-                                        tint = MaterialTheme.colorScheme.error,
-                                    )
+                                BOBAIconTooltip("Delete deck") {
+                                    IconButton(onClick = { pendingDelete = deck.id }) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Delete deck",
+                                            tint = MaterialTheme.colorScheme.error,
+                                        )
+                                    }
                                 }
                             }
                         },

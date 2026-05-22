@@ -875,11 +875,20 @@
       const stampHtml = stampStr
         ? `<div class="events-last-updated">Last refreshed ${escHtml(relativeDate(stampStr))}</div>`
         : '';
+      // Tick 253 — partition events into upcoming vs past. iOS/Android
+      // surfaces currently render all events identically regardless of
+      // date; web now dims past events + appends a "PAST" suffix to the
+      // date so users can tell at a glance which tournaments concluded.
+      // events.json is sorted by date asc so we don't need to re-sort.
+      const today = new Date().toISOString().slice(0, 10);  // YYYY-MM-DD
       list.innerHTML = stampHtml + events.map(ev => {
         const accent = accentFor(ev.kind);
-        const date = (ev.date && ev.date.trim()) ? ev.date : 'Date TBA';
+        const isPast = ev.date && ev.date.trim() && ev.date < today;
+        const date = (ev.date && ev.date.trim())
+          ? (isPast ? `${ev.date} · PAST` : ev.date)
+          : 'Date TBA';
         const url  = (ev.url && ev.url.trim()) ? ev.url : null;
-        const open = url ? `<span class="event-open" style="color: ${accent}">Open ↗</span>` : '';
+        const open = url && !isPast ? `<span class="event-open" style="color: ${accent}">Open ↗</span>` : '';
         const desc = (ev.description && ev.description.trim())
           ? `<p class="event-desc">${escHtml(ev.description)}</p>` : '';
         const loc  = ev.location ? `<div class="event-loc">Location: ${escHtml(ev.location)}</div>` : '';
@@ -892,7 +901,7 @@
         const attrs = url
           ? ` href="${escHtml(url)}" target="_blank" rel="noopener noreferrer"` : '';
         return `
-          <${tag} class="event-row${url ? ' event-row--link' : ''}" style="border-color: ${accent}66"${attrs}>
+          <${tag} class="event-row${url && !isPast ? ' event-row--link' : ''}${isPast ? ' event-row--past' : ''}" style="border-color: ${accent}66"${attrs}>
             <div class="event-head">
               <span class="event-kind" style="color: ${accent}">${escHtml((ev.kind || '').toUpperCase())}</span>
               <span class="event-dot">·</span>

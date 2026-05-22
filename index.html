@@ -1803,6 +1803,14 @@
         -->
         <div id="play-panel-glossary" class="play-panel" hidden role="tabpanel" aria-labelledby="play-tab-glossary">
           <p class="glossary-instructions">Press and hold any term (right-click on desktop) to copy or share its definition.</p>
+          <!-- Tick 348 — substring filter (iOS v2.327 parity). Type to
+               narrow both Game + Trading sections; sections hide when
+               empty. Empty-search state surfaced as inline message. -->
+          <input type="search" class="filter-input glossary-search-input"
+                 id="glossary-search-input"
+                 placeholder="Search glossary terms…"
+                 aria-label="Search glossary">
+          <p class="glossary-search-empty" id="glossary-search-empty" hidden></p>
           <section class="glossary-section">
             <h3 class="tournament-heading">GAME GLOSSARY</h3>
             <p class="glossary-blurb">Terms you'll hear in rules discussions, deck building, and battle flow.</p>

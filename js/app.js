@@ -930,6 +930,122 @@
       }
     }, true);
 
+    // Tick 208 — Discord backlog #3 (closes the trio). Inline
+    // glossary tap-to-define on Learn article prose. Mirrors Android
+    // GlossaryAwareBody (which wraps glossary terms in clickable spans
+    // and opens a sheet). Web uses the same Popover-API helper as the
+    // glossary-row long-press menu so the affordance reads consistently.
+    wireInlineGlossary();
+
+    function wireInlineGlossary() {
+      // Collect terms from the glossary tab DOM — same data we'd ship
+      // in any other lookup. Only run once per page load.
+      if (document.body.dataset.glossaryInlineWired === 'true') return;
+      const rows = document.querySelectorAll('#play-panel-glossary .glossary-row');
+      if (rows.length === 0) return;
+      const terms = Array.from(rows).map(r => ({
+        term: r.dataset.term || '',
+        def:  r.dataset.def  || '',
+      })).filter(t => t.term && t.def);
+      // Longest-match-wins. Word boundary for letter-edged terms; for
+      // terms with non-letter chars (G&S, F/S) we use lookarounds so
+      // the boundary still brackets correctly.
+      terms.sort((a, b) => b.term.length - a.term.length);
+      const containers = document.querySelectorAll(
+        '#play-panel-rules p, #play-panel-rules li, ' +
+        '#play-panel-strategy p, #play-panel-strategy li, ' +
+        '#play-panel-collecting p, #play-panel-collecting li, ' +
+        '#play-panel-tournament p, #play-panel-tournament li'
+      );
+      // Skip terms with very common short forms that would over-match
+      // ("Spec" appears in chip strips; "BP" in shorthand).
+      const skipShort = new Set(['BP', 'HD', 'HP', 'AP']);
+      const safeTerms = terms.filter(t => !skipShort.has(t.term));
+      containers.forEach(el => wrapTermsInside(el, safeTerms));
+      document.body.dataset.glossaryInlineWired = 'true';
+
+      // Click handler — delegated.
+      document.addEventListener('click', e => {
+        const btn = e.target?.closest?.('.glossary-inline');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const term = btn.dataset.term || '';
+        const def  = btn.dataset.def  || '';
+        if (!term || !def) return;
+        if (typeof window.bobaShowPopoverMenu === 'function') {
+          window.bobaShowPopoverMenu({
+            anchor: btn,
+            title: term,
+            items: [
+              { label: def, onSelect: () => {} },
+              { label: 'Copy definition', onSelect: () => {
+                navigator.clipboard?.writeText(`${term} — ${def}`).catch(() => {});
+              }},
+            ],
+          });
+        } else {
+          alert(`${term} — ${def}`);
+        }
+      });
+    }
+
+    function wrapTermsInside(root, terms) {
+      // Walk leaf text nodes only; skip code/a/button/headings.
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode(n) {
+          const p = n.parentElement;
+          if (!p) return NodeFilter.FILTER_REJECT;
+          const skipTags = ['CODE','PRE','A','BUTTON','H1','H2','H3','H4','H5','H6','SCRIPT','STYLE'];
+          if (skipTags.includes(p.tagName)) return NodeFilter.FILTER_REJECT;
+          if (p.closest('.glossary-inline')) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      const targets = [];
+      let node;
+      while ((node = walker.nextNode())) targets.push(node);
+      for (const textNode of targets) {
+        const text = textNode.nodeValue || '';
+        // Build a regex once per call, alternation of all term patterns.
+        // Longest first so "Hot Dog" beats "Hot".
+        const patterns = terms.map(t => {
+          const esc = t.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const first = t.term[0], last = t.term[t.term.length - 1];
+          const isLetterEdged = /[A-Za-z0-9]/.test(first) && /[A-Za-z0-9]/.test(last);
+          return isLetterEdged ? `\\b${esc}\\b` : `(?<![A-Za-z0-9])${esc}(?![A-Za-z0-9])`;
+        });
+        const combined = new RegExp(patterns.join('|'), 'g');
+        if (!combined.test(text)) continue;
+        combined.lastIndex = 0;
+        const frag = document.createDocumentFragment();
+        let cursor = 0;
+        let m;
+        while ((m = combined.exec(text)) !== null) {
+          if (m.index > cursor) {
+            frag.appendChild(document.createTextNode(text.slice(cursor, m.index)));
+          }
+          const hit = terms.find(t => t.term === m[0]);
+          if (hit) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'glossary-inline';
+            btn.dataset.term = hit.term;
+            btn.dataset.def  = hit.def;
+            btn.textContent = m[0];
+            frag.appendChild(btn);
+          } else {
+            frag.appendChild(document.createTextNode(m[0]));
+          }
+          cursor = m.index + m[0].length;
+        }
+        if (cursor < text.length) {
+          frag.appendChild(document.createTextNode(text.slice(cursor)));
+        }
+        textNode.parentNode.replaceChild(frag, textNode);
+      }
+    }
+
     // Mode switching — syncs rules-mode-btn tabs and rules-content visibility.
     const modeBtns    = document.querySelectorAll('.rules-mode-btn');
     const modeContent = document.querySelectorAll('.rules-content');

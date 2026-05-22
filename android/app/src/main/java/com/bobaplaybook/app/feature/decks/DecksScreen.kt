@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -226,21 +227,41 @@ private fun DecksCompactScreen(
             CenterAlignedTopAppBar(
                 title = { BOBAWordmark() },
                 actions = {
-                    IconButton(onClick = onScanClick) {
-                        Icon(
-                            imageVector = Icons.Default.QrCodeScanner,
-                            contentDescription = "Scan a card",
-                        )
+                    // Tick 396 — TooltipBox parity with Find tick 384 +
+                    // Collection tick 394. Long-press / mouse-hover hint.
+                    androidx.compose.material3.TooltipBox(
+                        positionProvider = androidx.compose.material3.TooltipDefaults
+                            .rememberTooltipPositionProvider(
+                                androidx.compose.material3.TooltipAnchorPosition.Below
+                            ),
+                        tooltip = { PlainTooltip { Text("Scan into current deck") } },
+                        state = androidx.compose.material3.rememberTooltipState(),
+                    ) {
+                        IconButton(onClick = onScanClick) {
+                            Icon(
+                                imageVector = Icons.Default.QrCodeScanner,
+                                contentDescription = "Scan a card",
+                            )
+                        }
                     }
                     // Editor opens via the bottom DeckSummaryBar drawer.
                     // The duplicate top-bar Edit button was confusing —
                     // there's now exactly one way to open the editor.
                     Box {
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More",
-                            )
+                        androidx.compose.material3.TooltipBox(
+                            positionProvider = androidx.compose.material3.TooltipDefaults
+                                .rememberTooltipPositionProvider(
+                                    androidx.compose.material3.TooltipAnchorPosition.Below
+                                ),
+                            tooltip = { PlainTooltip { Text("Templates, manage, rules, legality…") } },
+                            state = androidx.compose.material3.rememberTooltipState(),
+                        ) {
+                            IconButton(onClick = { menuOpen = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "More",
+                                )
+                            }
                         }
                         DropdownMenu(
                             expanded = menuOpen,

@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 265 (opt)** — PARITY audit: 10 stale rows corrected to reflect shipped Android state (ca49a35). Find a Store / Discord OAuth / Universal Links + custom scheme + routes / Discord identity / OAuth callback all bumped ⏳ → ✅; Filters: radius / Per-tab routing bumped ⏳ → 🚧 partial.
 - **tick 264 (Android — new feature)** — Find overflow gains "Surprise me 🎲" item (5a80ded). Pulls a random card from current filtered results and pushes detail. Discovery affordance for the 17,974-card catalog. iOS + web parallel ports queued.
 - **tick 263 (web)** — Find right-click contextMenu (Add to Personal / Mark as Wanted / View card) via Popover API (1c96713). Mirrors iOS tick 262. Mobile users still use Quick Add toggle.
 - **tick 262 (iOS — new feature)** — Find grid contextMenu (long-press card) — Add to Personal / Mark as Wanted / View card (e22ff71). Skips the full Add sheet for common cases. Signed-out users see clear "Sign in to add" alert. v2.309/571.

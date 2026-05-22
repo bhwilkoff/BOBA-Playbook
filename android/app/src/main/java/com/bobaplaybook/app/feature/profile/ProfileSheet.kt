@@ -921,6 +921,55 @@ private fun SignedInContent(
             )
         }
 
+        // Tick 334 — Keyboard shortcuts cheat sheet (web tick 333 parity).
+        // Useful on Chromebook + tablets with paired keyboard. Hidden on
+        // phone via touchscreen-mode check: if the device has no
+        // hardware keyboard configured, the cheat sheet adds noise more
+        // than value.
+        val isPhoneOnlyTouch = androidx.compose.ui.platform.LocalConfiguration.current
+            .keyboard == android.content.res.Configuration.KEYBOARD_NOKEYS
+        if (!isPhoneOnlyTouch) {
+            item("shortcuts-header") {
+                BOBASectionHeader(title = "Keyboard shortcuts")
+            }
+            val shortcuts = listOf(
+                "Ctrl+1..5" to "Switch tabs",
+                "/" to "Focus search (Find)",
+                "R" to "Surprise me · random card (Find)",
+                "N" to "Clear deck draft (Decks)",
+                "Ctrl+S" to "Save deck (Decks)",
+                "Ctrl+← / Ctrl+→" to "Prev / next card (Card detail)",
+            )
+            shortcuts.forEach { (combo, desc) ->
+                item("shortcut-$combo") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = MaterialTheme.shapes.small,
+                        ) {
+                            Text(
+                                combo,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            )
+                        }
+                        Text(
+                            desc,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+
         item("divider") { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
 
         item("signout") {

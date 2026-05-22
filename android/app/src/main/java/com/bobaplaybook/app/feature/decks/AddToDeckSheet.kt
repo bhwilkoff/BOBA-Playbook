@@ -89,6 +89,12 @@ fun AddToDeckSheet(
             val projectedDBS = draft.totalDBS + (card.dbs ?: 0)
             val projectedPlays = draft.playCount + draft.bonusCount +
                 (if (card.cardType.contains("Play", ignoreCase = true)) 1 else 0)
+            // Tick 496 — heroes count was the only stat not projected:
+            // adding a hero showed "4 heroes · 30/30 plays" even when
+            // the deck was about to hit 5/8 heroes. Now consistent with
+            // plays/HD/DBS — all four show post-add state.
+            val projectedHeroes = draft.heroCount + (if (card.isHero) 1 else 0)
+            val overHeroes = projectedHeroes > draft.heroCap
             val overHD = projectedHD > draft.hdCap
             val overPlays = projectedPlays > draft.playCap
             val overDBS = draft.enforcesDBS && projectedDBS > draft.dbsBudget
@@ -109,9 +115,9 @@ fun AddToDeckSheet(
                             )
                         }
                         Text(
-                            "${draft.heroCount} heroes · $projectedPlays/${draft.playCap} plays · $projectedHD/${draft.hdCap} HD",
+                            "$projectedHeroes/${draft.heroCap} heroes · $projectedPlays/${draft.playCap} plays · $projectedHD/${draft.hdCap} HD",
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (overHD || overPlays) MaterialTheme.colorScheme.error
+                            color = if (overHD || overPlays || overHeroes) MaterialTheme.colorScheme.error
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         if (draft.enforcesDBS) {

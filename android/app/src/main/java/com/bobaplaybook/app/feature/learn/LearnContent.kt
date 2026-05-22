@@ -591,6 +591,17 @@ object LearnCorpus {
         LearnSection.Term(term = "Hall of Fame", definition = "The Ascended-Era format in BoBA's Set Ascension. Cards released 2+ years ago (as of January 1). Larger card library with complex interactions; reserved for special, high-skill events. Emphasizes mastery over volume."),
         LearnSection.Term(term = "AlphaTrilogy", definition = "The Founders-Era format in BoBA's Set Ascension. Exclusively original Alpha-era cards (first year). Celebrated annually with dedicated events. Alpha cards are also playable in Hall of Fame — preserves BoBA's foundation."),
         LearnSection.Term(term = "Checklist", definition = "BoBA format where deck-building is restricted to a curated list of Plays (a Checklist). Each event publishes its own theme — high-offense, control, chaos, etc. Core mechanics stay identical; only the available card library changes. Rewards creativity within constraints rather than finding the 'optimal' build."),
+        // Tick 369 — web tick 368 parity. Game-mechanic + division
+        // terms used by Double-Up + Madness + Nationals sections that
+        // had no glossary entry before, so the inline glossary-aware
+        // body renderer had nothing to bite on for those terms.
+        LearnSection.Term(term = "Hero Deck", definition = "Your stack of Heroes you'll send into battle. Reveal the top one each battle; if your Hero Deck runs out during Sudden Death, reshuffle the Discard back in."),
+        LearnSection.Term(term = "Sudden Death", definition = "The 8th battle that fires when a game ends 3–3 after 7 battles. Coaches reveal Heroes until one wins outright. No more substitutions — the next deck-top decides it."),
+        LearnSection.Term(term = "Top Deck", definition = "Reveal the top card of your Hero Deck. Used as the Sudden Death and Double-Up tiebreaker — highest Power wins. Each tied game keeps Top Decking until a Coach pulls higher."),
+        LearnSection.Term(term = "Laundry Phase", definition = "The window between battles when Coaches can offer or accept a Press in a Double-Up game. Named because Coaches often switch to laundry-themed weapon trash-talk while deciding."),
+        LearnSection.Term(term = "Apex", definition = "The premier BoBA division — full Apex deck rules, no power cap, \$150K prize pool, free to enter at the 2026 Nationals. Apex Madness pairs an Apex deck with Spec 160 teammates."),
+        LearnSection.Term(term = "Brawl", definition = "A heritage BoBA format — single-weapon decks where every Hero shares the same weapon. Also a weapon type introduced in 2026 Edition. The Brawl division at the 2026 Nationals offers \$20K + product."),
+        LearnSection.Term(term = "Tecmo Bowl", definition = "2026 edition (June 18 release) themed around the iconic Tecmo Bowl video game. Retro-themed Heroes and Plays; Tecmo + Pixel art treatments. Its own \$50K Nationals division."),
     )
 
     // Verbatim port from iOS LearnView.swift tradingTerms array.

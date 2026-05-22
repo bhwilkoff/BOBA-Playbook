@@ -1774,13 +1774,13 @@ private struct GlossaryView: View {
         .init(term: "Rainbow",     definition: "Community collecting goal — owning every treatment variation of a single hero (Base + all foils + autos). Tracked in the Collection tab's Rainbow view."),
         .init(term: "Chillin' / Grillen", definition: "Chillin' is an active treatment name (Chillin' Battlefoil). In older Spec rules, players sometimes say 'chillin' for Ice and 'grillen' for Fire — those are legacy slang for the weapon elements. The current rules use Ice and Fire."),
         .init(term: "Double-Up (Press / Fold)", definition: "Optional betting mechanic any game mode can add. Each Coach gets one Press per game to double the game's point value; the opponent then Folds (ends the game) or Presses back. A whole new \"Laundry Phase\" between battles."),
-        .init(term: "Checklist", definition: "BoBA format where deck-building is restricted to a curated list of Plays (a Checklist). Each event publishes its own theme — high-offense, control, chaos, etc. Core mechanics stay identical; only the available card pool changes. Rewards creativity within constraints rather than finding the 'optimal' build."),
+        .init(term: "Checklist", definition: "BoBA format where deck-building is restricted to a curated list of Plays (a Checklist). Each event publishes its own theme — high-offense, control, chaos, etc. Core mechanics stay identical; only the available card library changes. Rewards creativity within constraints rather than finding the 'optimal' build."),
         // Tick 250 — Set Ascension terms parity with web tick 228 +
         // Android tick 229. boba_inlineGlossary (tick 242) had these but
         // the Glossary tab itself didn't — surface-level inconsistency.
         .init(term: "Set Ascension", definition: "BoBA's framework for organizing play across three formats based on when cards released. Older sets don't fade — they ascend into legacy formats. The three tiers are Modern (active era), Hall of Fame (ascended era), and AlphaTrilogy (founders era). See Learn → Collect for the full article."),
         .init(term: "Modern", definition: "The Active-Era format in BoBA's Set Ascension. Cards from the past 2 years. Primary competitive format; best entry point for new players. Where most gameplay happens."),
-        .init(term: "Hall of Fame", definition: "The Ascended-Era format in BoBA's Set Ascension. Cards released 2+ years ago (as of January 1). Larger card pool with complex interactions; reserved for special, high-skill events. Emphasizes mastery over volume."),
+        .init(term: "Hall of Fame", definition: "The Ascended-Era format in BoBA's Set Ascension. Cards released 2+ years ago (as of January 1). Larger card library with complex interactions; reserved for special, high-skill events. Emphasizes mastery over volume."),
         .init(term: "AlphaTrilogy", definition: "The Founders-Era format in BoBA's Set Ascension. Exclusively original Alpha-era cards (first year). Celebrated annually with dedicated events. Alpha cards are also playable in Hall of Fame — preserves BoBA's foundation."),
     ]
 
@@ -2910,7 +2910,7 @@ private struct HeroDeckFormatsSection: View {
 // "Checklist" but no Learn article explained it.
 private struct ChecklistFormatSection: View {
     private let bullets: [String] = [
-        "Limited card pool — only Plays from the active Checklist are legal",
+        "Limited card library — only Plays from the active Checklist are legal",
         "Theme-driven gameplay (offense / control / chaos / weapon-focused)",
         "Rotating or event-specific Checklists ensure variety",
         "Some overlooked Plays suddenly become stars within their environment",
@@ -2923,7 +2923,7 @@ private struct ChecklistFormatSection: View {
                 .foregroundStyle(Design.Colors.textMuted)
                 .tracking(1.5)
             GlossaryAwareText(
-                raw: "Build decks from a curated list of Plays — a Checklist. Each Checklist creates its own gameplay environment with themed restrictions: high-offense, control, chaos, weapon-focused, etc. Core BoBA mechanics stay identical; only the available card pool changes.",
+                raw: "Build decks from a curated list of Plays — a Checklist. Each Checklist creates its own gameplay environment with themed restrictions: high-offense, control, chaos, weapon-focused, etc. Core BoBA mechanics stay identical; only the available card library changes.",
                 font: Design.Fonts.mono(13),
                 color: Design.Colors.textSecondary
             )

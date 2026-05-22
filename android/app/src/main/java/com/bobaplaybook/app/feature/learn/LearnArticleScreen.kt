@@ -480,7 +480,10 @@ private fun FlatSectionsPage(sections: List<LearnSection>) {
 @Composable
 private fun TournamentPage() {
     val context = LocalContext.current
-    val events = remember { EventsLoader.load(context) }
+    // Tick 219 — Android parity with web tick 218 + iOS LearnView events
+    // surface. Bundle includes lastUpdated so the user sees data freshness.
+    val bundle = remember { EventsLoader.loadBundle(context) }
+    val events = bundle.events
     val sections = LearnCorpus.tournament
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -488,6 +491,16 @@ private fun TournamentPage() {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item("events-head") { BOBASectionHeader(title = "Upcoming events") }
+        bundle.lastUpdated?.takeIf { it.isNotBlank() }?.let { stamp ->
+            item("events-stamp") {
+                Text(
+                    text = "Last refreshed $stamp",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 0.dp),
+                )
+            }
+        }
         if (events.isEmpty()) {
             item("events-empty") {
                 Text(

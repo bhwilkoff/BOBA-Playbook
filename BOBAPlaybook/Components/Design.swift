@@ -796,6 +796,7 @@ struct BOBACardCell: View {
                     .strokeBorder(borderColor, lineWidth: 1)
             )
             .overlay(alignment: .topTrailing) { printRunBadge }
+            .overlay(alignment: .bottomLeading) { formatLegalityHintBadge }
             .elementGlow(card.isSealed ? "NONE" : card.element)
     }
 
@@ -813,6 +814,25 @@ struct BOBACardCell: View {
     private var printRunBadge: some View {
         if size == .full, let label = card.printRunLabel, !label.isEmpty {
             PrintRunBadge(label: label).padding(4)
+        }
+    }
+
+    /// Bottom-leading format-legality hint (Android tick 464 parity /
+    /// Discord backlog #4 carry-forward). Surfaces only when the card
+    /// is legal in less than all 4 formats — so common cards stay
+    /// unmarked and restricted cards stand out in a grid. .full-only
+    /// gate matches printRunBadge.
+    @ViewBuilder
+    private var formatLegalityHintBadge: some View {
+        if size == .full, let hint = CardFormatEligibility.restrictedLegalAbbrev(for: card) {
+            Text(hint)
+                .font(Design.Fonts.mono(10, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaOrange)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(Color.black.opacity(0.62))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .padding(4)
         }
     }
 }

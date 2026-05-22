@@ -184,16 +184,37 @@ fun CardDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        state.card?.let { c ->
-                            scope.launch { CardShareHelper.share(context, c) }
+                    // Tick 399 — TooltipBox parity with Find/Decks/Collection
+                    // TopAppBars (ticks 384/394/396). Mouse-hover / long-press
+                    // surface the affordance.
+                    androidx.compose.material3.TooltipBox(
+                        positionProvider = androidx.compose.material3.TooltipDefaults
+                            .rememberTooltipPositionProvider(
+                                androidx.compose.material3.TooltipAnchorPosition.Below
+                            ),
+                        tooltip = { PlainTooltip { Text("Share card") } },
+                        state = androidx.compose.material3.rememberTooltipState(),
+                    ) {
+                        IconButton(onClick = {
+                            state.card?.let { c ->
+                                scope.launch { CardShareHelper.share(context, c) }
+                            }
+                        }) {
+                            Icon(Icons.Default.Share, contentDescription = "Share")
                         }
-                    }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
                     }
                     Box {
-                        IconButton(onClick = { addMenuOpen = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Add")
+                        androidx.compose.material3.TooltipBox(
+                            positionProvider = androidx.compose.material3.TooltipDefaults
+                                .rememberTooltipPositionProvider(
+                                    androidx.compose.material3.TooltipAnchorPosition.Below
+                                ),
+                            tooltip = { PlainTooltip { Text("Add to Collection, Deck, or Show") } },
+                            state = androidx.compose.material3.rememberTooltipState(),
+                        ) {
+                            IconButton(onClick = { addMenuOpen = true }) {
+                                Icon(Icons.Default.Add, contentDescription = "Add")
+                            }
                         }
                         DropdownMenu(
                             expanded = addMenuOpen,

@@ -869,7 +869,7 @@ private fun exportDraftAsCsv(context: android.content.Context, draft: DeckDraft)
             c.bobaId,
             c.displayName.csvEscape(),
             c.cardType.csvEscape(),
-            (c.set ?: "").csvEscape(),
+            c.set.csvEscape(),
             c.cardNumber.csvEscape(),
             c.cost?.toString().orEmpty(),
             c.dbs?.toString().orEmpty(),

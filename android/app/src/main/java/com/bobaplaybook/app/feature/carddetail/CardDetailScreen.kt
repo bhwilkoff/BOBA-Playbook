@@ -240,6 +240,11 @@ fun CardDetailScreen(
         // body's vertical scroll wins. Only fires when there's at
         // least one sibling to navigate to. Mirrors iOS
         // CardDetailView.swift simultaneousGesture with ±60pt threshold.
+        // Tick 291 — TextHandleMove haptic on every successful card swap
+        // gives a subtle tactile "stuck" feel that confirms the swipe
+        // registered without competing with the existing button-tap
+        // haptics. Same idiom as Find long-press add (tick 249).
+        val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
         val swipeMod = if (siblingIds.size > 1) {
             Modifier.pointerInput(siblingIds, currentBobaId) {
                 var totalDx = 0f
@@ -254,6 +259,9 @@ fun CardDetailScreen(
                         val delta = if (totalDx < 0) 1 else -1
                         // Wrap — matches iOS (`(index + delta + n) % n`).
                         currentBobaId = siblingIds[((idx + delta) % n + n) % n]
+                        haptic.performHapticFeedback(
+                            androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove
+                        )
                     },
                 ) { _, dragAmount ->
                     totalDx += dragAmount

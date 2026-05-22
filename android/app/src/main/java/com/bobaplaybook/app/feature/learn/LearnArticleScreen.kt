@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import com.bobaplaybook.core.domain.model.Card
@@ -1013,43 +1014,45 @@ private fun GlossaryAwareBody(text: String) {
     val hits = remember(text) { detectGlossaryHits(text, terms) }
     var openHit by remember { mutableStateOf<GlossaryHit?>(null) }
     val cyan = com.bobaplaybook.core.ui.theme.BobaBrand.Cyan
+    // Tick 235 — migrate from deprecated `ClickableText` to native
+    // `Text(AnnotatedString)` + `LinkAnnotation.Clickable`. Each
+    // glossary hit becomes a per-link tappable span; the listener
+    // captures `openHit`'s setter so the sheet fires correctly.
+    val linkStyle = androidx.compose.ui.text.TextLinkStyles(
+        style = androidx.compose.ui.text.SpanStyle(
+            color = cyan,
+            textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+        )
+    )
     val annotated = remember(text, hits) {
         androidx.compose.ui.text.buildAnnotatedString {
             var cursor = 0
             for (h in hits) {
                 if (h.range.first > cursor) append(text.substring(cursor, h.range.first))
-                pushStringAnnotation(tag = "glossary", annotation = h.term)
-                withStyle(
-                    androidx.compose.ui.text.SpanStyle(
-                        color = cyan,
-                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                    )
-                ) { append(text.substring(h.range.first, h.range.last + 1)) }
-                pop()
+                val capturedTerm = h.term
+                val link = androidx.compose.ui.text.LinkAnnotation.Clickable(
+                    tag = "glossary",
+                    styles = linkStyle,
+                    linkInteractionListener = {
+                        openHit = hits.firstOrNull { it.term == capturedTerm }
+                    },
+                )
+                withLink(link) {
+                    append(text.substring(h.range.first, h.range.last + 1))
+                }
                 cursor = h.range.last + 1
             }
             if (cursor < text.length) append(text.substring(cursor))
         }
     }
-    // ClickableText is technically deprecated in favor of Text + new
-    // LinkAnnotation API, but ClickableText with pushStringAnnotation
-    // is the simpler shape and works through Compose 1.7+ without an
-    // API-availability surprise. Future tick may swap to LinkAnnotation
-    // once the pattern is stable.
-    androidx.compose.foundation.text.ClickableText(
+    Text(
         text = annotated,
         style = MaterialTheme.typography.bodyMedium.copy(
             color = MaterialTheme.colorScheme.onSurface,
             lineHeight = 22.sp,
         ),
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        onClick = { offset ->
-            annotated.getStringAnnotations(tag = "glossary", start = offset, end = offset)
-                .firstOrNull()?.item?.let { term ->
-                    openHit = hits.firstOrNull { it.term == term }
-                }
-        },
     )
     val hit = openHit
     if (hit != null) {

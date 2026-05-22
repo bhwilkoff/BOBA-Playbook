@@ -67,6 +67,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.bobaplaybook.core.data.catalog.CardRepository
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import javax.inject.Inject
@@ -316,11 +317,18 @@ private fun ScanReviewSheet(
                                 if (sub.isNotBlank()) Text(sub)
                             },
                             trailingContent = {
-                                IconButton(onClick = { onRemove(entry.bobaId) }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Remove from queue",
-                                    )
+                                // Tick 426 — BOBAIconTooltip for hover/long-press
+                                // affordance hint. Particularly useful here since
+                                // the X icon in a list-row trailing slot can be
+                                // mistaken for "close the sheet" — the tooltip
+                                // clarifies "Remove this scan only".
+                                BOBAIconTooltip("Remove from queue") {
+                                    IconButton(onClick = { onRemove(entry.bobaId) }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Remove from queue",
+                                        )
+                                    }
                                 }
                             },
                             modifier = Modifier

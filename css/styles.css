@@ -5601,6 +5601,24 @@ dialog.modal-overlay[open] {
   color: var(--boba-text);
 }
 
+/* Tick 204 — April 2026 DBS update callout block inside .rules-section
+   (blog post 2026-04-27). Subtle orange-tinted callout so the rebalance
+   note stays visually distinct from the surrounding bullets but doesn't
+   shout. Used in the Understanding-DBS article. */
+.rules-callout-update {
+  margin-top: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: 8px;
+  border-left: 3px solid var(--boba-orange);
+  background: rgba(255, 77, 0, 0.07);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.rules-callout-update a {
+  color: var(--boba-cyan);
+  text-decoration: underline;
+}
+
 /* ── Section blocks ── */
 .rules-section {
   background: var(--boba-surface);

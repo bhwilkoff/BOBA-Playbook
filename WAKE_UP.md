@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 242 (iOS)** — boba_inlineGlossary +5 terms (Set Ascension / Modern / Hall of Fame / AlphaTrilogy / Checklist) so they're tappable in Tournament + Collect prose (84792dc). v2.303/565.
 - **tick 241 (Android)** — CollectionCardDetail renders condition + slab pills (PSA 10 / BGS 9.5 / etc.) in orange brand color (74d6119). Closes the user-facing half of tick 239's grading-feature data path.
 - **tick 240 (opt)** — Trim SCRATCHPAD historical sections that duplicated AUTONOMOUS_PROGRESS + git history (8aa4d7a). -51 lines. Memory refs preserved as a single archive paragraph.
 - **tick 239 (Android)** — Stop dropping grade + gradingCompany on the UserCardRow→UserCard domain boundary (f120e43). Data layer was silently losing slab info; research-mined gap from TCG-collector apps. Surface render queued for next tick.

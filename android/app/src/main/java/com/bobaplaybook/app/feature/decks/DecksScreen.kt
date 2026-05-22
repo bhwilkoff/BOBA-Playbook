@@ -65,7 +65,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.app.feature.find.FindEvent
@@ -629,6 +631,26 @@ private fun DeckSummaryBar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            // Tick 221 — format-name pill (iOS DeckSummaryPill parity,
+            // DecksView.swift:1685). Orange brand color so the format
+            // label reads as identity, not chrome. Mirrors the iOS
+            // pattern where the format is always visible adjacent to
+            // the summary breakdown.
+            Text(
+                text = draft.playMode.label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 9.sp,
+                    letterSpacing = 0.8.sp,
+                ),
+                color = com.bobaplaybook.core.ui.theme.BobaBrand.Orange,
+                modifier = Modifier
+                    .background(
+                        color = com.bobaplaybook.core.ui.theme.BobaBrand.Orange.copy(alpha = 0.12f),
+                        shape = MaterialTheme.shapes.extraSmall,
+                    )
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
+            )
             if (draft.isStandardLegal) {
                 AssistChip(
                     onClick = onTap,

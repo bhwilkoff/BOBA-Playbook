@@ -827,16 +827,17 @@ struct BOBACardCell: View {
     }
 }
 
-/// Shared format-legality hint chip — amber accent signals "this
-/// card isn't legal everywhere." Surfaces wherever
-/// `CardFormatEligibility.restrictedLegalAbbrev` returns non-nil.
-struct FormatLegalityHintBadge: View {
+/// Tick 497 — shared corner chip used by both PrintRunBadge (top-
+/// trailing, cyan/orange) and FormatLegalityHintBadge (bottom-leading,
+/// amber). Mirrors the Android CardCornerBadge extraction at tick 495.
+struct CardCornerBadge: View {
     let label: String
+    let accent: Color
 
     var body: some View {
         Text(label)
             .font(Design.Fonts.mono(10, weight: .bold))
-            .foregroundStyle(Design.Colors.bobaOrange)
+            .foregroundStyle(accent)
             .padding(.horizontal, 5)
             .padding(.vertical, 2)
             .background(Color.black.opacity(0.62))
@@ -844,19 +845,22 @@ struct FormatLegalityHintBadge: View {
     }
 }
 
-/// Shared print-run badge — orange for SSP, cyan otherwise.
-/// Used wherever a card's `printRunLabel` needs a corner chip.
+/// Bottom-leading format-legality hint (Discord backlog #4 carry-forward).
+struct FormatLegalityHintBadge: View {
+    let label: String
+    var body: some View {
+        CardCornerBadge(label: label, accent: Design.Colors.bobaOrange)
+    }
+}
+
+/// Top-trailing print-run chip — orange for SSP, cyan otherwise (Inspired Ink).
 struct PrintRunBadge: View {
     let label: String
-
     var body: some View {
-        Text(label)
-            .font(Design.Fonts.mono(10, weight: .bold))
-            .foregroundStyle(label == "SSP" ? Design.Colors.bobaOrange : Design.Colors.bobaCyan)
-            .padding(.horizontal, 5)
-            .padding(.vertical, 2)
-            .background(Color.black.opacity(0.62))
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+        CardCornerBadge(
+            label: label,
+            accent: label == "SSP" ? Design.Colors.bobaOrange : Design.Colors.bobaCyan
+        )
     }
 }
 

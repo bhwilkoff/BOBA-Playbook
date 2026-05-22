@@ -1020,8 +1020,12 @@ const Collection = (() => {
     // Share rainbow progress: "My X rainbow: 5 of 12 treatments (41%) ·
     // bobaplaybook.com" — matches the Android Share text shape.
     // `unit` is "cards" for custom rainbows, "treatments" for auto.
+    // Tick 493 — match iOS tick 482 + Android tick 489 defensive guard:
+    // hide Share when matching is empty so we don't share a nonsense
+    // "0 of 0 cards (0%)" payload.
     const unit = rainbowId ? 'cards' : 'treatments';
-    const shareAffordance = `<button type="button" class="rainbow-share-btn"
+    const shareAffordance = matching.length === 0 ? '' :
+      `<button type="button" class="rainbow-share-btn"
         data-rainbow-name="${esc(name)}" data-rainbow-owned="${ownedMatching.length}"
         data-rainbow-total="${matching.length}" data-rainbow-pct="${pct}"
         data-rainbow-unit="${unit}"

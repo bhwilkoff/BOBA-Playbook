@@ -43,6 +43,11 @@ data class WhatnotShow(
     val thumbnailUrl: String?,
     val showUrl: String,
     val isLive: Boolean,
+    // Tick 516 — iOS WhatnotShowsService.swift:25 has this too.
+    // Worker exposes `categoryName` at worker.js:2052; we just
+    // weren't surfacing it. Rendered uppercase in WhatnotTile
+    // bottom row for iOS parity.
+    val categoryName: String = "",
 )
 
 @Serializable
@@ -69,6 +74,7 @@ private data class WhatnotRow(
     val startTimeMs: Long? = null,
     val viewerCount: Int? = null,
     val thumbnailUrl: String? = null,
+    val categoryName: String? = null,
 ) {
     fun toDomain(): WhatnotShow {
         // Synthesize a stable ID when the Worker doesn't send one —
@@ -89,6 +95,7 @@ private data class WhatnotRow(
             thumbnailUrl = thumbnailUrl,
             showUrl = showUrl.orEmpty(),
             isLive = isLive ?: (status == "LIVE"),
+            categoryName = categoryName.orEmpty(),
         )
     }
 }

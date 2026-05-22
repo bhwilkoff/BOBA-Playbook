@@ -370,6 +370,18 @@ private fun WhatnotTile(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        if (show.categoryName.isNotBlank()) {
+                            // Tick 516 — iOS UpcomingBreaksList.swift:161-164
+                            // parity. Worker exposes categoryName at
+                            // worker.js:2052; Android just wasn't reading
+                            // the field. Uppercase + labelSmall + muted
+                            // matches the iOS visual treatment.
+                            Text(
+                                text = show.categoryName.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         if (show.viewerCount > 0) {
                             Icon(
                                 Icons.Default.Visibility,

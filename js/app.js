@@ -2189,6 +2189,12 @@
     const findView = document.getElementById('view-search');
     if (!findView || findView.hidden) return;
     e.preventDefault();
+    // Tick 328 — brief flash on the pill so keyboard users see *which*
+    // affordance fired. Without this, the only visible feedback is the
+    // card-detail modal opening, which the user might not connect back
+    // to the Surprise pill.
+    surpriseMeBtn?.classList.add('surprise-flash');
+    setTimeout(() => surpriseMeBtn?.classList.remove('surprise-flash'), 360);
     fireSurpriseMe();
   });
   document.addEventListener('auth-change', ({ detail }) => {

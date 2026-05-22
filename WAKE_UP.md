@@ -107,10 +107,4 @@ All commits green through tick 521 (Android · build + pages build); tick 522 pu
 
 ## How to stop the loop
 
-```sh
-# In Claude Code:
-/cron list
-/cron delete <id>
-```
-
-Or just exit Claude — session-only cron dies automatically.
+`/cron` is NOT a slash command. Ask Claude to "stop the loop" (or "list/delete the cron") — Claude can call the CronList + CronDelete tools directly. Or just exit Claude — session-only cron dies automatically.

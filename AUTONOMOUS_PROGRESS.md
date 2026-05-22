@@ -38,9 +38,7 @@ Documented gaps where one platform has shipped but others haven't.
 
 - [ ] **M4 Decks polish** — sharedBounds zoom on editor sheet · drag-and-drop add · 3-pane tablet (`NavigableListDetailPaneScaffold`).
 - [ ] **M5.5 Practice executor** — admin-gated port from iOS (DECISIONS.md #048).
-- [ ] **M7 Discord OAuth via Auth Tab / Custom Tabs** — currently stubbed; Google works.
 - [ ] **M7 BiometricPrompt** — sensitive-action gate.
-- [ ] **Article corpus depth** — port iOS Learn richness where Android stays terser.
 - [ ] **M3 SearchBar full-screen morph** — Find tab uses standard SearchBar; full-expand pending.
 
 ### P1 — iPad polish (SCRATCHPAD "Deferred iPad work")
@@ -59,7 +57,6 @@ Documented gaps where one platform has shipped but others haven't.
 
 - [ ] **Match-alerts pipeline** (DECISIONS.md #039 + TRADE-DESIGN.md Phase 5) — APNs / FCM dispatcher. Multi-week of new infra.
 - [ ] **Hero Shot 3D R2 `/full/` resolution upgrade** (SCRATCHPAD blockers) — Hero Shot pixelation root cause.
-- [ ] **Practice executor on Android** (DECISIONS.md #048) — admin-gated. M5.5 milestone.
 - [ ] **Personal Showcase on Android + web** (Cast SDK) — iOS-only today.
 
 ---

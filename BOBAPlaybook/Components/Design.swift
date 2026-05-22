@@ -808,20 +808,28 @@ struct BOBACardCell: View {
     /// Top-trailing print-run chip (Android tick 456 parity / Discord
     /// backlog #7 per-cell). Only renders at `.full` size — the .thumb
     /// path is reserved for very small surfaces (scan chips, suggestion
-    /// thumbnails) where the labelSmall would be illegible. Orange for
-    /// SSP (Superfoil); cyan otherwise (/5 /10 /25 /50 / Serial).
+    /// thumbnails) where the labelSmall would be illegible.
     @ViewBuilder
     private var printRunBadge: some View {
         if size == .full, let label = card.printRunLabel, !label.isEmpty {
-            Text(label)
-                .font(Design.Fonts.mono(10, weight: .bold))
-                .foregroundStyle(label == "SSP" ? Design.Colors.bobaOrange : Design.Colors.bobaCyan)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(Color.black.opacity(0.62))
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .padding(4)
+            PrintRunBadge(label: label).padding(4)
         }
+    }
+}
+
+/// Shared print-run badge — orange for SSP, cyan otherwise.
+/// Used wherever a card's `printRunLabel` needs a corner chip.
+struct PrintRunBadge: View {
+    let label: String
+
+    var body: some View {
+        Text(label)
+            .font(Design.Fonts.mono(10, weight: .bold))
+            .foregroundStyle(label == "SSP" ? Design.Colors.bobaOrange : Design.Colors.bobaCyan)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(Color.black.opacity(0.62))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 }
 

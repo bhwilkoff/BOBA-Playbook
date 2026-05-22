@@ -2,21 +2,21 @@
 """
 refresh_events.py — refresh assets/data/events.json from live sources.
 
-Three-tier source strategy:
+Two-tier source strategy:
   1. **Official Carde.io events API** — the canonical BoBA-sanctioned
      tournament feed (https://api.carde.io/api/play/events) keyed by
-     the BoBA gameId. Filtered to status=upcoming + future date.
-     Discovered by Ben pointing me at bobattlearena.com/events
-     2026-05-21 — that page links to play.bobattlearena.com whose
-     Next.js client hits this endpoint with a game-id header.
-  2. **Whatnot upcoming BoBA shows** — pulled from the existing
-     Worker (boba-ebay-proxy /whatnot/upcoming), filtered to the
-     next 7 days, added with `kind: "community"`. These are the
-     breaks / streamer events that change daily.
-  3. **Manually-curated entries** (marked `_curated: true`) are
-     PRESERVED across runs. High-value release + tournament entries
-     Ben puts there by hand. Tecmo Bowl + OKC art-pending seed
-     these by default.
+     the BoBA gameId. Filtered to upcoming + future date. Each event
+     carries an outbound `url` linking back to play.bobattlearena.com.
+  2. **Manually-curated entries** (marked `_curated: true`) are
+     PRESERVED across runs — release announcements, in-person events,
+     anything Ben adds by hand. They link to the official source URL
+     when one exists (blog post / shop page / event page).
+
+Whatnot livestreams were previously merged in under `kind: community`
+but were removed 2026-05-21 — they don't belong on the official-events
+surface alongside sanctioned tournaments + release announcements. The
+Purchase tab still surfaces Whatnot shows via its own dedicated tile
+list (`boba-ebay-proxy /whatnot/upcoming`).
 
 Output schema is documented inline in events.json under `_schema`.
 
@@ -36,13 +36,11 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-WHATNOT_WORKER = "https://boba-ebay-proxy.benwilkoff.workers.dev/whatnot/upcoming"
 CARDEIO_EVENTS = "https://api.carde.io/api/play/events"
 # Discovered in the play.bobattlearena.com bootstrap config (tick 194).
 # This is the BoBA game's stable identifier in Carde.io; if Carde.io
 # ever rebrands the BoBA game record, swap this constant.
 BOBA_GAME_ID   = "e30530dd-73f7-45be-bfe3-1044edec034a"
-WINDOW_DAYS    = 7         # how far ahead to surface Whatnot shows
 DEFAULT_PATH   = Path("assets/data/events.json")
 
 
@@ -109,68 +107,23 @@ def cardeio_to_event(ev: dict) -> dict | None:
             end_iso = dt.datetime.fromisoformat(ev["endsAt"].replace("Z", "+00:00")).date().isoformat()
         except ValueError:
             pass
+    # Description omits status-machine noise ("Status: published") —
+    # the title + url + date + formats already convey everything a
+    # reader needs. Carry an optional venue-string into description
+    # only when something more than the canned phrase would actually
+    # add signal; otherwise leave it absent and let the renderer
+    # fall back to formats/location chips.
     out = {
         "id":          f"cardeio-{ev.get('id', starts_at)}",
         "kind":        "tournament",
         "title":       name,
         "date":        sched.date().isoformat(),
-        "description": f"Official BoBA event via Carde.io. Status: {status or 'scheduled'}.",
         "url":         f"https://play.bobattlearena.com/events/{ev.get('id', '')}",
     }
     if end_iso:        out["endDate"] = end_iso
     if location:       out["location"] = location
     if format_names:   out["formats"]  = format_names
     return out
-
-
-def fetch_whatnot_shows() -> list[dict]:
-    """Returns shows array from the Worker. [] on any failure — refresh
-    should never break events.json if the upstream is hiccuping."""
-    try:
-        req = urllib.request.Request(WHATNOT_WORKER, headers={"User-Agent": "boba-events-refresh/1"})
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        return data.get("shows", []) if isinstance(data, dict) else []
-    except (urllib.error.URLError, json.JSONDecodeError, TimeoutError) as e:
-        print(f"WARN: Whatnot fetch failed: {e}", file=sys.stderr)
-        return []
-
-
-def whatnot_to_event(show: dict) -> dict | None:
-    """Map a Whatnot show row to an events.json entry. Returns None if
-    the show is missing required fields or scheduled outside our
-    horizon."""
-    sched_iso = show.get("scheduledTimeIso")
-    title     = (show.get("title") or "").strip()
-    host      = (show.get("host") or "").strip()
-    show_url  = show.get("showUrl")
-    if not sched_iso or not title:
-        return None
-    try:
-        sched = dt.datetime.fromisoformat(sched_iso.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    now = dt.datetime.now(dt.timezone.utc)
-    horizon = now + dt.timedelta(days=WINDOW_DAYS)
-    if sched < now - dt.timedelta(hours=2) or sched > horizon:
-        return None
-    # Stable id — Whatnot showId is the natural primary key.
-    show_id = show.get("showId") or sched_iso
-    desc_bits = []
-    if host:                       desc_bits.append(f"Host: {host}")
-    if show.get("isLive"):         desc_bits.append("LIVE NOW")
-    if show.get("scheduledTimeText"): desc_bits.append(show["scheduledTimeText"])
-    return {
-        "id":          f"whatnot-{show_id}",
-        "kind":        "community",
-        "title":       title,
-        "date":        sched.date().isoformat(),
-        "description": " · ".join(desc_bits) if desc_bits else "BoBA livestream.",
-        "url":         show_url,
-        # `_source` is non-schema — script-internal. Stripped from
-        # the on-disk JSON.
-        "_source":     "whatnot",
-    }
 
 
 def load_existing(path: Path) -> dict:
@@ -184,27 +137,20 @@ def load_existing(path: Path) -> dict:
         return {"version": 1, "events": []}
 
 
-def merge(existing: dict, cardeio_events: list[dict], whatnot_events: list[dict]) -> dict:
-    """Preserve curated entries; replace prior cardeio-* + whatnot-*
-    entries with the fresh batches. Sort: curated first (preserving
-    their order), then official cardeio tournaments by date ascending,
-    then community whatnot shows by date ascending."""
+def merge(existing: dict, cardeio_events: list[dict]) -> dict:
+    """Preserve curated entries; drop any prior cardeio-* / whatnot-*
+    entries and replace with the fresh Carde.io batch. Sort: curated
+    first (preserving order), then official tournaments by date asc."""
     events_in = existing.get("events") or []
     curated = [e for e in events_in if isinstance(e, dict) and e.get("_curated") is True]
     sorted_cardeio = sorted(cardeio_events,
-                            key=lambda e: (e.get("date") or "", e.get("title") or ""))
-    sorted_whatnot = sorted(whatnot_events,
                             key=lambda e: (e.get("date") or "", e.get("title") or ""))
     def strip_internal(e: dict) -> dict:
         return {k: v for k, v in e.items() if not k.startswith("_") or k == "_curated"}
     out = dict(existing)
     out["version"]     = existing.get("version", 1)
     out["lastUpdated"] = dt.date.today().isoformat()
-    out["events"]      = (
-        curated
-        + [strip_internal(e) for e in sorted_cardeio]
-        + [strip_internal(e) for e in sorted_whatnot]
-    )
+    out["events"]      = curated + [strip_internal(e) for e in sorted_cardeio]
     # Preserve _schema + _refresh if present.
     return out
 
@@ -224,13 +170,7 @@ def main() -> int:
     cardeio_events = [e for e in (cardeio_to_event(ev) for ev in cardeio) if e is not None]
     print(f"  → {len(cardeio_events)} pass filter.", file=sys.stderr)
 
-    shows = fetch_whatnot_shows()
-    print(f"Fetched {len(shows)} upcoming Whatnot shows; "
-          f"filtering to next {WINDOW_DAYS} days.", file=sys.stderr)
-    whatnot_events = [e for e in (whatnot_to_event(s) for s in shows) if e is not None]
-    print(f"  → {len(whatnot_events)} pass filter.", file=sys.stderr)
-
-    merged = merge(existing, cardeio_events, whatnot_events)
+    merged = merge(existing, cardeio_events)
     serialized = json.dumps(merged, indent=2, ensure_ascii=False) + "\n"
 
     if args.check:
@@ -245,9 +185,8 @@ def main() -> int:
     args.output.write_text(serialized)
     curated_n = sum(1 for e in merged["events"] if e.get("_curated"))
     cardeio_n = sum(1 for e in merged["events"] if str(e.get("id", "")).startswith("cardeio-"))
-    whatnot_n = sum(1 for e in merged["events"] if str(e.get("id", "")).startswith("whatnot-"))
-    print(f"Wrote {args.output} — {curated_n} curated + {cardeio_n} Carde.io + "
-          f"{whatnot_n} Whatnot = {len(merged['events'])} total events.")
+    print(f"Wrote {args.output} — {curated_n} curated + {cardeio_n} Carde.io "
+          f"= {len(merged['events'])} total events.")
     return 0
 
 

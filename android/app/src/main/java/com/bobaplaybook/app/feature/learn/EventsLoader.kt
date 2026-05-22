@@ -16,12 +16,12 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class EventEntry(
     val id:          String,
-    val kind:        String,                 // "release" | "tournament" | "community"
+    val kind:        String,                 // "release" | "tournament"
     val title:       String,
     val date:        String? = null,         // "YYYY-MM-DD" or null = TBA
     val endDate:     String? = null,
     val location:    String? = null,
-    val description: String,
+    val description: String? = null,         // optional — sometimes title+url+formats say it all
     val formats:     List<String> = emptyList(),
     val set:         String? = null,
     val url:         String? = null,

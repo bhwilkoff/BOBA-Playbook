@@ -786,17 +786,21 @@
     });
 
     // Tick 193 — Discord backlog #8: Upcoming Events on Tournament
-    // tab. One-shot fetch of assets/data/events.json + render. Once
-    // hydrated, the function no-ops (idempotency via _eventsHydrated).
-    let _eventsHydrated = false;
+    // tab. Re-fetches on every Tournament-tab activate (cheap — file
+    // is ~5KB) so the user always sees the latest events.json from
+    // the most recent deploy. The previous idempotency-after-first-
+    // hydrate pattern stuck on stale Whatnot/OKC rows for users who
+    // had loaded the page before the events refresh deployed.
+    // `cache: 'no-cache'` forces a conditional revalidation against
+    // the origin (HEAD with If-Modified-Since); browsers will reuse
+    // bytes when the file hasn't changed, so the network cost is
+    // typically a single 304.
     async function hydrateTournamentEvents() {
-      if (_eventsHydrated) return;
-      _eventsHydrated = true;
       const list = document.getElementById('tournament-events-list');
       if (!list) return;
       let bundle;
       try {
-        const resp = await fetch('assets/data/events.json');
+        const resp = await fetch('assets/data/events.json', { cache: 'no-cache' });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         bundle = await resp.json();
       } catch (e) {
@@ -807,98 +811,124 @@
       if (events.length === 0) return;  // keep empty-state placeholder
       const accentFor = (kind) => {
         switch ((kind || '').toLowerCase()) {
-          case 'release':    return 'var(--boba-cyan)';
-          case 'tournament': return 'var(--boba-orange)';
-          default:           return 'var(--boba-violet)';
+          case 'release': return 'var(--boba-cyan)';
+          default:        return 'var(--boba-orange)';  // tournament default
         }
       };
       list.innerHTML = events.map(ev => {
         const accent = accentFor(ev.kind);
         const date = (ev.date && ev.date.trim()) ? ev.date : 'Date TBA';
-        const loc = ev.location ? `<div class="event-loc">Location: ${escHtml(ev.location)}</div>` : '';
+        const url  = (ev.url && ev.url.trim()) ? ev.url : null;
+        const open = url ? `<span class="event-open" style="color: ${accent}">Open ↗</span>` : '';
+        const desc = (ev.description && ev.description.trim())
+          ? `<p class="event-desc">${escHtml(ev.description)}</p>` : '';
+        const loc  = ev.location ? `<div class="event-loc">Location: ${escHtml(ev.location)}</div>` : '';
+        const fmts = (Array.isArray(ev.formats) && ev.formats.length)
+          ? `<div class="event-formats">${escHtml(ev.formats.join(' · '))}</div>` : '';
+        // Whole row is the link when a url exists — same affordance as
+        // the iOS / Android rows (tap a tournament card → opens the
+        // official Carde.io / blog page in a new tab).
+        const tag = url ? 'a' : 'article';
+        const attrs = url
+          ? ` href="${escHtml(url)}" target="_blank" rel="noopener noreferrer"` : '';
         return `
-          <article class="event-row" style="border-color: ${accent}66">
+          <${tag} class="event-row${url ? ' event-row--link' : ''}" style="border-color: ${accent}66"${attrs}>
             <div class="event-head">
               <span class="event-kind" style="color: ${accent}">${escHtml((ev.kind || '').toUpperCase())}</span>
               <span class="event-dot">·</span>
               <span class="event-date">${escHtml(date)}</span>
+              ${open}
             </div>
             <h4 class="event-title">${escHtml(ev.title || '')}</h4>
-            <p class="event-desc">${escHtml(ev.description || '')}</p>
+            ${desc}
             ${loc}
-          </article>`;
+            ${fmts}
+          </${tag}>`;
       }).join('');
     }
 
-    // Glossary tap-to-copy — 3-platform parity with iOS tick 87 +
-    // Android tick 84. Writes "term — definition" to the clipboard,
-    // flashes the row with a checkmark for ~1.2s. Event delegation
-    // so the handler survives any future re-render of the panel.
-    document.addEventListener('click', e => {
-      const row = e.target?.closest?.('.glossary-row');
-      if (!row || row.classList.contains('copied')) return;
-      const term = row.dataset.term || '';
-      const def  = row.dataset.def  || '';
+    // Glossary press-and-hold → Copy + Share menu — 3-platform parity
+    // with iOS contextMenu + Android long-press DropdownMenu. Tap is a
+    // no-op; the always-visible instruction line above each glossary
+    // tab (.glossary-instructions in index.html) tells users the
+    // gesture. Right-click (desktop) and touch long-press (≥500ms)
+    // both surface the same menu via the native Popover API.
+    function glossaryCopy(row) {
+      const term = row?.dataset?.term || '';
+      const def  = row?.dataset?.def  || '';
       if (!term || !def) return;
       const payload = `${term} — ${def}`;
-      navigator.clipboard.writeText(payload).then(() => {
+      navigator.clipboard?.writeText(payload).then(() => {
         row.classList.add('copied');
         setTimeout(() => row.classList.remove('copied'), 1200);
-      }).catch(() => {
-        // Older browsers / file:// origins — silently fall through;
-        // user still sees the row but no clipboard write.
-      });
-    });
-
-    // Glossary share affordance — right-click (desktop) + long-press
-    // (touch). Tick 128 — parity with Android tick 126's ACTION_SEND
-    // chooser + iOS tick 127's contextMenu ShareLink. Progressive
-    // enhancement: no HTML change required; existing rows just gain
-    // a new gesture.
+      }).catch(() => {});
+    }
     function glossaryShare(row) {
       const term = row?.dataset?.term || '';
       const def  = row?.dataset?.def  || '';
       if (!term || !def) return;
       const payload = `${term} — ${def}`;
-      // Web Share API w/ clipboard fallback (existing helper).
       if (typeof window.bobaShareTarget === 'function') {
-        window.bobaShareTarget({
-          title: `BOBA Glossary: ${term}`,
-          text:  payload,
-        });
+        window.bobaShareTarget({ title: `BOBA Glossary: ${term}`, text: payload });
       } else if (navigator.clipboard?.writeText) {
         navigator.clipboard.writeText(payload).then(() => {
           if (window.showToast) window.showToast('Copied — paste to share');
         });
       }
     }
+    function openGlossaryMenu(row) {
+      if (typeof window.bobaShowPopoverMenu !== 'function') {
+        // Fallback when the Popover helper isn't loaded yet — just copy.
+        glossaryCopy(row);
+        return;
+      }
+      window.bobaShowPopoverMenu({
+        anchor: row,
+        items: [
+          { label: 'Copy',  onSelect: () => glossaryCopy(row)  },
+          { label: 'Share', onSelect: () => glossaryShare(row) },
+        ],
+      });
+    }
     document.addEventListener('contextmenu', e => {
       const row = e.target?.closest?.('.glossary-row');
       if (!row) return;
-      e.preventDefault();  // suppress the browser's right-click menu
-      glossaryShare(row);
+      e.preventDefault();
+      openGlossaryMenu(row);
     });
-    // Long-press for touch — 600ms timer, cleared on move/up so a
-    // scroll doesn't accidentally trigger share.
+    // Touch long-press — 500ms timer, cleared on move/up so a scroll
+    // doesn't accidentally trigger the menu.
     let _glossaryLongPressTimer = null;
+    let _glossaryLongPressRow   = null;
     document.addEventListener('touchstart', e => {
       const row = e.target?.closest?.('.glossary-row');
       if (!row) return;
+      _glossaryLongPressRow = row;
       clearTimeout(_glossaryLongPressTimer);
       _glossaryLongPressTimer = setTimeout(() => {
-        glossaryShare(row);
+        openGlossaryMenu(row);
         _glossaryLongPressTimer = null;
-      }, 600);
+      }, 500);
     }, { passive: true });
     const clearLongPress = () => {
       if (_glossaryLongPressTimer) {
         clearTimeout(_glossaryLongPressTimer);
         _glossaryLongPressTimer = null;
       }
+      _glossaryLongPressRow = null;
     };
     document.addEventListener('touchmove', clearLongPress, { passive: true });
     document.addEventListener('touchend', clearLongPress, { passive: true });
     document.addEventListener('touchcancel', clearLongPress, { passive: true });
+    // Swallow a plain click that follows a long-press so the row
+    // doesn't double-fire as both menu + tap.
+    document.addEventListener('click', e => {
+      if (_glossaryLongPressRow && e.target?.closest?.('.glossary-row') === _glossaryLongPressRow) {
+        e.stopPropagation();
+        e.preventDefault();
+        _glossaryLongPressRow = null;
+      }
+    }, true);
 
     // Mode switching — syncs rules-mode-btn tabs and rules-content visibility.
     const modeBtns    = document.querySelectorAll('.rules-mode-btn');

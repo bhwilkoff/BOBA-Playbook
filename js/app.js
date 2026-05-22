@@ -2143,8 +2143,7 @@
   // Surprise Me — picks a random card from the current filtered pool
   // with a 30% bias toward Inspired Ink / Superfoil / Kanjifoil. iOS
   // v2.310 + Android tick 264 + 266 parity.
-  const surpriseMeBtn = $('surprise-me-btn');
-  surpriseMeBtn?.addEventListener('click', () => {
+  function fireSurpriseMe() {
     if (!filteredCards.length) return;
     let pick;
     if (Math.random() < 0.30) {
@@ -2160,6 +2159,26 @@
     }
     const index = filteredCards.indexOf(pick);
     openModal(pick, index);
+  }
+  const surpriseMeBtn = $('surprise-me-btn');
+  surpriseMeBtn?.addEventListener('click', fireSurpriseMe);
+  // Tick 273 — keyboard shortcut. Lowercase `r` when no input is
+  // focused, no <dialog> is open, and the Find view is active.
+  // Matches the iPad keyboard parity from iOS v2.311 (Cmd+Shift+R).
+  // Single-key avoids Ctrl+Shift+R which is browser hard-reload.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'r' && e.key !== 'R') return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const tgt = e.target;
+    if (tgt && (tgt.matches?.('input, textarea, [contenteditable="true"]') || tgt.isContentEditable)) return;
+    if (modalOverlay.open || document.querySelector('dialog[open]')) return;
+    // Only on Find view — same constraint as iOS (Surprise lives in
+    // the Find tab's Menu). The Find view's section id is "view-search"
+    // for legacy reasons (the tab was renamed to Find but the id stayed).
+    const findView = document.getElementById('view-search');
+    if (!findView || findView.hidden) return;
+    e.preventDefault();
+    fireSurpriseMe();
   });
   document.addEventListener('auth-change', ({ detail }) => {
     updateQuickAddVisibility(!!detail?.session);

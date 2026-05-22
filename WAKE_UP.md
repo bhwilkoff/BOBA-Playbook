@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 229 (Android)** — Mirrors tick 228: same 4 Set Ascension glossary terms added to LearnCorpus.glossaryGame (b49abbd). Inherits GlossaryAwareBody inline tap-to-define automatically.
 - **tick 228 (web — content)** — Glossary gains 4 Set Ascension terms (Set Ascension / Modern / Hall of Fame / AlphaTrilogy) (2991892). Picked up automatically by inline-glossary wireInlineGlossary() pass so they're tappable in prose.
 - **tick 227 (iOS — content)** — Understanding-DBS Learn appendix section (b73c143). Closes Android tick 186 / web tick 188 trio. RulesView appendix gains GlossaryAware explainer + 5-row RuleCard + Quick-tip callout (cyan) + April-2026 rebalance callout (orange). v2.300/562.
 - **tick 226 (Android)** — FormatLegalityStrip tooltip migrated to non-deprecated TooltipPositionProvider(TooltipAnchorPosition.Above) API (1907862). Squashed 1 warning.

@@ -372,6 +372,52 @@ private fun CopyRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        // Tick 241 — grade + condition pill row (TCG-collector research:
+        // slab tracking is a top user-requested feature; AddToCollection
+        // captured it since the sheet shipped but tick 239 unblocked the
+        // domain-boundary drop). Combined into one row when both fire.
+        run {
+            val condition = entry.userCard.condition?.takeIf { it.isNotBlank() }
+            val grade = entry.userCard.grade?.takeIf { it.isNotBlank() }
+            val company = entry.userCard.gradingCompany?.takeIf { it.isNotBlank() }
+            val slab = if (grade != null) {
+                if (company != null) "$company $grade" else "Graded $grade"
+            } else null
+            if (condition != null || slab != null) {
+                Row(
+                    modifier = Modifier.padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    condition?.let { c ->
+                        androidx.compose.material3.AssistChip(
+                            onClick = {},
+                            enabled = false,
+                            label = { Text(c, style = MaterialTheme.typography.labelSmall) },
+                        )
+                    }
+                    slab?.let { s ->
+                        androidx.compose.material3.AssistChip(
+                            onClick = {},
+                            enabled = false,
+                            label = {
+                                Text(
+                                    s,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            },
+                            // Slab pill gets the brand orange — graded cards
+                            // are uncommon, the visual weight is intentional.
+                            colors = androidx.compose.material3.AssistChipDefaults.assistChipColors(
+                                disabledLabelColor = com.bobaplaybook.core.ui.theme.BobaBrand.Orange,
+                                disabledContainerColor = com.bobaplaybook.core.ui.theme.BobaBrand.Orange.copy(alpha = 0.15f),
+                            ),
+                        )
+                    }
+                }
+            }
+        }
         entry.userCard.notes?.takeIf { it.isNotBlank() }?.let { notes ->
             Text(
                 notes,

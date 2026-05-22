@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 301 (Android, polish)** — Haptic feedback on Decks template-load tap. Loading a 60-card starter deck is a "big-deal" moment vs a Quick Add of one card; `LongPress` feedback signals the magnitude before the Snackbar confirmation appears. Same LocalHapticFeedback idiom as tick 291 (Card swipe-nav).
 - **tick 300 (opt, −6 lines)** — Milestone tick. Trimmed stale "Replaced 2026-04-28" provenance comment block in LearnView ArchetypesSection (preserved in git history); replaced with a tight one-liner about Deck Builder template parity. Per "avoid backwards-compatibility hacks" project rule.
 - **tick 299 (Android)** — Android Surprise Me overflow item shows pool size (iOS v2.317 + web tick 298 parity). `Surprise me 🎲 (12,345)` or `(0)` disabled. New `surpriseCount: Int` param on FindOverflowMenu; passed from FindContent. java.text.NumberFormat(Locale.US) for thousand separators. Trio closed.
 - **tick 298 (web)** — Web Surprise pill mirrors iOS v2.317 pool-size label: `🎲 Surprise (12,345)` shows what the pick is drawn from. Disabled state when pool is empty. Updates inside the existing `updateResultsCount()` callback so it stays in sync with every filter change.

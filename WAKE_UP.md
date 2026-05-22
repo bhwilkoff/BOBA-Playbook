@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 318 (web)** — Surfaced keyboard shortcuts as hover-tooltips on web. Surprise pill: `title="Surprise me (R)"`. Save deck: `title="Save deck (⌘/Ctrl + S)"`. Discoverability for the shortcuts shipped tick 273 + 308 — keyboard users discover them on hover instead of trial-and-error. Web template card monogram a11y was already correct (`aria-hidden="true"` shipped tick 11) — no port needed.
 - **tick 317 (iOS v2.321 / 583)** — `.accessibilityHidden(true)` on iOS TemplateCard's monogram tile (Android tick 316 parity). Same fix: VoiceOver skips the decorative first-letter glyph so it doesn't announce "L. Lockdown Locker. Steel-anchored disruption…" — the row's name + description text are read separately and already convey everything.
 - **tick 316 (Android, a11y)** — Decks template monogram tile (tick 306) gets `clearAndSetSemantics { }` so TalkBack skips the decorative first-letter glyph. Without it, blind users hear "L. Lockdown Locker. Steel-anchored disruption…" (letter + name + desc). The Text rows below already convey everything sighted users get from the monogram.
 - **tick 315 (opt, −2 lines)** — Trimmed stale "what got removed" provenance from DecksView's sheetHeaderRow docstring. "The format pill that previously lived here was removed because…" → "Format is shown via the chip strip below; no duplicated pill here." Stated as a current-state rule, not a past-state explanation.

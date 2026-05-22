@@ -287,6 +287,7 @@ fun CollectionCardDetailScreen(
                                 imageFile = other.imageFile,
                                 contentDescription = other.displayName,
                                 printRunLabel = other.printRunLabel,
+                                formatLegalityHint = com.bobaplaybook.core.domain.model.CardFormatEligibility.restrictedLegalAbbrev(other),
                             )
                         }
                     }

@@ -1786,9 +1786,90 @@ private struct CollectView: View {
                 TreatmentsSection()
                 ParallelsSection()
                 VariationSection()
+                SetAscensionSection()
             }
             .padding(Design.Spacing.lg)
             .padding(.bottom, Design.Spacing.xxl)
+        }
+    }
+}
+
+// Tick 212 — Discord-mined content (iOS port of Android tick 209).
+// Source: 2026-02-10 blog post "The BoBA Set Ascension: How Heroes
+// Progress Through the Arena". Explains the 3 progression tiers and
+// the bridge role Alpha Battlefoils play. Fills the gap where the
+// catalog ships Hall of Fame + AlphaTrilogy cards but no article
+// explains the format evolution.
+private struct SetAscensionSection: View {
+    private struct Tier: Identifiable {
+        let id: String
+        let name: String
+        let era: String
+        let description: String
+        let color: Color
+    }
+    private let tiers: [Tier] = [
+        .init(id: "modern", name: "Modern", era: "Active Era",
+              description: "Cards from the past 2 years. Primary competitive format; best entry point for new players.",
+              color: Design.Colors.bobaCyan),
+        .init(id: "hof", name: "Hall of Fame", era: "Ascended Era",
+              description: "Cards released 2+ years ago (as of Jan 1). Larger pool, complex interactions; reserved for special high-skill events.",
+              color: Design.Colors.element("GLOW")),
+        .init(id: "alpha", name: "AlphaTrilogy", era: "Founders Era",
+              description: "Exclusively original Alpha-era cards (first year). Celebrated annually with dedicated events; Alpha cards also playable in Hall of Fame.",
+              color: Design.Colors.bobaOrange),
+    ]
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            Text("SET ASCENSION — HOW FORMATS EVOLVE")
+                .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+            Text("BoBA organizes play across three formats based on when cards released. Older sets don't fade — they ascend into legacy formats with their own competitive scene. 'Time adds context and fond memories' so cards take on new identity over time.")
+                .font(Design.Fonts.mono(13)).foregroundStyle(Design.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
+            VStack(spacing: 1) {
+                ForEach(tiers) { tier in
+                    HStack(alignment: .top, spacing: Design.Spacing.md) {
+                        Circle().fill(tier.color).frame(width: 14, height: 14)
+                            .shadow(color: tier.color.opacity(0.55), radius: 3)
+                            .padding(.top, 2)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text(tier.name).font(Design.Fonts.mono(14, weight: .bold)).foregroundStyle(tier.color)
+                                Text(tier.era).font(Design.Fonts.mono(10, weight: .bold)).foregroundStyle(tier.color.opacity(0.7))
+                                    .padding(.horizontal, 5).padding(.vertical, 2)
+                                    .background(Capsule().fill(tier.color.opacity(0.12)))
+                            }
+                            Text(tier.description).font(Design.Fonts.mono(12)).foregroundStyle(Design.Colors.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, Design.Spacing.md).padding(.vertical, Design.Spacing.sm)
+                    .background(Design.Colors.surface)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.glassBorder, lineWidth: 1))
+            // Alpha Battlefoils bridge callout — same shape as the
+            // Android ICE-tinted callout.
+            HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                Image(systemName: "link")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Design.Colors.element("ICE"))
+                    .padding(.top, 2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Alpha Battlefoils bridge the eras")
+                        .font(Design.Fonts.mono(12, weight: .bold)).foregroundStyle(Design.Colors.element("ICE"))
+                    Text("A special card type that lets newer players participate in Hall of Fame and AlphaTrilogy events without owning original Alpha cards. Connects the modern audience to the game's foundation.")
+                        .font(Design.Fonts.mono(11)).foregroundStyle(Design.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.element("ICE").opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.element("ICE").opacity(0.3), lineWidth: 1)))
+            .padding(.top, Design.Spacing.xs)
         }
     }
 }

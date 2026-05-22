@@ -137,36 +137,12 @@ fun BOBACardCell(
 }
 
 /**
- * Tick 464 — Compact bottom-leading hint surfacing the formats where
- * the card is LEGAL when it isn't legal everywhere. Amber accent
- * (BobaBrand.Orange) signals "look here — this card has format
- * restrictions." Semi-translucent black bg so card art reads through.
+ * Tick 495 — Shared corner chip used by both PrintRunBadge (top-trailing,
+ * cyan/orange) and FormatLegalityHintBadge (bottom-leading, amber).
+ * Semi-translucent black bg so card art reads through.
  */
 @Composable
-private fun FormatLegalityHintBadge(label: String, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        color = Color.Black.copy(alpha = 0.62f),
-        shape = RoundedCornerShape(4.dp),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = BobaBrand.Orange,
-            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
-        )
-    }
-}
-
-/**
- * Compact top-trailing chip rendering the print-run label. Orange for
- * SSP (Superfoil) per the CardDetailScreen pattern; cyan otherwise
- * (Inspired Ink /5 · /10 · /25 · /50 · Serial). Semi-translucent
- * background so the card art reads through.
- */
-@Composable
-private fun PrintRunBadge(label: String, modifier: Modifier = Modifier) {
-    val accent = if (label == "SSP") BobaBrand.Orange else BobaBrand.Cyan
+private fun CardCornerBadge(label: String, accent: Color, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
         color = Color.Black.copy(alpha = 0.62f),
@@ -179,6 +155,19 @@ private fun PrintRunBadge(label: String, modifier: Modifier = Modifier) {
             modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
         )
     }
+}
+
+/** Bottom-leading format-legality hint (Discord backlog #4 carry-forward). */
+@Composable
+private fun FormatLegalityHintBadge(label: String, modifier: Modifier = Modifier) {
+    CardCornerBadge(label = label, accent = BobaBrand.Orange, modifier = modifier)
+}
+
+/** Top-trailing print-run chip — orange for SSP, cyan otherwise (Inspired Ink). */
+@Composable
+private fun PrintRunBadge(label: String, modifier: Modifier = Modifier) {
+    val accent = if (label == "SSP") BobaBrand.Orange else BobaBrand.Cyan
+    CardCornerBadge(label = label, accent = accent, modifier = modifier)
 }
 
 /**

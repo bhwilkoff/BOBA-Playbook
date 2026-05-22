@@ -2563,16 +2563,6 @@ Each loop tick appends an entry below. Format:
 
 ---
 
-## Audit agents in flight
-
-When each agent returns, its findings populate the backlog above.
-
-- **Agent A (parity audit):** scans iOS vs web vs Android for shipped-but-not-mirrored features beyond what PARITY.md captures
-- **Agent B (deferred-feature inventory):** sweeps every `.md` doc + DECISIONS.md entries + SCRATCHPAD `Deferred` sections + commits-with-"defer" / "TODO" / "follow-up" markers
-- **Agent C (Discord export JSON inventory):** locates the Claude research dir + parses Discord export JSONs for user-requested features
-
-Status of each: queued / running / complete + findings folded back into Backlog.
-
 ### Tick 176 — 2026-05-21 — Android: M3 Expressive wavy progress + fix CI break
 - **CI fix first.** Run 26226352152 failed: tick-167 centroid-aware `rememberTransformableState` had the lambda params in wrong order. Read `foundation-android-1.12.0-alpha02-sources.jar` → confirmed new signature is `(centroid: Offset, zoomChange: Float, panChange: Offset, rotationChange: Float)` — centroid FIRST. Swapped lambda from `{ zoom, pan, _, _ -> ... }` to `{ _, zoom, pan, _ -> ... }`. Wrong-order compiled silently (param names are positional aliases); failed at use sites where `offset += panChange` saw Float instead of Offset.
 - **Android M3 Expressive wavy indicators** (ANDROID-DESIGN.md §6.11) — first adoption pass. Five files:
@@ -2894,6 +2884,7 @@ Skip the web AddToDeck parity that this tick replaced. Tick 179 = web (179 % 5 =
 
 ---
 
-## Loop resumed post-compaction — tick 202+
+<!-- Tick log resumed in WAKE_UP.md (tick 202+). #6 Wanted-list public
+     sharing remains the only Discord-mined backlog item still pending —
+     needs schema work. -->
 
-The 2026-05-21 stop note has been trimmed (tick 360 opt audit). Punch-list items #3, #4, #8 all subsequently closed across 3 platforms; #6 (Wanted-list public sharing) remains the only Discord-mined backlog item still pending and needs schema work. Recent tick log lives in `WAKE_UP.md`.

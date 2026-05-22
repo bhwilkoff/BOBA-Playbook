@@ -533,7 +533,19 @@ private fun FindSearchBar(
                                         .rememberTooltipPositionProvider(
                                             androidx.compose.material3.TooltipAnchorPosition.Below
                                         ),
-                                    tooltip = { PlainTooltip { Text("Filters") } },
+                                    // Tick 389 — iOS tick 387 + web tick 388 parity.
+                                    // Show " · N active" when filters are on so
+                                    // mouse-hover / long-press users see the count
+                                    // without opening the sheet.
+                                    tooltip = {
+                                        PlainTooltip {
+                                            Text(
+                                                if (state.activeFilterCount > 0)
+                                                    "Filters · ${state.activeFilterCount} active"
+                                                else "Filters"
+                                            )
+                                        }
+                                    },
                                     state = androidx.compose.material3.rememberTooltipState(),
                                 ) {
                                     IconButton(onClick = onFilterClick) {

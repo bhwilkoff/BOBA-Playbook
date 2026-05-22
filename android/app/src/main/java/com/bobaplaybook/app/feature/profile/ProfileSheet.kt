@@ -423,7 +423,7 @@ private fun SignedInContent(
             ProfileHeader(
                 username = profile?.username ?: username,
                 email = authState.email,
-                signInMethod = authState.provider?.replaceFirstChar { it.uppercase() } ?: "Email",
+                signInMethod = authState.provider,
                 // Prefer the user-uploaded avatar on user_profiles; fall
                 // back to provider-supplied (Google / Discord) avatar.
                 avatarUrl = profile?.avatarUrl ?: profile?.discordAvatarUrl ?: authState.providerAvatarUrl,
@@ -1017,7 +1017,7 @@ private fun SignedInContent(
 private fun ProfileHeader(
     username: String,
     email: String?,
-    signInMethod: String,
+    signInMethod: String?,
     avatarUrl: String? = null,
     role: String? = null,
     isAdmin: Boolean = false,
@@ -1087,28 +1087,11 @@ private fun ProfileHeader(
                 if (isStreamer && !isAdmin) {
                     RoleBadgePill(label = "STREAMER", color = BobaBrand.Cyan)
                 }
-                androidx.compose.material3.Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.Verified,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
-                        Text(
-                            signInMethod,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
-                    }
-                }
+                // Tick 206 — provider-specific pill styling (iOS parity).
+                // Google + Discord get brand colors; Email/null falls to
+                // the unmarked default (no pill) so the absence-of-pill
+                // also signals "this is a password account."
+                ProviderPill(provider = signInMethod)
                 if (isAdmin) {
                     androidx.compose.material3.IconButton(
                         onClick = onPracticeUnlock,
@@ -1124,6 +1107,34 @@ private fun ProfileHeader(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ProviderPill(provider: String?) {
+    // Email / null / unknown → unmarked default (no pill). The absence
+    // is a positive signal: "this account has a password to reset."
+    val p = provider?.lowercase() ?: return
+    val (label, bg, fg) = when (p) {
+        "google"  -> Triple("GOOGLE",  androidx.compose.ui.graphics.Color(0xFF4285F4), Color.White)
+        "discord" -> Triple("DISCORD", androidx.compose.ui.graphics.Color(0xFF5865F2), Color.White)
+        "apple"   -> Triple("APPLE",   Color.Black, Color.White)
+        else      -> return
+    }
+    androidx.compose.material3.Surface(
+        shape = MaterialTheme.shapes.extraSmall,
+        color = bg,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 9.sp,
+                letterSpacing = 1.sp,
+            ),
+            color = fg,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+        )
     }
 }
 

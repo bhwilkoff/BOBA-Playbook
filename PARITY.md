@@ -191,7 +191,7 @@ Scan is iOS+Android only by design (DECISIONS.md #012). Web users see scan resul
 | Admin panel | ✅ | ✅ | 🔮 | Role-gated; defer to v2 |
 | Mod panel | ✅ | ✅ | 🔮 | Role-gated; defer to v2 |
 | Mod card edits (add / edit) | ✅ | ✅ | 🔮 | Same Worker `boba-mod-merge` |
-| Sign-in method pill on Profile | ✅ | ✅ | ⏳ M7 polish | Visual indicator pending |
+| Sign-in method pill on Profile | ✅ | ✅ | ✅ | Android ProviderPill — Google = #4285F4, Discord = #5865F2, Apple = black, email = unmarked default (matches iOS) |
 
 ---
 

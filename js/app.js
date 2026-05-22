@@ -2139,6 +2139,28 @@
   // disappears on sign-out. Auth module dispatches 'auth-change' with
   // detail.session set when signed in.
   quickAddToggle?.addEventListener('click', () => setQuickAddMode(!quickAddMode));
+
+  // Surprise Me — picks a random card from the current filtered pool
+  // with a 30% bias toward Inspired Ink / Superfoil / Kanjifoil. iOS
+  // v2.310 + Android tick 264 + 266 parity.
+  const surpriseMeBtn = $('surprise-me-btn');
+  surpriseMeBtn?.addEventListener('click', () => {
+    if (!filteredCards.length) return;
+    let pick;
+    if (Math.random() < 0.30) {
+      const rares = filteredCards.filter(card => {
+        const t = (card.treatment || '').toLowerCase();
+        return card.isInspiredInk || t.includes('superfoil') || t.includes('kanji');
+      });
+      pick = rares.length
+        ? rares[Math.floor(Math.random() * rares.length)]
+        : filteredCards[Math.floor(Math.random() * filteredCards.length)];
+    } else {
+      pick = filteredCards[Math.floor(Math.random() * filteredCards.length)];
+    }
+    const index = filteredCards.indexOf(pick);
+    openModal(pick, index);
+  });
   document.addEventListener('auth-change', ({ detail }) => {
     updateQuickAddVisibility(!!detail?.session);
     // Sign-out → drop any active multi-select. Selection actions

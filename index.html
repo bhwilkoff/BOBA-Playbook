@@ -254,6 +254,12 @@
             <button type="button" class="grid-cols-btn" data-density="m" aria-label="Medium cards">M</button>
             <button type="button" class="grid-cols-btn" data-density="l" aria-label="Large cards">L</button>
           </div>
+          <!-- Surprise Me — picks a random card from currently-filtered
+               results with a 30% bias toward Inspired Ink / Superfoil /
+               Kanjifoil so it actually surfaces notable cards instead of
+               yet-another-Battlefoil. Cross-platform parity with iOS
+               v2.310 + Android ticks 264 + 266. -->
+          <button type="button" class="quick-add-pill" id="surprise-me-btn" aria-label="Surprise me — random card">🎲 Surprise</button>
           <!-- Quick Add toggle — only rendered for signed-in users by
                app.js. When active, tapping a grid card adds to the
                user's Collection (as .personal) instead of opening the

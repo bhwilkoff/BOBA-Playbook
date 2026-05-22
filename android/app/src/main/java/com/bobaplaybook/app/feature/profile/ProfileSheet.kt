@@ -1254,16 +1254,18 @@ private fun ProfileHeader(
                 // also signals "this is a password account."
                 ProviderPill(provider = signInMethod)
                 if (isAdmin) {
-                    androidx.compose.material3.IconButton(
-                        onClick = onPracticeUnlock,
-                        modifier = Modifier.size(28.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.Bolt,
-                            contentDescription = "Practice (admin only)",
-                            tint = BobaBrand.Orange,
-                            modifier = Modifier.size(18.dp),
-                        )
+                    BOBAIconTooltip("Practice executor (admin only)") {
+                        androidx.compose.material3.IconButton(
+                            onClick = onPracticeUnlock,
+                            modifier = Modifier.size(28.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.Bolt,
+                                contentDescription = "Practice (admin only)",
+                                tint = BobaBrand.Orange,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
                     }
                 }
             }

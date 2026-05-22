@@ -570,7 +570,7 @@ private fun SignedInContent(
                         Icon(
                             Icons.Default.Group,
                             contentDescription = null,
-                            tint = if (discordLinked) androidx.compose.ui.graphics.Color(0xFF5865F2)
+                            tint = if (discordLinked) Color(0xFF5865F2)
                                    else MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -580,7 +580,7 @@ private fun SignedInContent(
                         Icon(
                             Icons.Default.CheckCircle,
                             contentDescription = "Discord linked",
-                            tint = androidx.compose.ui.graphics.Color(0xFF5865F2),
+                            tint = Color(0xFF5865F2),
                         )
                     } else {
                         TextButton(onClick = {
@@ -1279,8 +1279,8 @@ private fun ProviderPill(provider: String?) {
     // is a positive signal: "this account has a password to reset."
     val p = provider?.lowercase() ?: return
     val (label, bg, fg) = when (p) {
-        "google"  -> Triple("GOOGLE",  androidx.compose.ui.graphics.Color(0xFF4285F4), Color.White)
-        "discord" -> Triple("DISCORD", androidx.compose.ui.graphics.Color(0xFF5865F2), Color.White)
+        "google"  -> Triple("GOOGLE",  Color(0xFF4285F4), Color.White)
+        "discord" -> Triple("DISCORD", Color(0xFF5865F2), Color.White)
         "apple"   -> Triple("APPLE",   Color.Black, Color.White)
         else      -> return
     }

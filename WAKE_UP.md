@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 259 (Android)** — Recent BoBA news gains "See all N posts" Custom Tab link (16a71a7). Mirrors web tick 258. iOS port queued.
 - **tick 258 (web)** — "See all N posts on bobattlearena.com ↗" link appended to Recent BoBA news section (aec3da6). Closes discoverability gap to the full 45-post archive.
 - **tick 257 (iOS — refactor)** — boba_inlineGlossary now derives from GlossaryView.gameTerms; gameTerms + tradingTerms hoisted to `fileprivate static` (8838059). Single source of truth for iOS glossary content; future tick edits one array, not two. v2.307/569. Net -4 lines.
 - **tick 256 (Android)** — EditCopySheet now lets users change grade + gradingCompany post-create (dcf5df0). 4-chip PSA/BGS/SGC/CGC FilterChip row + conditional grade input. iOS EditCollectionEntrySheet parity. Closes the grading feature trio (tick 239 data layer + 241 surface + 256 edit).

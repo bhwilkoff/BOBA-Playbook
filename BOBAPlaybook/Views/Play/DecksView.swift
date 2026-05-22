@@ -383,6 +383,12 @@ struct DecksView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Start a new deck")
+                // Tick 322 — Cmd+N New Deck (Apple HIG idiom). Fires
+                // only when this sidebar is in the responder chain
+                // (iPad regular width) where the New deck button is
+                // visible. iPhone compact width has no sidebar; user
+                // discards via the editor toolbar Menu.
+                .keyboardShortcut("n", modifiers: [.command])
             }
 
             if !auth.isAuthenticated {

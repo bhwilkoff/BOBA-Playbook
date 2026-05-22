@@ -1461,7 +1461,7 @@ const Collection = (() => {
              wireAvatarEditor() once fetchProfile resolves. -->
         <div class="profile-account-card">
           <button class="profile-avatar profile-avatar-button" id="profile-avatar-btn"
-                  type="button" aria-label="Change profile picture">
+                  type="button" aria-label="Change profile picture" title="Change profile picture">
             <span class="profile-avatar-content" id="profile-avatar-content">
               <svg viewBox="0 0 24 24" fill="currentColor" width="28" height="28" aria-hidden="true">
                 <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z"/>

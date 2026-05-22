@@ -1170,11 +1170,17 @@
         const text = textNode.nodeValue || '';
         // Build a regex once per call, alternation of all term patterns.
         // Longest first so "Hot Dog" beats "Hot".
+        // Tick 373 — letter-edged terms allow an optional trailing `s`
+        // so "Hot Dogs" / "Hero Decks" / "Top Decks" all map back to the
+        // singular glossary entry. Without this, plural occurrences in
+        // body prose silently dropped the tap-to-define affordance —
+        // particularly noticeable in the Madness + Double-Up sections
+        // shipped tick 358.
         const patterns = terms.map(t => {
           const esc = t.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const first = t.term[0], last = t.term[t.term.length - 1];
           const isLetterEdged = /[A-Za-z0-9]/.test(first) && /[A-Za-z0-9]/.test(last);
-          return isLetterEdged ? `\\b${esc}\\b` : `(?<![A-Za-z0-9])${esc}(?![A-Za-z0-9])`;
+          return isLetterEdged ? `\\b${esc}s?\\b` : `(?<![A-Za-z0-9])${esc}(?![A-Za-z0-9])`;
         });
         const combined = new RegExp(patterns.join('|'), 'g');
         if (!combined.test(text)) continue;
@@ -1186,7 +1192,12 @@
           if (m.index > cursor) {
             frag.appendChild(document.createTextNode(text.slice(cursor, m.index)));
           }
-          const hit = terms.find(t => t.term === m[0]);
+          // Tick 373 — fallback that strips trailing `s` so a plural
+          // matched via `s?` still resolves to the singular glossary
+          // entry. m[0] preserves the original cased + pluralized
+          // form for display; only the lookup key needs depluralization.
+          const hit = terms.find(t => t.term === m[0])
+                  ?? terms.find(t => t.term + 's' === m[0]);
           if (hit) {
             const btn = document.createElement('button');
             btn.type = 'button';

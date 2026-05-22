@@ -58,6 +58,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -150,7 +151,7 @@ private fun DecksCompactScreen(
     // pool's filtered list changes so a tap → detail → swipe walks
     // the visible pool. Parity with iOS Decks browser.
     val navHolder: com.bobaplaybook.app.feature.carddetail.CardNavigationHolderViewModel = hiltViewModel()
-    androidx.compose.runtime.LaunchedEffect(findState.results) {
+    LaunchedEffect(findState.results) {
         navHolder.store.set(findState.results.map { it.bobaId })
     }
     val hintsViewModel: HintsViewModel = hiltViewModel()
@@ -198,7 +199,7 @@ private fun DecksCompactScreen(
     // iOS .disabled() rule on SAVE pill).
     val decksActionsVm: DecksActionsHolderViewModel =
         androidx.hilt.navigation.compose.hiltViewModel()
-    androidx.compose.runtime.LaunchedEffect(Unit) {
+    LaunchedEffect(Unit) {
         decksActionsVm.bus.savePressed.collect {
             if (editorOpen && isSignedIn && (draft.cards.isNotEmpty())) {
                 saveDeckAction()
@@ -208,7 +209,7 @@ private fun DecksCompactScreen(
     // Tick 324 — `n` from root → surface the clear-deck confirm
     // dialog (or no-op if draft is already empty). Matches the
     // existing Clear-button tap behavior at line 326-327.
-    androidx.compose.runtime.LaunchedEffect(Unit) {
+    LaunchedEffect(Unit) {
         decksActionsVm.bus.clearPressed.collect {
             if (draft.cards.isNotEmpty()) {
                 clearConfirmOpen = true

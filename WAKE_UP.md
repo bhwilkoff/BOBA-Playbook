@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 325 (opt, code style)** — Android DecksScreen: replaced 3 `androidx.compose.runtime.LaunchedEffect(...)` FQN call sites with the short `LaunchedEffect(...)` via a top-of-file import. Same code, less visual noise at the call site. Mirrors tick 321's similar cleanup on FindScreen.
 - **tick 324 (Android, new-deck shortcut)** — `n` (no modifier) on Decks surfaces the clear-deck confirm dialog. Closes 3-platform new-deck-shortcut trio (iOS Cmd+N v2.322 / web 'n' tick 323 / Android 'n'). New `clearPressed` SharedFlow on DecksActions singleton; BOBAApp root key handler emits when currentDestination == DECKS; DecksScreen LaunchedEffect collects + flips clearConfirmOpen.
 - **tick 323 (web)** — Single-key `n` clears draft = "new deck" idiom on Decks view. iOS Cmd+N (v2.322) parity through a different key since browsers reserve Ctrl/Cmd+N for new-window. Gated on no-input-focus + view-decks active + no dialog open. Surfaces via tooltip "Clear deck (N)". Routes through existing db-clear-btn click → Snackbar + Undo recovery window.
 - **tick 322 (iOS v2.322 / 584)** — Cmd+N keyboard shortcut on iPad Decks "+ New deck" button. Apple HIG canonical "New" idiom. Fires only when the savedDecksSidebar is in the responder chain (iPad regular width); iPhone compact-width has no sidebar, so the shortcut is iPad-scoped — matching how the existing button visibility works.

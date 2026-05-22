@@ -514,8 +514,59 @@ private fun TournamentPage() {
         } else {
             items(events, key = { it.id }) { EventRow(it) }
         }
+
+        // Tick 236 — Recent BoBA news from the official blog. Live data
+        // refreshed daily at 05:17 UTC; sourced from docs/blog-feed.json
+        // (mirrored to android/.../blog-feed.json). Lets users catch up
+        // on rules updates, release announcements, and community moments
+        // without leaving the app.
+        val blogPosts = BlogFeedLoader.load(context).take(5)
+        if (blogPosts.isNotEmpty()) {
+            item("blog-head") { BOBASectionHeader(title = "Recent BoBA news") }
+            items(blogPosts, key = { "blog-${it.id}" }) { post -> BlogPostRow(post) }
+        }
+
         itemsIndexed(items = sections, key = { i, _ -> "section-$i" }) { _, section ->
             SectionRenderer(section)
+        }
+    }
+}
+
+@Composable
+private fun BlogPostRow(post: BlogPost) {
+    val context = LocalContext.current
+    val accent = com.bobaplaybook.core.ui.theme.BobaBrand.Orange
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clickable {
+                androidx.browser.customtabs.CustomTabsIntent.Builder()
+                    .build()
+                    .launchUrl(context, android.net.Uri.parse(post.url))
+            }
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = post.date,
+            style = MaterialTheme.typography.labelSmall,
+            color = accent,
+        )
+        Text(
+            text = post.title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+        )
+        if (post.excerpt.isNotBlank()) {
+            Text(
+                text = post.excerpt,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
         }
     }
 }

@@ -150,10 +150,13 @@ class CollectionViewModel @Inject constructor(
         askingPrice: Double?,
         condition: String?,
         notes: String?,
+        grade: String? = null,
+        gradingCompany: String? = null,
     ) {
         viewModelScope.launch {
             collectionRepository.updateEntryFields(
                 userCardId, purchasePrice, askingPrice, condition, notes,
+                grade = grade, gradingCompany = gradingCompany,
             )
         }
     }

@@ -189,13 +189,15 @@ fun CollectionCardDetailScreen(
                             }
                         }
                     },
-                    onSaveEdits = { purchase, asking, condition, notes ->
+                    onSaveEdits = { purchase, asking, condition, notes, grade, gradingCompany ->
                         viewModel.updateEntry(
                             userCardId = entry.userCard.id,
                             purchasePrice = purchase,
                             askingPrice = asking,
                             condition = condition,
                             notes = notes,
+                            grade = grade,
+                            gradingCompany = gradingCompany,
                         )
                         // Confirmation Snackbar — without it the user has
                         // no signal that the save persisted (the in-place
@@ -325,7 +327,7 @@ private fun CopyRow(
     entry: CollectionEntry,
     onDesignationChange: (Designation) -> Unit,
     onDelete: () -> Unit,
-    onSaveEdits: (purchase: Double?, asking: Double?, condition: String?, notes: String?) -> Unit,
+    onSaveEdits: (purchase: Double?, asking: Double?, condition: String?, notes: String?, grade: String?, gradingCompany: String?) -> Unit,
 ) {
     var deleteOpen by rememberSaveable { mutableStateOf(false) }
     var editOpen by rememberSaveable { mutableStateOf(false) }
@@ -446,8 +448,8 @@ private fun CopyRow(
         EditCopySheet(
             entry = entry,
             onDismiss = { editOpen = false },
-            onSave = { purchase, asking, condition, notes ->
-                onSaveEdits(purchase, asking, condition, notes)
+            onSave = { purchase, asking, condition, notes, grade, gradingCompany ->
+                onSaveEdits(purchase, asking, condition, notes, grade, gradingCompany)
                 editOpen = false
             },
         )
@@ -468,13 +470,20 @@ private fun CopyRow(
 private fun EditCopySheet(
     entry: CollectionEntry,
     onDismiss: () -> Unit,
-    onSave: (purchase: Double?, asking: Double?, condition: String?, notes: String?) -> Unit,
+    onSave: (purchase: Double?, asking: Double?, condition: String?, notes: String?, grade: String?, gradingCompany: String?) -> Unit,
 ) {
     var purchaseText by rememberSaveable { mutableStateOf(entry.userCard.purchasePrice?.toString().orEmpty()) }
     var askingText by rememberSaveable { mutableStateOf(entry.userCard.askingPrice?.toString().orEmpty()) }
     var conditionPick by rememberSaveable { mutableStateOf<String?>(entry.userCard.condition) }
+    // Tick 256 — grade + gradingCompany now editable post-create. iOS
+    // EditCollectionEntrySheet has the same fields; Android was missing
+    // them (data layer captured them since the AddToCollection sheet
+    // shipped — tick 239 unblocked the domain boundary).
+    var gradingCompanyPick by rememberSaveable { mutableStateOf<String?>(entry.userCard.gradingCompany) }
+    var gradeText by rememberSaveable { mutableStateOf(entry.userCard.grade.orEmpty()) }
     var notesText by rememberSaveable { mutableStateOf(entry.userCard.notes.orEmpty()) }
     val conditions = remember { listOf("Mint", "Near Mint", "Excellent", "Good", "Poor") }
+    val gradingCompanies = remember { listOf("PSA", "BGS", "SGC", "CGC") }
 
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -502,6 +511,30 @@ private fun EditCopySheet(
                         label = { Text(c, style = MaterialTheme.typography.labelSmall) },
                     )
                 }
+            }
+            // Grade — third-party slab grade + grading company. Optional;
+            // most owned cards are raw (no slab).
+            Text("Grade (optional)", style = MaterialTheme.typography.titleSmall)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                gradingCompanies.forEach { co ->
+                    FilterChip(
+                        selected = gradingCompanyPick == co,
+                        onClick = { gradingCompanyPick = if (gradingCompanyPick == co) null else co },
+                        label = { Text(co, style = MaterialTheme.typography.labelSmall) },
+                    )
+                }
+            }
+            if (gradingCompanyPick != null) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = gradeText,
+                    onValueChange = { gradeText = it.filter { ch -> ch.isDigit() || ch == '.' }.take(4) },
+                    label = { Text("Grade (e.g. 10, 9.5)") },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             // Pricing
             androidx.compose.material3.OutlinedTextField(
@@ -545,6 +578,8 @@ private fun EditCopySheet(
                             askingText.toDoubleOrNull(),
                             conditionPick,
                             notesText.takeIf { it.isNotBlank() },
+                            gradeText.takeIf { it.isNotBlank() && gradingCompanyPick != null },
+                            gradingCompanyPick,
                         )
                         // Auto-dismiss on save — parity with the iOS
                         // EditCollectionEntrySheet pattern. Was the

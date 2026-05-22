@@ -32,6 +32,10 @@ struct CardDetailView: View {
     @State private var showingAddToShow = false
     @State private var showingSignIn = false
     @State private var showingDBSInfo = false
+    // Tick 382 — popover state for the print-run / SSP chip explainer
+    // (Android tick 379 parity). Tap on the chip → present a short
+    // popover that decodes /5 · /10 · /25 · /50 · SSP · Serial.
+    @State private var showingPrintRunExplainer = false
     /// Non-nil while a "Added to {deck}" toast should be visible. Cleared
     /// automatically after a short delay by the overlay's task.
     @State private var addedToDeckName: String?
@@ -796,16 +800,47 @@ struct CardDetailView: View {
                     }
                     // Tick 197 — Discord backlog #7: print-run / SSP chip.
                     // SSP=orange, numbered=cyan. nil for typical cards.
+                    // Tick 382 — Android tick 379 parity. Tap → popover
+                    // explainer of what /5 · /10 · /25 · /50 · SSP · Serial
+                    // each mean (DECISIONS.md #028 weapon-tied print runs).
+                    // Casual users don't auto-know the BoBA Inspired Ink
+                    // convention; the popover carries the spec inline.
                     if let label = card.printRunLabel {
                         if !card.isInspiredInk { Spacer() }
                         let accent = label == "SSP" ? Design.Colors.bobaOrange : Design.Colors.bobaCyan
-                        Text(label)
-                            .font(Design.Fonts.mono(9, weight: .bold))
-                            .foregroundStyle(accent)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(accent.opacity(0.15))
-                                .overlay(Capsule().strokeBorder(accent.opacity(0.45), lineWidth: 0.5)))
+                        let explanation: String = {
+                            switch label {
+                            case "SSP":    return "Superfoil — Super-Short-Print, BoBA's rarest non-numbered treatment."
+                            case "/5":     return "Inspired Ink Hex — limited run of 5 copies (BoBA's rarest serialized treatment)."
+                            case "/10":    return "Inspired Ink Glow — limited run of 10 copies."
+                            case "/25":    return "Inspired Ink Fire — limited run of 25 copies."
+                            case "/50":    return "Inspired Ink Ice — limited run of 50 copies."
+                            case "Serial": return "Inspired Ink — serialized run; print number not publicly disclosed."
+                            default:       return "\(label) print run."
+                            }
+                        }()
+                        Button {
+                            showingPrintRunExplainer = true
+                        } label: {
+                            Text(label)
+                                .font(Design.Fonts.mono(9, weight: .bold))
+                                .foregroundStyle(accent)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(Capsule().fill(accent.opacity(0.15))
+                                    .overlay(Capsule().strokeBorder(accent.opacity(0.45), lineWidth: 0.5)))
+                        }
+                        .buttonStyle(.plain)
+                        .help(explanation)
+                        .accessibilityHint(explanation)
+                        .popover(isPresented: $showingPrintRunExplainer, arrowEdge: .top) {
+                            Text(explanation)
+                                .font(Design.Fonts.mono(13))
+                                .foregroundStyle(Design.Colors.textPrimary)
+                                .padding(16)
+                                .frame(maxWidth: 280)
+                                .presentationCompactAdaptation(.popover)
+                        }
                     }
                 }
             }

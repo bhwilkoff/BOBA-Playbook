@@ -4334,7 +4334,8 @@ dialog.modal-overlay[open] {
   text-align: center;
 }
 .custom-rainbows-list { display: flex; flex-direction: column; gap: 0.5rem; }
-.rainbow-edit-btn {
+.rainbow-edit-btn,
+.rainbow-share-btn {
   background: transparent;
   border: 1px solid rgba(0,245,255,0.25);
   border-radius: 4px;
@@ -4347,7 +4348,8 @@ dialog.modal-overlay[open] {
   transition: border-color 0.15s, color 0.15s, background 0.15s;
   line-height: 1;
 }
-.rainbow-edit-btn:hover { color: #00F5FF; border-color: rgba(0,245,255,0.55); background: rgba(0,245,255,0.08); }
+.rainbow-edit-btn:hover,
+.rainbow-share-btn:hover { color: #00F5FF; border-color: rgba(0,245,255,0.55); background: rgba(0,245,255,0.08); }
 
 /* Custom Rainbow editor <dialog> — name input + save/delete first
    slice. Sub-pickers + progress preview land in later ticks. */

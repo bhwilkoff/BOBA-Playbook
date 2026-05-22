@@ -30,6 +30,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
@@ -94,17 +98,13 @@ internal fun WatchPageContent() {
             )
         }
         else -> {
-            val scope = androidx.compose.runtime.rememberCoroutineScope()
-            var isRefreshing by androidx.compose.runtime.remember {
-                androidx.compose.runtime.mutableStateOf(false)
-            }
+            val scope = rememberCoroutineScope()
+            var isRefreshing by remember { mutableStateOf(false) }
             // Tab picker — iOS WatchView parity. The previous stacked-
             // section layout buried Live+Upcoming under Videos as the
             // user scrolled. A segmented tab makes the three feeds
             // explicit and surfaces the count per tab.
-            var tab by androidx.compose.runtime.saveable.rememberSaveable {
-                androidx.compose.runtime.mutableStateOf("upcoming")
-            }
+            var tab by rememberSaveable { mutableStateOf("upcoming") }
             val items = when (tab) {
                 "upcoming"   -> state.bundle.upcoming
                 "horizontal" -> state.bundle.horizontal

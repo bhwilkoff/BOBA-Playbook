@@ -941,33 +941,25 @@ private struct RulesSectionHeader: View {
     }
 }
 
-// Tick 217 — Discord backlog #3 iOS port (closes the trio with
-// Android tick 186 + web tick 208). Inline glossary tap-to-define on
-// Learn article body text. Minimum-viable canary: the ~20 most-common
-// terms are duplicated here from GlossaryView.gameTerms for now; a
-// future tick can hoist the full set to file scope and consolidate.
-// Future ticks: apply GlossaryAwareText to more surfaces (RookieRules,
-// SubstitutionRules, Playmaker, Collect, Tournament).
-fileprivate let boba_inlineGlossary: [(term: String, def: String)] = [
-    ("DBS",         "Deck Balancing System — each Play card has a DBS score (Low / Medium / High / Very High). All Playmaker divisions at the 2026 Nationals cap a deck's total DBS at 1,000 unless specified otherwise."),
-    ("HTD",         "Home Team Discount — a treatment on 60 Play cards in the Alpha Blast set that reduces the Hot Dog cost by 1 when used by the Honors player. Many tournament formats toggle HTD Plays on or off."),
-    ("Bonus Play",  "Card-number prefix BPL. Supplemental Plays (Alpha Update / Griffey / specialty sets) you can include beyond the 30-card Playbook. Some formats toggle Bonus Plays off entirely."),
-    ("Hot Dog",     "The energy resource of the game. Pay Hot Dogs to substitute or play Plays. Your Hot Dog Deck has exactly 10 cards, and they also serve as Power 0 placeholders."),
-    ("Coach",       "How a BoBA player refers to themselves in any gameplay setting. You lead a squad of heroes into battle."),
-    ("Honors",      "The right to act first in a battle — choose to substitute first, play first, and resolve first. After each battle, Honors passes to the battle winner."),
-    ("Playbook",    "The 30 unique-named Plays you bring to the table. Draw 1 after each battle."),
-    ("Rainbow",     "Community collecting goal — owning every treatment variation of a single hero (Base + all foils + autos)."),
-    ("Substitute",  "Swap the revealed Hero for one from your hand by paying 2 Hot Dogs during the Substitution Window."),
-    ("Substitution","Swap the revealed Hero for one from your hand by paying 2 Hot Dogs during the Substitution Window."),
-    // Tick 242 — Set Ascension + Checklist terms (mirrors web tick 228
-    // + Android tick 229 inline-glossary expansion). These now appear
-    // tappable in TournamentView + CollectView article prose.
-    ("Set Ascension", "BoBA's framework for organizing play across three formats based on when cards released. Older sets don't fade — they ascend into legacy formats. The three tiers are Modern (active era), Hall of Fame (ascended era), and AlphaTrilogy (founders era)."),
-    ("Modern",      "The Active-Era format in BoBA's Set Ascension. Cards from the past 2 years. Primary competitive format; best entry point for new players."),
-    ("Hall of Fame","The Ascended-Era format in BoBA's Set Ascension. Cards released 2+ years ago (as of January 1). Larger card pool with complex interactions; reserved for special, high-skill events."),
-    ("AlphaTrilogy","The Founders-Era format in BoBA's Set Ascension. Exclusively original Alpha-era cards (first year). Celebrated annually with dedicated events. Alpha cards are also playable in Hall of Fame."),
-    ("Checklist",   "BoBA format where deck-building is restricted to a curated list of Plays (a Checklist). Each event publishes its own theme — high-offense, control, chaos, etc. Core mechanics stay identical; only the available card pool changes."),
-]
+// Tick 257 — inline glossary derived from GlossaryView.gameTerms (was
+// 15 hardcoded duplicates of the same content; tick 250 + 242 added
+// the same terms twice — once to gameTerms, once here). Single source
+// of truth now. Plus the "Substitute" alias that isn't in gameTerms
+// (gameTerms has "Sub / Substitute" combined; the inline regex needs
+// "Substitute" standalone so a sentence mentioning just "Substitute"
+// matches).
+fileprivate let boba_inlineGlossary: [(term: String, def: String)] = {
+    var pairs = GlossaryView.gameTerms.map { ($0.term, $0.definition) }
+    pairs.append((
+        "Substitute",
+        "Swap the revealed Hero for one from your hand by paying 2 Hot Dogs during the Substitution Window."
+    ))
+    pairs.append((
+        "Substitution",
+        "Swap the revealed Hero for one from your hand by paying 2 Hot Dogs during the Substitution Window."
+    ))
+    return pairs
+}()
 
 /// AttributedString with glossary terms turned into tappable links via
 /// the `boba-glossary://` URL scheme. The .openURL environment handler
@@ -1810,7 +1802,7 @@ private struct ArchetypeCard: View {
 // later if the list keeps growing.
 
 private struct GlossaryView: View {
-    private struct Term: Identifiable {
+    fileprivate struct Term: Identifiable {
         let term: String
         let definition: String
         var id: String { term }
@@ -1821,7 +1813,11 @@ private struct GlossaryView: View {
     /// timer (mirrors the Android Toast feedback window from tick 84).
     @State private var copiedTermId: String?
 
-    private let gameTerms: [Term] = [
+    // Tick 257 — hoisted to fileprivate static so boba_inlineGlossary
+    // can derive from gameTerms (single source of truth). The arrays
+    // stay declared inside GlossaryView for ownership clarity; the
+    // static keyword just makes them per-type rather than per-instance.
+    fileprivate static let gameTerms: [Term] = [
         .init(term: "Coach",       definition: "How a BoBA player refers to themselves in any gameplay setting. You lead a squad of heroes into battle — the Heroes bring the power, you bring the strategy."),
         .init(term: "Honors",      definition: "The right to act first in a battle — choose to substitute first, play first, and resolve first. After each battle, Honors passes to the battle winner."),
         .init(term: "Sub / Substitute", definition: "Swap the revealed Hero for one from your hand by paying 2 Hot Dogs during the Substitution Window. Only the Honors player can decide whether to substitute first."),
@@ -1843,7 +1839,7 @@ private struct GlossaryView: View {
         .init(term: "AlphaTrilogy", definition: "The Founders-Era format in BoBA's Set Ascension. Exclusively original Alpha-era cards (first year). Celebrated annually with dedicated events. Alpha cards are also playable in Hall of Fame — preserves BoBA's foundation."),
     ]
 
-    private let tradingTerms: [Term] = [
+    fileprivate static let tradingTerms: [Term] = [
         .init(term: "ISO",   definition: "In Search Of — you want to acquire this card. Posted with a hero name or card number."),
         .init(term: "PC",    definition: "Personal Collect (or Personal Collection) — a card you're keeping and not trading/selling. Often paired with a hero name: 'Bo Jackson PC.'"),
         .init(term: "OBO",   definition: "Or Best Offer — the listed price is negotiable."),
@@ -1883,8 +1879,8 @@ private struct GlossaryView: View {
                     title: "Long-press a term",
                     message: "Press and hold any glossary term to copy or share its definition — handy for quoting it in Discord or a coaching note."
                 )
-                glossarySection(title: "GAME GLOSSARY",    blurb: "Terms you'll hear in rules discussions, deck building, and battle flow.", terms: gameTerms)
-                glossarySection(title: "TRADING GLOSSARY", blurb: "Community shorthand used in the Discord trade room, Whatnot streams, and eBay listings.", terms: tradingTerms)
+                glossarySection(title: "GAME GLOSSARY",    blurb: "Terms you'll hear in rules discussions, deck building, and battle flow.", terms: Self.gameTerms)
+                glossarySection(title: "TRADING GLOSSARY", blurb: "Community shorthand used in the Discord trade room, Whatnot streams, and eBay listings.", terms: Self.tradingTerms)
             }
             .padding(Design.Spacing.lg)
             .padding(.bottom, Design.Spacing.xxl)

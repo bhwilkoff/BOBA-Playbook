@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 256 (Android)** — EditCopySheet now lets users change grade + gradingCompany post-create (dcf5df0). 4-chip PSA/BGS/SGC/CGC FilterChip row + conditional grade input. iOS EditCollectionEntrySheet parity. Closes the grading feature trio (tick 239 data layer + 241 surface + 256 edit).
 - **tick 255 (iOS — closes trio)** — Past tournament events dim 0.55α + "· PAST" + drop Open-↗ (ccb5342). **Closes the past-event-styling trio** (web 253, Android 254, iOS today). v2.306/568. Tick was marked opt by cadence but the parity work is more impactful.
 - **tick 254 (Android)** — Past tournament events dim 0.55α + "· PAST" date suffix + drop Open-↗ CTA (606f35a). Mirrors web tick 253. iOS port queued.
 - **tick 253 (web)** — Past tournament events dim to 0.55 opacity + "· PAST" date suffix (25bafbb). Open-↗ CTA dropped on concluded events. iOS + Android parallel ports queued.

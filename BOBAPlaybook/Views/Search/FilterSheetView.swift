@@ -142,9 +142,8 @@ struct FilterSheetView: View {
                 }
                 .listRowBackground(Design.Colors.surface2)
 
-                // MARK: Weapons (renamed from Element 2026-04-23 — every
-                // community reference calls them weapons, not elements;
-                // the catalog field name `element` stays as-is).
+                // MARK: Weapons — UI label "Weapon", catalog field name `element`
+                // (DECISIONS.md #027 user-facing terminology).
                 Section {
                     elementGrid
                 } header: {
@@ -295,9 +294,6 @@ struct FilterSheetView: View {
     }
 
     // MARK: - Card purpose row (Heroes / Plays / Hot Dogs / Sealed)
-    //
-    // Moved into the filter sheet (2026-04-22) to live alongside the rest
-    // of the filters instead of as a separate chip row on SearchView.
     private var cardPurposeRow: some View {
         FlowLayout(spacing: Design.Spacing.sm) {
             ForEach(CardPurpose.allCases) { purpose in

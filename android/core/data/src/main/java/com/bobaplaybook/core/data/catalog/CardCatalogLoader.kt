@@ -63,10 +63,25 @@ class CardCatalogLoader @Inject constructor(
      * The repository swaps the resulting map atomically.
      */
     suspend fun loadFull(): List<Card> = withContext(Dispatchers.IO) {
-        runCatching {
+        val started = System.currentTimeMillis()
+        val result = runCatching {
             context.assets.open("data/cards.json").use { stream ->
                 json.decodeFromString<List<Card>>(stream.bufferedReader().readText())
             }
-        }.getOrDefault(emptyList())
+        }
+        result.onSuccess { cards ->
+            android.util.Log.i(
+                "CardCatalogLoader",
+                "Phase 2 OK: ${cards.size} cards loaded in ${System.currentTimeMillis() - started}ms",
+            )
+        }
+        result.onFailure { e ->
+            android.util.Log.e(
+                "CardCatalogLoader",
+                "Phase 2 FAILED after ${System.currentTimeMillis() - started}ms: ${e.javaClass.simpleName}: ${e.message}",
+                e,
+            )
+        }
+        result.getOrDefault(emptyList())
     }
 }

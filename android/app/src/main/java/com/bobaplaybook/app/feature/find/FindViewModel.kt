@@ -53,7 +53,7 @@ class FindViewModel @Inject constructor(
     private val hasImageOnly    = MutableStateFlow(false)
     private val cardPurpose     = MutableStateFlow(CardPurpose.ALL)
     private val showcaseId      = MutableStateFlow<String?>(null)
-    private val sortOrder       = MutableStateFlow(SortOrder.RECENTLY_ADDED)
+    private val sortOrder       = MutableStateFlow(SortOrder.DEFAULT)
 
     private val canonicalWeapons = listOf(
         "FIRE", "ICE", "STEEL", "BRAWL", "GLOW", "HEX", "GUM", "SUPER",
@@ -190,7 +190,7 @@ class FindViewModel @Inject constructor(
         hasImageOnly.value = false
         cardPurpose.value = CardPurpose.ALL
         showcaseId.value = null
-        sortOrder.value = SortOrder.RECENTLY_ADDED
+        sortOrder.value = SortOrder.DEFAULT
     }
 
     /** Filter pipeline. Mirrors iOS CardStore.applyFilters. */
@@ -268,7 +268,7 @@ class FindViewModel @Inject constructor(
     ): List<Card> {
         val artFirst = compareByDescending<Card> { !it.imageFile.isNullOrEmpty() }
         return when (order) {
-            SortOrder.CATALOG_ORDER         -> cards.sortedWith(artFirst.thenBy { it.cardNumber })
+            SortOrder.DEFAULT         -> cards.sortedWith(artFirst.thenBy { it.cardNumber })
             SortOrder.RECENTLY_ADDED  -> {
                 val orderByBobaId = catalog.withIndex().associate { it.value.bobaId to it.index }
                 cards.sortedWith(

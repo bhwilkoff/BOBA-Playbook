@@ -817,23 +817,30 @@ struct BOBACardCell: View {
         }
     }
 
-    /// Bottom-leading format-legality hint (Android tick 464 parity /
-    /// Discord backlog #4 carry-forward). Surfaces only when the card
-    /// is legal in less than all 4 formats — so common cards stay
-    /// unmarked and restricted cards stand out in a grid. .full-only
-    /// gate matches printRunBadge.
+    /// Bottom-leading format-legality hint. .full-only gate matches
+    /// printRunBadge.
     @ViewBuilder
     private var formatLegalityHintBadge: some View {
         if size == .full, let hint = CardFormatEligibility.restrictedLegalAbbrev(for: card) {
-            Text(hint)
-                .font(Design.Fonts.mono(10, weight: .bold))
-                .foregroundStyle(Design.Colors.bobaOrange)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(Color.black.opacity(0.62))
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .padding(4)
+            FormatLegalityHintBadge(label: hint).padding(4)
         }
+    }
+}
+
+/// Shared format-legality hint chip — amber accent signals "this
+/// card isn't legal everywhere." Surfaces wherever
+/// `CardFormatEligibility.restrictedLegalAbbrev` returns non-nil.
+struct FormatLegalityHintBadge: View {
+    let label: String
+
+    var body: some View {
+        Text(label)
+            .font(Design.Fonts.mono(10, weight: .bold))
+            .foregroundStyle(Design.Colors.bobaOrange)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(Color.black.opacity(0.62))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 }
 

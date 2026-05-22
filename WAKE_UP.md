@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 238 (web — NEW FEATURE)** — Recent BoBA News section in Learn → Tournament (dc6232d). **Closes the news-feed trio** (Android 236, iOS 237, web today). refresh-blog.yml now mirrors to all 3 platforms in one daily commit. Orange-tinted card rows; tap opens post in new tab; 2-line CSS clamp.
 - **tick 237 (iOS — NEW FEATURE)** — Recent BoBA News section in Learn → Tournament (15ef4d3). Mirrors Android tick 236. refresh-blog.yml workflow now mirrors to iOS + Android bundles in same daily commit. v2.302/564. Web port queued.
 - **tick 236 (Android — NEW FEATURE)** — "Recent BoBA news" section in Learn → Tournament sourced from docs/blog-feed.json (3387b18). 5 most-recent posts; tap → in-app Custom Tab. Daily-refreshed via existing cron. iOS + web ports queued.
 - **tick 235 (opt)** — Migrate GlossaryAwareBody from deprecated ClickableText → Text + LinkAnnotation.Clickable (69776f0). **Zero Compose deprecation warnings remain on Android.** Captured-term closure pattern documented.

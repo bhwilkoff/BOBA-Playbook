@@ -813,12 +813,24 @@
         list.innerHTML = '<p class="events-empty">No recent posts.</p>';
         return;
       }
-      list.innerHTML = top.map(p => {
+      // Tick 248 — Last-refreshed stamp (Android tick 244 + iOS tick 247
+      // parity). Reuses existing relativeDate() helper. Renders as a
+      // slim mono subscript prepended to the list, matching the events
+      // stamp shipped tick 218.
+      const stamp = bundle?.lastUpdated;
+      const stampHtml = stamp
+        ? `<div class="events-last-updated">Last refreshed ${escHtml(relativeDate(stamp))}</div>`
+        : '';
+      // Tick 248 — relative-format dates on each row (Android tick 246
+      // + iOS tick 247 parity). "today" / "Nd ago" / "Nw ago" reads
+      // more naturally than 2026-05-21 verbatim.
+      list.innerHTML = stampHtml + top.map(p => {
         const url = p.url || '#';
         const excerpt = (p.excerpt || '').slice(0, 220);
+        const dateLabel = p.date ? relativeDate(p.date) || p.date : '';
         return `
           <a class="blog-feed-row" href="${escHtml(url)}" target="_blank" rel="noopener noreferrer">
-            <div class="blog-feed-date">${escHtml(p.date || '')}</div>
+            <div class="blog-feed-date">${escHtml(dateLabel)}</div>
             <h4 class="blog-feed-title">${escHtml(p.title || '')}</h4>
             ${excerpt ? `<p class="blog-feed-excerpt">${escHtml(excerpt)}…</p>` : ''}
           </a>`;

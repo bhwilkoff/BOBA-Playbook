@@ -126,6 +126,10 @@
       const live = shows.filter(s => s.isLive);
       const upcoming = shows.filter(s => !s.isLive);
       const parts = [];
+      // Tick 513 — explanatory caption (iOS UpcomingBreaksList line 31
+      // + Android tick 511 parity). Spans all grid columns via
+      // grid-column: 1 / -1 in the .purchase-shows-intro rule.
+      parts.push('<div class="purchase-shows-intro">Live community streams featuring Bo Jackson Battle Arena</div>');
       if (live.length)     parts.push(...live.map(showCardHTML));
       if (live.length && upcoming.length) {
         parts.push('<div class="purchase-shows-section-divider">UPCOMING</div>');

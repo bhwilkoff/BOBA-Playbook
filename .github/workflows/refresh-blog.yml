@@ -34,10 +34,16 @@ jobs:
       - name: Regenerate blog digest markdown
         run: python3 scripts/build_blog_digest.py
 
+      - name: Mirror to platform bundles (iOS + Android)
+        run: |
+          cp docs/blog-feed.json android/app/src/main/assets/data/blog-feed.json
+          cp docs/blog-feed.json BOBAPlaybook/blog-feed.json
+
       - name: Check for changes
         id: diff
         run: |
-          if git diff --quiet docs/blog-feed.json docs/blog-digest.md; then
+          if git diff --quiet docs/blog-feed.json docs/blog-digest.md \
+              android/app/src/main/assets/data/blog-feed.json BOBAPlaybook/blog-feed.json; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -48,7 +54,8 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/blog-feed.json docs/blog-digest.md
+          git add docs/blog-feed.json docs/blog-digest.md \
+              android/app/src/main/assets/data/blog-feed.json BOBAPlaybook/blog-feed.json
           git commit -m "chore(blog): daily refresh $(date -u +%Y-%m-%d)"
           git push
 

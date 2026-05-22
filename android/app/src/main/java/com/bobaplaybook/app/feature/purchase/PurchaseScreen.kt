@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Visibility
@@ -335,6 +334,15 @@ private fun WhatnotTile(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                // Tick 519 — drop the dead Person fallback icon. iOS
+                // UpcomingBreaksList doesn't render any host avatar at
+                // all (just @host text in the footer); the Worker
+                // (worker.js:2040-2059) doesn't expose `hostAvatarUrl`
+                // today, so the fallback was always-on visual clutter
+                // showing the same generic Person silhouette on every
+                // tile. Kept the `if (show.hostAvatarUrl != null)`
+                // branch so a future Worker change can render real
+                // avatars without re-wiring.
                 if (show.hostAvatarUrl != null) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current).data(show.hostAvatarUrl).crossfade(150).build(),
@@ -342,16 +350,6 @@ private fun WhatnotTile(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.size(40.dp).clip(CircleShape),
                     )
-                } else {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        modifier = Modifier.size(40.dp),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Person, contentDescription = null)
-                        }
-                    }
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(

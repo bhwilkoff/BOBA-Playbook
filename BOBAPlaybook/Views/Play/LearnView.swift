@@ -599,6 +599,7 @@ private struct RulesView: View {
 
                     CardZonesSection()
                     DeckbuildingSection()
+                    UnderstandingDBSSection()
                     EdgeCasesSection()
                 }
                 .frame(maxWidth: .infinity)
@@ -1209,6 +1210,69 @@ private struct DeckbuildingSection: View {
                 .init(label: "Hot Dog Deck",  body: "Exactly 10 cards. Duplicates are allowed."),
                 .init(label: "Playbook",      body: "Exactly 30 Plays, all unique names. Bonus Plays (special treatment) may be added beyond 30."),
             ])
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - Understanding DBS (iOS port of Android tick 186)
+// ════════════════════════════════════════════════════════════════
+//
+// Discord §5 finding: 15-20% of rules Qs are about DBS. Lives in the
+// always-visible appendix because DBS comes up in every Playmaker
+// discussion regardless of game-mode picker. Mirrors Android
+// LearnContent.rulesAppendix.
+private struct UnderstandingDBSSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+            RulesSectionHeader(title: "Understanding DBS")
+            GlossaryAwareText(
+                raw: "DBS is a per-Play cost system used in Nationals-style formats to keep individually powerful plays from crowding out the rest of a deck. Every Play has a DBS score and your deck's total must stay under the format's cap (1,000 for all Playmaker divisions at 2026 Nationals).",
+                font: Design.Fonts.mono(13),
+                color: Design.Colors.textSecondary
+            )
+            RuleCard(lines: [
+                .init(label: "DBS bands", body: "Low 1-20 / Medium 21-40 / High 41-60 / Very High 67+. Every Play card carries a DBS value in one of these bands."),
+                .init(label: "Budget", body: "Your 30 Plays sum to a total DBS; stay ≤ deck's budget (typically 1,000) — over-cap decks fail legality check."),
+                .init(label: "Format scope", body: "Non-Nationals formats (Rookie, Substitution, Playmaker base) ignore DBS entirely. Spec and Apex Playmaker enforce it; Brawl + Checklist have their own caps."),
+                .init(label: "Bonus Plays count", body: "Bonus Plays count toward DBS in formats that include both. Decks running BP shrink their effective budget."),
+                .init(label: "Power vs. budget", body: "High-DBS plays are individually powerful but force you to fill the rest of the deck with low-DBS plays to stay legal."),
+            ])
+            HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                Image(systemName: "info.circle.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                    .padding(.top, 2)
+                Text("Tap the DBS chip on any Play card to see how adding it changes your active deck's total. The chip is purple and lives next to Power / Cost on the card detail.")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.bobaCyan.opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.bobaCyan.opacity(0.3), lineWidth: 1)))
+            // April 2026 rebalance callout (mirrors Android tick 204 +
+            // web tick 204). Source: 2026-04-27 blog post.
+            HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                Image(systemName: "arrow.up.right.circle.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                    .padding(.top, 2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("April 2026 update")
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                    Text("BoBA rebalanced DBS values to restore meaningful decisions: low-cost Plays (0- and 1-cost effects) now carry higher DBS than before; key cards that enabled full-deck cycling were rebalanced. Draw / recovery / manipulation are still powerful — they just come with a real cost now.")
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.bobaOrange.opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: Design.Radius.md).strokeBorder(Design.Colors.bobaOrange.opacity(0.3), lineWidth: 1)))
         }
     }
 }

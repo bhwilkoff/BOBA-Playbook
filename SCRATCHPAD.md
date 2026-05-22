@@ -2,25 +2,16 @@
 
 > Active working notes only. Completed milestone implementation detail and the full session log live in [ARCHIVE.md](./ARCHIVE.md). See [DECISIONS.md](./DECISIONS.md) for architecture decisions and [DESIGN.md](./DESIGN.md) for binding iOS design rules.
 
-## Pickup state — 2026-05-21 (pre-compaction)
-
-The full session-work log shipped that day (events refresh + scan queue + Maps SDK + Card-detail swipe-nav + Play Console asset pipeline + daily blog cron + doc trim) lives in git history. Ben-action list lives in `WAKE_UP.md` "Things you need to do" — critical path is the manual Play Console upload (per `reference_android_beta_upload_state` memory). Content-mining surface: `docs/blog-digest.md` (daily-refreshed). Build state at session end: Android v0.1.0 green, debug APK + signed release AAB built.
-
----
-
 ## Current State
 
 - **Catalog**: 17,974 cards · ~90% image coverage on R2 · OKC art still pending · 30 invalid-power records repaired
 - **Latest version**: edit `AppVersion.xcconfig` for iOS; Android tracks via `app/build.gradle.kts` versionCode/versionName (CI bumps on tag push)
 - **Hero Shot iteration**: headless CLI runner shipped (`tools/render-hero-shot-variants.sh`) — boots a simulator, renders 4 material variants to `/tmp/hero-shot-variants/grid.png` in ~20-30s
 
-## Recently shipped (archive)
+## Recently shipped — pattern memory pointers
 
-Historical "What Just Shipped" sections (2026-05-15, 2026-05-20 overnight) trimmed at tick 240 — they had become long-form historical records duplicating `AUTONOMOUS_PROGRESS.md`'s tick log + the git commit history. Pattern memories are preserved verbatim in the `~/.claude/.../memory/` directory and survive compaction:
-[[reference_overnight_parity_session_2026_05_20]] · [[feedback_state_from_prop_antipattern]] · [[feedback_viewmodel_reset_on_auth_change]] · [[reference_worker_field_shapes]] · [[reference_android_cdn_sealed_routing]] · [[reference_android_prefs_pattern]] · [[feedback_usd_locale_format]] · [[feedback_worker_canonical_average]] · [[feedback_card_data_truth_from_image]] · [[project_custom_rainbows_architecture]] · [[project_mod_add_card_architecture]].
-
-
-2026-05-06 iPad first-class pass + 2026-05-07 Universal Links + Build number sync also shipped pre-loop — see git history. Universal-links pattern in [[feedback_universal_links_onopenurl]]; build-number sync in [[reference_build_number_sync]]; Profile-on-Find rule in [[feedback_profile_only_on_find]].
+Pattern memories from the pre-compaction sessions (preserved across compaction):
+[[reference_overnight_parity_session_2026_05_20]] · [[feedback_state_from_prop_antipattern]] · [[feedback_viewmodel_reset_on_auth_change]] · [[reference_worker_field_shapes]] · [[reference_android_cdn_sealed_routing]] · [[reference_android_prefs_pattern]] · [[feedback_usd_locale_format]] · [[feedback_worker_canonical_average]] · [[feedback_card_data_truth_from_image]] · [[project_custom_rainbows_architecture]] · [[project_mod_add_card_architecture]] · [[feedback_universal_links_onopenurl]] · [[reference_build_number_sync]] · [[feedback_profile_only_on_find]].
 
 ## Deferred iPad work
 

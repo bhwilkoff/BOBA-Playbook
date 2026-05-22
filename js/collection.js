@@ -1599,6 +1599,22 @@ const Collection = (() => {
           </div>
         </div>
 
+        <!-- Tick 333 — Keyboard shortcuts cheat sheet. Surfaces the
+             shortcuts that ship across views in one place so users
+             discover them without trial-and-error or hovering buttons.
+             Auto-hides on mobile widths (no keyboard) via CSS. -->
+        <div class="profile-section profile-section-shortcuts">
+          <div class="profile-section-label">Keyboard shortcuts</div>
+          <div class="profile-stat-list profile-shortcuts-list">
+            <div class="profile-shortcut-row"><kbd>/</kbd><span>Focus search</span></div>
+            <div class="profile-shortcut-row"><kbd>R</kbd><span>Surprise me · pick a random card (Find)</span></div>
+            <div class="profile-shortcut-row"><kbd>N</kbd><span>Clear deck draft (Decks)</span></div>
+            <div class="profile-shortcut-row"><kbd>⌘</kbd>+<kbd>S</kbd> / <kbd>Ctrl</kbd>+<kbd>S</kbd><span>Save deck (Decks)</span></div>
+            <div class="profile-shortcut-row"><kbd>←</kbd> <kbd>→</kbd><span>Prev / next card (Card detail modal)</span></div>
+            <div class="profile-shortcut-row"><kbd>Esc</kbd><span>Close modal / dialog</span></div>
+          </div>
+        </div>
+
         <!-- Sign out -->
         <div class="profile-section">
           <div class="profile-stat-list">

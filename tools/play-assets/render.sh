@@ -7,7 +7,12 @@
 #   bash tools/play-assets/render.sh                # render everything
 #   bash tools/play-assets/render.sh icon           # just the 512 icon
 #   bash tools/play-assets/render.sh feature        # just the feature graphic
-#   bash tools/play-assets/render.sh screenshots    # all screenshot templates
+#
+# For actual screenshots from the running app, use capture-screens.sh.
+# HTML/CSS mockup screenshots are explicitly NOT shipped (per
+# feedback_no_mockup_screenshots: "use real-app captures from a running
+# emulator/device, NEVER ship HTML/CSS mockups dressed up as
+# screenshots").
 
 set -euo pipefail
 
@@ -83,16 +88,10 @@ if [[ "$target" == "all" || "$target" == "feature" ]]; then
   render_one "$TMPL/feature-graphic.html" "feature-graphic-1024x500.png" 1024 500
 fi
 
-if [[ "$target" == "all" || "$target" == "screenshots" ]]; then
-  echo "Rendering screenshots…"
-  shopt -s nullglob
-  for f in "$TMPL"/screenshot-*.html; do
-    name="$(basename "$f" .html)"
-    # Phone-portrait 9:16 baseline — Play accepts 320–3840px on the
-    # short edge, 16:9 or 9:16. We render at 1080×1920 (standard
-    # phone-portrait, no chroma/scaling weirdness).
-    render_one "$f" "${name}.png" 1080 1920
-  done
+if [[ "$target" == "screenshots" ]]; then
+  echo "Mockup screenshots are disabled — use capture-screens.sh against a"
+  echo "running emulator instead (per feedback_no_mockup_screenshots)."
+  exit 1
 fi
 
 echo

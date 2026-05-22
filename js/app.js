@@ -876,13 +876,6 @@
         return;
       }
       const events = Array.isArray(bundle?.events) ? bundle.events : [];
-      if (events.length === 0) return;  // keep empty-state placeholder
-      const accentFor = (kind) => {
-        switch ((kind || '').toLowerCase()) {
-          case 'release': return 'var(--boba-cyan)';
-          default:        return 'var(--boba-orange)';  // tournament default
-        }
-      };
       // Tick 218 — surface bundle.lastUpdated so the user knows when
       // the feed was scraped. events.json refreshes daily at 05:17 UTC
       // via .github/workflows/refresh-events.yml; this tells the user
@@ -891,6 +884,21 @@
       const stampHtml = stampStr
         ? `<div class="events-last-updated">Last refreshed ${escHtml(relativeDate(stampStr))}</div>`
         : '';
+      // Tick 418 — iOS tick 417 parity. When events array is empty but
+      // bundle is present, render the stamp + empty hint instead of
+      // returning early. Users get to see that the feed IS being
+      // refreshed (just no upcoming events today).
+      if (events.length === 0) {
+        list.innerHTML = stampHtml +
+          '<p class="events-empty">No events scheduled yet. Check back as the BoBA team announces dates.</p>';
+        return;
+      }
+      const accentFor = (kind) => {
+        switch ((kind || '').toLowerCase()) {
+          case 'release': return 'var(--boba-cyan)';
+          default:        return 'var(--boba-orange)';  // tournament default
+        }
+      };
       // Tick 253 — partition events into upcoming vs past. iOS/Android
       // surfaces currently render all events identically regardless of
       // date; web now dims past events + appends a "PAST" suffix to the

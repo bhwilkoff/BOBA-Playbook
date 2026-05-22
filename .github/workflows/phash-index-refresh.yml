@@ -1,0 +1,87 @@
+name: pHash index weekly refresh
+
+# Keeps assets/data/phash-index.txt in sync with the catalog as new
+# cards ship. Runs the same script Ben runs manually
+# (scripts/build_phash_index.py) in incremental mode — reads the
+# existing index, hashes only the bobaIds that aren't already covered,
+# prunes any whose card was removed from cards.json. Opens a PR when
+# the file changes; no-op (exits ~10s) when the catalog hasn't grown.
+#
+# Schedule: Tuesdays at 14:00 UTC (08:00 MT) — one day after Mondays
+# Radish refresh so any new cards Radish surfaced have already been
+# baked into cards.json.
+
+on:
+  schedule:
+    - cron: '0 14 * * 2'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45  # full rebuild is ~15-20m; incremental usually under 5m
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install pillow requests
+
+      - name: Rebuild pHash index (incremental)
+        run: python3 scripts/build_phash_index.py
+
+      - name: Detect changes
+        id: diff
+        run: |
+          if git diff --quiet -- assets/data/phash-index.txt; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            ADDED=$(git diff --numstat assets/data/phash-index.txt | awk '{print $1}')
+            REMOVED=$(git diff --numstat assets/data/phash-index.txt | awk '{print $2}')
+            echo "added=$ADDED" >> "$GITHUB_OUTPUT"
+            echo "removed=$REMOVED" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open PR with refreshed index
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'chore(phash): weekly index refresh'
+          title: 'chore(phash): weekly index refresh (+${{ steps.diff.outputs.added }}/-${{ steps.diff.outputs.removed }} lines)'
+          branch: 'phash-index-refresh/${{ github.run_id }}'
+          delete-branch: true
+          body: |
+            Automated weekly refresh of the web Scan pHash catalog index.
+
+            Triggered: `${{ github.event_name }}`
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            ### What changed
+            - `assets/data/phash-index.txt` — incremental update from `scripts/build_phash_index.py`
+            - +${{ steps.diff.outputs.added }} / -${{ steps.diff.outputs.removed }} lines (one hash per card)
+
+            ### Why
+            New cards landed in `cards.json` since the last index
+            refresh — without this update, those cards would never
+            appear in the web Scan's pHash visual-match results. The
+            script reads the existing index, computes hashes only for
+            bobaIds not already covered, and prunes any whose card has
+            been removed from the catalog.
+
+            Safe to merge — the index file is consumed by `js/app.js`'s
+            `PhashIndex` (lazy-loaded on first scan). Old clients with
+            a stale cached index will pick up the new file on their
+            next fresh load.
+
+      - name: Report no-op
+        if: steps.diff.outputs.changed == 'false'
+        run: echo "No catalog drift since last refresh — nothing to PR."

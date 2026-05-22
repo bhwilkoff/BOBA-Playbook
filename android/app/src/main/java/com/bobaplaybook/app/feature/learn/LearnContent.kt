@@ -725,7 +725,7 @@ object LearnCorpus {
             items = listOf(
                 "Apex — premier open division. No power cap. Standard deck rules.",
                 "AlphaTrilogy — Alpha Edition + Alpha Update + Alpha Blast only.",
-                "Granny's Gum — themed-foil only. Bubble Gum + Granny's Linoleum + Great Granny's.",
+                "Granny's Gum — themed-foil only. Bubble Gum + Grandma's Linoleum + Great Grandma's Linoleum.",
                 "Brawl — single-weapon Brawl decks. Bo Jackson Battle Arena's heritage format.",
                 "Tecmo Bowl — retro-themed format. Tecmo + Pixel art treatments only.",
                 "Spec — single-weapon open. Pick your weapon and live with it for the event.",

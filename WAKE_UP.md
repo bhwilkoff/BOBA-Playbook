@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 304 (Android, content correction)** — Granny's Gum division description was naming the treatments wrong: "Bubble Gum + Granny's Linoleum + Great Granny's" → "Bubble Gum + Grandma's Linoleum + Great Grandma's Linoleum". The division is "Granny's Gum" but the treatments inside are "Grandma's" — iOS verified (LearnView L3124).
 - **tick 303 (web, a11y)** — Surprise pill's aria-label now reflects pool size: "Surprise me — random card from 12,345 matching cards" / "Surprise me — no cards match the current filter" (when disabled). Screen readers get the same context sighted users do; without this, blind users hear only the static "Surprise me — random card" while sighted users see (12,345) appended.
 - **tick 302 (iOS v2.318 / 580)** — Heavy-impact haptic on Decks TemplateCard tap (Android tick 301 LongPress parity). Loading a 60-card starter is a "big-deal" moment vs Quick Add of a single card; the heavier haptic signals the magnitude.
 - **tick 301 (Android, polish)** — Haptic feedback on Decks template-load tap. Loading a 60-card starter deck is a "big-deal" moment vs a Quick Add of one card; `LongPress` feedback signals the magnitude before the Snackbar confirmation appears. Same LocalHapticFeedback idiom as tick 291 (Card swipe-nav).

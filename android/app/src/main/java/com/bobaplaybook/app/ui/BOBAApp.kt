@@ -92,6 +92,7 @@ fun BOBAApp(
     pendingDeepLink: PendingDeepLink,
     findActions: com.bobaplaybook.app.feature.find.FindActions,
     decksActions: com.bobaplaybook.app.feature.decks.DecksActions,
+    cardNavigationStore: com.bobaplaybook.app.feature.carddetail.CardNavigationStore,
 ) {
     BobaTheme {
         // One NavController per tab so back stacks don't cross-pollute.
@@ -222,6 +223,20 @@ fun BOBAApp(
                             return@onPreviewKeyEvent true
                         }
                         if (!event.isCtrlPressed) return@onPreviewKeyEvent false
+                        // Tick 329 — Ctrl+→ / Ctrl+← walks Card Detail
+                        // sibling list. iOS Cmd+arrow (tick 287) + web
+                        // unmodified ArrowLeft/Right parity. Fires from
+                        // any tab — CardDetailScreen's LaunchedEffect
+                        // only acts if it's currently in the composition
+                        // and its currentBobaId is in the siblings list.
+                        if (event.key == Key.DirectionRight) {
+                            cardNavigationStore.advance(1)
+                            return@onPreviewKeyEvent true
+                        }
+                        if (event.key == Key.DirectionLeft) {
+                            cardNavigationStore.advance(-1)
+                            return@onPreviewKeyEvent true
+                        }
                         // Tick 309 — Ctrl+S fires Save on Decks editor.
                         // iOS Cmd+S (v2.319) + web Ctrl+S parity.
                         // DecksScreen collects via DecksActions singleton

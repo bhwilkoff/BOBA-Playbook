@@ -636,6 +636,14 @@ private fun DeckSummaryBar(
     draft: DeckDraft,
     onTap: () -> Unit,
 ) {
+    // Tick 356 — iOS DeckSummaryPill empty-state parity
+    // (DecksView.swift:1648 + 1691). When the draft is brand-new
+    // (zero cards AND default name), show "Build a deck / Tap to
+    // open the editor" + suppress the counts, format pill, and
+    // Legal chip. Before this, an empty draft showed
+    // "New Deck · 0/8 H · 0/30 P · 0 BP · 0/10 HD · STANDARD · Legal",
+    // which buried the call-to-action.
+    val hasDraft = draft.cards.isNotEmpty() || draft.name != "New Deck"
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -655,48 +663,60 @@ private fun DeckSummaryBar(
                 tint = MaterialTheme.colorScheme.primary,
             )
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    draft.name,
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    "${draft.heroCount}/${draft.heroCap} H · ${draft.playCount + draft.bonusCount}/${draft.playCap} P · ${draft.bonusCount} BP · ${draft.totalHD}/${draft.hdCap} HD",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            // Tick 221 — format-name pill (iOS DeckSummaryPill parity,
-            // DecksView.swift:1685). Orange brand color so the format
-            // label reads as identity, not chrome. Mirrors the iOS
-            // pattern where the format is always visible adjacent to
-            // the summary breakdown.
-            Text(
-                text = draft.playMode.label,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 9.sp,
-                    letterSpacing = 0.8.sp,
-                ),
-                color = com.bobaplaybook.core.ui.theme.BobaBrand.Orange,
-                modifier = Modifier
-                    .background(
-                        color = com.bobaplaybook.core.ui.theme.BobaBrand.Orange.copy(alpha = 0.12f),
-                        shape = MaterialTheme.shapes.extraSmall,
+                if (hasDraft) {
+                    Text(
+                        draft.name,
+                        style = MaterialTheme.typography.titleMedium,
                     )
-                    .padding(horizontal = 6.dp, vertical = 3.dp),
-            )
-            if (draft.isStandardLegal) {
-                AssistChip(
-                    onClick = onTap,
-                    label = { Text("Legal") },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Verified,
-                            contentDescription = null,
-                            modifier = Modifier.width(16.dp).height(16.dp),
+                    Text(
+                        "${draft.heroCount}/${draft.heroCap} H · ${draft.playCount + draft.bonusCount}/${draft.playCap} P · ${draft.bonusCount} BP · ${draft.totalHD}/${draft.hdCap} HD",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Text(
+                        "Build a deck",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        "Tap to open the editor",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (hasDraft) {
+                // Tick 221 — format-name pill (iOS DeckSummaryPill
+                // parity, DecksView.swift:1685). Hidden on empty draft
+                // per iOS pattern (the pill only renders when hasDraft).
+                Text(
+                    text = draft.playMode.label,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.sp,
+                        letterSpacing = 0.8.sp,
+                    ),
+                    color = com.bobaplaybook.core.ui.theme.BobaBrand.Orange,
+                    modifier = Modifier
+                        .background(
+                            color = com.bobaplaybook.core.ui.theme.BobaBrand.Orange.copy(alpha = 0.12f),
+                            shape = MaterialTheme.shapes.extraSmall,
                         )
-                    },
+                        .padding(horizontal = 6.dp, vertical = 3.dp),
                 )
+                if (draft.isStandardLegal) {
+                    AssistChip(
+                        onClick = onTap,
+                        label = { Text("Legal") },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Verified,
+                                contentDescription = null,
+                                modifier = Modifier.width(16.dp).height(16.dp),
+                            )
+                        },
+                    )
+                }
             }
         }
     }

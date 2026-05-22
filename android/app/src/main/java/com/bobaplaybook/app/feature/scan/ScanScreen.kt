@@ -17,8 +17,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
@@ -274,6 +277,36 @@ private fun ScanReviewSheet(
                     ) { entry ->
                         val card = cards.firstOrNull { c -> c.bobaId == entry.bobaId }
                         ListItem(
+                            leadingContent = {
+                                // Tick 224 — card thumbnail (iOS ScanQueueView
+                                // parity, ScanQueueView.swift:112). 36x50 thumb
+                                // gives the user faster recognition than just
+                                // text — same affordance as Find grid cells.
+                                val thumb = card?.let {
+                                    com.bobaplaybook.core.network.CDN.thumbUrl(it)
+                                }
+                                if (thumb != null) {
+                                    coil3.compose.AsyncImage(
+                                        model = thumb,
+                                        contentDescription = null,
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                        modifier = Modifier
+                                            .width(36.dp)
+                                            .height(50.dp)
+                                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp)),
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(36.dp)
+                                            .height(50.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
+                                            )
+                                    )
+                                }
+                            },
                             headlineContent = { Text(card?.displayName ?: entry.bobaId) },
                             supportingContent = {
                                 val sub = listOfNotNull(

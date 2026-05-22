@@ -91,6 +91,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bobaplaybook.app.R
 import com.bobaplaybook.core.domain.model.Card
+import com.bobaplaybook.core.domain.model.CardFormatEligibility
 import com.bobaplaybook.core.domain.showcase.Showcases
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBACardSkeleton
@@ -981,6 +982,7 @@ private fun SearchResultsGrid(
                 contentDescription = card.displayName,
                 isSealed = card.isSealed,
                 printRunLabel = card.printRunLabel,
+                formatLegalityHint = CardFormatEligibility.restrictedLegalAbbrev(card),
                 modifier = Modifier
                     .cardSharedBounds(card.bobaId)
                     .combinedClickable(

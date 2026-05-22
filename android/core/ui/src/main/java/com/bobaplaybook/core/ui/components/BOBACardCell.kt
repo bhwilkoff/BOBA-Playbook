@@ -77,6 +77,17 @@ fun BOBACardCell(
      * full explainer-tooltip version (DECISIONS.md #028).
      */
     printRunLabel: String? = null,
+    /**
+     * Optional bottom-leading format-legality hint (Discord backlog #4
+     * carry-forward — per-cell badge half). When a card is legal in less
+     * than all 4 formats, callers pass the abbreviation string
+     * (e.g. `"S+ C"` for Spec+ + Checklist) so users can scan a grid
+     * for restricted cards at a glance. Default null = no overlay.
+     * Computed via `CardFormatEligibility.restrictedLegalAbbrev(card)`.
+     * Hidden below 100dp cell width to skip dense 3-col grids where
+     * the multi-char abbreviation would crowd the cell.
+     */
+    formatLegalityHint: String? = null,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -112,8 +123,38 @@ fun BOBACardCell(
                             .padding(4.dp),
                     )
                 }
+                if (!formatLegalityHint.isNullOrBlank() && maxWidth >= 100.dp) {
+                    FormatLegalityHintBadge(
+                        label = formatLegalityHint,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(4.dp),
+                    )
+                }
             }
         }
+    }
+}
+
+/**
+ * Tick 464 — Compact bottom-leading hint surfacing the formats where
+ * the card is LEGAL when it isn't legal everywhere. Amber accent
+ * (BobaBrand.Orange) signals "look here — this card has format
+ * restrictions." Semi-translucent black bg so card art reads through.
+ */
+@Composable
+private fun FormatLegalityHintBadge(label: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        color = Color.Black.copy(alpha = 0.62f),
+        shape = RoundedCornerShape(4.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            color = BobaBrand.Orange,
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+        )
     }
 }
 

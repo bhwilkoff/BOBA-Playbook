@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 206 (Android)** — Provider-specific sign-in method pill (iOS parity, 81aa4b4). ProviderPill: Google #4285F4 · Discord #5865F2 · Apple black · email unmarked-default. Closes PARITY row "Sign-in method pill" ✅ all 3.
 - **tick 205 (opt)** — drop dead mockup assets (6.2 MB / 5 PNGs / 5 HTML templates / 3 unused fragments) + PARITY M7 + scan audit (12 row corrections). Net -810 lines (ab97885).
 - **tick 204 (Android — content)** — April 2026 DBS rebalance callout in Understanding-DBS Learn article. Android + web (b38c734). Mined from 2026-04-27 blog post. iOS skipped (no Learn article exists for DBS yet; DeckBuilder tap-target covers it).
 - **tick 203 (web)** — Discord backlog #4 (format-legality chip strip) web parity (12daa6c). Closes 2 of 3 (Android ✅, web ✅, iOS pending). Hero power gates Spec/Brawl/Spec+; chip leading dot = green/amber/red; native title=tooltip.

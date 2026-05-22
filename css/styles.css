@@ -6795,6 +6795,11 @@ a.event-row {
 .event-row--link { cursor: pointer; transition: background 0.12s; }
 .event-row--link:hover { background: var(--boba-surface-hover, var(--boba-surface)); }
 .event-row--link:focus-visible { outline: 2px solid var(--boba-cyan); outline-offset: 2px; }
+/* Tick 253 — past-event styling. Concluded events render dimmed so
+   users can scan the list and immediately see which tournaments are
+   still upcoming. Open-↗ link CTA is also dropped for past events. */
+.event-row--past { opacity: 0.55; }
+.event-row--past .event-title { color: var(--boba-text-secondary, rgba(255,255,255,0.7)); }
 /* Tick 218 — "Last refreshed" stamp above the events list. Slim mono
    subscript so it informs without competing with the event titles. */
 .events-last-updated {

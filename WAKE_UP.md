@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 267 (iOS, v2.310 / 572)** — Surprise Me ported to iOS (Find overflow menu) with the same 30% rarity bias. Pushes detail via the same CardRoute path as a tap.
 - **tick 266 (Android)** — Surprise Me rarity-weighted: 30% of picks bias toward Inspired Ink / Superfoil / Kanjifoil treatments (1d629c3). Catalog is 98% Base Set; pure-uniform random was overwhelmingly Battlefoil. Surprise now actually surprising.
 - **tick 265 (opt)** — PARITY audit: 10 stale rows corrected to reflect shipped Android state (ca49a35). Find a Store / Discord OAuth / Universal Links + custom scheme + routes / Discord identity / OAuth callback all bumped ⏳ → ✅; Filters: radius / Per-tab routing bumped ⏳ → 🚧 partial.
 - **tick 264 (Android — new feature)** — Find overflow gains "Surprise me 🎲" item (5a80ded). Pulls a random card from current filtered results and pushes detail. Discovery affordance for the 17,974-card catalog. iOS + web parallel ports queued.

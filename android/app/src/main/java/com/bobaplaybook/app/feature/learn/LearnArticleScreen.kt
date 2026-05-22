@@ -36,7 +36,11 @@ import com.bobaplaybook.app.feature.collection.RainbowCatalogViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -506,17 +510,28 @@ private fun TournamentPage() {
 private fun EventRow(event: EventEntry) {
     val accent = when (event.kind.lowercase()) {
         "release"    -> com.bobaplaybook.core.ui.theme.BobaBrand.Cyan
-        "tournament" -> com.bobaplaybook.core.ui.theme.BobaBrand.Orange
-        else         -> com.bobaplaybook.core.ui.theme.BobaBrand.Violet
+        else         -> com.bobaplaybook.core.ui.theme.BobaBrand.Orange  // tournament fallback
     }
     val dateLabel = event.date?.takeIf { it.isNotBlank() } ?: "Date TBA"
+    val context = LocalContext.current
+    val url = event.url?.takeIf { it.isNotBlank() }
+    val rowMod = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp, vertical = 2.dp)
+        .let { base ->
+            if (url != null) base.clickable {
+                runCatching {
+                    androidx.browser.customtabs.CustomTabsIntent.Builder()
+                        .build()
+                        .launchUrl(context, android.net.Uri.parse(url))
+                }
+            } else base
+        }
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainer,
         border = BorderStroke(1.dp, accent.copy(alpha = 0.45f)),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp),
+        modifier = rowMod,
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -529,30 +544,45 @@ private fun EventRow(event: EventEntry) {
                     color = accent,
                     fontWeight = FontWeight.Bold,
                 )
-                Text(
-                    text = "·",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Text(text = "·", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     text = dateLabel,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (url != null) {
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "Open ↗",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = accent,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
             Text(
                 text = event.title,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Text(
-                text = event.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 18.sp,
-            )
+            event.description?.takeIf { it.isNotBlank() }?.let { desc ->
+                Text(
+                    text = desc,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 18.sp,
+                )
+            }
             event.location?.takeIf { it.isNotBlank() }?.let {
                 Text(
                     text = "Location: $it",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            event.formats.takeIf { it.isNotEmpty() }?.let { fmts ->
+                Text(
+                    text = fmts.joinToString(" · "),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -597,10 +627,19 @@ private fun GlossaryPage() {
         }
     }
     Column(modifier = Modifier.fillMaxSize()) {
+        // Always-visible instruction line so users learn the long-press
+        // gesture immediately — paired with the dismissible hint banner
+        // below for first-visit pop.
+        Text(
+            text = "Press and hold any term to copy or share its definition.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
         if (!glossaryHintDismissed) {
             com.bobaplaybook.core.ui.components.BOBAHintBanner(
-                title = "Tap a term to copy it",
-                body = "Tap any glossary term to copy the term + definition. Handy when you want to quote it in Discord or a coaching note.",
+                title = "Long-press a term",
+                body = "Press and hold any glossary term to copy or share its definition — handy for quoting it in Discord or a coaching note.",
                 onDismiss = { hintsVm.dismiss(com.bobaplaybook.app.hints.HintsStore.Ids.LEARN_LONG_PRESS_GLOSSARY) },
             )
         }
@@ -677,34 +716,51 @@ private fun TermRow(
     onCopy: () -> Unit,
     onShare: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            // combinedClickable: tap-to-copy + long-press-to-share. The
-            // share path opens Android's Intent.ACTION_SEND chooser so
-            // users can route the term + definition to any installed
-            // chat app (Discord, Messages, WhatsApp, etc.) without
-            // bouncing through the clipboard.
-            .combinedClickable(
-                onClickLabel = "Copy term",
-                onLongClickLabel = "Share term",
-                onClick = { onCopy() },
-                onLongClick = { onShare() },
+    // Long-press → DropdownMenu offering Copy + Share. Plain tap is a
+    // no-op (the always-visible instruction line above the lists tells
+    // users to press-and-hold). Mirrors iOS contextMenu (tick 200) and
+    // web Popover menu.
+    var menuOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClickLabel = null,
+                    onLongClickLabel = "Open copy or share menu",
+                    onClick = {},
+                    onLongClick = { menuOpen = true },
+                )
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Text(
+                text = section.term,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.padding(end = 12.dp),
             )
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text(
-            text = section.term,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.padding(end = 12.dp),
-        )
-        Text(
-            text = section.definition,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+            Text(
+                text = section.definition,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        DropdownMenu(
+            expanded = menuOpen,
+            onDismissRequest = { menuOpen = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text("Copy") },
+                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+                onClick = { menuOpen = false; onCopy() },
+            )
+            DropdownMenuItem(
+                text = { Text("Share") },
+                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                onClick = { menuOpen = false; onShare() },
+            )
+        }
     }
 }
 

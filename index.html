@@ -1727,13 +1727,14 @@
         <!-- ══ GLOSSARY PANEL ════════════════════════════════════════
              3-platform parity with iOS LearnView::GlossaryView + the
              Android LearnArticleScreen::GlossaryPage. Term rows are
-             tap-to-copy — handler in app.js writes "term — definition"
-             to the clipboard + flashes a green checkmark for ~1.2s.
+             press-and-hold — right-click (desktop) or touch long-press
+             (≥500ms) opens a Popover-API menu with Copy + Share.
         -->
         <div id="play-panel-glossary" class="play-panel" hidden role="tabpanel" aria-labelledby="play-tab-glossary">
+          <p class="glossary-instructions">Press and hold any term (right-click on desktop) to copy or share its definition.</p>
           <section class="glossary-section">
             <h3 class="tournament-heading">GAME GLOSSARY</h3>
-            <p class="glossary-blurb">Terms you'll hear in rules discussions, deck building, and battle flow. Tap any row to copy term + definition.</p>
+            <p class="glossary-blurb">Terms you'll hear in rules discussions, deck building, and battle flow.</p>
             <div class="glossary-list" id="glossary-list-game">
               <button class="glossary-row" type="button" data-term="Coach" data-def="How a BoBA player refers to themselves in any gameplay setting. You lead a squad of heroes into battle — the Heroes bring the power, you bring the strategy."><span class="glossary-term">Coach</span><span class="glossary-def">How a BoBA player refers to themselves in any gameplay setting. You lead a squad of heroes into battle — the Heroes bring the power, you bring the strategy.</span></button>
               <button class="glossary-row" type="button" data-term="Honors" data-def="The right to act first in a battle — choose to substitute first, play first, and resolve first. After each battle, Honors passes to the battle winner."><span class="glossary-term">Honors</span><span class="glossary-def">The right to act first in a battle — choose to substitute first, play first, and resolve first. After each battle, Honors passes to the battle winner.</span></button>

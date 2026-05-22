@@ -1678,12 +1678,17 @@ private struct GlossaryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Design.Spacing.xl) {
-                // First-visit hint banner — same shape as Android tick 84.
-                // Tells coaches the term rows are tap-to-copy.
+                // Always-visible instruction line above the lists — explains the
+                // long-press gesture so users don't have to guess. Pairs with the
+                // dismissible hint banner below for first-visit pop.
+                Text("Press and hold any term to copy or share its definition.")
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 HintBanner(
                     id: .glossaryTapToCopy,
-                    title: "Tap a term to copy it",
-                    message: "Tap any glossary term to copy the term + definition. Handy when you want to quote it in Discord or a coaching note."
+                    title: "Long-press a term",
+                    message: "Press and hold any glossary term to copy or share its definition — handy for quoting it in Discord or a coaching note."
                 )
                 glossarySection(title: "GAME GLOSSARY",    blurb: "Terms you'll hear in rules discussions, deck building, and battle flow.", terms: gameTerms)
                 glossarySection(title: "TRADING GLOSSARY", blurb: "Community shorthand used in the Discord trade room, Whatnot streams, and eBay listings.", terms: tradingTerms)
@@ -1719,42 +1724,35 @@ private struct GlossaryView: View {
                 .fixedSize(horizontal: false, vertical: true).padding(.bottom, Design.Spacing.xs)
             VStack(spacing: 1) {
                 ForEach(terms) { t in
-                    Button {
-                        copyTerm(t)
-                    } label: {
-                        HStack(alignment: .top, spacing: Design.Spacing.sm) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(t.term)
-                                    .font(Design.Fonts.mono(13, weight: .bold))
-                                    .foregroundStyle(Design.Colors.bobaCyan)
-                                Text(t.definition)
-                                    .font(Design.Fonts.mono(12))
-                                    .foregroundStyle(Design.Colors.textSecondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            Spacer(minLength: 0)
-                            // Inline checkmark flashes for ~1.2s on tap
-                            // so coaches see the copy registered. Mirrors
-                            // the Android Toast feedback window.
-                            if copiedTermId == t.id {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(Color(hex: "4CAF50"))
-                                    .font(.system(size: 16))
-                                    .transition(.opacity)
-                            }
+                    HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(t.term)
+                                .font(Design.Fonts.mono(13, weight: .bold))
+                                .foregroundStyle(Design.Colors.bobaCyan)
+                            Text(t.definition)
+                                .font(Design.Fonts.mono(12))
+                                .foregroundStyle(Design.Colors.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(Design.Spacing.md)
-                        .background(Design.Colors.surface)
-                        .contentShape(Rectangle())
+                        Spacer(minLength: 0)
+                        // Inline checkmark flashes for ~1.2s after Copy
+                        // is picked from the long-press menu. Mirrors
+                        // the Android Snackbar feedback window.
+                        if copiedTermId == t.id {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(Color(hex: "4CAF50"))
+                                .font(.system(size: 16))
+                                .transition(.opacity)
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityHint("Copies the term and definition to your clipboard")
-                    // Long-press contextMenu — adds Share alongside the
-                    // tap-to-copy default. Coaches often want to route
-                    // a definition into Discord without copy + paste.
-                    // Mirrors Android tick 126's long-press → ACTION_SEND;
-                    // iOS canon is contextMenu + ShareLink.
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(Design.Spacing.md)
+                    .background(Design.Colors.surface)
+                    .contentShape(Rectangle())
+                    // Long-press → Copy + Share. Tap does nothing —
+                    // the always-visible instruction above the lists
+                    // tells users to press-and-hold. Mirrors Android
+                    // DropdownMenu + web Popover menu (tick 200+).
                     .contextMenu {
                         Button {
                             copyTerm(t)
@@ -1766,6 +1764,7 @@ private struct GlossaryView: View {
                             Label("Share", systemImage: "square.and.arrow.up")
                         }
                     }
+                    .accessibilityHint("Press and hold to copy or share")
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
@@ -2267,6 +2266,7 @@ private struct TournamentView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Design.Spacing.xl) {
+                UpcomingEventsSection()
                 ProTourIntroSection()
                 HeroDeckFormatsSection()
                 GameModesSection()
@@ -2278,6 +2278,133 @@ private struct TournamentView: View {
             }
             .padding(Design.Spacing.lg)
             .padding(.bottom, Design.Spacing.xxl)
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
+// Upcoming Events — 3-platform parity with web (tick 192) + Android
+// (tick 191). Reads `events.json` bundled from the shared
+// assets/data/events.json source. Each row is a tappable link out
+// to the official Carde.io page (tournaments) or BoBA blog post
+// (releases). Inlined into LearnView.swift to sidestep the
+// PBXFileSystemSynchronizedRootGroup unreliability documented in
+// memory (`feedback_xcode_synchronized_groups`).
+// ════════════════════════════════════════════════════════════════
+
+private struct LearnEvent: Decodable, Identifiable {
+    let id: String
+    let kind: String
+    let title: String
+    let date: String?
+    let endDate: String?
+    let location: String?
+    let description: String?
+    let formats: [String]?
+    let url: String?
+}
+
+private struct LearnEventsBundle: Decodable {
+    let events: [LearnEvent]
+}
+
+private enum LearnEventsLoader {
+    static func load() -> [LearnEvent] {
+        guard
+            let url  = Bundle.main.url(forResource: "events", withExtension: "json"),
+            let data = try? Data(contentsOf: url)
+        else { return [] }
+        return (try? JSONDecoder().decode(LearnEventsBundle.self, from: data))?.events ?? []
+    }
+}
+
+private struct UpcomingEventsSection: View {
+    private let events: [LearnEvent] = LearnEventsLoader.load()
+
+    var body: some View {
+        if events.isEmpty { EmptyView() } else {
+            VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                Text("UPCOMING EVENTS")
+                    .font(Design.Fonts.mono(12, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+                VStack(spacing: Design.Spacing.sm) {
+                    ForEach(events) { ev in EventRow(event: ev) }
+                }
+            }
+        }
+    }
+}
+
+private struct EventRow: View {
+    let event: LearnEvent
+    @Environment(\.openURL) private var openURL
+
+    private var accent: Color {
+        switch event.kind.lowercased() {
+        case "release": return Design.Colors.bobaCyan
+        default:        return Design.Colors.bobaOrange  // tournament default
+        }
+    }
+
+    private var dateLabel: String {
+        (event.date?.trimmingCharacters(in: .whitespaces).isEmpty == false)
+            ? event.date! : "Date TBA"
+    }
+
+    var body: some View {
+        let content = VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text(event.kind.uppercased())
+                    .font(Design.Fonts.mono(11, weight: .bold))
+                    .foregroundStyle(accent).tracking(1.2)
+                Text("·").foregroundStyle(Design.Colors.textMuted)
+                Text(dateLabel)
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                if event.url != nil {
+                    Spacer()
+                    Text("Open ↗")
+                        .font(Design.Fonts.mono(11, weight: .bold))
+                        .foregroundStyle(accent)
+                }
+            }
+            Text(event.title)
+                .font(Design.Fonts.display(16))
+                .foregroundStyle(Design.Colors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let desc = event.description, !desc.isEmpty {
+                Text(desc)
+                    .font(Design.Fonts.mono(12))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let loc = event.location, !loc.isEmpty {
+                Text("Location: \(loc)")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+            if let fmts = event.formats, !fmts.isEmpty {
+                Text(fmts.joined(separator: " · "))
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textMuted)
+            }
+        }
+        .padding(Design.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .strokeBorder(accent.opacity(0.45), lineWidth: 1)
+                )
+        )
+
+        if let urlStr = event.url, let url = URL(string: urlStr) {
+            Button { openURL(url) } label: { content }
+                .buttonStyle(.plain)
+                .accessibilityHint("Opens the official event page")
+        } else {
+            content
         }
     }
 }

@@ -562,7 +562,10 @@ private fun BlogPostRow(post: BlogPost) {
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
-            text = post.date,
+            // Tick 246 — relative-format for recent posts, ISO for older
+            // ones. "today" / "Nd ago" reads more naturally than 2026-05-21
+            // for posts users likely saw on the web yesterday.
+            text = relativeOrIsoDate(post.date),
             style = MaterialTheme.typography.labelSmall,
             color = accent,
         )
@@ -581,6 +584,32 @@ private fun BlogPostRow(post: BlogPost) {
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
         }
+    }
+}
+
+/// Tick 246 — relative-format YYYY-MM-DD dates for the news rows.
+/// Returns "today" / "yesterday" / "Nd ago" / "Nw ago" within 5 weeks;
+/// falls back to the raw ISO string for older posts so collectors
+/// can still grep their feed history accurately.
+private fun relativeOrIsoDate(iso: String): String {
+    val raw = iso.trim()
+    val parts = raw.split("-")
+    if (parts.size != 3) return raw
+    val y = parts[0].toIntOrNull() ?: return raw
+    val m = parts[1].toIntOrNull() ?: return raw
+    val d = parts[2].toIntOrNull() ?: return raw
+    val cal = java.util.Calendar.getInstance().apply {
+        clear()
+        set(y, m - 1, d)
+    }
+    val days = ((System.currentTimeMillis() - cal.timeInMillis) / 86_400_000L).toInt()
+    return when {
+        days < 0   -> raw
+        days == 0  -> "today"
+        days == 1  -> "yesterday"
+        days < 7   -> "${days}d ago"
+        days < 35  -> "${days / 7}w ago"
+        else       -> raw
     }
 }
 

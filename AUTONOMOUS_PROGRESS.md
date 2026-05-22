@@ -46,12 +46,6 @@ Documented gaps where one platform has shipped but others haven't.
 - [ ] **Walkthrough anchor verification on iPad** — needs simulator validation.
 - [ ] **iPad drag-and-drop between deck slots** — significant; nice-to-have.
 
-### P2 — Web "feels native" follow-ups (per WEB-DESIGN.md §15 deferred)
-
-- [ ] **Walkthroughs on web** — explicitly out of scope per §11.
-- [ ] **Cmd-K command palette** — out of scope per §2.4.
-- [ ] **Web push notifications** — out of scope per §17.
-
 ### P2 — Deferred from project docs
 
 - [ ] **Match-alerts pipeline** (DECISIONS.md #039 + TRADE-DESIGN.md Phase 5) — APNs / FCM dispatcher. Multi-week of new infra.

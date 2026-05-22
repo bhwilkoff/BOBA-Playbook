@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 220 (opt)** — Drop tracked .pyc + gitignore __pycache__/*.pyc/*.pyo (47f1cd0). Removes 1 binary; prevents future Python bytecode leakage into commits.
 - **tick 219 (Android)** — Tournament events list gains "Last refreshed N" stamp (92fd3c9). EventsBundle now exposes lastUpdated; mirrors web tick 218.
 - **tick 218 (web)** — Tournament events list gains "Last refreshed N ago" stamp from bundle.lastUpdated (d60d2ad). Daily-cron freshness now visible.
 - **tick 217 (iOS)** — Inline glossary tap-to-define on RuleCard body (91b6b8b). **Closes Discord backlog #3 trio** (Android 186, web 208, iOS today). AttributedString-based; tap cyan term → NavigationStack sheet w/ definition. v2.298/560.

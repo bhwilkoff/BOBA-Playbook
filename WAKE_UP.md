@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 275 (opt, −1 line)** — HouseOfCardsView: dropped `import ARKit` (only `ARView` is used, which lives in RealityKit, not ARKit — no AR* types of any kind referenced). Annotated `import Combine` with usage hint (`Cancellable` for scene.subscribe). Confirmed `simd` IS needed (matrix_identity_float4x4 + SIMD3 + simd_quatf).
 - **tick 274 (Android, Learn corpus)** — Edge Cases section ported from iOS depth: 3 short bullets → 7 detailed Term rows (Substitution-cost-always-2, Pull-The-Plug-rest-of-game-only, Recycle-clears-attached, Play-Booster-recounts, Deck-exhaustion-reshuffles, Bonus-Plays-don't-count, Tied-battle-keeps-Honors). Corrects an Android-only rule error ("coin flip in casual" → "Honors stays with the same player").
 - **tick 273 (web)** — Lowercase `r` keyboard shortcut for Surprise Me on Find view. Single-key avoids Ctrl+Shift+R browser hard-reload collision. Suppressed when typing in input/textarea/contentEditable or a `<dialog>` is open. iPad/Chromebook keyboard parity with iOS v2.311.
 - **tick 272 (iOS, v2.311 / 573)** — Cmd+Shift+R keyboard shortcut for Surprise Me on Find tab. Hidden zero-size button in SearchView body registers in the responder chain so the shortcut fires even with the Menu closed. iPad keyboard parity. Same idiom as GitHub's "random repo" shortcut. iPhone w/o keyboard simply ignores.

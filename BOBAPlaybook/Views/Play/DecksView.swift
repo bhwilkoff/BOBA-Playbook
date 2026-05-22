@@ -432,6 +432,16 @@ struct DecksView: View {
                 Task { await store.loadSavedDecks() }
             }
         }
+        // Tick 362 — pull-to-refresh on the saved-decks sidebar.
+        // Web tick 14 + Android tick 27 parity (both already shipped
+        // an explicit refresh affordance). iPad sidebar users drag the
+        // sidebar list down; iOS system spinner appears via native
+        // .refreshable. Gated on auth — anonymous users see the
+        // sign-in CTA instead and gain nothing from a refresh.
+        .refreshable {
+            guard auth.isAuthenticated else { return }
+            await store.loadSavedDecks()
+        }
     }
 
     @ViewBuilder

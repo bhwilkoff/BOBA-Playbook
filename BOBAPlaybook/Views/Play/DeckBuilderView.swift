@@ -1529,7 +1529,13 @@ private struct TemplateCard: View {
     }
 
     var body: some View {
-        Button(action: onSelect) {
+        Button(action: {
+            // Tick 302 — heavy-impact haptic on starter-deck load.
+            // Loading a 60-card template is a "big-deal" moment;
+            // matches Android tick 301's LongPress haptic.
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            onSelect()
+        }) {
             HStack(spacing: Design.Spacing.md) {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(accentColor.opacity(0.25))

@@ -33,6 +33,13 @@ BUNDLES = [
     REPO / "assets" / "data" / "cards.json",
     REPO / "assets" / "data" / "cards-head.json",
     REPO / "assets" / "data" / "display-cards.json",
+    # cards-slim.json is the source the Android Gradle syncSharedAssets
+    # task copies into android/app/src/main/assets/data/cards.json. If
+    # we don't backfill sealed imageFiles here too, the next Android
+    # build overwrites the updated bundle with a slim file that still
+    # has every sealed row's imageFile=null — exactly the bug Ben hit
+    # 2026-05-22 ("no sealed product support within the android app").
+    REPO / "assets" / "data" / "cards-slim.json",
     REPO / "BOBAPlaybook" / "cards-head.json",
     REPO / "BOBAPlaybook" / "display-cards.json",
     REPO / "android" / "app" / "src" / "main" / "assets" / "data" / "cards.json",

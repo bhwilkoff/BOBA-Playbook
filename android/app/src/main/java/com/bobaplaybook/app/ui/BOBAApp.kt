@@ -525,7 +525,14 @@ private fun TabNavHost(
                     NavRoutes.COLLECTION_CARD_DETAIL_PATTERN,
                     arguments = listOf(navArgument(NavRoutes.ARG_BOBA_ID) { type = NavType.StringType }),
                 ) { backStackEntry ->
-                    val bobaId = backStackEntry.arguments?.getString(NavRoutes.ARG_BOBA_ID).orEmpty()
+                    // bobaIds are URL-encoded at the route-builder site
+                    // (NavRoutes.collectionCardDetail) so spaces / Unicode
+                    // survive the URI parser. Decode back so the catalog
+                    // lookup matches the canonical bobaId.
+                    val bobaId = backStackEntry.arguments
+                        ?.getString(NavRoutes.ARG_BOBA_ID)
+                        ?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+                        .orEmpty()
                     com.bobaplaybook.app.feature.collection.CollectionCardDetailScreen(
                         bobaId = bobaId,
                         onBack = { navController.popBackStack() },
@@ -592,7 +599,13 @@ private fun androidx.navigation.NavGraphBuilder.cardDetailComposable(navControll
         route = NavRoutes.CARD_DETAIL_PATTERN,
         arguments = listOf(navArgument(NavRoutes.ARG_BOBA_ID) { type = NavType.StringType }),
     ) { backStackEntry ->
-        val bobaId = backStackEntry.arguments?.getString(NavRoutes.ARG_BOBA_ID).orEmpty()
+        // bobaIds are URL-encoded at the route-builder site
+        // (NavRoutes.cardDetail) so spaces / Unicode survive the URI
+        // parser. Decode back so the catalog lookup matches.
+        val bobaId = backStackEntry.arguments
+            ?.getString(NavRoutes.ARG_BOBA_ID)
+            ?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+            .orEmpty()
         CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this) {
             CardDetailScreen(
                 bobaId = bobaId,

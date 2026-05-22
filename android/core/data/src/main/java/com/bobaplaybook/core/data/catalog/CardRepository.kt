@@ -43,8 +43,16 @@ class CardRepository @Inject constructor(
     /**
      * Phase 1 — synchronous. Call once from `Application.onCreate` so
      * the Find shelf has the head bundle before the first Compose frame.
+     * Idempotent — once the catalog has any rows, subsequent calls are
+     * no-ops. Without this guard, opening a tab whose ViewModel calls
+     * primeSync() in init demoted the in-memory catalog from 17,915
+     * cards back to the 500-row head bundle until Phase 2 re-loaded,
+     * which caused (a) the Decks pool to flash a wrong-then-correct
+     * card set and (b) CardDetail tap → "Card not found" if the
+     * tapped bobaId lived in the Phase-2 chunk.
      */
     fun primeSync() {
+        if (_cards.value.isNotEmpty()) return
         val head = loader.loadHead()
         if (head.isNotEmpty()) {
             _cards.value = head
@@ -53,9 +61,16 @@ class CardRepository @Inject constructor(
 
     /**
      * Phase 2 — background fan-out. Call after [primeSync]. Atomically
-     * swaps the full catalog in once decoded.
+     * swaps the full catalog in once decoded. Idempotent — skips when
+     * the catalog already has more than the head-bundle row count
+     * (loadFull always returns >= 17k rows; the head bundle has 500).
      */
     fun primeAsync() {
+        // Already at full size (Phase 2 ran in a prior caller); skip.
+        if (_cards.value.size > 1_000) {
+            _isLoading.value = false
+            return
+        }
         scope.launch {
             val full = loader.loadFull()
             if (full.isNotEmpty()) {

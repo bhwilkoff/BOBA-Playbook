@@ -22,7 +22,12 @@ object NavRoutes {
     // Push destinations (depth 2)
     const val ARG_BOBA_ID            = "bobaId"
     const val CARD_DETAIL_PATTERN    = "card/{$ARG_BOBA_ID}"
-    fun cardDetail(bobaId: String)   = "card/$bobaId"
+    // bobaIds carry spaces + Unicode (e.g. "TAA-6-Troy of Dallas-…").
+    // Without URL-encoding, the Compose Navigation URI parser either
+    // rejects the route or silently mangles the path, which lands
+    // CardDetailScreen on the wrong bobaId → "Card not found" empty
+    // state on every tap. Decoded on read in cardDetailComposable.
+    fun cardDetail(bobaId: String)   = "card/${java.net.URLEncoder.encode(bobaId, "UTF-8")}"
 
     // Decks editor + secondary surfaces (depth 2 inside Decks tab)
     const val DECK_EDITOR  = "decks/editor"
@@ -42,7 +47,9 @@ object NavRoutes {
 
     // Collection card detail (multi-copy + designation switcher)
     const val COLLECTION_CARD_DETAIL_PATTERN = "collection/card/{$ARG_BOBA_ID}"
-    fun collectionCardDetail(bobaId: String) = "collection/card/$bobaId"
+    // Same URL-encoding rationale as `cardDetail`.
+    fun collectionCardDetail(bobaId: String) =
+        "collection/card/${java.net.URLEncoder.encode(bobaId, "UTF-8")}"
 
     // Profile (full-screen destination — Find-only entry)
     const val PROFILE = "profile"

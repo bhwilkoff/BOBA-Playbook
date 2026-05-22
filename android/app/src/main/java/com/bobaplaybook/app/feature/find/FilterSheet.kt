@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bobaplaybook.core.domain.showcase.Showcases
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import com.bobaplaybook.core.ui.theme.BobaElements
 
@@ -103,8 +104,10 @@ private fun FilterSheetContent(
             ) {
                 Text("Clear all")
             }
-            IconButton(onClick = onDismiss) {
-                Icon(Icons.Default.Close, contentDescription = "Done")
+            BOBAIconTooltip("Done filtering — close sheet") {
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Done")
+                }
             }
         }
         HorizontalDivider()

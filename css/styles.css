@@ -3233,6 +3233,33 @@ dialog.modal-overlay[open] {
   padding: 0 var(--sp-1);
 }
 
+/* Tick 333 — keyboard shortcuts cheat sheet. Hidden on small touch
+   viewports (no physical keyboard) so mobile Safari users don't see
+   shortcuts that don't apply to them. */
+.profile-section-shortcuts { display: block; }
+@media (max-width: 768px) and (pointer: coarse) {
+  .profile-section-shortcuts { display: none; }
+}
+.profile-shortcuts-list {
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.profile-shortcut-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  font-family: var(--font-mono); font-size: 0.78rem;
+  color: var(--boba-text-secondary);
+}
+.profile-shortcut-row kbd {
+  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--boba-text);
+}
+
 /* Stat list card */
 .profile-stat-list {
   background: var(--boba-surface-2);

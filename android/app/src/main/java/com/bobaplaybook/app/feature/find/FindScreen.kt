@@ -231,6 +231,15 @@ private fun FindContent(
                                     it,
                                 )
                             },
+                            onSurpriseMe = {
+                                // Tick 264 — Surprise Me: pick a random
+                                // card from the FindUiState results
+                                // (which mirrors the full catalog when no
+                                // search is active).
+                                state.results.randomOrNull()?.let {
+                                    onCardClick(it.bobaId)
+                                }
+                            },
                         )
                     }
                 },
@@ -472,6 +481,7 @@ private fun FindOverflowMenu(
     onQuickAddChange: (Boolean) -> Unit,
     gridColumns: Int,
     onGridColumnsChange: (Int) -> Unit,
+    onSurpriseMe: () -> Unit = {},
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         // Columns picker — single-select group. Selected item gets Check.
@@ -507,6 +517,15 @@ private fun FindOverflowMenu(
             onClick = { onQuickAddChange(!quickAdd); onDismiss() },
         )
         androidx.compose.material3.HorizontalDivider()
+        // Tick 264 — Surprise Me discovery action. Picks a random card
+        // from the currently-visible results (or full catalog if none
+        // filtered) and pushes its detail. Real value for collectors
+        // exploring 17k+ cards who don't know what to search for.
+        DropdownMenuItem(
+            text = { Text("Surprise me 🎲") },
+            leadingIcon = { Icon(Icons.Default.Bolt, contentDescription = null) },
+            onClick = { onDismiss(); onSurpriseMe() },
+        )
         DropdownMenuItem(
             text = { Text("Show walkthrough") },
             leadingIcon = { Icon(Icons.Default.LocalFireDepartment, contentDescription = null) },

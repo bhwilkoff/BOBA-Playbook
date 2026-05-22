@@ -17,6 +17,7 @@
 ## What shipped overnight
 
 <!-- Each tick appends a one-line summary here. Most recent on top. -->
+- **tick 276 (Android, Learn corpus)** — Collect page now leads with intrinsic Rarity by Weapon Type (Steel-common → Hex-rarest, from iOS WeaponRaritySection). Without that framing, the Inspired Ink serialization rates below (Hex /5 / Glow /10 / Fire /25 / Ice /50) had no mental model to attach to. Renamed the "Treatments vs Parallels" lead-in for clarity.
 - **tick 275 (opt, −1 line)** — HouseOfCardsView: dropped `import ARKit` (only `ARView` is used, which lives in RealityKit, not ARKit — no AR* types of any kind referenced). Annotated `import Combine` with usage hint (`Cancellable` for scene.subscribe). Confirmed `simd` IS needed (matrix_identity_float4x4 + SIMD3 + simd_quatf).
 - **tick 274 (Android, Learn corpus)** — Edge Cases section ported from iOS depth: 3 short bullets → 7 detailed Term rows (Substitution-cost-always-2, Pull-The-Plug-rest-of-game-only, Recycle-clears-attached, Play-Booster-recounts, Deck-exhaustion-reshuffles, Bonus-Plays-don't-count, Tied-battle-keeps-Honors). Corrects an Android-only rule error ("coin flip in casual" → "Honors stays with the same player").
 - **tick 273 (web)** — Lowercase `r` keyboard shortcut for Surprise Me on Find view. Single-key avoids Ctrl+Shift+R browser hard-reload collision. Suppressed when typing in input/textarea/contentEditable or a `<dialog>` is open. iPad/Chromebook keyboard parity with iOS v2.311.

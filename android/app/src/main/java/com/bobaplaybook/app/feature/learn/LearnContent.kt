@@ -444,12 +444,32 @@ object LearnCorpus {
     // ════════════════════════════════════════════════════════════════
 
     val collect: List<LearnSection> = listOf(
+        // Tick 276 — iOS WeaponRaritySection port. Android Collect was
+        // missing the foundational "intrinsic hero rarity tied to
+        // weapon type" concept that frames everything below. Without
+        // it, the Inspired Ink serialization rates below have no
+        // mental model to attach to.
         LearnSection.Body(
-            heading = "Two distinct concepts",
+            heading = "Rarity by weapon type",
+            text = "In BoBA, a hero's intrinsic rarity is tied to its weapon. From most common to most rare:",
+        ),
+        LearnSection.Bullets(
+            heading = "Pull frequency",
+            items = listOf(
+                "Steel — most common. Entry-level weapon; the bulk of any collection.",
+                "Ice — common. Frequent pulls alongside Steel.",
+                "Fire — rare. Notably rarer than Steel/Ice.",
+                "Glow — ultra rare. A meaningful chase, often a box-topper.",
+                "Gum — secret rare. Chase-tier with very limited supply.",
+                "Hex — rarest. The apex weapon; hardest pull in a standard product run.",
+            ),
+        ),
+        LearnSection.Body(
+            heading = "Treatments vs Parallels",
             text = "Treatments are DIFFERENT WAYS the same card can be printed. Parallels are ENTIRELY SEPARATE runs that share format but have their own numbering.",
         ),
         LearnSection.Bullets(
-            heading = "Rarity by weapon (Inspired Ink serialized)",
+            heading = "Inspired Ink (Serialized) — hand-numbered runs",
             items = listOf(
                 "Hex /5 — rarest serialized variant available",
                 "Glow /10",

@@ -527,26 +527,40 @@ private fun TournamentPage() {
         // (mirrored to android/.../blog-feed.json). Lets users catch up
         // on rules updates, release announcements, and community moments
         // without leaving the app.
+        // Tick 421 — render the header + lastUpdated stamp even when
+        // blogPosts is empty (iOS tick 417 parity for events). Users
+        // see the feed IS being refreshed even on quiet days. Was
+        // gated on `blogPosts.isNotEmpty()` before so the whole section
+        // disappeared on empty.
         val blogBundle = BlogFeedLoader.loadBundle(context)
         val blogPosts = blogBundle.posts.take(5)
-        if (blogPosts.isNotEmpty()) {
-            item("blog-head") { BOBASectionHeader(title = "Recent BoBA news") }
-            // Tick 244 — surface bundle.lastUpdated as a freshness stamp,
-            // matching the events list (tick 219). Daily cron drives this.
-            // Tick 416 — use the relativeOrIsoDate helper (already used by
-            // per-post BlogPostRow) so the stamp reads "Last refreshed
-            // today" / "yesterday" / "Nd ago" instead of the raw ISO
-            // "2026-05-22". iOS parity (LearnView line 2657).
-            blogBundle.lastUpdated?.takeIf { it.isNotBlank() }?.let { stamp ->
-                item("blog-stamp") {
-                    Text(
-                        text = "Last refreshed ${relativeOrIsoDate(stamp)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 0.dp),
-                    )
-                }
+        item("blog-head") { BOBASectionHeader(title = "Recent BoBA news") }
+        // Tick 244 — surface bundle.lastUpdated as a freshness stamp,
+        // matching the events list (tick 219). Daily cron drives this.
+        // Tick 416 — use the relativeOrIsoDate helper (already used by
+        // per-post BlogPostRow) so the stamp reads "Last refreshed
+        // today" / "yesterday" / "Nd ago" instead of the raw ISO
+        // "2026-05-22". iOS parity (LearnView line 2657).
+        blogBundle.lastUpdated?.takeIf { it.isNotBlank() }?.let { stamp ->
+            item("blog-stamp") {
+                Text(
+                    text = "Last refreshed ${relativeOrIsoDate(stamp)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 0.dp),
+                )
             }
+        }
+        if (blogPosts.isEmpty()) {
+            item("blog-empty") {
+                Text(
+                    text = "No recent posts. Check back as the BoBA team publishes.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+        } else {
             items(blogPosts, key = { "blog-${it.id}" }) { post -> BlogPostRow(post) }
             // Tick 259 — "See all N posts" link to the full archive
             // (web tick 258 parity). Renders only when the feed has

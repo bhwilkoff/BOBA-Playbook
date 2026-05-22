@@ -56,6 +56,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -140,7 +141,7 @@ fun CardDetailScreen(
     // consumes the keystroke when this screen is in the composition.
     // Otherwise typing Ctrl+→ in Find's search field would silently
     // lose the "next-word" behavior to a no-op nav request.
-    androidx.compose.runtime.DisposableEffect(Unit) {
+    DisposableEffect(Unit) {
         navStore.setOnDetail(true)
         onDispose { navStore.setOnDetail(false) }
     }

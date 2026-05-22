@@ -176,6 +176,36 @@ private fun DecksCompactScreen(
     var clearConfirmOpen by remember { mutableStateOf(false) }
     var poolQuery by rememberSaveable { mutableStateOf("") }
 
+    // Tick 309 — extracted save closure so both the SAVE-pill onSave
+    // and the Ctrl+S keyboard listener (BOBAApp root → DecksActions
+    // singleton bus) call the same path.
+    val saveDeckAction: () -> Unit = {
+        deckViewModel.save { errorMessage: String? ->
+            if (errorMessage == null) {
+                editorOpen = false
+                scope.launch {
+                    appSnackbar?.showSnackbar("Saved \"${draft.name}\"")
+                }
+            } else {
+                scope.launch {
+                    appSnackbar?.showSnackbar(errorMessage)
+                }
+            }
+        }
+    }
+    // Collect Ctrl+S from the root-level keyboard handler. Only acts
+    // when the editor is open + signed in + deck has cards (matches
+    // iOS .disabled() rule on SAVE pill).
+    val decksActionsVm: DecksActionsHolderViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        decksActionsVm.bus.savePressed.collect {
+            if (editorOpen && isSignedIn && (draft.cards.isNotEmpty())) {
+                saveDeckAction()
+            }
+        }
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -402,23 +432,7 @@ private fun DecksCompactScreen(
                     }
                 }
             },
-            onSave = {
-                // Use the richer save signature (tick 71) — error message
-                // disambiguates sign-out / empty-name / network so the
-                // user knows what to fix.
-                deckViewModel.save { errorMessage: String? ->
-                    if (errorMessage == null) {
-                        editorOpen = false
-                        scope.launch {
-                            appSnackbar?.showSnackbar("Saved \"${draft.name}\"")
-                        }
-                    } else {
-                        scope.launch {
-                            appSnackbar?.showSnackbar(errorMessage)
-                        }
-                    }
-                }
-            },
+            onSave = saveDeckAction,
             onSignInRequest = {
                 editorOpen = false
                 onSignInRequest()

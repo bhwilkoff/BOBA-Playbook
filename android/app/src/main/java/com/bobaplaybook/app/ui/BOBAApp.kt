@@ -91,6 +91,7 @@ fun BOBAApp(
     connectivityState: ConnectivityState,
     pendingDeepLink: PendingDeepLink,
     findActions: com.bobaplaybook.app.feature.find.FindActions,
+    decksActions: com.bobaplaybook.app.feature.decks.DecksActions,
 ) {
     BobaTheme {
         // One NavController per tab so back stacks don't cross-pollute.
@@ -212,6 +213,15 @@ fun BOBAApp(
                             return@onPreviewKeyEvent true
                         }
                         if (!event.isCtrlPressed) return@onPreviewKeyEvent false
+                        // Tick 309 — Ctrl+S fires Save on Decks editor.
+                        // iOS Cmd+S (v2.319) + web Ctrl+S parity.
+                        // DecksScreen collects via DecksActions singleton
+                        // and only fires when editor is open + auth +
+                        // non-empty deck.
+                        if (event.key == Key.S && currentDestination == AppDestination.DECKS) {
+                            decksActions.requestSave()
+                            return@onPreviewKeyEvent true
+                        }
                         when (event.key) {
                             Key.One   -> handleShortcut(1)
                             Key.Two   -> handleShortcut(2)

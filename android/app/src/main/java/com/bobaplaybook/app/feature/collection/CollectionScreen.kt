@@ -127,15 +127,6 @@ fun CollectionScreen(
     var designation by rememberSaveable { mutableStateOf(Designation.PERSONAL) }
     var menuOpen by remember { mutableStateOf(false) }
     var filterSheetOpen by rememberSaveable { mutableStateOf(false) }
-    // Sort dialog visibility hoisted OUT of the DropdownMenu content
-    // lambda. When `menuOpen = false` closed the menu, the inline
-    // `var sortDialogOpen by remember { ... }` was disposed before
-    // the dialog could render — sort taps were silently dropping
-    // the new value. Keeping it here keeps the dialog state alive
-    // across the menu's dispose. iOS CollectionView surfaces the
-    // same sort picker as a NavigationLink push so this scoping
-    // problem doesn't surface there.
-    var sortDialogOpen by remember { mutableStateOf(false) }
 
     // Streamer role gates My Shows in the overflow menu — iOS
     // CollectionView.collectionMenu has `if auth.isStreamer { ... }`
@@ -294,17 +285,11 @@ fun CollectionScreen(
                                 }
                                 HorizontalDivider()
                             }
-                            // Sort sub-menu — peer-collection iOS parity (P1 #17).
-                            // Material 3 doesn't have a built-in nested DropdownMenu;
-                            // we expose the active sort label in this row and open a
-                            // dedicated sort dialog when tapped. `sortDialogOpen` is
-                            // hoisted to the outer Composable so closing the
-                            // overflow menu doesn't tear down the dialog's state.
-                            DropdownMenuItem(
-                                text = { Text("Sort: ${collectionSort.label}") },
-                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null) },
-                                onClick = { menuOpen = false; sortDialogOpen = true },
-                            )
+                            // Sort moved into the Filter sheet (Ben's
+                            // 2026-05-22 ask: "It should be within the
+                            // filter sheet"). The overflow menu row was
+                            // a fallback for the period the filter sheet
+                            // didn't accept a Collection sort slot.
                             DropdownMenuItem(
                                 text = { Text("Rainbow Progress") },
                                 leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) },
@@ -649,24 +634,19 @@ fun CollectionScreen(
             state = findState,
             onEvent = findViewModel::onEvent,
             onDismiss = { filterSheetOpen = false },
-            // Hide Find's sort picker here — Collection has its own
-            // sort enum + dialog reachable from the overflow menu.
-            // Without this, picking a sort in the filter sheet wrote
-            // to Find's state and Collection's list never reordered.
-            showSortSection = false,
+            // Collection sort lives in CollectionSortOrder + a
+            // DataStore-backed pref; Ben wants the picker inside
+            // the filter sheet (matches iOS). The slot below is
+            // rendered in place of Find's CardSortOrder section.
+            sortSlot = {
+                CollectionSortSection(
+                    selected = collectionSort,
+                    onChange = { collectionPrefs.setSortOrder(it.name) },
+                )
+            },
         )
     }
 
-    if (sortDialogOpen) {
-        CollectionSortDialog(
-            selected = collectionSort,
-            onSelected = {
-                collectionPrefs.setSortOrder(it.name)
-                sortDialogOpen = false
-            },
-            onDismiss = { sortDialogOpen = false },
-        )
-    }
 }
 
 @Composable
@@ -1263,6 +1243,37 @@ private fun applySort(
         CollectionSortOrder.POWER_ASC -> entries.sortedWith(artFirst.thenBy { it.card.power ?: Int.MAX_VALUE })
         CollectionSortOrder.COST_ASC -> entries.sortedWith(artFirst.thenBy { it.card.cost ?: Int.MAX_VALUE })
         CollectionSortOrder.COST_DESC -> entries.sortedWith(artFirst.thenByDescending { it.card.cost ?: 0 })
+    }
+}
+
+/**
+ * Sort section embedded inside the Filter sheet (Ben 2026-05-22:
+ * "the Collection sort should be within the filter sheet"). Mirrors
+ * the Find tab's SortSection shape — section header + FilterChip
+ * FlowRow — but iterates `CollectionSortOrder` instead of Find's
+ * `SortOrder`, and writes through to CollectionPrefsStore via the
+ * `onChange` callback.
+ */
+@Composable
+internal fun CollectionSortSection(
+    selected: CollectionSortOrder,
+    onChange: (CollectionSortOrder) -> Unit,
+) {
+    androidx.compose.foundation.layout.Column(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        com.bobaplaybook.core.ui.components.BOBASectionHeader(title = "Sort")
+        androidx.compose.foundation.layout.FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CollectionSortOrder.entries.forEach { order ->
+                FilterChip(
+                    selected = order == selected,
+                    onClick = { onChange(order) },
+                    label = { Text(order.label, style = MaterialTheme.typography.labelMedium) },
+                )
+            }
+        }
     }
 }
 

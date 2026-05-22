@@ -1457,6 +1457,25 @@ body[data-find-density="l"] #view-search .card-grid { grid-template-columns: rep
   .print-run-cell-badge { display: none; }
 }
 
+/* Tick 468 — Format-legality hint bottom-leading (Android tick 464/466
+   + iOS tick 467 parity / Discord backlog #4 carry-forward). Amber
+   accent matches the Android BobaBrand.Orange + iOS Design.Colors
+   .bobaOrange. Container query hides at 'S' density (≤130px cell) —
+   stricter than print-run because abbreviation text needs more room. */
+.format-legality-hint {
+  position: absolute; bottom: 8px; left: 8px;
+  padding: 2px 5px;
+  font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700;
+  background: rgba(0, 0, 0, 0.62);
+  color: var(--boba-orange);
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  z-index: 2;
+}
+@container card-cell (max-width: 130px) {
+  .format-legality-hint { display: none; }
+}
+
 /* Treatment ribbon colors */
 .tf-colosseum    .card-treatment-ribbon { background: linear-gradient(90deg,#5C1A00,#A0522D); color: #FFD5B0; }
 .tf-battlefoil   .card-treatment-ribbon { background: linear-gradient(90deg,#8B6914,#C9A227); color: #000; }

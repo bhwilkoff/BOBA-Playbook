@@ -2521,11 +2521,20 @@
       ? `<span class="print-run-cell-badge${printRunCell === 'SSP' ? ' print-run-cell-badge--ssp' : ''}" aria-hidden="true">${escHtml(printRunCell)}</span>`
       : '';
 
+    // Tick 468 — Format-legality hint bottom-leading (Android tick
+    // 464/466 + iOS tick 467 parity / Discord backlog #4 carry-forward).
+    // Surfaces only when card is legal in less than all 4 formats.
+    const formatHint = restrictedLegalAbbrevFor(card);
+    const formatHintHtml = formatHint
+      ? `<span class="format-legality-hint" aria-hidden="true">${escHtml(formatHint)}</span>`
+      : '';
+
     el.innerHTML = `
       <div class="card-img-wrap">
         ${imgHtml}
         ${ribbonHtml}
         ${printRunBadgeHtml}
+        ${formatHintHtml}
       </div>
       <div class="card-info">
         <div class="card-number">${escHtml(card.cardType === 'Sealed Product' ? card.set : card.cardNumber)}</div>
@@ -3550,6 +3559,24 @@
       : { format: 'Brawl', status: 'legal' };
     const checklist = { format: 'Checklist', status: 'legal' };
     return [spec, specPlus, brawl, checklist];
+  }
+
+  /// Tick 468 — Discord backlog #4 carry-forward (per-cell badge half).
+  /// Returns "S+ C"-style abbreviation of legal formats ONLY when the
+  /// card is legal in less than all 4 — so the badge surfaces unusual
+  /// cards instead of cluttering every cell. CONSTRAINED treated as
+  /// legal (the card is still playable). Mirrors iOS + Android helpers.
+  function restrictedLegalAbbrevFor(card) {
+    const chips = legalFormatsFor(card);
+    if (chips.length === 0) return null;
+    const ABBR = { 'Spec': 'S', 'Spec+': 'S+', 'Brawl': 'B', 'Checklist': 'C' };
+    const abbrev = chips
+      .filter(c => c.status !== 'illegal')
+      .map(c => ABBR[c.format])
+      .filter(Boolean);
+    if (abbrev.length === 4) return null;       // legal everywhere → no badge
+    if (abbrev.length === 0) return null;       // legal nowhere → defensive null
+    return abbrev.join(' ');
   }
 
   function getCardRarity(card) {

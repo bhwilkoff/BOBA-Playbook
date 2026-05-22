@@ -1,0 +1,256 @@
+/* Phone-portrait screenshot chrome — 1080×1920.
+   Shared by every screenshot-*.html template. Status bar at the top,
+   NavigationBar at the bottom, scrim-tinted edge gradient pinned to
+   the brand background so the screen content doesn't slam edge-to-
+   edge against the canvas. */
+
+html, body {
+  width:  1080px;
+  height: 1920px;
+  background: var(--boba-near-black);
+}
+
+.phone {
+  width:  1080px;
+  height: 1920px;
+  background: var(--boba-near-black);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ───── Status bar ───── */
+.status-bar {
+  height: 60px;
+  padding: 0 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: "Chakra Petch Fallback", "Helvetica Neue", sans-serif;
+  color: var(--boba-text);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.status-bar .icons { display: flex; gap: 12px; align-items: center; }
+.status-bar .icons svg { width: 22px; height: 22px; }
+
+/* ───── App bar (top) ───── */
+.app-bar {
+  height: 110px;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--boba-surface);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+.app-bar .title {
+  font-family: "Bebas Neue Fallback", Impact, sans-serif;
+  font-size: 48px;
+  letter-spacing: 0.04em;
+  color: var(--boba-text);
+  text-transform: uppercase;
+}
+.app-bar .wordmark {
+  font-family: "Bebas Neue Fallback", Impact, sans-serif;
+  font-size: 42px;
+  letter-spacing: 0.06em;
+}
+.app-bar .wordmark .o { color: var(--boba-orange); }
+.app-bar .actions {
+  display: flex;
+  gap: 28px;
+  color: var(--boba-text-2);
+}
+.app-bar .actions svg { width: 32px; height: 32px; }
+
+/* ───── Body region ───── */
+.body {
+  flex: 1;
+  padding: 24px 32px;
+  overflow: hidden;
+}
+
+/* ───── Bottom navigation ───── */
+.nav-bar {
+  height: 110px;
+  background: var(--boba-surface);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-shrink: 0;
+  padding-bottom: 16px;  /* gesture-area inset */
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--boba-text-mute);
+  font-family: "Chakra Petch Fallback", "Helvetica Neue", sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+}
+.nav-item svg { width: 32px; height: 32px; }
+.nav-item.active { color: var(--boba-orange); }
+.nav-item.active svg { filter: drop-shadow(0 0 8px rgba(255, 77, 0, 0.4)); }
+
+/* ───── Search bar ───── */
+.search-bar {
+  background: var(--boba-surface-2);
+  border-radius: 999px;
+  padding: 22px 32px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-family: "Chakra Petch Fallback", "Helvetica Neue", sans-serif;
+  font-size: 26px;
+  color: var(--boba-text-2);
+}
+.search-bar svg { width: 28px; height: 28px; }
+
+/* ───── Card thumbnail (5:7 aspect) ───── */
+.card-cell {
+  background: var(--boba-surface-2);
+  border-radius: 18px;
+  aspect-ratio: 5 / 7;
+  position: relative;
+  overflow: hidden;
+}
+.card-cell .label {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 14px 12px;
+  background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0) 100%);
+  font-family: "Chakra Petch Fallback", "Helvetica Neue", sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+.card-cell .badge {
+  position: absolute;
+  top: 12px; right: 12px;
+  background: var(--badge-color, var(--boba-orange));
+  color: white;
+  font-family: "Chakra Petch Fallback", "Helvetica Neue", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+/* Faux card art — abstract gradient + power number */
+.card-cell .art {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card-art-bg, linear-gradient(135deg, #ff4d00 0%, #cc3a00 100%));
+  font-family: "Bebas Neue Fallback", Impact, sans-serif;
+  font-size: 96px;
+  color: rgba(255,255,255,0.95);
+  letter-spacing: 0.06em;
+}
+
+/* ───── Chip ───── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: var(--boba-surface-2);
+  color: var(--boba-text);
+  font-family: "Chakra Petch Fallback", "Helvetica Neue", sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.chip.selected {
+  background: var(--boba-orange);
+  color: white;
+  border-color: transparent;
+}
+
+/* ───── Section header ───── */
+.section {
+  font-family: "Bebas Neue Fallback", Impact, sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.15em;
+  color: var(--boba-text-mute);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Play Store layout — headline section on top (30% of canvas) +
+   app-UI mockup section below (70%). Each screenshot is a single-
+   purpose card; the headline reads even at carousel-thumbnail size.
+   ───────────────────────────────────────────────────────────── */
+.shot {
+  width: 1080px;
+  height: 1920px;
+  background: var(--boba-near-black);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.shot-headline {
+  height: 540px;
+  padding: 80px 60px 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  position: relative;
+  overflow: hidden;
+}
+/* Subtle radial brand glow behind the headline */
+.shot-headline::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 77, 0, 0.18) 0%,
+    rgba(255, 77, 0, 0.05) 35%,
+    transparent 65%
+  );
+}
+.shot-headline > * { position: relative; z-index: 1; }
+.shot-headline .label {
+  font-family: "Chakra Petch Fallback", "Helvetica Neue", sans-serif;
+  font-size: 26px;
+  letter-spacing: 0.3em;
+  color: var(--boba-orange);
+  text-transform: uppercase;
+}
+.shot-headline .title {
+  font-family: "Bebas Neue Fallback", Impact, sans-serif;
+  font-size: 130px;
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+  color: var(--boba-text);
+  text-transform: uppercase;
+}
+.shot-headline .title .accent { color: var(--boba-orange); }
+.shot-headline .sub {
+  font-family: "Chakra Petch Fallback", "Helvetica Neue", sans-serif;
+  font-size: 30px;
+  line-height: 1.3;
+  color: var(--boba-text-2);
+  max-width: 800px;
+}
+.shot-mockup {
+  flex: 1;
+  background: var(--boba-surface);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 32px;
+  overflow: hidden;
+  position: relative;
+}

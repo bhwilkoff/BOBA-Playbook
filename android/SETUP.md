@@ -270,12 +270,136 @@ I'll handle the commit if you say "commit M0" — I won't push without explicit 
 
 ## Phase D — Things to do later (not blocking M0)
 
-These don't block M0 but you'll hit them in M7-M8:
+These don't block M0 but you'll hit them later:
 
-- **Add Discord OAuth redirect to Discord application** — visit <https://discord.com/developers/applications>, find the BOBA Playbook OAuth app, add `bobaplaybook://oauth/callback` to redirect URIs. The same URI iOS uses works on Android (custom-scheme deep links route via Intent).
+- **Add Discord OAuth redirect to Discord application** — visit <https://discord.com/developers/applications>, find the BOBA Playbook OAuth app, add `bobaplaybook://oauth/callback` to redirect URIs. Same URI iOS uses.
 - **eBay Browse API + Whatnot proxy** — no changes needed; the existing `boba-ebay-proxy` Worker accepts cross-platform Bearer JWT calls.
-- **Play Integrity API** — defer to M7+ when threat model justifies.
-- **Beta tester invitations** — set up after M8 internal testing track lands.
+- **Play Integrity API** — defer to v2 when threat model justifies (DECISIONS.md §8.4).
+
+---
+
+## Phase E — First beta upload to Play Console
+
+Once the M1+ code is on `main` and you can build/run the app from Android Studio, this phase puts a signed AAB on the Play Console Internal Testing track. ~3 hours of active work plus Google identity-verification wait.
+
+### E1. Upload keystore credentials → GitHub Secrets
+
+**Why:** the CI workflow signs release builds with your upload keystore. Without these secrets, `bundleRelease` produces an unsigned AAB that Play Console rejects.
+
+**Prereq:** keystore at `~/.android/boba-upload.jks` (B1 above).
+
+**How** — run from the repo root:
+```sh
+# Base64 the keystore so it round-trips through GH Secrets cleanly
+KEYSTORE_B64=$(base64 -i ~/.android/boba-upload.jks | tr -d '\n')
+
+# Set the secrets (gh CLI required — `brew install gh` if missing)
+gh secret set UPLOAD_KEYSTORE_BASE64   --body "$KEYSTORE_B64"
+gh secret set UPLOAD_KEYSTORE_PASSWORD --body "YOUR_KEYSTORE_PASSWORD"
+gh secret set UPLOAD_KEY_PASSWORD      --body "YOUR_KEY_PASSWORD"
+
+# Maps API key for the Find a Store map (same value as in
+# android/local.properties)
+gh secret set MAPS_API_KEY --body "AIzaSyBLWDpGY5K0fLaw8HI-2EaOVkKm5PxOZPc"
+```
+
+**What Claude does after:** if you paste the keystore + key passwords to me (or run the above and tell me you've done it), I'll verify the secrets exist + run a dry release-build locally to confirm signing wires up.
+
+### E2. Create the Play service account → upload to secrets
+
+**Why:** the CI job uses a service account to push the AAB to Play Console. The account needs **Release Manager** rights on the BOBA app.
+
+**How:**
+1. Visit <https://console.cloud.google.com/iam-admin/serviceaccounts> with the **boba-playbook-7f292** project selected.
+2. **Create service account** — name "boba-play-uploader." Skip role grant in GCP; the Play side handles it.
+3. After creation → ⋮ → **Manage keys** → **Add key → Create new key → JSON**. The JSON downloads.
+4. Visit <https://play.google.com/console> → Setup → **API access** → **Link** to the GCP project → grant the new service account **Release manager** (or **Admin** for first run).
+5. From the repo root:
+   ```sh
+   gh secret set PLAY_SERVICE_ACCOUNT_JSON < /path/to/downloaded.json
+   ```
+
+**Verify:** in Play Console → Users and permissions, the service account appears with the Release Manager role.
+
+### E3. Listing assets (manual, Play Console UI)
+
+These can't be automated — you upload via the browser. The first beta needs:
+
+- **App icon** — 512×512 PNG, no alpha. The adaptive icon is already in `app/src/main/res/mipmap-anydpi-v26/`; rasterize at 512 with a non-alpha background. **Ask Claude to render this if needed.**
+- **Feature graphic** — 1024×500. Required. Ask Claude to draft via the screenshot pipeline.
+- **Phone screenshots** — 2 minimum, 8 max. 16:9 or 9:16, min 320px / max 3840px. Capture from emulator or device.
+- **Short description** — ≤80 chars. Suggested: *"Search · Scan · Collect. The Bo Jackson Battle Arena companion app."*
+- **Full description** — ≤4000 chars. **Ask Claude to draft** from existing iOS App Store copy.
+- **Privacy policy URL** — `https://bobaplaybook.com/privacy` (already live).
+- **Category** — Tools (or Entertainment).
+- **Contact info** — your email; required.
+
+### E4. Play Console required forms
+
+In Play Console → Policy → App content:
+
+- **Privacy Policy** — paste the URL.
+- **App access** — *"All functionality is available without restrictions"* is false (Profile / Save deck / Designate need login). Provide a reviewer test account: create `reviewer+google@learningischange.com` in Supabase or share an existing tester account; paste the credentials in the form.
+- **Ads** — *No ads*.
+- **Content rating** — fill out IARC questionnaire. ~15 questions. Card game, no violence/gambling/profanity → likely PEGI 3 / ESRB Everyone. **Ask Claude for a draft answer set** that matches the BOBA content profile.
+- **Target audience and content** — pick age range. 13+ is the safest for the card-game audience; "Designed for Families" requires the Families program enrollment which is more onerous.
+- **News apps** — No.
+- **COVID-19 contact tracing** — No.
+- **Data Safety** — ~30 min. Declare:
+    - **Personal info:** name (username), email, photos (avatar)
+    - **App activity:** in-app interactions, in-app search history
+    - **App info and performance:** crash logs (FCM passes through Firebase)
+    - **Device IDs:** FCM registration token (when notifications ship)
+    - Encryption in transit: **Yes**
+    - Data deletion: **Yes — in-app** (account-delete Worker, DECISIONS.md #039)
+    - Camera: declared but **not transmitted** (on-device OCR per DECISIONS.md #043)
+    - **Ask Claude for the field-by-field walkthrough** to paste into the form.
+- **Government apps** — No.
+- **Financial features** — No.
+- **Health** — No.
+
+### E5. Push the first tagged release
+
+The CI job uploads to **Internal Testing** when a `v*-android` tag lands.
+
+```sh
+# Bump versionCode + versionName for the first beta
+# (Manual for now — auto-bump from Play Console latest-build is on the
+# polish list; the CI pipeline reads the values out of build.gradle.kts.)
+# In android/app/build.gradle.kts:
+#   versionCode = 2          // or whatever increment
+#   versionName = "0.2.0"    // first beta — pick a number you like
+
+git commit -am "Android: bump to 0.2.0 for first beta"
+git tag v0.2.0-android
+git push origin main v0.2.0-android
+```
+
+CI then:
+1. Decodes the keystore from `UPLOAD_KEYSTORE_BASE64`.
+2. Runs `./gradlew :app:bundleRelease` with signing credentials in env.
+3. Uploads the signed `app-release.aab` to the Internal Testing track.
+
+**Verify:** Play Console → Testing → Internal testing → Releases shows version 0.2.0 with status `Completed`.
+
+### E6. Add internal testers
+
+In Play Console → Testing → Internal testing → **Testers** tab:
+
+- Create a new tester list (or use an existing one).
+- Add email addresses (Google accounts) of beta testers. Up to 100.
+- Copy the **opt-in URL** — looks like `https://play.google.com/apps/internaltest/12345678901234567890`. Share that URL with your testers.
+
+After a tester opts in and waits ~10 min for Play Console propagation, the BOBA Playbook app appears on the Play Store for them (looks identical to a production listing on their device).
+
+### E7. Iterate
+
+For each subsequent beta build:
+- Bump `versionCode` + `versionName` in `android/app/build.gradle.kts`.
+- Tag `v0.x.y-android` and push.
+- CI uploads automatically. Internal Testing track gets staged updates within minutes.
+
+**Promotion to Production:** Internal → Closed → Open → Production is a Play Console UI flow. The CI job currently uploads only to Internal. When you're ready to promote, edit the `.github/workflows/android-build.yml` `track:` value, or do the promotion manually in Play Console.
 
 ---
 
@@ -294,19 +418,18 @@ These don't block M0 but you'll hit them in M7-M8:
 
 ## Status
 
-- ✅ Project scaffold + Gradle build files + version catalog (this commit)
-- ✅ BobaTheme + 5 primitive Composables + Type/Color/Shape tokens
-- ✅ Two-phase catalog loader (CardCatalogLoader + CardRepository)
-- ✅ Cloudflare R2 CDN helpers + Worker config (URLs)
-- ✅ Shared asset sync (cards-slim.json + categories.json + fonts) committed
-- ✅ AndroidManifest with App Links + custom-scheme deep links
-- ✅ Adaptive launcher icon (XOXO mark + monochrome variant)
-- ✅ Splash screen via Android 12+ API
-- ✅ Edge-to-edge + predictive back enabled
-- ✅ `.well-known/assetlinks.json` placeholder added to web root
-- ✅ `_config.yml` updated to exclude `android/` from Jekyll Pages build
-- ⏳ Gradle wrapper (Android Studio generates on first open — A3 above)
-- ⏳ `google-services.json` (B3)
-- ⏳ Upload keystore + SHA fingerprints (B1)
-- ⏳ Sign in with Google OAuth client ID (B4)
-- ⏳ Supabase config values (B5)
+**Phase A — Local toolchain:** ✅ Android Studio + JDK + Gradle wrapper.
+**Phase B — Google services:** ✅ keystore + SHA fingerprints (assetlinks.json populated) · ✅ Play Console developer account · ✅ Firebase project + `google-services.json` · ✅ Sign in with Google OAuth web client (`GOOGLE_WEB_CLIENT_ID` in build.gradle.kts) · ✅ Supabase URL + publishable key wired.
+**Phase C — First build:** ✅ App boots + tabs render + Find/Decks/Collection/Purchase/Learn screens shipped.
+**M0–M8 functional:** ✅ all five tabs functional · ✅ scan with ML Kit v2 bundled · ✅ Hilt + Credential Manager + supabase-kt auth · ✅ App Links verified · ✅ R8 release config.
+
+**Phase E — Beta upload prerequisites:**
+- ✅ Google Maps API key (Find a Store in-app map)
+- ✅ Release signing config in build.gradle.kts (env / local.properties)
+- ✅ CI `play-store-internal` job uncommented (tag-driven AAB upload)
+- ⏳ GH Secrets: `UPLOAD_KEYSTORE_BASE64`, `UPLOAD_KEYSTORE_PASSWORD`, `UPLOAD_KEY_PASSWORD`, `MAPS_API_KEY` (E1)
+- ⏳ Play service-account JSON + `PLAY_SERVICE_ACCOUNT_JSON` secret (E2)
+- ⏳ Play Console listing assets (icon, feature graphic, screenshots, descriptions) (E3)
+- ⏳ Data Safety + content rating + app-access forms (E4)
+- ⏳ Tagged release `v0.2.0-android` (E5)
+- ⏳ Internal testers added in Play Console (E6)

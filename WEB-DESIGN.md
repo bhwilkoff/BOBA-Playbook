@@ -120,97 +120,16 @@ principle as iOS.
 
 ## 4. Anti-patterns we reject
 
-Each one with a concrete current-code or recently-burned example.
-
-### 4.1 Pages that aren't pages.
-
-JS-routed views without updating the URL or document title. Most
-of `showView()` does this right today (URL gets `?view=...`); audit
-that every `showView` call also updates `document.title` and that
-the URL params are semantic enough to be shareable.
-**Fix:** every view transition writes URL + title. URL params are
-human-readable (`?view=collection&designation=grails`).
-
-### 4.2 Dialog soup (modal opens a modal).
-
-Same principle as iOS DESIGN.md §3.4. Two `<dialog>`s open at once
-is a debugging nightmare and a focus-trap conflict.
-**Fix:** dismiss the first dialog before opening the second. If you
-need to chain (sign-in → continue purchase), use the same dialog
-and swap its content.
-
-### 4.3 Scroll prison.
-
-Per DECISIONS.md #020 the body has `overflow: hidden` to prevent
-Dynamic Island bleed in mobile Safari. That means every inner
-scroll container needs:
-- Keyboard scroll handling (PageDown / Home / End work).
-- IntersectionObserver `root: <scrollContainer>` not `null`.
-- Scroll restoration on view back (manual `scrollTop` save +
-  restore via `popstate`).
-
-### 4.4 Divitis.
-
-`<div>` wrappers with no semantic meaning. Use `<section>`,
-`<article>`, `<aside>`, `<nav>`, `<main>`, `<header>`, `<footer>`,
-`<dialog>` where the meaning fits.
-**Fix:** if a `<div>` exists only to apply a class, ask "what does
-this represent?" If "a section of related content" → `<section>`.
-If "a card" → `<article>`. If nothing semantic → keep the `<div>`,
-but log it as a TODO during refactor.
-
-### 4.5 Custom focus rings.
-
-Overriding `:focus { outline: none; }` destroys keyboard
-navigation for every user.
-**Fix:** customize via `:focus-visible` only — that pseudo-class
-fires for keyboard focus, not mouse click. Default to a 2px cyan
-outline that respects `outline-offset`.
-
-### 4.6 Fixed pixel sizing for typography.
-
-Hard-coded `font-size: 14px` doesn't scale with the user's browser
-text-size preference. Critical for users with visual impairments.
-**Fix:** use `rem` for typography, `em` for component-relative
-spacing. Hard pixels OK for borders, shadows, and small icons.
-
-### 4.7 JS-rendered everything.
-
-Pages that render nothing until JS runs are a parity gap with
-shared-link expectations and a SEO nightmare. The user shares
-`bobaplaybook.com/u/ben/grails`; the recipient should see *something*
-before JS hydrates.
-**Fix:** static HTML in `index.html` for first-paint shell + brand.
-JS hydrates the dynamic content. The 404.html → SPA pattern
-(DECISIONS.md #018) plus skeleton placeholders covers the gap.
-
-### 4.8 Global event listeners that never get removed.
-
-`document.addEventListener('click', ...)` inside a per-view init
-function leaks across `showView()` transitions. Memory + double-
-firing.
-**Fix:** every per-view listener is removed in the view's teardown.
-Or use event delegation at a stable root (`#main-content`) so a
-single listener serves every view.
-
-### 4.9 Hand-rolled dropdowns with click-outside listeners.
-
-Captured by §2.1 native-first. The Popover API kills this entire
-class of bug (auto-dismiss, focus, ESC, top layer all native).
-**Fix:** every new dropdown uses `popover="auto"`. Existing
-hand-rolled ones get migrated when touched.
-
-### 4.10 `card.id` (and other unverified field assumptions).
-
-The web cards.json ships `bobaId` (per CLAUDE.md "One ID per
-Card"); iOS Card has a computed `var id` from the bobaId formula.
-The multi-select V1 used `card.id` everywhere assuming parity, got
-`undefined` on every card, and shipped a feature where only the
-first card could be selected. Cost ~2 days.
-**Fix:** when you start working with a new field, `console.log` an
-example object before writing logic. When you assume parity with
-iOS, look at the actual JSON. Use the `cardKey()` helper for card
-identity going forward.
+- **Pages that aren't pages.** Every `showView()` writes URL + `document.title`. URL params are human-readable (`?view=collection&designation=grails`) so links share.
+- **Dialog soup.** Two `<dialog>`s open at once = focus-trap conflict. Dismiss the first before opening the second; for chained flows, swap content in the same dialog.
+- **Scroll prison.** Per DECISIONS.md #020 body has `overflow: hidden`. Every inner scroll container needs: keyboard scroll (PgDn/Home/End), IntersectionObserver `root: <scrollContainer>` (not null), `popstate` scroll-restore.
+- **Divitis.** Use `<section>`, `<article>`, `<aside>`, `<nav>`, `<main>`, `<header>`, `<footer>`, `<dialog>` where they fit. `<div>` only when no semantic element does.
+- **Custom focus rings.** Never `outline: none`. Customize via `:focus-visible` only (keyboard focus, not mouse click). Default 2px cyan outline + `outline-offset`.
+- **Fixed-px typography.** `rem` for type, `em` for component-relative spacing. Hard px OK for borders / shadows / small icons.
+- **JS-rendered everything.** Static HTML shell + brand in `index.html`; JS hydrates dynamic content. 404.html → SPA pattern (DECISIONS.md #018) + skeleton placeholders covers shared-link paint.
+- **Leaky global event listeners.** Per-view listeners removed in teardown, or use event delegation at a stable root (`#main-content`).
+- **Hand-rolled dropdowns + click-outside.** Use `popover="auto"`. Existing hand-rolled migrate when touched.
+- **Unverified field assumptions** (e.g. `card.id`). Web cards.json ships `bobaId` (CLAUDE.md "One ID per Card"). `console.log` an example before writing logic; use the `cardKey()` helper for card identity.
 
 ---
 
@@ -781,40 +700,8 @@ will get skipped, and the parity gap will widen silently.
 
 ## 20. References
 
-Validated sources backing this document.
-
-**Design language:**
-- [Refactoring UI](https://www.refactoringui.com/) — visual hierarchy + density
-- [Things 3 design](https://culturedcode.com/things/) — single-pane density references
-- [Linear's design system](https://linear.app/method) — modern dark-theme density
-- [Vercel's design system](https://vercel.com/design) — modern web typography
-- [Apple HIG](https://developer.apple.com/design/human-interface-guidelines/) — for principles to translate
-
-**Modern web standards:**
-- [web.dev/baseline](https://web.dev/baseline) — Baseline-supported feature catalog
-- [web.dev/articles/view-transitions](https://web.dev/articles/view-transitions) — page transitions
-- [MDN Container Queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries)
-- [MDN Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API)
-- [MDN dialog element](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog)
-- [MDN Web Share API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Share_API)
-- [MDN `:has()`](https://developer.mozilla.org/en-US/docs/Web/CSS/:has)
-- [MDN `prefers-reduced-transparency`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-transparency)
-
-**Accessibility:**
-- [WCAG 2.2 AA](https://www.w3.org/WAI/WCAG22/quickref/?levels=a%2Caa)
-- [Inclusive Components](https://inclusive-components.design/) by Heydon Pickering
-- [APG Authoring Practices](https://www.w3.org/WAI/ARIA/apg/) — patterns for native-feel widgets
-
-**Performance:**
-- [web.dev/measure](https://web.dev/measure) — Core Web Vitals
-- [PageSpeed Insights](https://pagespeed.web.dev/) — site-specific testing
-
-**PWA:**
-- [web.dev/articles/learn/pwa](https://web.dev/articles/learn/pwa) — fundamentals
-- [Service Worker recipes](https://web.dev/articles/offline-cookbook)
-
-**Reference implementations to study:**
-- iOS DESIGN.md (this repo's binding doc — for principles to translate)
-- bsky.app web (reference for vanilla-JS dark-theme density at scale)
-- linear.app (reference for command-K + density when re-evaluating §2.4)
-- raycast.com (reference for keyboard-first interaction patterns when relevant)
+- **Design language:** [Refactoring UI](https://www.refactoringui.com/) · [Linear](https://linear.app/method) · [Vercel](https://vercel.com/design) · [Apple HIG](https://developer.apple.com/design/human-interface-guidelines/)
+- **Web standards:** [web.dev/baseline](https://web.dev/baseline) · [View Transitions](https://web.dev/articles/view-transitions) · [Container Queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries) · [Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API) · [`<dialog>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog) · [Web Share](https://developer.mozilla.org/en-US/docs/Web/API/Web_Share_API) · [`:has()`](https://developer.mozilla.org/en-US/docs/Web/CSS/:has) · [`prefers-reduced-transparency`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-transparency)
+- **Accessibility:** [WCAG 2.2 AA](https://www.w3.org/WAI/WCAG22/quickref/?levels=a%2Caa) · [Inclusive Components](https://inclusive-components.design/) · [APG](https://www.w3.org/WAI/ARIA/apg/)
+- **Performance / PWA:** [web.dev/measure](https://web.dev/measure) · [PageSpeed Insights](https://pagespeed.web.dev/) · [Learn PWA](https://web.dev/articles/learn/pwa) · [Offline cookbook](https://web.dev/articles/offline-cookbook)
+- **Study:** iOS DESIGN.md · bsky.app (vanilla-JS dark density) · linear.app (Cmd-K) · raycast.com (keyboard-first)

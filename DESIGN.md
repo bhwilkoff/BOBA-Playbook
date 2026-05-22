@@ -324,180 +324,101 @@ Rules to inherit iOS 27 gains automatically:
 
 ## 8. Per-tab IA recipes
 
-This is the binding redesign target. Every existing tab gets refactored
-to match. New tabs (if any) follow the same pattern templates.
+Binding redesign target. New tabs follow these templates.
 
-### 8.1 Find — the explorer
+### 8.1 Find — explore
 
-**Verb:** explore. Absorbs the prior Browse-in-Learn verb collision.
+`Tab(role: .search)` with full-screen search expansion.
+- **No-search:** featured ribbons (Heroes by Weapon, Athletes, Recently Added, Coaching Staff, Saved Searches) — horizontal `BOBACardCell` scrolls.
+- **Search-active:** tab bar minimizes; field takes canvas. Tokens (hero / element / treatment / cost / format / set). Optional scopes (Cards / Heroes / Featured).
+- Grid: uniform `BOBACardCell`, 3 cols, `.scrollEdgeEffectStyle(.hard, for: .top)`. Tap → push `CardDetailView`.
+- Toolbar: scan trailing, profile leading on collapse.
+- **Anti-patterns:** filter pills above grid (use tokens); multiple "browse by" pickers (use scopes).
 
-**Pattern:** `Tab(role: .search)` with full-screen search expansion.
+### 8.2 Learn — understand
 
-**Anatomy:**
-- **No-search state:** featured ribbons (Heroes by Weapon, Athletes by Sport, Recently Added, Coaching Staff, Saved Searches). Horizontal scrolls of `BOBACardCell`.
-- **Search active:** tab bar minimizes, field takes canvas. Tokens (hero/element/treatment/cost/format/set). Optional scopes (Cards/Heroes/Featured).
-- **Grid:** uniform `BOBACardCell`, 3 cols, `.scrollEdgeEffectStyle(.hard, for: .top)`.
-- **Tap:** push to `CardDetailView`.
-- **Toolbar:** scan trailing, profile leading on collapse.
+`NavigationStack` push from single root list (Music Library pattern). No card details/add actions — those belong in Find.
+- Root: 5 categories (Rules / Strategy / Collect / Glossary / Tournament) as `BOBASectionRow`.
+- Article: Rookie / Sub / Playmaker = `searchScopes` scope bar — NOT a third nav level. Read/Watch is also a scope when video exists.
+- `.searchable` spans the corpus; `ContentUnavailableView.search` for zero-results.
+- Toolbar: glossary trailing — inline definition popup.
+- Stable slugs per article+section for AppIntent / deep links (§7).
 
-**Anti-patterns:** filter pills above grid (use tokens). Multiple "browse by" pickers (use scopes).
+### 8.3 Decks — build
 
-### 8.2 Learn — the educator
+Music's mini-player + `fullScreenCover` with hero zoom. **Card browser = canvas; current deck = non-draggable summary pill that zooms into a full-screen editor on tap.** Maps-canvas-with-sheet was abandoned after 12+ iterations of custom-drawer flash (§1.0 native-first).
+- Canvas: `BOBACardGridItem` grid + `.scrollEdgeEffectStyle(.hard, for: .top)`.
+- `DeckSummaryPill` via `.safeAreaInset(edge: .bottom)` — draft name + section breakdown (e.g. `8/8 H · 30/30 P · 6 BP · 10/10 HD`) + format badge. Empty: "Build a deck · Tap to open the editor."
+- Pill → editor: `.fullScreenCover` + `.matchedTransitionSource(id:"deck-draft",in:ns)` + `.navigationTransition(.zoom(...))`.
+- Editor: `NavigationStack(path:)` — deck header + format chip strip + grouped list. Toolbar: Close leading + SAVE/SIGN IN trailing + ⋯ Menu (Manage Decks, Rules, Legality, Clear).
+- Editor secondaries (Manage / Rules / Legality) push as `NavigationLink` within editor's stack — NOT stacked sheets. Sheet structs accept `wrapInNavStack: Bool = true` to work in both modes.
+- Browser filter: `.searchable(text:tokens:suggestedTokens:placement:.navigationBarDrawer(.always))` with `BOBAFilterToken` (weapon / cost / hero).
+- Card tap → detail push + zoom (§8.6). Long-press → adds to draft (canonical add gesture).
+- Browser toolbar: wordmark principal + ⋯ Menu (1/2/3 cols, Scan, walkthrough). NO Save in browser.
+- Grid density: `@AppStorage("bp_decksGridColumns_v1")` default 3; 1/2-across pulls full-size images.
+- **Anti-patterns:** custom/draggable drawer; quick-add toggle; per-tab status banner; sheets stacked on editor (push instead).
 
-**Verb:** understand. No card details / add actions — those belong in Find. Purely educational.
+### 8.4 Collection — own
 
-**Pattern:** `NavigationStack` push from single root list (Music Library pattern).
+Root = **My Cards** (owned cards by designation). Rainbow + My Shows push from ⋯ Menu — NOT a top-level mode picker (the prior 5-row chrome stack was what this overhaul killed).
+- Grid: `BOBACardGridItem`.
+- Designation segmented Picker: Personal / Sale / Trade / Wanted / Grails (`Designation.shortDisplayName`).
+- `.searchable(.navigationBarDrawer(.always))` composes with filter + designation scope.
+- ⋯ Menu: display mode (List / Grid / Wall), grid density (1/2/3 via `@AppStorage("bp_collectionGridColumns_v1")`), lenses (Rainbow push; My Shows streamer-only push).
+- Designation badge corner overlay so multi-designation cards scan across scopes.
+- Tap card → `CollectionCardDetailView` push + zoom (§8.6).
+- Scan → "Add to which designation?" sheet (defaults Personal, remembers last) → routes via §6.5.
+- Share → iOS share sheet w/ deep link + Wall image. Deep link = `bobaplaybook.com/u/{username}/{designation}` (Universal Link). Per-designation public/private in Profile.
+- Profile = Find-only; auth surfaces are inline `BOBASignInPrompt`.
+- Value summary: single line, no decoration; tap → value-history chart.
+- Wall is a display mode for every collector (DECISIONS.md #036); My Shows stays streamer-gated.
+- Public web fallback `bobaplaybook.com/u/ben/grails` renders the same wall in-browser, no sign-in.
 
-**Anatomy:**
-- **Root:** 5 categories (Rules / Strategy / Collect / Glossary / Tournament) as `BOBASectionRow`. Browse moved to Find.
-- **Category → article-list** (short categories push direct to content).
-- **Article view:** Rookie / Sub / Playmaker = `searchScopes` scope bar inside the article. NOT a third nav level. Read/Watch is also a scope (only when video exists).
-- **`.searchable`** spans whole Learn corpus; `ContentUnavailableView.search` for zero-results.
-- **Toolbar:** glossary lookup trailing — inline definition popup.
+### 8.5 Purchase — acquire
 
-**Stable IDs:** every article+section gets a slug (`rules.match-flow`, `tournament.scoring.divisions`) for AppIntent / deep links / future AI targeting (§7).
-
-### 8.3 Decks — the builder
-
-**Verb:** *build*. Card browser is contextual to current deck, separate from Find's exploration.
-
-**Pattern (REVISED 2026-05-04):** Music's mini-player + fullScreenCover with hero zoom. Card browser = canvas; current deck = non-draggable summary pill that zooms into full-screen editor on tap. **The Maps-canvas-with-sheet pattern was abandoned after 12+ iterations of fighting custom-drawer flash** — see §1.0 native first. Drag was the problem; tap → zoom-into-editor is the answer.
-
-**Anatomy:**
-- **Canvas:** full-screen card browser grid using `BOBACardGridItem`. `.scrollEdgeEffectStyle(.hard, for: .top)`.
-- **Summary pill:** non-draggable `DeckSummaryPill` via `.safeAreaInset(edge: .bottom)`. Shows draft name + section breakdown (`8/8 H · 30/30 P · 6 BP · 10/10 HD`) + format badge. Empty: "Build a deck · Tap to open the editor."
-- **Pill → editor:** `.fullScreenCover` + `.matchedTransitionSource(id:"deck-draft",in:ns)` paired with `.navigationTransition(.zoom(...))`. Photos-app hero zoom.
-- **Editor:** `NavigationStack(path: $editorPath)` — deck header (name + stats), format chip strip, grouped list. Toolbar: Close leading + SAVE/SIGN IN trailing + ⋯ Menu (Manage Decks, Rules, Legality, Clear).
-- **Editor secondary surfaces:** Manage Decks / Rules / Legality push as NavigationLinks within the editor's NavigationStack — NOT stacked sheets. Each sheet struct accepts `wrapInNavStack: Bool = true` so it works as sheet OR destination.
-- **Browser filter:** native `.searchable(text:tokens:suggestedTokens:placement:.navigationBarDrawer(.always))` with `BOBAFilterToken` (weapon/cost/hero). Tap bar → suggested tokens.
-- **Card tap:** NavigationLink push to detail + zoom (§8.6). **Long-press:** adds to draft (canonical add gesture).
-- **Browser toolbar:** wordmark principal + ⋯ Menu (1/2/3 columns, Scan, walkthrough). NO Save in the browser — Save lives in the editor.
-- **Grid density:** `@AppStorage("bp_decksGridColumns_v1")` defaults 3. 1/2-across pulls full-size images.
-- **Empty state:** template gallery in editor.
-- **Scan:** lives in browser ⋯ Menu; results land in active draft via scanStore queue.
-
-**Anti-patterns:** custom/draggable drawer (iOS 26 has no native one that keeps tab bar visible — use fullScreenCover-from-pill OR standard `.sheet + .presentationDetents` that hides tab bar). Quick-add toggle. Per-tab status banner. Sheets stacked on editor (push as NavigationDestination instead). At most one sheet at a time.
-
-### 8.4 Collection — the owner
-
-**Verb:** *own*. Owned cards + designations + display modes + sharing. Public-facing dimension is first-class, not afterthought.
-
-**Pattern (REVISED 2026-05-04 — Music Library shape):** Root = **My Cards** (owned cards by designation). Rainbow Progress + My Shows push from toolbar ⋯ Menu, NOT a top-level mode picker (the prior 5-row chrome stack was the anti-pattern this overhaul killed).
-
-**Anatomy:**
-- **Root grid:** owned cards using `BOBACardGridItem` (§11.1).
-- **Designation segmented Picker:** Personal / Sale / Trade / Wanted / Grails via `Designation.shortDisplayName` — fits one row per §3.9.
-- **`.searchable`** with `.navigationBarDrawer(.always)` — composes with filter + designation scope.
-- **Display mode picker** (toolbar ⋯ Menu): List (compact rows + value + edit chip) / Grid (visual scan) / Wall (tile-able share image).
-- **Grid density:** when mode=grid, Menu adds 1/2/3 column picker via `@AppStorage("bp_collectionGridColumns_v1")`. 1/2-across pulls full-size images.
-- **Other lenses** (toolbar ⋯ Menu): Rainbow Progress (push, own chrome — no designation/display/search competing); My Shows (streamer-only push to `ShowsListView`).
-- **Designation badge** on each cell (corner overlay) so multi-designation cards scan across scopes.
-- **Tap card:** NavigationLink push to `CollectionCardDetailView` via parent `navigationPath`; hero zoom per §8.6.
-- **Scan invocation:** toolbar button → brief "Add to which designation?" sheet (defaults Personal, remembers last) → routes via §6.5.
-- **Share invocation:** iOS share sheet with deep link + Wall image of current scope. Deep link = `bobaplaybook.com/u/{username}/{designation}` (Universal Link to iOS, web fallback). Per-designation public/private set in Profile.
-- **Profile** is Find-only. Collection's auth surfaces are inline `BOBASignInPrompt` rows.
-- **Value summary header:** single line, no decoration. Total + designation breakdown; tap → value-history chart.
-
-**Wall + Streamer reconciliation.** Wall is a display mode for every collector (per DECISIONS.md #036). Whatnot "My Shows" stays streamer-gated; Wall rendering generalizes.
-
-**Public web fallback.** `bobaplaybook.com/u/ben/grails` renders the same wall in-browser, no sign-in required for public designations. Same designation scopes + public/private toggle.
-
-### 8.5 Purchase — the acquirer
-
-**Verb:** *acquire*. Upcoming breaks + find-a-store.
-
-**Pattern:** segmented picker (`Picker(.segmented)`) at the top — 2
-options is within the ≤4 segmented limit.
-
-**Anatomy:**
-- **Top:** segmented picker — "Upcoming Breaks" | "Find a Store".
-- **Upcoming Breaks:** vertical list of large card tiles (host, time,
-  viewer count). Tap → deep link to Whatnot.
-- **Find a Store:** MapKit map with annotations + bottom sheet with
-  store list (Apple Maps pattern). `[.height(120), .medium, .large]`
-  detents.
-- **Toolbar:** filters Menu (radius, indie-only toggle).
+- Top: segmented Picker (≤4) — "Upcoming Breaks" | "Find a Store".
+- Breaks: vertical card tiles (host / time / viewer count) → Whatnot deep link.
+- Stores: MapKit + bottom sheet store list (Apple Maps pattern); detents `[.height(120), .medium, .large]`.
+- Toolbar: filters Menu (radius, indie-only).
 
 ---
 
-### 8.6 Card detail surface — the universal card view
+### 8.6 Card detail — the universal card view
 
-Pushed from Find, Decks (browser tap), Collection (cell tap). Three structs (`CardDetailView`, `BrowserCardDetailSheet`, `CollectionCardDetailView`) share artPanel + toolbar verbatim — only body content below differs.
+Three structs (`CardDetailView`, `BrowserCardDetailSheet`, `CollectionCardDetailView`) **share artPanel + toolbar verbatim** — drift is the bug. Canonical blocks live in `BOBAPlaybook/Views/CardDetailView.swift`.
 
-**Pattern:** Music-style hero zoom into NavigationLink-pushed view (NOT sheet). Source uses `.matchedTransitionSource(id:in:)` as OUTERMOST modifier; destination uses `.navigationTransition(.zoom(sourceID:in:))`.
+**Pattern:** Music-style hero zoom into NavigationLink push (NOT sheet). Source = `.matchedTransitionSource(id:in:)` as OUTERMOST modifier; destination = `.navigationTransition(.zoom(sourceID:in:))`. Modifier order: `.scrollEdgeEffectStyle(.soft, for: .top)` BEFORE `.background` (after-background doesn't register on the underlying ScrollView).
 
-**Canonical artPanel + toolbar** live verbatim in `BOBAPlaybook/Views/CardDetailView.swift`. Modifier ORDER: `.scrollEdgeEffectStyle(.soft, for: .top)` BEFORE `.background`. After-background doesn't register on the underlying ScrollView. **All three detail structs share these blocks — drift is the bug.**
+**Wrap-in-NavStack:** each struct takes `wrapInNavStack: Bool = true` — default true for sheet usage; push usage passes false so parent stack provides chrome. Done button conditional on sheet mode.
 
-**Wrap-in-NavStack pattern:** each struct takes `wrapInNavStack: Bool = true`. Default true for sheet usage; push usage passes false so parent NavigationStack provides chrome (avoids nested-stack back-button conflict). Done button conditional on sheet mode.
+**Body order:** stats grid (canonical 6-cell, DECISIONS.md #029) → Cost+DBS (Plays) → pricing panels (§8.7) → per-context body.
 
-**Anatomy (body below artPanel):** Stats grid (canonical 6-cell per DECISIONS.md #029) → Cost+DBS (Plays only) → Pricing panels (§8.7) → Per-context body (Collection: copies/decks/variations; Decks: Add/Remove CTA; Find: Add menu in toolbar).
+**Toolbar by context:** Find = Add menu (Collection/Deck/Show) + Mod-edit + Share · Decks tap = "Add to Deck" CTA in body · Collection tap = Edit Designation + Add menu in body. Canonical verbs: `Add to Collection`, `Add to Deck`, `Share`, `Edit Designation`.
 
-**Toolbar action bar by context:**
+**Anti-patterns:** per-surface artPanel/toolbar variants; sheets for drill-in (push Manage/Rules/Legality instead); prev/next chevrons in bottom toolbar.
 
-| Entry | Trailing items |
-|---|---|
-| Find | Add menu (Collection/Deck/Show) + Mod-edit (mods) + Share |
-| Decks tap | Add to Deck CTA in body |
-| Collection tap | Edit Designation + Add menu in body |
-
-Canonical verbs: `Add to Collection`, `Add to Deck`, `Share`, `Edit Designation`.
-
-**Anti-patterns:** per-surface artPanel variants (one shape). Per-surface toolbar accumulation from forehead-iteration guesses (stick to canonical setup). Sheets for drill-in (Manage/Rules/Legality push instead). Prev/next chevrons in bottom toolbar (removed; they cluttered).
-
-**Hero zoom rules:**
-
-| Where | What |
-|---|---|
-| Source | `.matchedTransitionSource(id:, in:)` as OUTERMOST modifier |
-| Destination | `.navigationTransition(.zoom(sourceID:, in:))` |
-| Namespace | One `@Namespace` per parent, shared source↔destination |
-| Push | NavigationLink or `path.append(_)` + `.navigationDestination(for:)` |
-| ID | `card.id` for Find/Decks, `bobaId: String` for Collection |
-
-**"nil view" warning** = iOS couldn't find matching source ID = fallback transition (parent nav bar inherits, content overlays as extended header). Causes: matchedTransitionSource on INNER view wrapped by Button/overlay/modifier (fix: apply as outermost), or applied INSIDE a function-returning-view (fix: apply at call site as outermost on the function result).
-
----
+**Hero zoom rules:** source applies `.matchedTransitionSource(id, in:)` as outermost modifier; destination applies `.navigationTransition(.zoom(sourceID:, in:))`; one `@Namespace` per parent shared source↔destination; push via NavigationLink or path-append; ID = `card.id` for Find/Decks, `bobaId` for Collection. **"nil view" warning** = iOS couldn't find matching source ID → fallback transition. Causes: matchedTransitionSource on INNER view wrapped by Button/overlay/modifier (apply as outermost), or applied inside a function-returning-view (apply at call site).
 
 ### 8.7 Pricing panels — Buy Now + Sold history
 
-Lives inside `CardDetailView`. Live-fetched per DECISIONS.md #013; COMC asking stays OUT of sold-comp waterfall per #034 (asking inflates 10-25%).
+Lives inside `CardDetailView`. Live-fetched (DECISIONS.md #013). COMC asking stays OUT of sold-comp waterfall (#034) — asking inflates 10-25%.
 
-**Two sections, top to bottom:**
+1. **Buy Now** (asking): eBay actives + COMC asking w/ "COMC asking · Ungraded NM" pill. Soft-fail COMC silently when Worker returns `challenged: true`.
+2. **Sold history** (transacted): Radish recent (preferred TCG comps) + eBay sold. Market est = Radish-first waterfall.
 
-1. **Buy Now** (asking — where to buy now): eBay active listings + COMC asking with *"COMC asking · Ungraded NM"* pill. Soft-fail COMC silently when Worker returns `challenged: true` or `count: 0`.
-2. **Sold history** (transacted — what's it worth): Radish recent (preferred TCG comps) + eBay sold (fallback). Market est = Radish-first waterfall.
+Per-section: horizontal scroll of price tiles (thumb + price + source pill + tap-through). Empty = section-local `ContentUnavailableView` w/ refresh. Loading = 3-tile skeleton.
 
-**Per-section:** horizontal scroll of price tiles (thumb + price + source pill + tap-through). Empty = section-local `ContentUnavailableView` w/ refresh. Loading = 3-tile skeleton, not spinner.
+Market estimate header (single line): *"~$24 · based on 8 recent sales (Radish + eBay)"*. Asking NEVER folded in. Cached `user_cards.estimated_value` for Collection value-summary; grid doesn't re-fetch live.
 
-**Market estimate header** (single line above sections): *"~$24 · based on 8 recent sales (Radish + eBay)"*. Basis exposed for audit; asking NEVER folded in.
+**Anti-patterns:** asking+sold combined (inflation); one source when both available; sources behind disclosure (provenance is the trust mechanism).
 
-**Cached value:** `user_cards.estimated_value` for Collection value-summary; grid doesn't re-fetch live.
+### 8.8 Wall view + Price Overlay — for everyone
 
-**Anti-patterns:** asking+sold combined (inflation). One source when both available. Sources hidden behind disclosure — provenance is the trust mechanism.
+Both lifted from streamer-only gate (DECISIONS.md #036).
 
----
+**Wall view.** Render N cards as a single shareable image (sale lists, trade lists, deck composition, teaching). Invocation: Collection display-mode picker; Decks ⋯ Menu ("Generate deck wall"); Find multi-select ("Wall these N cards"). Full-screen small-multiples grid (`BOBACardCell`, near-black bg) + inline-editable title strip. Toolbar: Save / Share / Copy / aspect picker (9:19.5, 1:1, 16:9, 3:4) / Price Overlay toggle. Default aspect = source-context (Collection→IG square, Deck→16:9). Honors current scope — never re-filter inside Wall.
 
-### 8.8 Wall view + Price Overlay — display & share for everyone
-
-Both lifted from streamer-only gate per DECISIONS.md #036.
-
-#### Wall view
-
-**Purpose:** render N cards as a single shareable image (bragging, sale lists, trade lists, deck composition, teaching).
-
-**Invocation:** Collection display-mode picker (§8.4); Decks ⋯ Menu ("Generate deck wall"); Find multi-select ("Wall these N cards").
-
-**Anatomy:** full-screen small-multiples grid (`BOBACardCell`, near-black bg). Inline-editable title strip. Toolbar: Save / Share / Copy / aspect picker (iPhone wallpaper 9:19.5, IG square 1:1, web 16:9, iPad 3:4) / Price Overlay toggle. Default aspect = source-context (Collection→IG square, Deck→16:9). **Honors current scope** — never re-filter inside Wall.
-
-#### Price Overlay
-
-**Purpose:** price chips on card images for sale/trade communication.
-
-**Invocation:** toggle in Wall view toolbar only. Never during browsing — sharing affordance, not display.
-
-**Chip anatomy:** lower-third inset, source pill (eBay / COMC / Radish / Custom) + price. Default source = lowest-asking; toggle to "My price" (`user_cards.estimated_value` or per-card override). Glass with `.tint()` per §5. Optional condition chip (NM/EX/GD) for Sale/Trade.
-
-**Per-designation defaults:** For Sale = ON / My price · For Trade = ON / market est · Grails/Personal = OFF · Wanted = ON / market est / "WTB" prefix.
+**Price Overlay.** Toggle in Wall view only (sharing affordance, not browsing). Chip: lower-third inset, source pill (eBay / COMC / Radish / Custom) + price. Default source = lowest-asking; toggle to "My price" (`estimated_value` or per-card override). Glass with `.tint()` per §5. Optional condition chip (NM/EX/GD) for Sale/Trade. Per-designation defaults: Sale ON / My price · Trade ON / market est · Grails+Personal OFF · Wanted ON / market est / "WTB" prefix.
 
 ---
 

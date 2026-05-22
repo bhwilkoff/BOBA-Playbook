@@ -1,0 +1,50 @@
+/* BOBA Playbook brand tokens — mirrors core/ui/.../BobaTheme.kt and
+   DESIGN.md §11.2. Loaded by every play-asset template so changes to
+   the brand identity propagate to icon + feature graphic + screenshot
+   chrome in one place. */
+:root {
+  --boba-orange:     #FF4D00;  /* primary CTA, FIRE */
+  --boba-cyan:       #00F5FF;  /* links, highlights, active states */
+  --boba-violet:     #8B00FF;  /* HEX, secondary accents */
+  --boba-near-black: #080810;  /* page background */
+  --boba-surface:    #0D0D1A;  /* card / panel surface */
+  --boba-surface-2:  #16162A;  /* elevated surface */
+  --boba-text:       rgba(255, 255, 255, 0.96);
+  --boba-text-2:     rgba(255, 255, 255, 0.60);
+  --boba-text-mute:  rgba(255, 255, 255, 0.35);
+  --boba-glass:      rgba(255, 255, 255, 0.08);
+}
+
+@font-face {
+  font-family: "Bebas Neue Fallback";
+  src: local("Bebas Neue"), local("Impact"), local("Arial Black");
+  font-weight: 400 900;
+}
+@font-face {
+  font-family: "Chakra Petch Fallback";
+  src: local("Chakra Petch"), local("Roboto Mono"), local("Menlo"), local("monospace");
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--boba-near-black);
+  color:      var(--boba-text);
+  font-family: "Chakra Petch Fallback", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.brand-display {
+  font-family: "Bebas Neue Fallback", Impact, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* XOXO mark — SVG-shaped reusable component. Pass --size + --stroke
+   via inline style. */
+.xoxo-mark {
+  display: inline-block;
+  width: var(--size, 96px);
+  height: var(--size, 96px);
+}

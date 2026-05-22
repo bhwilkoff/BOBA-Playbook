@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
+import com.bobaplaybook.core.ui.components.BOBAIconTooltip
 import com.bobaplaybook.core.ui.components.BOBASectionHeader
 import kotlinx.coroutines.launch
 
@@ -221,11 +222,13 @@ private fun DeckEditorContent(
             )
             // Generate-deck-wall affordance (DESIGN.md §8.8 + web tick 9
             // parity). Reuses WallShareHelper via DeckWallSheet.
-            IconButton(
-                onClick = onGenerateWall,
-                enabled = draft.cards.isNotEmpty(),
-            ) {
-                Icon(Icons.Default.ViewModule, contentDescription = "Generate deck wall")
+            BOBAIconTooltip("Generate deck wall") {
+                IconButton(
+                    onClick = onGenerateWall,
+                    enabled = draft.cards.isNotEmpty(),
+                ) {
+                    Icon(Icons.Default.ViewModule, contentDescription = "Generate deck wall")
+                }
             }
             SaveOrSignInButton(
                 isSignedIn = isSignedIn,
@@ -789,12 +792,14 @@ private fun DeckCardRow(card: Card, onRemove: () -> Unit) {
                 }
             }
         }
-        IconButton(onClick = onRemove) {
-            Icon(
-                Icons.Default.Delete,
-                contentDescription = "Remove from deck",
-                tint = MaterialTheme.colorScheme.error,
-            )
+        BOBAIconTooltip("Remove from deck") {
+            IconButton(onClick = onRemove) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Remove from deck",
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
         }
     }
 }

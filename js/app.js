@@ -818,10 +818,6 @@
       // posts." rendered. Same bug shipped on iOS + Android loaders.
       const posts = Array.isArray(bundle) ? bundle : (bundle?.posts || []);
       const top = posts.slice(0, 5);
-      if (top.length === 0) {
-        list.innerHTML = '<p class="events-empty">No recent posts.</p>';
-        return;
-      }
       // Tick 248 — Last-refreshed stamp (Android tick 244 + iOS tick 247
       // parity). Reuses existing relativeDate() helper. Renders as a
       // slim mono subscript prepended to the list, matching the events
@@ -830,6 +826,15 @@
       const stampHtml = stamp
         ? `<div class="events-last-updated">Last refreshed ${escHtml(relativeDate(stamp))}</div>`
         : '';
+      // Tick 423 — render stamp + empty hint when posts is empty so
+      // users see the feed IS being refreshed even on quiet days.
+      // iOS tick 422 + Android tick 421 parity. Was just rendering
+      // "No recent posts." (no stamp).
+      if (top.length === 0) {
+        list.innerHTML = stampHtml +
+          '<p class="events-empty">No recent posts. Check back as the BoBA team publishes.</p>';
+        return;
+      }
       // Tick 248 — relative-format dates on each row (Android tick 246
       // + iOS tick 247 parity). "today" / "Nd ago" / "Nw ago" reads
       // more naturally than 2026-05-21 verbatim.

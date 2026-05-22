@@ -1637,6 +1637,25 @@ const Collection = (() => {
         await Auth.signOut();
       });
 
+    // Tick 293 — pre-fill the Send Feedback mailto body with browser
+    // + URL context so Ben can triage faster. iOS v2.314 (tick 286) +
+    // Android tick 289 parity. Setting .href at render time means the
+    // anchor's default click behavior carries the body through to the
+    // OS mail handler.
+    const feedbackLink = view.querySelector('#profile-feedback-link');
+    if (feedbackLink) {
+      const subject = encodeURIComponent('BOBA Playbook feedback');
+      const body = encodeURIComponent(
+        `\n\n\n---\n` +
+        `Page: ${location.href}\n` +
+        `Browser: ${navigator.userAgent}`
+      );
+      feedbackLink.setAttribute(
+        'href',
+        `mailto:ben@bobaplaybook.com?subject=${subject}&body=${body}`,
+      );
+    }
+
     // Tick 168 — copy-email fallback for users without a mailto:
     // handler (some desktop browser configs). Closes parity with
     // iOS tick 167 + Android tick 166's "no email app" graceful

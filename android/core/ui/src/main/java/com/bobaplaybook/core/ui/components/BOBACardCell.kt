@@ -84,8 +84,8 @@ fun BOBACardCell(
      * (e.g. `"S+ C"` for Spec+ + Checklist) so users can scan a grid
      * for restricted cards at a glance. Default null = no overlay.
      * Computed via `CardFormatEligibility.restrictedLegalAbbrev(card)`.
-     * Hidden below 100dp cell width to skip dense 3-col grids where
-     * the multi-char abbreviation would crowd the cell.
+     * Same 80dp gate as the print-run badge — both surface on 80dp
+     * "Other versions" tiles + everything bigger.
      */
     formatLegalityHint: String? = null,
 ) {
@@ -123,7 +123,7 @@ fun BOBACardCell(
                             .padding(4.dp),
                     )
                 }
-                if (!formatLegalityHint.isNullOrBlank() && maxWidth >= 100.dp) {
+                if (!formatLegalityHint.isNullOrBlank() && maxWidth >= 80.dp) {
                     FormatLegalityHintBadge(
                         label = formatLegalityHint,
                         modifier = Modifier

@@ -412,6 +412,16 @@ fun CollectionScreen(
                 navHolder.store.set(entries.map { it.card.bobaId })
             }
             if (entries.isEmpty()) {
+                // Spinner while the catalog or user_cards is still
+                // hydrating. Without this, the empty-state copy flashes
+                // briefly on every Collection-tab open before the
+                // Supabase refresh round-trip completes.
+                if (state.isLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        androidx.compose.material3.CircularProgressIndicator()
+                    }
+                    return@Scaffold
+                }
                 if (collectionQuery.isNotBlank()) {
                     BOBAEmptyState(
                         icon = Icons.Default.Inventory2,

@@ -2526,6 +2526,7 @@ private struct TournamentView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Design.Spacing.xl) {
                 UpcomingEventsSection()
+                RecentBoBANewsSection()
                 ProTourIntroSection()
                 HeroDeckFormatsSection()
                 ChecklistFormatSection()
@@ -2551,6 +2552,82 @@ private struct TournamentView: View {
 // PBXFileSystemSynchronizedRootGroup unreliability documented in
 // memory (`feedback_xcode_synchronized_groups`).
 // ════════════════════════════════════════════════════════════════
+
+// Tick 237 — Android tick 236 parity. Daily-refreshed blog feed
+// surfaced inside the Tournament tab so users catch announcements /
+// rules updates / release news without leaving the app. Sourced from
+// BOBAPlaybook/blog-feed.json (mirrored from docs/blog-feed.json by
+// .github/workflows/refresh-blog.yml — daily 05:17 UTC).
+private struct LearnBlogPost: Decodable, Identifiable {
+    let id: String
+    let title: String
+    let date: String
+    let url: String
+    let excerpt: String?
+}
+
+private enum LearnBlogLoader {
+    static func load() -> [LearnBlogPost] {
+        guard
+            let url  = Bundle.main.url(forResource: "blog-feed", withExtension: "json"),
+            let data = try? Data(contentsOf: url)
+        else { return [] }
+        return (try? JSONDecoder().decode([LearnBlogPost].self, from: data)) ?? []
+    }
+}
+
+private struct RecentBoBANewsSection: View {
+    @Environment(\.openURL) private var openURL
+    private let posts: [LearnBlogPost] = Array(LearnBlogLoader.load().prefix(5))
+
+    var body: some View {
+        if posts.isEmpty { EmptyView() } else {
+            VStack(alignment: .leading, spacing: Design.Spacing.sm) {
+                Text("RECENT BOBA NEWS")
+                    .font(Design.Fonts.mono(12, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted).tracking(1.5)
+                VStack(spacing: Design.Spacing.sm) {
+                    ForEach(posts) { post in
+                        Button {
+                            if let u = URL(string: post.url) { openURL(u) }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(post.date)
+                                    .font(Design.Fonts.mono(11, weight: .bold))
+                                    .foregroundStyle(Design.Colors.bobaOrange)
+                                    .tracking(1.2)
+                                Text(post.title)
+                                    .font(Design.Fonts.display(15))
+                                    .foregroundStyle(Design.Colors.textPrimary)
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                if let excerpt = post.excerpt, !excerpt.isEmpty {
+                                    Text(excerpt)
+                                        .font(Design.Fonts.mono(11))
+                                        .foregroundStyle(Design.Colors.textSecondary)
+                                        .multilineTextAlignment(.leading)
+                                        .lineLimit(2)
+                                        .truncationMode(.tail)
+                                }
+                            }
+                            .padding(Design.Spacing.md)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: Design.Radius.md)
+                                    .fill(Design.Colors.surface)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: Design.Radius.md)
+                                            .strokeBorder(Design.Colors.bobaOrange.opacity(0.3), lineWidth: 1)
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+}
 
 private struct LearnEvent: Decodable, Identifiable {
     let id: String

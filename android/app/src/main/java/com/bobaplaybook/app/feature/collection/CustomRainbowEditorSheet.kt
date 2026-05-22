@@ -6,6 +6,7 @@
 package com.bobaplaybook.app.feature.collection
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
@@ -148,8 +149,21 @@ fun CustomRainbowEditorSheet(
             ChipsPicker(options = cardTypeOptions, selected = cardTypes, onToggle = { cardTypes = cardTypes.toggle(it) })
 
             HorizontalDivider()
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = inspiredInkOnly, onCheckedChange = { inspiredInkOnly = it })
+            // Tick 504 — make the whole row toggle the switch, not just
+            // the Switch widget itself. Material 3 convention; without
+            // this users have to thumb-target the 32dp toggle exactly
+            // even though the label takes most of the row width.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = inspiredInkOnly,
+                        role = androidx.compose.ui.semantics.Role.Switch,
+                        onValueChange = { inspiredInkOnly = it },
+                    ),
+            ) {
+                Switch(checked = inspiredInkOnly, onCheckedChange = null)
                 Spacer(modifier = Modifier.padding(end = 12.dp))
                 Text("Inspired Ink only (Hex /5, Glow /10, Fire /25, Ice /50)")
             }

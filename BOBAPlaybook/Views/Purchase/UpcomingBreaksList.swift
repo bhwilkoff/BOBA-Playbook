@@ -11,14 +11,25 @@
 import SwiftUI
 
 struct UpcomingBreaksList: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var shows: [WhatnotShow] = []
     @State private var isLoading = false
     @State private var loadError: String?
 
-    private let gridColumns = [
-        GridItem(.flexible(), spacing: Design.Spacing.sm),
-        GridItem(.flexible(), spacing: Design.Spacing.sm),
-    ]
+    // Tick 512 — iPad regular-width gets 3 cols (DESIGN.md §6.6 "every
+    // view declares its regular-width adaptation"). Compact stays 2 cols
+    // — phones at 390-430pt still want narrow tiles that show 2 shows
+    // above the fold. iPad landscape (~1024pt) gains a third column for
+    // density. Mirrors Android tick 509's adaptive grid via size-class
+    // branching instead of minSize (iOS phone needs fixed-2-col, unlike
+    // Android's adaptive(minSize=320) where ~390dp drops to 1 col).
+    private var gridColumns: [GridItem] {
+        let count = horizontalSizeClass == .regular ? 3 : 2
+        return Array(
+            repeating: GridItem(.flexible(), spacing: Design.Spacing.sm),
+            count: count,
+        )
+    }
 
     var body: some View {
         // The ScrollView lives INSIDE this view so `.refreshable`

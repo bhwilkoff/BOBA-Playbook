@@ -959,6 +959,14 @@ fileprivate let boba_inlineGlossary: [(term: String, def: String)] = [
     ("Rainbow",     "Community collecting goal — owning every treatment variation of a single hero (Base + all foils + autos)."),
     ("Substitute",  "Swap the revealed Hero for one from your hand by paying 2 Hot Dogs during the Substitution Window."),
     ("Substitution","Swap the revealed Hero for one from your hand by paying 2 Hot Dogs during the Substitution Window."),
+    // Tick 242 — Set Ascension + Checklist terms (mirrors web tick 228
+    // + Android tick 229 inline-glossary expansion). These now appear
+    // tappable in TournamentView + CollectView article prose.
+    ("Set Ascension", "BoBA's framework for organizing play across three formats based on when cards released. Older sets don't fade — they ascend into legacy formats. The three tiers are Modern (active era), Hall of Fame (ascended era), and AlphaTrilogy (founders era)."),
+    ("Modern",      "The Active-Era format in BoBA's Set Ascension. Cards from the past 2 years. Primary competitive format; best entry point for new players."),
+    ("Hall of Fame","The Ascended-Era format in BoBA's Set Ascension. Cards released 2+ years ago (as of January 1). Larger card pool with complex interactions; reserved for special, high-skill events."),
+    ("AlphaTrilogy","The Founders-Era format in BoBA's Set Ascension. Exclusively original Alpha-era cards (first year). Celebrated annually with dedicated events. Alpha cards are also playable in Hall of Fame."),
+    ("Checklist",   "BoBA format where deck-building is restricted to a curated list of Plays (a Checklist). Each event publishes its own theme — high-offense, control, chaos, etc. Core mechanics stay identical; only the available card pool changes."),
 ]
 
 /// AttributedString with glossary terms turned into tappable links via

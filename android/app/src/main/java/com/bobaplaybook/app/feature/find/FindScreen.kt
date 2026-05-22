@@ -170,6 +170,12 @@ private fun FindContent(
     onScanClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Tick 344 — re-acquire FindViewModel inside FindContent so the
+    // empty-state secondary CTA can call findActions.requestSurprise()
+    // without threading the bus through 5 levels of composables.
+    // hiltViewModel() returns the same NavBackStackEntry-scoped
+    // instance the outer FindScreen got — no duplicate VM.
+    val viewModel: FindViewModel = hiltViewModel()
     var searchExpanded by rememberSaveable { mutableStateOf(false) }
     var filterSheetOpen by rememberSaveable { mutableStateOf(false) }
     var menuOpen by rememberSaveable { mutableStateOf(false) }
@@ -361,6 +367,17 @@ private fun FindContent(
                         body = body,
                         actionLabel = "Clear filters",
                         onAction = { onEvent(FindEvent.ClearAllFilters) },
+                        // Tick 344 — secondary "Surprise me from all
+                        // cards" CTA (iOS v2.326 + web tick 343 parity).
+                        // Clears filters then requests Surprise via the
+                        // existing FindActions bus; FindScreen's
+                        // LaunchedEffect picks from the freshly-recomputed
+                        // results.
+                        secondaryActionLabel = "🎲 Surprise me from all cards",
+                        onSecondaryAction = {
+                            onEvent(FindEvent.ClearAllFilters)
+                            viewModel.findActions.requestSurprise()
+                        },
                     )
                 }
                 state.isSearching || !showcaseMode -> {

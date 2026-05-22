@@ -615,7 +615,12 @@ private fun GlossaryPage() {
     }
     val needle = query.trim().lowercase()
     val context = LocalContext.current
-    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    // Tick 230 — platform ClipboardManager instead of Compose's
+    // LocalClipboardManager (deprecated 1.5.0-alpha19+). The new
+    // LocalClipboard is suspend-based; the platform API is non-suspend
+    // and matches the pattern already used in ProfileSheet's
+    // Send-Feedback fallback.
+    val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
     // First-run hint banner — was registered in HintsStore.Ids as
     // LEARN_LONG_PRESS_GLOSSARY but had no rendering site until tick
     // 84. Tells users the rows are tap-to-copy (useful for Discord +
@@ -778,12 +783,14 @@ private fun TermRow(
 }
 
 private fun copyTermToClipboard(
-    clipboard: androidx.compose.ui.platform.ClipboardManager,
+    clipboard: android.content.ClipboardManager?,
     context: android.content.Context,
     section: LearnSection.Term,
 ) {
     val payload = "${section.term} — ${section.definition}"
-    clipboard.setText(androidx.compose.ui.text.AnnotatedString(payload))
+    clipboard?.setPrimaryClip(
+        android.content.ClipData.newPlainText("BOBA glossary: ${section.term}", payload)
+    )
     android.widget.Toast
         .makeText(context, "Copied “${section.term}”", android.widget.Toast.LENGTH_SHORT)
         .show()

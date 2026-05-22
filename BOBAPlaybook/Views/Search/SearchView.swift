@@ -224,7 +224,7 @@ struct SearchView: View {
     // Tick 262 — designation-aware quick-add. The bare version routes
     // to Personal (existing behavior); the contextMenu's "Mark as
     // Wanted" passes .wanted to skip the full Add sheet.
-    private func quickAddCard(_ card: Card, designation: Designation) async {
+    private func quickAddCard(_ card: Card, designation: UserCard.Designation) async {
         do {
             let entry = NewUserCard(
                 cardNumber: card.cardNumber,

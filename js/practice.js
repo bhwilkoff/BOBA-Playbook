@@ -1330,6 +1330,23 @@ function initDeckBuilder(allCards) {
     $('db-save-btn')?.click();
   });
 
+  // Tick 323 — `n` (no modifier) clears the draft = "new deck" idiom.
+  // iOS Cmd+N (v2.322) parity. Browser reserves Ctrl/Cmd+N for new
+  // window, so we use unmodified `n` gated on no-input-focus to avoid
+  // collision with typing the deck name. Fires the existing
+  // db-clear-btn click (Snackbar + Undo recovery window already wired).
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'n' && e.key !== 'N') return;
+    if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+    const decksView = document.getElementById('view-decks');
+    if (!decksView || decksView.hidden) return;
+    const tgt = e.target;
+    if (tgt && (tgt.matches?.('input, textarea, [contenteditable="true"]') || tgt.isContentEditable)) return;
+    if (document.querySelector('dialog[open]')) return;
+    e.preventDefault();
+    $('db-clear-btn')?.click();
+  });
+
   $('db-save-btn')?.addEventListener('click', async () => {
     const session = await API.authGetSession();
     if (!session) {

@@ -1500,11 +1500,24 @@ const Collection = (() => {
             </label>
             <div class="profile-public-url hidden" id="profile-public-url">
               <span class="profile-public-url-text" id="profile-public-url-text">https://bobaplaybook.com/u/…</span>
-              <button class="profile-public-url-copy" id="profile-public-url-copy" type="button" aria-label="Copy URL">
+              <button class="profile-public-url-copy" id="profile-public-url-copy" type="button"
+                      aria-label="Copy public collection link" title="Copy public collection link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                      stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+              </button>
+              <button class="profile-public-url-copy" id="profile-public-url-share" type="button"
+                      aria-label="Share public collection link" title="Share public collection link">
+                <!-- Lucide: share-2 — matches the public-collection-share icon -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <circle cx="18" cy="5"  r="3"/>
+                  <circle cx="6"  cy="12" r="3"/>
+                  <circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                 </svg>
               </button>
             </div>
@@ -2065,10 +2078,11 @@ const Collection = (() => {
   /// shown only when the toggle is ON; the copy button writes the
   /// current URL to the clipboard with a 2-second confirmation.
   function wirePublicCollectionToggle(view) {
-    const toggle  = view.querySelector('#profile-public-toggle');
-    const urlBox  = view.querySelector('#profile-public-url');
-    const urlText = view.querySelector('#profile-public-url-text');
-    const copyBtn = view.querySelector('#profile-public-url-copy');
+    const toggle   = view.querySelector('#profile-public-toggle');
+    const urlBox   = view.querySelector('#profile-public-url');
+    const urlText  = view.querySelector('#profile-public-url-text');
+    const copyBtn  = view.querySelector('#profile-public-url-copy');
+    const shareBtn = view.querySelector('#profile-public-url-share');
     if (!toggle || !urlBox || !urlText || !copyBtn) return;
 
     const renderUrl = (username) => {
@@ -2118,6 +2132,28 @@ const Collection = (() => {
         setTimeout(() => { copyBtn.innerHTML = original; }, 2000);
       } catch (_) { /* clipboard unavailable — silent */ }
     });
+
+    // Tick 438 — iOS + Android Profile have Copy + Share on the
+    // public-URL row; web was Copy-only. Route through the global
+    // bobaShareTarget helper (WEB-DESIGN.md §8.2): navigator.share
+    // when available, clipboard fallback with copy confirmation.
+    if (shareBtn) {
+      shareBtn.addEventListener('click', async () => {
+        const url = urlText.textContent || '';
+        if (!url) return;
+        if (typeof window.bobaShareTarget === 'function') {
+          await window.bobaShareTarget({
+            title: 'My BOBA collection',
+            text: 'Check out my BOBA Playbook collection',
+            url,
+          }, shareBtn);
+        } else {
+          // bobaShareTarget should always be present, but fall back
+          // to clipboard if app.js hasn't loaded yet.
+          try { await navigator.clipboard.writeText(url); } catch (_) {}
+        }
+      });
+    }
   }
 
   /// Change Password — triggers the native Supabase reset email so

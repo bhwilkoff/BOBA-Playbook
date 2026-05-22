@@ -566,6 +566,7 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.borderless)
                         .accessibilityLabel("Copy link")
+                        .help("Copy public collection link")
                         ShareLink(item: url) {
                             Image(systemName: "square.and.arrow.up")
                                 .foregroundStyle(Design.Colors.bobaCyan)
@@ -573,6 +574,7 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.borderless)
                         .accessibilityLabel("Share link")
+                        .help("Share public collection link")
                     }
                 } else {
                     Text("Pick a username above to enable your public link.")

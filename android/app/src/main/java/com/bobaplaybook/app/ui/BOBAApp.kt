@@ -529,6 +529,9 @@ private fun TabNavHost(
                     com.bobaplaybook.app.feature.collection.CollectionCardDetailScreen(
                         bobaId = bobaId,
                         onBack = { navController.popBackStack() },
+                        onOtherVersionClick = { variantBobaId ->
+                            navController.navigate(NavRoutes.collectionCardDetail(variantBobaId))
+                        },
                     )
                 }
                 composable(NavRoutes.COLLECTION_RAINBOWS) {

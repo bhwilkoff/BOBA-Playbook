@@ -196,6 +196,7 @@ struct CollectionCardDetailView: View {
                                 .foregroundStyle(Design.Colors.bobaCyan)
                         }
                         .accessibilityLabel("Hero Shot — share a 3D video of this card")
+                        .help("Hero Shot — share a 3D video of this card")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {

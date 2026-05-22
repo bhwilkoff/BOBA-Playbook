@@ -910,7 +910,7 @@ fileprivate func boba_glossaryAware(_ text: String) -> AttributedString {
     var attr = AttributedString(text)
     // Longest-match-wins by sorting descending. Same regex pattern as
     // the Android/Web ports: \b for letter-edged terms; lookaround for
-    // non-letter-edged (we have none yet but future-proof).
+    // non-letter-edged (G&S, F/S, WTB/WTS/WTT, Chillin' / Grillen, etc.).
     let sorted = boba_inlineGlossary.sorted { $0.term.count > $1.term.count }
     for entry in sorted {
         let escaped = NSRegularExpression.escapedPattern(for: entry.term)

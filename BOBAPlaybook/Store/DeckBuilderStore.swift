@@ -1472,12 +1472,9 @@ struct DeckTemplate: Identifiable {
     let bonusPlayIds: [String]
     let hotDogIds: [String]
 
-    // Metadata for the 5 archetypes — IDs loaded from TemplateDeck.json bundle file.
-    // Replaced 2026-04-27 per the bobaleagues handoff §7 design briefs.
-    // The previous 5 (Fire Aggro / Ice Control / Steel Wall / Mixed Toolbox /
-    // Economy-Attrition) were reasoned-from-first-principles archetypes; the
-    // new five are informed by frequency analysis of community top-tier decks
-    // (handoff §8) under the post-2026-04-27 DBS rebalance.
+    // Metadata for the 5 archetypes — IDs loaded from TemplateDeck.json
+    // bundle file. Picks are informed by frequency analysis of community
+    // top-tier decks under the post-2026-04-27 DBS rebalance.
     private static let metadata: [(id: String, name: String, description: String)] = [
         ("lockdown-locker", "Lockdown Locker", "Steel-anchored disruption. Build hot-dog economy early, then close mid-game with high-DBS lockout plays. Teaches when to hold lockouts for late-battle swings."),
         ("frozen-tempo",    "Frozen Tempo",    "Ice synergy + Substitution control + economy denial. Teaches Substitution as a strategic axis, not just a panic button."),

@@ -3714,12 +3714,16 @@ const Collection = (() => {
      designation) and keeps the in-memory _cards cache consistent so
      the profile + collection views stay in sync without a re-fetch.
      Throws on error; caller surfaces a toast. */
-  async function quickAdd(card) {
+  async function quickAdd(card, designation = 'personal') {
+    // Tick 263 — designation-aware quick-add. Find contextMenu shipped
+    // tick 262 (iOS) uses .wanted; web's right-click context menu adds
+    // the same shortcut. Valid values match the Designation enum:
+    // personal · for_sale · for_trade · wanted · grail.
     if (!card) throw new Error('No card');
     const row = {
       card_number: String(card.cardNumber),
       boba_id:     card.bobaId ? String(card.bobaId) : undefined,
-      designation: 'personal',
+      designation: designation,
     };
     const saved = await API.collectionAdd(row);
     _cards.push(saved);

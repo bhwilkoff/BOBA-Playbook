@@ -972,6 +972,47 @@
       e.preventDefault();
       openGlossaryMenu(row);
     });
+    // Tick 263 — right-click on a .card-item surfaces an iOS-style
+    // contextMenu (Add to Personal · Mark as Wanted · View card).
+    // Mirrors iOS tick 262. Mobile users have Quick Add toggle +
+    // long-press; desktop gets right-click for parallel speed.
+    document.addEventListener('contextmenu', e => {
+      const cell = e.target?.closest?.('.card-item');
+      if (!cell) return;
+      const cardId = cell.dataset?.cardId;
+      const card = cardId
+        ? (cardsByBobaId.get(cardId) || cardsByNumber.get(cardId)?.[0])
+        : null;
+      if (!card) return;
+      e.preventDefault();
+      const signedIn = !!(window.Auth?.getSession?.()?.user);
+      if (typeof window.bobaShowPopoverMenu !== 'function') return;
+      const items = [];
+      if (signedIn) {
+        items.push({
+          label: 'Add to Personal',
+          onSelect: () => {
+            window.Collection?.quickAdd?.(card, 'personal').catch(() => {});
+          },
+        });
+        items.push({
+          label: 'Mark as Wanted',
+          onSelect: () => {
+            window.Collection?.quickAdd?.(card, 'wanted').catch(() => {});
+          },
+        });
+      } else {
+        items.push({
+          label: 'Sign in to add',
+          onSelect: () => { showView('profile'); },
+        });
+      }
+      items.push({
+        label: 'View card',
+        onSelect: () => { window.openCardModal?.(card); },
+      });
+      window.bobaShowPopoverMenu({ anchor: cell, items });
+    });
     // Touch long-press — 500ms timer, cleared on move/up so a scroll
     // doesn't accidentally trigger the menu.
     let _glossaryLongPressTimer = null;

@@ -673,22 +673,50 @@ private fun BadgeRow(card: Card) {
         // Tick 189 — Discord backlog #7: print-run / SSP / "/N" badge
         // for serialized + super-short-print cards. Null for the typical
         // Base Set / Battlefoil card.
+        // Tick 379 — wrap in TooltipBox so tapping the chip explains
+        // what /5 / /10 / /25 / /50 / SSP / Serial each mean. Casual
+        // users don't auto-know the BoBA Inspired Ink convention; the
+        // tooltip carries the DECISIONS.md #028 spec inline. Matches
+        // the FormatLegalityChip pattern above.
         card.printRunLabel?.let { label ->
             val accent = if (label == "SSP")
                 com.bobaplaybook.core.ui.theme.BobaBrand.Orange
             else com.bobaplaybook.core.ui.theme.BobaBrand.Cyan
-            androidx.compose.material3.Surface(
-                shape = MaterialTheme.shapes.small,
-                color = accent.copy(alpha = 0.18f),
-                border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.45f)),
+            val tooltipState = androidx.compose.material3.rememberTooltipState()
+            val tooltipScope = androidx.compose.runtime.rememberCoroutineScope()
+            val explanation = when (label) {
+                "SSP"    -> "Superfoil — Super-Short-Print, BoBA's rarest non-numbered treatment."
+                "/5"     -> "Inspired Ink Hex — limited run of 5 copies (BoBA's rarest serialized treatment)."
+                "/10"    -> "Inspired Ink Glow — limited run of 10 copies."
+                "/25"    -> "Inspired Ink Fire — limited run of 25 copies."
+                "/50"    -> "Inspired Ink Ice — limited run of 50 copies."
+                "Serial" -> "Inspired Ink — serialized run; print number not publicly disclosed."
+                else     -> "$label print run."
+            }
+            androidx.compose.material3.TooltipBox(
+                positionProvider = androidx.compose.material3.TooltipDefaults
+                    .rememberTooltipPositionProvider(
+                        androidx.compose.material3.TooltipAnchorPosition.Above
+                    ),
+                tooltip = { PlainTooltip { Text(explanation) } },
+                state = tooltipState,
             ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = accent,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                )
+                androidx.compose.material3.Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = accent.copy(alpha = 0.18f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.45f)),
+                    modifier = Modifier.clickable {
+                        tooltipScope.launch { tooltipState.show() }
+                    },
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = accent,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
             }
         }
     }

@@ -505,7 +505,7 @@ object LearnCorpus {
         LearnSection.Bullets(
             heading = "Treatments — themed foils",
             items = listOf(
-                "Blizzard, Alpha, Headlines, Power Glove",
+                "80's Rad, Blizzard, Alpha, Headlines, Power Glove",
                 "Grandma's Linoleum, Great Grandma's Linoleum",
                 "Chillin', Grillin', Icon, Mixtape, Miami Ice",
                 "Fire Tracks, Colosseum, Logofoil, Slime",

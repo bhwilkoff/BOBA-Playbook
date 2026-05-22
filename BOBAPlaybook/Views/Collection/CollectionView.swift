@@ -60,8 +60,6 @@ struct CollectionView: View {
         let total: Int
         let thumb: Card?
     }
-    @State private var showingShareSheet   = false
-    @State private var shareItems: [Any]   = []
     /// Per user feedback: collectors care most about per-card value
     /// information — the dense LIST renderer surfaces value/paid/qty
     /// inline; GRID hides it behind individual card detail. Default
@@ -210,9 +208,6 @@ struct CollectionView: View {
                 cards: showcaseCards,
                 onDismiss: { showingShowcase = false }
             )
-        }
-        .sheet(isPresented: $showingShareSheet) {
-            ActivityShareSheet(items: shareItems)
         }
         .sheet(isPresented: $showingFilters) {
             // Bind the @AppStorage-backed raw string through a custom

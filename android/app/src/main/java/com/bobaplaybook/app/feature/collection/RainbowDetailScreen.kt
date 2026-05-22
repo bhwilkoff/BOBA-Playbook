@@ -159,7 +159,7 @@ fun RainbowDetailScreen(
                             }
                             context.startActivity(android.content.Intent.createChooser(intent, "Share rainbow"))
                         }) {
-                            Icon(androidx.compose.material.icons.Icons.Default.Share,
+                            Icon(Icons.Default.Share,
                                  contentDescription = "Share rainbow progress")
                         }
                     }

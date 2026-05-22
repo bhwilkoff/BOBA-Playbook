@@ -806,7 +806,7 @@ private fun FormatRestrictionsBlock(card: Card) {
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.Bolt,
+                            imageVector = Icons.Default.Bolt,
                             contentDescription = null,
                             tint = amber,
                             modifier = Modifier.size(16.dp),

@@ -306,6 +306,7 @@ struct ShowDetailView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(bigHit ? "Remove big-hit emphasis" : "Mark as big hit")
+            .help(bigHit ? "Remove big-hit emphasis" : "Mark as big hit")
 
             CardImageView(card: card, size: .thumb)
                 .frame(width: 40, height: 56)

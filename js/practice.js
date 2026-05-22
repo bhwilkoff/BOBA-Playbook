@@ -1313,6 +1313,23 @@ function initDeckBuilder(allCards) {
     if (allCards) dbRender(allCards);
   });
 
+  // Tick 308 — Cmd/Ctrl+S triggers Save Deck when on the Decks view.
+  // Universal save idiom; iOS v2.319 (tick 307) parity. Gated on
+  // (a) Decks view active, (b) no input field has focus (otherwise
+  // browser handles Cmd+S = "save page"), (c) no <dialog> open.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 's' && e.key !== 'S') return;
+    if (!(e.metaKey || e.ctrlKey)) return;
+    if (e.shiftKey || e.altKey) return;
+    const decksView = document.getElementById('view-decks');
+    if (!decksView || decksView.hidden) return;
+    const tgt = e.target;
+    if (tgt && (tgt.matches?.('input, textarea, [contenteditable="true"]') || tgt.isContentEditable)) return;
+    if (document.querySelector('dialog[open]')) return;
+    e.preventDefault();
+    $('db-save-btn')?.click();
+  });
+
   $('db-save-btn')?.addEventListener('click', async () => {
     const session = await API.authGetSession();
     if (!session) {

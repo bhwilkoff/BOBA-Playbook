@@ -65,3 +65,9 @@ credentials.json
 MONETIZATION.md
 RADISH_PARTNERSHIP_CALL.md
 pipeline/eval/
+
+# Python bytecode (pipeline scripts) — was leaking
+# scripts/__pycache__/*.pyc into commits before tick 220
+__pycache__/
+*.pyc
+*.pyo

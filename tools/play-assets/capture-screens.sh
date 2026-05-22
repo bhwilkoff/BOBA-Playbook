@@ -10,10 +10,11 @@
 #
 # Output: tools/play-assets/out/screenshot-N-<name>.png
 #
-# This script captures REAL app frames. The HTML mockups under
-# templates/screenshot-*.html are kept around as fallback for when
-# you want hand-designed marketing screenshots; the emulator path
-# is the canonical Play Store screenshot source.
+# This script captures REAL app frames — the canonical Play Store
+# screenshot source. HTML/CSS mockup screenshots are explicitly out
+# of scope (per feedback_no_mockup_screenshots); the templates were
+# deleted at tick 205. Boot the Pixel 9 Pro AVD from Android Studio's
+# Device Manager before running (CLI cold-boot is unreliable).
 
 set -euo pipefail
 

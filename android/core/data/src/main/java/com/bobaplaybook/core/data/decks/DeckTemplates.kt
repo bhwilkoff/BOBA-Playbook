@@ -57,7 +57,7 @@ class DeckTemplateLoader @Inject constructor() {
                 return emptyList()
             }
             val parsed = runCatching {
-                Json { ignoreUnknownKeys = true }.decodeFromString<Map<String, TemplateJson>>(raw)
+                JSON.decodeFromString<Map<String, TemplateJson>>(raw)
             }.getOrDefault(emptyMap())
             val list = METADATA.mapNotNull { meta ->
                 val t = parsed[meta.id] ?: return@mapNotNull null
@@ -85,6 +85,9 @@ class DeckTemplateLoader @Inject constructor() {
     )
 
     companion object {
+        // Hoisted — building Json per-call wastes allocation.
+        private val JSON = Json { ignoreUnknownKeys = true }
+
         // Verbatim port of iOS DeckBuilderStore.swift line 1441-1447.
         private val METADATA = listOf(
             Meta("lockdown-locker", "Lockdown Locker", "Steel-anchored disruption. Build hot-dog economy early, then close mid-game with high-DBS lockout plays. Teaches when to hold lockouts for late-battle swings."),

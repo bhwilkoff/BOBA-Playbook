@@ -315,7 +315,7 @@ fun RainbowsScreen(
                                 customVm.create(captured.name, captured.criteria) { ok ->
                                     if (!ok) {
                                         scope.launch {
-                                            appSnackbar?.showSnackbar("Couldn't restore — try again.")
+                                            appSnackbar.showSnackbar("Couldn't restore — try again.")
                                         }
                                     }
                                 }

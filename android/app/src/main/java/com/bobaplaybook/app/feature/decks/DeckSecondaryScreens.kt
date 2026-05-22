@@ -250,7 +250,7 @@ fun DeckManageScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                             if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
                                 vm.restoreDeletedDeck(captured) { newId ->
                                     scope.launch {
-                                        appSnackbar?.showSnackbar(
+                                        appSnackbar.showSnackbar(
                                             if (newId != null) "Restored \"${captured.name}\""
                                             else "Couldn't restore — check connectivity."
                                         )

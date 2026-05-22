@@ -124,7 +124,7 @@
          hamburger which opens/closes the overlay sidebar; this one
          shrinks the desktop sidebar to icon-only width. -->
     <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-toggle"
-            aria-label="Collapse navigation" aria-expanded="true">
+            aria-label="Collapse navigation" aria-expanded="true" title="Collapse / expand sidebar">
       <span></span><span></span><span></span>
     </button>
     <div class="sidebar-header">
@@ -250,9 +250,12 @@
                column counts (the 1/2/3 picker that lived here
                capped desktop too low). -->
           <div class="grid-cols-picker" role="group" aria-label="Card size">
-            <button type="button" class="grid-cols-btn" data-density="s" aria-label="Small cards">S</button>
-            <button type="button" class="grid-cols-btn" data-density="m" aria-label="Medium cards">M</button>
-            <button type="button" class="grid-cols-btn" data-density="l" aria-label="Large cards">L</button>
+            <!-- Tick 393 — title= for desktop pointer-hover (S/M/L
+                 are 1-char labels; aria-label only fires for screen
+                 readers). Find toolbar tooltip parity tick 388. -->
+            <button type="button" class="grid-cols-btn" data-density="s" aria-label="Small cards" title="Small cards">S</button>
+            <button type="button" class="grid-cols-btn" data-density="m" aria-label="Medium cards" title="Medium cards">M</button>
+            <button type="button" class="grid-cols-btn" data-density="l" aria-label="Large cards" title="Large cards">L</button>
           </div>
           <!-- Surprise Me — picks a random card from currently-filtered
                results with a 30% bias toward Inspired Ink / Superfoil /
@@ -319,7 +322,7 @@
               </svg>
               Wall
             </button>
-            <button type="button" class="multiselect-clear" id="multiselect-clear" aria-label="Clear selection">
+            <button type="button" class="multiselect-clear" id="multiselect-clear" aria-label="Clear selection" title="Clear selection">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                    stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>

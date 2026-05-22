@@ -57,6 +57,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -104,7 +105,7 @@ fun CollectionScreen(
 ) {
     val viewModel: CollectionViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
 
     var designation by rememberSaveable { mutableStateOf(Designation.PERSONAL) }
     var menuOpen by remember { mutableStateOf(false) }
@@ -204,7 +205,7 @@ fun CollectionScreen(
                                     collectionPrefs.setDisplayMode(DisplayMode.WALL.name)
                                 },
                             )
-                            androidx.compose.material3.HorizontalDivider()
+                            HorizontalDivider()
                             // Grid density picker (GRID mode only) — iOS
                             // @AppStorage("bp_collectionGridColumns_v1") parity.
                             // Rendered inline in the same overflow menu since
@@ -238,7 +239,7 @@ fun CollectionScreen(
                                         },
                                     )
                                 }
-                                androidx.compose.material3.HorizontalDivider()
+                                HorizontalDivider()
                             }
                             // Sort sub-menu — peer-collection iOS parity (P1 #17).
                             // Material 3 doesn't have a built-in nested DropdownMenu;
@@ -270,7 +271,7 @@ fun CollectionScreen(
                                 leadingIcon = { Icon(Icons.Default.LiveTv, contentDescription = null) },
                                 onClick = { menuOpen = false; onShowsClick() },
                             )
-                            androidx.compose.material3.HorizontalDivider()
+                            HorizontalDivider()
                             // Share moved into the overflow menu — was a
                             // standalone toolbar action; per Ben's pref
                             // the toolbar is cleaner with just Filters +
@@ -381,7 +382,7 @@ fun CollectionScreen(
             // The user's "visible list" is the filtered + sorted entries
             // for the current designation; bobaId is the navigation key.
             val navHolder: com.bobaplaybook.app.feature.carddetail.CardNavigationHolderViewModel = hiltViewModel()
-            androidx.compose.runtime.LaunchedEffect(entries) {
+            LaunchedEffect(entries) {
                 navHolder.store.set(entries.map { it.card.bobaId })
             }
             if (entries.isEmpty()) {
@@ -717,7 +718,7 @@ private fun CollectionWall(
 
     val graphicsLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
     val context = LocalContext.current
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
     // Price overlay — DESIGN.md §8.8 per-designation defaults. Sale +
     // Trade + Wanted default ON; Personal + Grails default OFF.
     val defaultOverlay = when (designationLabel.lowercase()) {

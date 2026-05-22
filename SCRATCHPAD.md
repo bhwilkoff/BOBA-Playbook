@@ -29,15 +29,7 @@
 
 ### What's queued for next session (Ben action)
 
-**Android beta upload — the critical path** (see `reference_android_beta_upload_state` memory):
-1. Manual-upload `app-release.aab` (32 MB at `android/app/build/outputs/bundle/release/app-release.aab`) → Play Console → Internal Testing → Create new release.
-2. Walk through the Play Console required forms using `android/distribution/play-console-listing.md`.
-3. Upload icon + feature graphic + 5 screenshots from `tools/play-assets/out/`.
-4. Re-capture screenshots 2-5 by booting the Pixel 9 Pro AVD from Android Studio's Device Manager + running `bash tools/play-assets/capture-screens.sh`.
-5. Add internal-testing emails, share opt-in URL.
-6. Promote to Open Testing track when ready.
-
-**Known blocker, deferred:** Play Console API access UI does not surface in the sidebar for this org account even after Publisher API enablement. Documented Google issue. Manual upload is the workaround; CI tag-driven path waits. See `reference_play_console_api_access_missing`.
+See `WAKE_UP.md` "Things you need to do" for the canonical Ben-action list. Critical path: manual Play Console upload of `app-release.aab` per `reference_android_beta_upload_state` memory + `android/distribution/play-console-listing.md`. Blocker: Play Console API access UI missing for this org account (`reference_play_console_api_access_missing`).
 
 ### Autonomous loop pickup hints
 
@@ -117,30 +109,10 @@ Autonomous /loop ran from ~03:00 → ~09:30 MT closing Android iOS-parity gaps. 
 - **Walkthrough anchor verification on iPad** — needs simulator validation that anchors registered in NavigationSplitView sidebar/detail columns resolve correctly through the outer `walkthroughOverlay`. SwiftUI preferences flow up the view tree, so should work, but verify in simulator.
 - **iPad drag-and-drop** — drag cards between deck slots, between Find→Decks/Collection. Significant work; nice-to-have.
 - **Scan view landscape polish** — fixed `kGuideW=300, kGuideH=420` works in iPad landscape but feels small relative to canvas. Could scale guide for regular width.
-- **Native-first Decks rebuild** (DESIGN.md §1.0, §8.3): Music-pattern summary pill + fullScreenCover editor with hero zoom; secondary surfaces (Manage Decks / Rules / Legality) push as NavigationDestinations
-- **Card detail standardized** across Find / Decks / Collection (canonical artPanel + toolbar; hero zoom transitions per DESIGN.md §8.6)
-- **Profile redesign** (DECISIONS.md #037-#039): username field with banned-words gate, generalized role-request (mod OR streamer), Discord identity auto-persist, sign-in method pill, public collection toggle, Terms of Service page (live at https://bobaplaybook.com/terms/)
-- **Public collections** (web): get_public_collection RPC + 404.html `/u/{slug}` redirect + `view-public-collection` SPA route
-- **Web parity batches 1+2**: username inline edit, sign-in method pill, Terms link, generalized role request, Delete Account, offline indicator, per-tab grid density, Weapon/Treatment terminology audited (already in parity)
-- **Walkthroughs** (DESIGN.md §6.10): all 7 walkthroughs validated as visually correct after 8+ iteration round on the Learn anchor (root cause: `anchorPreference` was overwriting parent-side; fix was `transformAnchorPreference` in the helper). Diagnostic instrumentation removed; pattern documented in memory.
-- **WEB-DESIGN.md** ratified to binding (978 lines). All 21 TODO sections converted to binding rules in DESIGN.md style; "Out of scope" decisions explicit (walkthroughs, Cmd-K, web push, build step). Roadmap of P0/P1/P2 web refactors implied by the new rules listed in §15.
 
 ## Active / Next-Up
 
-- ~~**M4 Purchase view**~~ — SHIPPED. Whatnot upcoming-breaks live at `boba-ebay-proxy.benwilkoff.workers.dev/whatnot/upcoming` (lives inside the existing eBay worker, not a standalone — that's why the older "boba-whatnot-shows" handoff folder doesn't exist). Wired on iOS via `WhatnotShowsService` and on web via `js/purchase.js`. Picker + Find a Store on iOS shipped earlier.
-- ~~**Account deletion Worker endpoint**~~ — SHIPPED 2026-05-05 (`workers/account-delete/`). DECISIONS.md #039 updated.
-- ~~**Profile picture upload**~~ — SHIPPED 2026-05-05 (`workers/avatar-upload/` + `set_avatar_url`/`get_public_profile` RPCs). Discord-default + R2-on-upload pattern; rendered on iOS Profile, web Profile, and the public-collection page. DECISIONS.md #040.
-- **Admin panel public-link visibility** (2026-05-05) — `get_admin_user_stats` RPC now returns `username`, `public_collection_enabled`, `avatar_url`, `discord_avatar_url`. iOS + web admin panels render an avatar thumb, @username with PUBLIC pill, and a copyable `bobaplaybook.com/u/{handle}` URL row when sharing is on. Reuses the avatar resolver from DECISIONS.md #040.
-- ~~**Web "feels native" pass**~~ — SHIPPED 2026-05-05. WEB-DESIGN.md §15 P0 + P1 closed (P2 deferred).
-  - View Transitions on every `showView()` (cross-fade) + card-grid → modal hero-zoom morph.
-  - `prefers-reduced-transparency` + `prefers-reduced-motion` parity overrides.
-  - All three modal overlays migrated from `<div>` to native `<dialog>` (card-detail, auth, add-collection): focus trap, ESC, top layer.
-  - Web Share API helper with copy-link fallback (window.bobaShareTarget).
-  - Native Popover-API menus replacing the blocking `prompt()` designation/deck pickers (window.bobaShowPopoverMenu).
-  - `.card-item` uses container queries — same cell renders correctly at S/M/L density without media-query forks. Inherited by the public-collection grid.
-  - CSS Nesting pattern established (incremental) on the new popover-menu CSS.
-- **Match-alerts pipeline** (Wanted/Grail notifications) — UI toggle ships, APNs server-side dispatcher is multi-week of new infra. See DECISIONS.md #039. **Note 2026-05-05**: TRADE-DESIGN.md (binding) was ratified to constrain HOW the match notifications hand off to a trading flow. Match-alerts pipeline is now Phase 7 of the TRADE-DESIGN.md §14 roadmap; don't ship before Phase 0 (LLC + insurance + ToS) is done.
-- **TRADE-DESIGN.md** ratified 2026-05-05 (v2 rewrite for $0-ongoing-cost constraint). Architecture: **pure introduction** — BOBA detects matches, surfaces the other user's Discord handle, steps out. No in-app chat, no thread storage, no insurance, no retained counsel. Apple §1.2 controls satisfied via email-based reporting + bilateral block + bounded-shape listings + published contact (no per-message mod queue). Subscription monetization (Apple IAP) gates push notifications + power-user features. ~3 weeks of v1 dev (vs the original 10-week estimate). Risks Ben is explicitly accepting documented in §3.
+- **Match-alerts pipeline** (Wanted/Grail notifications) — UI toggle ships, APNs server-side dispatcher is multi-week of new infra. See DECISIONS.md #039. Match-alerts pipeline is now Phase 7 of the TRADE-DESIGN.md §14 roadmap; don't ship before Phase 0 (LLC + insurance + ToS) is done.
 
 ## Open Questions / Blockers
 

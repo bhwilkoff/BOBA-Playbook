@@ -42,14 +42,26 @@ all automation against Radish is prohibited.
 import json
 from pathlib import Path
 
+import argparse
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CARDS_JSON = REPO_ROOT / "assets" / "data" / "cards.json"
-OUTPUT = REPO_ROOT / "assets" / "data" / "radish_backfill_queue.json"
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--source", default="RADISH",
+                    help="Catalog imageSource value to filter on (RADISH, inherited, etc.)")
+    ap.add_argument("--output", default=None,
+                    help="Output path (defaults to assets/data/{source}_backfill_queue.json)")
+    args = ap.parse_args()
+
+    output_path = (Path(args.output).resolve() if args.output
+                   else REPO_ROOT / "assets" / "data" / f"{args.source.lower()}_backfill_queue.json")
+
     cards = json.loads(CARDS_JSON.read_text())
-    radish_sourced = [
+    filtered = [
         {
             "bobaId": c.get("bobaId"),
             "cardNumber": c.get("cardNumber"),
@@ -62,12 +74,12 @@ def main() -> None:
             "imageFile": c.get("imageFile"),
         }
         for c in cards
-        if c.get("imageSource") == "RADISH"
+        if c.get("imageSource") == args.source
     ]
-    radish_sourced.sort(key=lambda r: r["bobaId"] or "")
+    filtered.sort(key=lambda r: r["bobaId"] or "")
 
-    OUTPUT.write_text(json.dumps(radish_sourced, indent=2))
-    print(f"Wrote {len(radish_sourced):,} cards to {OUTPUT.relative_to(REPO_ROOT)}")
+    output_path.write_text(json.dumps(filtered, indent=2))
+    print(f"Wrote {len(filtered):,} cards (imageSource={args.source}) to {output_path.relative_to(REPO_ROOT)}")
     print("Next: feed into pipeline/scripts/stage_a_scrape_src.py and the eBay image sourcer.")
 
 

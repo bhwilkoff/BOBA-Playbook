@@ -23,6 +23,49 @@ private val CARD_NUMBER_REGEX =
 private val BARE_DIGIT_REGEX = Regex("""\b(\d{1,4})\b""")
 
 /**
+ * Looser card-number regex used as a shiny-card fallback. Accepts
+ * letters in the suffix slot where digits would normally be — OCR on
+ * glow / holographic / foil prints frequently mis-reads digits as
+ * their letter look-alikes ("779" → "T79" / "77Q"). Captured suffixes
+ * run through [normalizeDigitConfusions] then must validate against
+ * the strict [CARD_NUMBER_REGEX] before entering the candidate pool.
+ */
+private val LOOSE_CARD_NUMBER_REGEX =
+    Regex("""#?([A-Z]{1,6}-[A-Z0-9]{1,4}(?:[/-][A-Z0-9]{1,4})?)""")
+
+/**
+ * Map common OCR letter→digit confusions back to their probable digit.
+ * Only applied to the SUFFIX part of a cardNumber (after the last dash)
+ * because the prefix is genuinely letters. Conservative substitutions
+ * (no `G→6` etc.) — G/L/M/R don't have a strong digit twin under glare.
+ */
+internal fun normalizeDigitConfusions(suffix: String): String =
+    suffix.map { c ->
+        when (c) {
+            'O', 'Q', 'D' -> '0'
+            'I', 'L', '|' -> '1'
+            'S' -> '5'
+            'B' -> '8'
+            'T' -> '7'
+            'Z' -> '2'
+            else -> c
+        }
+    }.joinToString("")
+
+/**
+ * Apply [normalizeDigitConfusions] to the digit-suffix portion of a
+ * full cardNumber (e.g. "GGL-T79" → "GGL-779"). Bails out unchanged
+ * if there's no dash (shouldn't happen for our catalog shape).
+ */
+internal fun normalizeCardNumber(cn: String): String {
+    val lastDash = cn.lastIndexOf('-')
+    if (lastDash < 0) return cn
+    val prefix = cn.substring(0, lastDash + 1)
+    val suffix = cn.substring(lastDash + 1)
+    return prefix + normalizeDigitConfusions(suffix)
+}
+
+/**
  * Canonical hero-name form. Uppercase + strip whitespace + punctuation
  * commonly dropped or normalised by OCR (dots, hyphens, apostrophes).
  *
@@ -178,7 +221,27 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         val joinedHits = (CARD_NUMBER_REGEX.findAll(joinedSpace) + CARD_NUMBER_REGEX.findAll(joinedNone))
             .map { it.groupValues[1].uppercase() }
             .toSet()
-        val cardNumberHits = perTokenHits + joinedHits
+
+        // Third pass: shiny-card digit-confusion recovery (iter 44).
+        // Glow / holographic / foil prints often cause OCR to mis-read
+        // digits as their letter look-alikes — "GGL-779" arrives as
+        // "GGL-T79" / "GGL-77Q" / "GGL-77G". Strict regex requires
+        // \d in the suffix slot so any letter kills the match. Run a
+        // looser regex that accepts [A-Z0-9] in the suffix slot, then
+        // normalise the suffix back to digits and revalidate against
+        // the strict regex. False-positive guarded by:
+        //   • Letters-dash-digits prefix shape still required
+        //   • Result must validate as a real catalog cardNumber (the
+        //     downstream `idx.byCardNumberUpper` lookup misses if not)
+        val looseHits = (
+            LOOSE_CARD_NUMBER_REGEX.findAll(joinedSpace) +
+                LOOSE_CARD_NUMBER_REGEX.findAll(joinedNone) +
+                tokens.asSequence().flatMap { LOOSE_CARD_NUMBER_REGEX.findAll(it.text.uppercase()) }
+            )
+            .map { normalizeCardNumber(it.groupValues[1].uppercase()) }
+            .filter { CARD_NUMBER_REGEX.matches(it) }
+            .toSet()
+        val cardNumberHits = perTokenHits + joinedHits + looseHits
 
         val bareDigitHits = tokens
             .asSequence()

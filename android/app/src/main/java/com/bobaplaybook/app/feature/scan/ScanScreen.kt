@@ -42,6 +42,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -176,6 +178,21 @@ fun ScanScreen(
     // the next one without leaving the screen. iOS ScanView.modePill
     // toggles between these two same modes.
     var scanMode by rememberSaveable { mutableStateOf(ScanMode.SINGLE) }
+    // iOS-parity scan-save toast: top-anchored Surface card with a
+    // checkmark / exclamation icon + message, replacing the bottom
+    // Snackbar used previously. iOS uses an overlay(.top) chip (see
+    // ScanView.swift quickSaveToast block ~line 105). The bottom
+    // Snackbar competed visually with the mode pills + detection
+    // chip area; the top toast frames the "Saved" confirmation as
+    // a heads-up event without crowding the controls.
+    var scanToastMessage by remember { mutableStateOf<String?>(null) }
+    var scanToastIsError by remember { mutableStateOf(false) }
+    LaunchedEffect(scanToastMessage) {
+        if (scanToastMessage != null) {
+            kotlinx.coroutines.delay(2000)
+            scanToastMessage = null
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         if (hasPermission) {
@@ -194,6 +211,10 @@ fun ScanScreen(
                         "ScanScreen",
                         "onAutoQueue done (sizeAfter=${queueHolder.queue.entries.value.size})",
                     )
+                },
+                onSaveToast = { msg, isError ->
+                    scanToastMessage = msg
+                    scanToastIsError = isError
                 },
                 onChipTap = { bobaId ->
                     // User tapped the detection chip → open the
@@ -331,6 +352,56 @@ fun ScanScreen(
                     selected = scanMode == ScanMode.MULTI,
                     onClick = { scanMode = ScanMode.MULTI },
                 )
+            }
+
+            // iOS-parity scan-save toast — top-anchored, surface-card
+            // style, green check / red exclamation icon. Renders ABOVE
+            // the gradient + top bar so it's clearly visible. Auto-
+            // dismisses via LaunchedEffect at the top of the function.
+            androidx.compose.animation.AnimatedVisibility(
+                visible = scanToastMessage != null,
+                enter = androidx.compose.animation.slideInVertically(initialOffsetY = { -it }) +
+                    androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { -it }) +
+                    androidx.compose.animation.fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = 60.dp, start = 16.dp, end = 16.dp),
+            ) {
+                val msg = scanToastMessage ?: return@AnimatedVisibility
+                androidx.compose.material3.Surface(
+                    color = androidx.compose.ui.graphics.Color(0xFF1A1A24),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f),
+                    ),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Icon(
+                            imageVector = if (scanToastIsError)
+                                Icons.Default.ErrorOutline
+                            else
+                                Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = if (scanToastIsError)
+                                androidx.compose.ui.graphics.Color(0xFFC0392B)
+                            else
+                                androidx.compose.ui.graphics.Color(0xFF4CAF50),
+                            modifier = Modifier.width(20.dp).height(20.dp),
+                        )
+                        Text(
+                            text = msg,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = androidx.compose.ui.graphics.Color.White,
+                        )
+                    }
+                }
             }
         } else if (permanentlyDenied) {
             BOBAEmptyState(
@@ -537,6 +608,7 @@ private fun ScanViewfinder(
     scanMode: ScanMode,
     onAutoQueue: (bobaId: String) -> Unit,
     onChipTap: (bobaId: String) -> Unit,
+    onSaveToast: (message: String, isError: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -743,7 +815,6 @@ private fun ScanViewfinder(
             // signed-out users get a feedback snackbar instead of
             // a silently-rejected RLS write.
             val scope = androidx.compose.runtime.rememberCoroutineScope()
-            val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
             ScanDetectionChip(
                 card = card,
                 onTap = { onChipTap(card.bobaId) },
@@ -753,8 +824,9 @@ private fun ScanViewfinder(
                             .first()
                         val userId = (auth as? com.bobaplaybook.app.auth.AuthState.SignedIn)?.userId
                         if (userId == null) {
-                            appSnackbar?.showSnackbar(
-                                "Sign in to Quick-Save ${card.displayName}"
+                            onSaveToast(
+                                "Sign in to save ${card.displayName}",
+                                true,
                             )
                             return@launch
                         }
@@ -776,11 +848,11 @@ private fun ScanViewfinder(
                             )
                         }
                         val message = if (qty > 1) {
-                            "Added $qty × ${card.displayName} to Personal"
+                            "Saved $qty to Personal"
                         } else {
-                            "Added ${card.displayName} to Personal"
+                            "Saved ${card.displayName} to Personal"
                         }
-                        appSnackbar?.showSnackbar(message)
+                        onSaveToast(message, false)
                         // iOS-parity auto-dismiss — after a successful
                         // Quick-Save the chip clears + the stabilizer
                         // resets so the user can immediately point the

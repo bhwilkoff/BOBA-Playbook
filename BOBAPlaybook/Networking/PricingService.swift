@@ -236,8 +236,23 @@ actor PricingService {
         }
         let response = try JSONDecoder().decode(PricingResponse.self, from: data)
 
+        // Market Est. fallback — when the Worker returns no sold
+        // section, consult the dedicated `boba-price-estimator` Worker
+        // for a comparability-derived estimate. Treated as a sold
+        // bucket flagged estimated=true so the UI can render
+        // "MARKET EST." copy instead of "RECENT SALES" (PricingSection
+        // checks the `estimated` field). Synchronous off the eBay
+        // response so callers see one consistent result.
+        var soldSection = response.sold
+        if soldSection == nil {
+            if let bobaId = bobaIdHint(cardNumber: cardNumber, hero: hero, treatment: treatment),
+               let estimated = await fetchEstimatorBucket(bobaId: bobaId) {
+                soldSection = estimated
+            }
+        }
+
         // Accept the response if any section has data
-        let hasDualData = response.sold != nil || response.active != nil
+        let hasDualData = soldSection != nil || response.active != nil
         guard response.count > 0 || hasDualData else {
             emptyAt[key] = Date()
             throw PricingError.noData
@@ -251,11 +266,63 @@ actor PricingService {
             priceType: response.priceType,
             items:     response.items,
             fetchedAt: Date(),
-            sold:      response.sold,
+            sold:      soldSection,
             active:    response.active
         )
         cache[key] = result
         return result
+    }
+
+    // MARK: - Estimator Worker fallback
+
+    /// Reconstruct the v2 bobaId from the call params. Mirrors
+    /// `scripts/boba_id.py` (CLAUDE.md "One ID per Card"): hero ||
+    /// name, treatment, variation. PricingService callers pass
+    /// `treatment` already; `variation` is not in the pricing-call
+    /// signature, so this helper handles the common "no-variation"
+    /// case which covers ~99% of the catalog. Cards with a non-empty
+    /// `variation` will miss the KV lookup and gracefully fall back
+    /// to no Market Est. — same UX as today's behavior.
+    private func bobaIdHint(cardNumber: String, hero: String, treatment: String?) -> String? {
+        guard !cardNumber.isEmpty else { return nil }
+        let id = hero.isEmpty ? "" : hero
+        return "\(cardNumber)-\(id)-\(treatment ?? "")-"
+    }
+
+    private struct EstimatorResponse: Decodable {
+        let low:               Double
+        let mid:               Double
+        let high:              Double
+        let comparableCount:   Int?
+        let comparableSources: [String]?
+    }
+
+    private func fetchEstimatorBucket(bobaId: String) async -> PricingBucket? {
+        let base = await MainActor.run { WorkerConfig.priceEstimatorURL }
+        guard !base.isEmpty,
+              var comps = URLComponents(string: "\(base)/estimate") else { return nil }
+        comps.queryItems = [URLQueryItem(name: "bobaId", value: bobaId)]
+        guard let url = comps.url else { return nil }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 4
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { return nil }
+            let est = try JSONDecoder().decode(EstimatorResponse.self, from: data)
+            return PricingBucket(
+                low:             Decimal(est.low),
+                average:         Decimal(est.mid),
+                high:            Decimal(est.high),
+                count:           0,
+                items:           [],
+                countProbable:   nil,
+                stale:           nil,
+                estimated:       true,
+                estimatedSource: "comparability"
+            )
+        } catch {
+            return nil
+        }
     }
 
     // MARK: - Private response model

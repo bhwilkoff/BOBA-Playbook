@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bobaplaybook.core.data.catalog.CardRepository
 import com.bobaplaybook.core.domain.model.Card
+import com.bobaplaybook.core.network.MarketEstimate
 import com.bobaplaybook.core.network.PricingListing
 import com.bobaplaybook.core.network.PricingService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,6 +34,13 @@ data class CardDetailUiState(
     val isLoadingPricing: Boolean = false,
     val ebayActive: ImmutableList<PricingListing> = persistentListOf(),
     val ebaySold: ImmutableList<PricingListing> = persistentListOf(),
+    /**
+     * Comparability-derived Market Est. surfaced when ebaySold is empty.
+     * Populated by `boba-price-estimator` Worker; null when the cron
+     * hasn't computed an entry for this card yet (graceful "no data"
+     * fallback in the UI). See workers/price-estimator/README.md.
+     */
+    val marketEstimate: MarketEstimate? = null,
     val otherVersions: ImmutableList<Card> = persistentListOf(),
     /**
      * Worker's pre-computed canonical market average — preferred over
@@ -146,6 +154,7 @@ class CardDetailViewModel @Inject constructor(
                 isLoadingPricing = pricing.isLoading,
                 ebayActive = pricing.ebayActive[bobaId].orEmpty().toPersistentList(),
                 ebaySold = pricing.ebaySold[bobaId].orEmpty().toPersistentList(),
+                marketEstimate = pricing.marketEstimate[bobaId],
                 otherVersions = otherVersions.toPersistentList(),
                 workerMarketAverageUsd = pricing.marketAverage[bobaId],
                 workerMarketSource = pricing.marketSource[bobaId],
@@ -169,10 +178,18 @@ class CardDetailViewModel @Inject constructor(
                 set = card.set,
                 element = card.element.takeIf { !card.isSealed },
             )
+            // Market Est. fallback — query boba-price-estimator when
+            // the eBay-proxy returned no sold history. Surfaces as a
+            // "MARKET EST." section in the UI. Best-effort; null
+            // result is fine (graceful "no data" path).
+            val estimate = if (bundle.ebaySold.isEmpty()) {
+                pricingService.fetchMarketEstimate(bobaId)
+            } else null
             pricingState.value = pricingState.value.copy(
                 isLoading = false,
                 ebayActive = pricingState.value.ebayActive + (bobaId to bundle.ebayActive),
                 ebaySold = pricingState.value.ebaySold + (bobaId to bundle.ebaySold),
+                marketEstimate = pricingState.value.marketEstimate + (bobaId to estimate),
                 marketAverage = pricingState.value.marketAverage + (bobaId to bundle.marketAverageUsd),
                 marketSource = pricingState.value.marketSource + (bobaId to bundle.marketSource),
                 marketCount = pricingState.value.marketCount + (bobaId to bundle.marketCount),
@@ -198,6 +215,8 @@ private data class PricingState(
     val startedForBobaId: Set<String> = emptySet(),
     val ebayActive: Map<String, List<PricingListing>> = emptyMap(),
     val ebaySold: Map<String, List<PricingListing>> = emptyMap(),
+    /** Comparability-derived Market Est. — per-bobaId; null when none. */
+    val marketEstimate: Map<String, MarketEstimate?> = emptyMap(),
     /** Worker pre-computed average — per-bobaId. */
     val marketAverage: Map<String, Double?> = emptyMap(),
     /** "sold" / "listed" — per-bobaId. */

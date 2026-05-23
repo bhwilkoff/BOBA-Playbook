@@ -45,6 +45,32 @@ class PricingService @Inject constructor(
         coerceInputValues = true
     }
 
+    /**
+     * Market Est. fallback fetch — `boba-price-estimator` Worker.
+     * Returns null when no estimate exists for the given bobaId (404 —
+     * cron hasn't computed yet, or zero comps available). Used by
+     * `CardDetailViewModel` when the eBay-proxy returned no sold
+     * section, so the UI can render a "MARKET EST." surface instead
+     * of "No recent sales found."
+     */
+    suspend fun fetchMarketEstimate(bobaId: String): MarketEstimate? = withContext(Dispatchers.IO) {
+        if (bobaId.isBlank()) return@withContext null
+        runCatching {
+            val response: EstimatorResponse = httpClient.get("${WorkerConfig.PRICE_ESTIMATOR}/estimate") {
+                parameter("bobaId", bobaId)
+            }.body()
+            if (response.mid <= 0) null else MarketEstimate(
+                low  = response.low,
+                mid  = response.mid,
+                high = response.high,
+                comparableCount = response.comparableCount ?: 0,
+                comparableSources = response.comparableSources ?: emptyList(),
+            )
+        }.onFailure { e ->
+            Log.d(TAG, "fetchMarketEstimate($bobaId) — no estimate yet: ${e.message}")
+        }.getOrNull()
+    }
+
     /** Single fetch — populates both active and sold buckets. */
     suspend fun fetchAll(
         cardNumber: String,
@@ -118,6 +144,19 @@ data class PricingListing(
 
 enum class PricingSource { EBAY }
 
+/**
+ * Comparability-derived Market Est. range from `boba-price-estimator`.
+ * Surfaces as a "MARKET EST." section in the card-detail pricing
+ * panels when no recent eBay sold comps exist for the card.
+ */
+data class MarketEstimate(
+    val low: Double,
+    val mid: Double,
+    val high: Double,
+    val comparableCount: Int = 0,
+    val comparableSources: List<String> = emptyList(),
+)
+
 // ─────────────────────────────────────────────────────────────────
 // Worker response wire shapes
 // ─────────────────────────────────────────────────────────────────
@@ -141,6 +180,15 @@ private data class PricingSection(
     val high: Double? = null,
     val count: Int = 0,
     val items: List<PricingItem> = emptyList(),
+)
+
+@Serializable
+private data class EstimatorResponse(
+    val low: Double = 0.0,
+    val mid: Double = 0.0,
+    val high: Double = 0.0,
+    @SerialName("comparableCount") val comparableCount: Int? = null,
+    @SerialName("comparableSources") val comparableSources: List<String>? = null,
 )
 
 @Serializable

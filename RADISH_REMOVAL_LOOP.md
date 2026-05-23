@@ -91,7 +91,34 @@ External pricing-source research returned a clear verdict: **no third-party sour
 | 16 | 14+15+16 | Wire iOS / web / Android into estimator. Each platform: detect "no sold section" from eBay-proxy response → fall back to `/estimate?bobaId=X` → synthesize estimated-bucket / MarketEstimate domain object → render as "MARKET EST." in the pricing section | iOS PricingService.swift + Config.swift; js/app.js; Android PricingService.kt + WorkerConfig.kt + CardDetailViewModel.kt + CardDetailScreen.kt | All three platforms verified: iOS diagnostics clean (pre-existing SourceKit only), web `node -e ...` parses, Android `./gradlew compileDebugKotlin BUILD SUCCESSFUL` (18s) | af0d928 |
 | 17 | 17 | Build `scripts/backfill_radish_to_bv.py` — downloads BV image, resizes to /full + /thumbs webp, uploads R2 (overwrites at same key — app URLs stay), flips imageSource RADISH→BV across all 8 catalog JSONs. Run 50-card test → 45 succeeded (85% BV hit rate, matches walk-away §8.1 prediction) | scripts/backfill_radish_to_bv.py + 8 catalog files | First 45 cards re-sourced; 5 had no BV row | c1406f0 |
 | 18 | 17 | Add ThreadPoolExecutor concurrency to backfill script (--workers N). Validate with 200-card batch — 5.5 cards/sec, 167/200 = 83.5% hit rate | scripts/backfill_radish_to_bv.py | 212 cards total flipped so far. Remaining 8,136 running in background at ~5 cards/sec (~25 min ETA) | b2bc0a1 |
-| 19 | 17 | Full backfill run launched in background: `python3 scripts/backfill_radish_to_bv.py --start 250 --workers 15` | (background process bdt2co8n7) | Pending completion notification | (pending) |
+| 19 | 17 | Full backfill run via background process — 8,136 cards processed, 4,378 matched in BV CSV (54%), all 4,378 successfully re-sourced. Combined with the test batches: **4,590 of 8,386 RADISH-attributed cards now BV** (54.7%). Remaining 3,796 have no BV CSV row — future eBay-image-sourcer + community submissions territory | catalog bundles + R2 (overwrites at same key) | 17 cards/sec sustained at 15 workers, 8.3 min wall-clock. Zero download / upload errors | 19db29e |
+| 20 | 16 | iOS estimator wire-in polish — propagate `variation:` through `PricingService.pricing(...)` and the 5 call sites so `bobaIdHint()` reconstructs the v2 4-field bobaId correctly for the ~1% of cards with non-empty `variation`. (Without it those cards would miss the KV lookup) | iOS PricingService + Components + Store + 3 view files | All 5 PricingService callers updated. Android compile re-verified BUILD SUCCESSFUL | 19db29e |
+| 21 | 18 | Phase 18 — generate the inherited-card backfill queue (29 cards) via the new generic `--source inherited` flag on identify_radish_sourced_cards.py, then run backfill with `--from-source inherited` → 29/29 BV-matched, all 29 re-sourced. Zero `imageSource: "inherited"` cards remaining | scripts/identify + scripts/backfill (generalized) | 100% BV hit rate (HD- Hot Dog cards are well-covered in BV CSV). 7-sec run | 1650047 |
+| 22 | 12 | Final audit — `assets/data/cards.json` imageSource distribution: BV 10,496 (was 5,877 = +78%) · RADISH 3,796 (was 8,386 = -54.7%) · null 1,802 · disk_claim 1,471 · GCS 344 · R2_SEALED 36 · EBAY 16 · Retail 9 · mod_upload 4 · inherited 0 (was 29 = -100%). Android `compileDebugKotlin BUILD SUCCESSFUL` | — | DONE | (this commit) |
+
+## End-state summary
+
+**Compliance with the email — 100%:**
+- Zero Radish lookups, scraping, probing, alias tables, URL mappings, or buildId scrapes in any active code path.
+- Watch tab no longer specially elevates RadishDijital. (Their content still surfaces organically via the BoBA search query — ordinary public-content discovery, allowed.)
+- Zero "Powered by Radish" / "official pricing partner" language anywhere.
+- Per-card "View on Radish" external-browser link preserved on iOS / web / Android (the one allowance the email gave).
+
+**Replacement functionality — operating:**
+- `boba-ebay-proxy` Worker deployed live (v18, eBay-only sold + active, no Radish dependencies).
+- `boba-price-estimator` Worker deployed live (Market Est. via comparability function over our own catalog; incremental cron at 03:00 UTC populates KV ~600 cards/night).
+- All three clients (iOS / web / Android) fall back to the estimator when eBay returns no sold section.
+- Tuned `normaliseSoldEnriched` scorer post-Radish (hero +25%, treatment +200%, threshold -14%).
+
+**Image-source backfill — 54.7% complete:**
+- 4,590 of 8,386 RADISH-attributed cards re-sourced to BV.
+- All 29 `imageSource: "inherited"` cards re-sourced to BV.
+- Remaining 3,796 RADISH cards: BV CSV doesn't cover them. Future tiers: eBay-image-sourcer (not yet built) + community submissions (TRADE-DESIGN.md Phase 5+ territory). R2 bytes for those 3,796 stay on disk in the meantime (they're our property per DECISIONS.md #008).
+
+**Known follow-ups (out of this loop's scope):**
+- Ben applies to eBay for extended Marketplace Insights access (asymmetric upside).
+- Future eBay-image-sourcer pipeline tier for the remaining 3,796 RADISH-attributed cards.
+- Catalog bundle drift (display-cards / cards-slim / Android cards.json have divergent imageSource for the 29 inherited cards — pre-existing, not Radish-related, harmless since R2 bytes are unified).
 
 ## Design decisions logged this run
 

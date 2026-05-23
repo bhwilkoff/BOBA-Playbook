@@ -130,6 +130,37 @@ class ScanCardMatcherTest {
     }
 
     @Test
+    fun `cardNumber split across tokens still commits`() {
+        // ML Kit's text recognizer routinely returns the prefix and
+        // the suffix of a card number as separate TextLine tokens —
+        // "BHBF" on one line, "37" on the next. The per-token regex
+        // missed every such read. With the joined-text fallback the
+        // matcher reconstructs "BHBF-37" from the joined stream.
+        val tokens = listOf(
+            token("JacHammer", topLeft = true),
+            token("BHBF", topLeft = false),
+            token("37", topLeft = false),
+        )
+        val result = matcher.match(tokens)
+        assertNotNull("Expected cross-token cardNumber to assemble", result)
+        assertEquals("BHBF-37", result?.card?.cardNumber)
+    }
+
+    @Test
+    fun `cardNumber split with hyphen suffix still commits`() {
+        // Variant where ML Kit keeps the hyphen on the prefix token:
+        // "BHBF-" and "37".
+        val tokens = listOf(
+            token("JacHammer", topLeft = true),
+            token("BHBF-", topLeft = false),
+            token("37", topLeft = false),
+        )
+        val result = matcher.match(tokens)
+        assertNotNull("Expected joined-space regex to catch BHBF- 37", result)
+        assertEquals("BHBF-37", result?.card?.cardNumber)
+    }
+
+    @Test
     fun `treatment text earns the 0_2 bonus`() {
         val battlefoilMav = card("RBF-1", hero = "Maverick", element = "FIRE", power = 135, treatment = "Red Battlefoil")
         val custom = ScanCardMatcher { listOf(maverickBase, battlefoilMav) }

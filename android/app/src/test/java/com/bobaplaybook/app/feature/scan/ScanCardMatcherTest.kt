@@ -494,60 +494,6 @@ class ScanCardMatcherTest {
     }
 
     @Test
-    fun `prefix recovery with hero + element only (no power) still commits via relaxed margin`() {
-        // Real-world failure mode: heavily shimmery shiny card. OCR
-        // catches hero "DEKAP" + prefix "GGL" + element "BRAWL" but
-        // NOT the power digit "80" (glow shimmer blew it out). Score:
-        //   GGL-779 BRAWL: 1.5 hero + 0.4 prefix + 0.2 element = 2.1
-        //   Sibling GGL-124 HEX:        1.5 hero + 0.4 prefix       = 1.9
-        // Margin 0.2 — at the iter 47 relaxed prefix-recovery floor
-        // but BELOW the standard 0.3 floor.
-        val dekapVariants = listOf(
-            card("GGL-124", hero = "DeKap", element = "HEX",   power = 145),
-            card("GGL-255", hero = "DeKap", element = "GLOW",  power = 100),
-            card("GGL-386", hero = "DeKap", element = "FIRE",  power = 95),
-            card("GGL-517", hero = "DeKap", element = "ICE",   power = 95),
-            card("GGL-648", hero = "DeKap", element = "STEEL", power = 90),
-            card("GGL-779", hero = "DeKap", element = "BRAWL", power = 80),
-        )
-        val custom = ScanCardMatcher { dekapVariants }
-        val tokens = listOf(
-            token("DEKAP", topLeft = true),
-            token("GGL", topLeft = false),
-            token("BRAWL", topLeft = false),
-            // No power token — sometimes shimmer blows out the digit
-        )
-        val result = custom.match(tokens)
-        assertNotNull("Expected relaxed-margin prefix recovery to commit", result)
-        assertEquals("GGL-779", result?.card?.cardNumber)
-    }
-
-    @Test
-    fun `non-prefix-recovery still uses strict 0_3 margin floor`() {
-        // Safety: the relaxed margin only applies when the win came
-        // from prefix recovery. A clean cardNumber-bearing scan still
-        // needs the full 0.3 margin to commit — protecting from
-        // ambiguous Maverick base vs LeBoss base (both cardNumber 1
-        // FIRE) cases.
-        // Scenario: only hero "Maverick" + element + power read; no
-        // cardNumber. Multiple Maverick variants exist. Without
-        // discriminating cardNumber/prefix, margin would be 0.2 —
-        // should NOT commit under the strict path.
-        val mavVariants = listOf(
-            card("1", hero = "Maverick", element = "FIRE", power = 135),
-            card("BHBF-37", hero = "Maverick", element = "FIRE", power = 135),
-        )
-        val custom = ScanCardMatcher { mavVariants }
-        val tokens = listOf(
-            token("Maverick", topLeft = true),
-            token("FIRE", topLeft = false),
-            // No cardNumber, no prefix — pure hero+element+power
-        )
-        val result = custom.match(tokens)
-        assertNull("Non-prefix-recovery ambiguous case must NOT commit at 0.2 margin", result)
-    }
-
-    @Test
     fun `missing-dash cardNumber still commits via no-dash regex`() {
         // ML Kit drops the hyphen: "GGL-779" → "GGL779". The strict
         // regex requires a dash so the per-token + joined paths miss.

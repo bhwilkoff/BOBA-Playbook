@@ -530,6 +530,23 @@ private fun ScanViewfinder(
     val controller = remember {
         LifecycleCameraController(context).apply {
             cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+            // CameraX defaults to ~640×480 for ImageAnalysis to keep
+            // per-frame CPU low. ML Kit Text Recognition needs more
+            // pixels to read printed card numbers cleanly — 720p
+            // doubles the linear resolution for ~4x the OCR detail
+            // without putting the matcher under sustained pressure
+            // (analyzer still runs at 15-30 fps on modern devices).
+            // Tuned in iter 13.
+            setImageAnalysisResolutionSelector(
+                androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                    .setResolutionStrategy(
+                        androidx.camera.core.resolutionselector.ResolutionStrategy(
+                            android.util.Size(1280, 720),
+                            androidx.camera.core.resolutionselector.ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+                        )
+                    )
+                    .build()
+            )
         }
     }
     // PreviewView dimensions for top-left-quadrant detection. The

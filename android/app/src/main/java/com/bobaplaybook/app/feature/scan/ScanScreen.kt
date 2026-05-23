@@ -259,7 +259,14 @@ fun ScanScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
+                        // Asymmetric padding: extra 12dp on the right
+                        // so the queue badge's offset has breathing
+                        // room. On Pixel 8a (small bezels, 5.85" 1080×
+                        // 2400) the prior symmetric 4dp clipped the
+                        // badge's top-right corner. 16dp trailing
+                        // keeps the badge inside the safe area on
+                        // every phone we'd realistically ship to.
+                        .padding(start = 4.dp, end = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = onBack) {
@@ -303,7 +310,14 @@ fun ScanScreen(
                                     shape = androidx.compose.foundation.shape.CircleShape,
                                     color = androidx.compose.ui.graphics.Color(0xFFFF4D00),
                                     modifier = Modifier
-                                        .offset(x = 8.dp, y = (-8).dp)
+                                        // Smaller offset so the badge
+                                        // mostly overlaps the icon
+                                        // corner rather than spilling
+                                        // past the IconButton bounds.
+                                        // Combined with the Row's 16dp
+                                        // trailing padding (above), no
+                                        // device clips the badge.
+                                        .offset(x = 4.dp, y = (-4).dp)
                                         .defaultMinSize(minWidth = 18.dp, minHeight = 18.dp),
                                 ) {
                                     Text(
@@ -917,22 +931,38 @@ private fun ScanViewfinder(
                 // input stays in lockstep with what the user sees. Pure
                 // functions + JVM-tested in ScanGuideMathTest.
                 val guide = scanGuideRect(previewW, previewH)
-                val tokens = if (guide != null) {
-                    val filtered = allTokens.filter { it.intersectsScanGuide(guide) }
-                    val dropped = allTokens.size - filtered.size
-                    if (dropped > 0) {
-                        android.util.Log.i(
-                            "ScanViewfinder",
-                            "ROI filter: kept ${filtered.size}/${allTokens.size} tokens (dropped $dropped outside guide rect)",
-                        )
-                    }
-                    filtered
+                val filteredTokens = if (guide != null) {
+                    allTokens.filter { it.intersectsScanGuide(guide) }
                 } else {
                     allTokens
                 }
-                if (tokens.isEmpty()) return@MlKitAnalyzer
 
-                val perFrame = matcher.match(tokens)
+                // Two-pass match for shiny / sparkly cards (iter 43):
+                // glow / holographic prints often force the user to
+                // tilt the card to dodge specular highlights, which
+                // pushes the cardNumber strip outside the guide rect.
+                // The ROI-filtered set then misses the cardNumber
+                // entirely and the matcher returns null. Fall back to
+                // the unfiltered set whenever the filtered match
+                // fails. The hero veto (DECISIONS.md #035 strict-
+                // substring guard) is what protects the unfiltered
+                // path from background-text noise — a stray cardNumber
+                // on a sign won't beat a real DEKAP top-left.
+                val tokens = filteredTokens.takeIf { it.isNotEmpty() } ?: allTokens
+                if (tokens.isEmpty()) return@MlKitAnalyzer
+                val firstPass = matcher.match(tokens)
+                val perFrame = if (firstPass == null && tokens !== allTokens) {
+                    val secondPass = matcher.match(allTokens)
+                    if (secondPass != null) {
+                        android.util.Log.i(
+                            "ScanViewfinder",
+                            "Shiny-card recovery: ROI-filtered ${tokens.size} tokens → null; full ${allTokens.size} → ${secondPass.card.displayName} score=${"%.2f".format(secondPass.score)}",
+                        )
+                    }
+                    secondPass
+                } else {
+                    firstPass
+                }
                 // Push every frame (including misses) through the
                 // stabilizer so the de-dupe gate sees the gaps.
                 val stable = stabilizer.push(perFrame)

@@ -105,6 +105,34 @@ internal fun normalizeCardNumber(cn: String): String {
 }
 
 /**
+ * Iter 54: digit-to-letter normalisation for cardNumber PREFIXES.
+ * Real-world data on DEKAP GGL-779 (logcat 11:49:55) shows OCR
+ * mis-reads `G` as digit `6` — token comes through as "G6L-779".
+ * Strict regex requires `[A-Z]{1,6}` for the prefix slot, so `G6L`
+ * (mixed letter/digit) never matches.
+ *
+ * Inverse of [normalizeDigitConfusions]: map common digit visual-
+ * twins back to letters. Applied ONLY in prefix context where digits
+ * shouldn't legitimately appear (BoBA prefixes are pure letters).
+ * Conservative — only the highest-confidence twins:
+ *   0 → O, 1 → I, 5 → S, 6 → G, 8 → B, 2 → Z
+ * Excludes 7→T and 9→? because those don't appear in observed
+ * prefix confusions yet; can extend later if real-world data shows.
+ */
+internal fun normalizePrefixDigits(s: String): String =
+    s.map { c ->
+        when (c) {
+            '0' -> 'O'
+            '1' -> 'I'
+            '5' -> 'S'
+            '6' -> 'G'
+            '8' -> 'B'
+            '2' -> 'Z'
+            else -> c
+        }
+    }.joinToString("")
+
+/**
  * Canonical hero-name form. Uppercase + strip whitespace + punctuation
  * commonly dropped or normalised by OCR (dots, hyphens, apostrophes).
  *
@@ -294,7 +322,23 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
             )
             .map { "${it.groupValues[1]}-${it.groupValues[2]}" }
             .toSet()
-        val cardNumberHits = perTokenHits + joinedHits + looseHits + noDashHits
+        // cardNumberHits assembled below AFTER reconstructedCardNumberHits
+        // (which depends on cardPrefixHits + bareDigitHits) is computed.
+
+        // bareDigitHits computed here (hoisted earlier than original
+        // position) so reconstructedCardNumberHits can use it for the
+        // prefix+digit reconstruction below.
+        val strictBareDigitHitsEarly = tokens
+            .asSequence()
+            .flatMap { tk -> BARE_DIGIT_REGEX.findAll(tk.text).map { it.groupValues[1] } }
+            .toSet()
+        val looseBareDigitHitsEarly = tokens.asSequence()
+            .flatMap { tk -> LOOSE_BARE_DIGIT_REGEX.findAll(tk.text.uppercase()).map { it.groupValues[1] } }
+            .filter { tok -> tok.any { c -> c in "OQDILSTBZ|" } }
+            .map { normalizeDigitConfusions(it) }
+            .filter { tok -> tok.length in 1..4 && tok.all { it.isDigit() } }
+            .toSet()
+        val bareDigitHitsForReconstruction = strictBareDigitHitsEarly + looseBareDigitHitsEarly
 
         // Fifth pass: prefix-only recovery (iter 45). Shiny prints
         // sometimes give OCR the cardNumber PREFIX but not the digit
@@ -303,41 +347,51 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         // prefix index. Only known catalog prefixes pass — random
         // letter sequences ("RED", "BIG") that don't map to a real
         // prefix get silently dropped.
-        val cardPrefixHits = tokens.asSequence()
-            .flatMap { PREFIX_TOKEN_REGEX.findAll(it.text.uppercase()) }
-            .map { it.groupValues[1] }
+        //
+        // Iter 54: accept mixed letter/digit tokens (2-6 chars) too,
+        // then try [normalizePrefixDigits] (6→G, 0→O, 1→I, 5→S, 8→B,
+        // 2→Z) before the catalog lookup. Real-world OCR returns
+        // "G6L" for "GGL" — without normalisation the prefix is
+        // never detected → matcher can't disambiguate among 14
+        // DeKap+power-80 -779 variants → no commit. Falsepositives
+        // bounded by `idx.byCardNumberPrefix.containsKey` — only
+        // REAL catalog prefixes register.
+        val looseCardPrefixCandidates = (
+            tokens.asSequence()
+                .flatMap { Regex("""\b([A-Z0-9]{2,6})\b""").findAll(it.text.uppercase()) }
+                .map { it.groupValues[1] } +
+                // ALSO try cardNumber-shaped tokens' prefix portion
+                // for cases like "G6L-779" (LOOSE_CARD_NUMBER_REGEX
+                // already misses these because G6L has a digit).
+                tokens.asSequence().flatMap { tk ->
+                    Regex("""\b([A-Z0-9]{2,6})-""").findAll(tk.text.uppercase())
+                        .map { it.groupValues[1] }
+                }
+            ).toSet()
+        val cardPrefixHits = looseCardPrefixCandidates
+            .flatMap { tok ->
+                listOf(tok, normalizePrefixDigits(tok))
+            }
             .filter { idx.byCardNumberPrefix.containsKey(it) }
             .toSet()
 
-        val strictBareDigitHits = tokens
-            .asSequence()
-            .flatMap { tk -> BARE_DIGIT_REGEX.findAll(tk.text).map { it.groupValues[1] } }
-            .toSet()
-        // Loose bare-digit recovery for shiny prints (extends iter 44).
-        // OCR may garble "779" as "T79" / "S79" / "77Q" as a STANDALONE
-        // token. The strict regex needs pure digits; the loose regex
-        // accepts mixed letter/digit tokens, then normalises common
-        // letter→digit confusions (T→7, S→5, B→8, etc.) before lookup.
-        // Filters guard against pure-letter tokens ("BOX", "DEKAP")
-        // becoming false-positive digit hits:
-        //   • require ≥1 digit OR letter in confusion set after normalize
-        //   • require result to be all digits after normalize
-        //   • length 2-4 (matches real cardNumber suffix lengths)
-        val looseBareDigitHits = tokens.asSequence()
-            .flatMap { tk -> LOOSE_BARE_DIGIT_REGEX.findAll(tk.text.uppercase()).map { it.groupValues[1] } }
-            .filter { tok ->
-                // Skip tokens with NO letter-to-digit-confusion potential —
-                // those are either already strict digits (caught above)
-                // or pure non-confusable letters ("DEKAP", "GGL", "BOX").
-                tok.any { c -> c in "OQDILSTBZ|" }
-            }
-            .map { normalizeDigitConfusions(it) }
-            .filter { tok ->
-                // Post-normalization MUST be pure digits AND <=4 long.
-                tok.length in 1..4 && tok.all { it.isDigit() }
-            }
-            .toSet()
-        val bareDigitHits = strictBareDigitHits + looseBareDigitHits
+        // Iter 54 bonus: reconstruct full cardNumber from
+        // detected-prefix + bareDigit. When OCR gives us "G6L"
+        // (→GGL via normalisation) AND "779" separately, treat it
+        // as having read the full "GGL-779" — adds +1.0 cardNumber
+        // bonus on top of the +0.4 prefix + +0.4 bareDigit + +0.2
+        // element + +0.2 power = 3.5 total. Strongly beats sibling
+        // -779 variants without the prefix match.
+        val reconstructedCardNumberHits = cardPrefixHits.flatMap { prefix ->
+            bareDigitHitsForReconstruction.map { digits -> "$prefix-$digits" }
+        }.filter { it in idx.byCardNumberUpper.keys }.toSet()
+
+        val cardNumberHits = perTokenHits + joinedHits + looseHits + noDashHits + reconstructedCardNumberHits
+
+        // Use the hoisted bareDigitHits computed earlier (above
+        // cardPrefixHits). Alias for clarity in the downstream
+        // scoring code that reads this name.
+        val bareDigitHits = bareDigitHitsForReconstruction
 
         // Hero names mentioned anywhere + the subset top-left. Fuzzy
         // match (Levenshtein ≤ 1 for short heroes, ≤ 2 for ≥6-char

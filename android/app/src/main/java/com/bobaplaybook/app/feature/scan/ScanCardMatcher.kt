@@ -533,6 +533,65 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         if (margin < 0.3) return null
         return resolved
     }
+
+    /**
+     * Diagnostic-only: returns the top-scored candidate REGARDLESS of
+     * the commit gates (confidence floor + margin floor). Used by the
+     * ShinyScanDiag logging path to capture what almost-committed so
+     * we can target the right gap. Not for production scoring — the
+     * regular [match] is what drives the chip + queue.
+     */
+    fun debugTop(tokens: List<ScanTextToken>): ScanMatchResult? {
+        val all = catalog()
+        if (all.isEmpty()) return null
+        val idx = heroIndex?.takeIf { it.catalogSize == all.size }
+            ?: HeroIndex.build(all).also { heroIndex = it }
+
+        // Re-run the candidate gathering + scoring pipeline but skip
+        // the final gates. Reuses the public match() with a tiny
+        // peek: if it commits, return it; otherwise reconstruct the
+        // top by re-scoring. Cheap enough — diagnostic only fires
+        // once per second.
+        match(tokens)?.let { return it }
+
+        // Falls through here when match returned null due to gates.
+        // Quick re-score (duplicates a small amount of work but the
+        // call site throttles to 1Hz so it's fine).
+        val cardNumberHits = (CARD_NUMBER_REGEX.findAll(tokens.joinToString(" ") { it.text.uppercase() }) +
+            CARD_NUMBER_REGEX.findAll(tokens.joinToString("") { it.text.uppercase() }) +
+            tokens.asSequence().flatMap { CARD_NUMBER_REGEX.findAll(it.text.uppercase()) }
+        ).map { it.groupValues[1].uppercase() }.toSet()
+        val bareDigitHits = tokens.asSequence()
+            .flatMap { BARE_DIGIT_REGEX.findAll(it.text).map { m -> m.groupValues[1] } }.toSet()
+        val heroesMentioned = mutableSetOf<String>()
+        for (tk in tokens) {
+            val upper = canonicalizeHero(tk.text)
+            for (hero in idx.heroNames) {
+                val canonical = idx.canonical[hero] ?: continue
+                if (matchesHero(upper, canonical)) heroesMentioned += hero
+            }
+        }
+        val candidates = buildSet {
+            cardNumberHits.forEach { idx.byCardNumberUpper[it.uppercase()]?.let(::addAll) }
+            bareDigitHits.forEach { idx.byBareDigitSuffix[it.uppercase()]?.let(::addAll) }
+            heroesMentioned.forEach { idx.byHeroLowercase[it.lowercase()]?.let(::addAll) }
+        }
+        if (candidates.isEmpty()) return null
+        // Pick the candidate with the most matching signals as a
+        // rough top-pick. Coarse — purely for logging.
+        val best = candidates.maxByOrNull { card ->
+            var s = 0.0
+            if (card.cardNumber.uppercase() in cardNumberHits) s += 1.0
+            val bs = card.cardNumber.substringAfterLast('-').substringAfterLast('/')
+            if (bs in bareDigitHits) s += 0.4
+            if (card.hero in heroesMentioned) s += 0.6
+            s
+        } ?: return null
+        return ScanMatchResult(
+            card = best, score = 0.0, margin = 0.0,
+            reasons = listOf("DEBUG_TOP candidates=${candidates.size}"),
+        )
+    }
 }
 
 /**

@@ -1010,19 +1010,39 @@ private fun ScanViewfinder(
                 // readable. Tagged ShinyScanDiag — `adb logcat -s
                 // ShinyScanDiag` while scanning shows the real OCR
                 // output to inform the next matcher tweak.
+                val firstPass = matcher.match(tokens)
+                // Enriched diagnostic (iter 49). Captures every token
+                // + the matcher's top-pick score + reasons, throttled
+                // to once per second. Tagged ShinyScanDiag —
+                //   adb logcat -s ShinyScanDiag
+                // while scanning DEKAP GGL-779 will show whether the
+                // problem is (a) tokens are missing, (b) tokens
+                // present but score below 1.4, (c) score above 1.4
+                // but margin below 0.3, or (d) wrong card winning.
                 run {
                     val now = System.currentTimeMillis()
                     val sinceLast = now - lastShinyDiagLogMs
                     if (sinceLast > 1000) {
                         lastShinyDiagLogMs = now
                         val tokSnippet = tokens.take(12).joinToString(" | ") { it.text }
+                        val matchInfo = firstPass?.let { r ->
+                            "MATCH=${r.card.displayName} score=${"%.2f".format(r.score)} margin=${"%.2f".format(r.margin)} via [${r.reasons.joinToString(", ")}]"
+                        } ?: run {
+                            // No commit — show what was ALMOST committed
+                            // so we can target the right gap (sub-floor
+                            // confidence vs sub-floor margin vs wrong
+                            // candidate winning).
+                            val debug = matcher.debugTop(tokens)
+                            debug?.let { d ->
+                                "no-commit; debug-top=${d.card.displayName} (${d.card.cardNumber}) reasons=${d.reasons.joinToString(", ")}"
+                            } ?: "no-commit; no candidates"
+                        }
                         android.util.Log.i(
                             "ShinyScanDiag",
-                            "tokens(${tokens.size}/${allTokens.size}): $tokSnippet",
+                            "tokens(${tokens.size}/${allTokens.size}): $tokSnippet ;; $matchInfo",
                         )
                     }
                 }
-                val firstPass = matcher.match(tokens)
                 val perFrame = if (firstPass == null && tokens !== allTokens) {
                     val secondPass = matcher.match(allTokens)
                     if (secondPass != null) {

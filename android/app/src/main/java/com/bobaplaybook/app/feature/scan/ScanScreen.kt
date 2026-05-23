@@ -764,18 +764,37 @@ private fun ScanDetectionChip(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Element-coloured accent stripe + outline — iOS ScanDetectionChipView
+    // tints the chip with the matched card's weapon colour so a quick
+    // glance at the screen tells the user "FIRE / ICE / etc." without
+    // reading the caption. Stripe is 3dp wide on the left edge; outline
+    // is 1dp around the whole chip for the same colour.
+    val accent = com.bobaplaybook.core.ui.theme.BobaElements.forElement(
+        card.element.uppercase()
+    )
     Surface(
         modifier = modifier,
         color = Color.Black.copy(alpha = 0.78f),
         shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.55f)),
     ) {
         Row(
             modifier = Modifier
                 .clickable { onTap() }
-                .padding(10.dp),
+                .padding(end = 4.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Element-coloured accent stripe — full-height left edge.
+            // No top/bottom padding here so the stripe extends to the
+            // chip edges (Row padding doesn't apply on the .start
+            // edge), giving a clean continuous coloured band.
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(62.dp)
+                    .background(accent),
+            )
             val thumb = com.bobaplaybook.core.network.CDN.thumbUrl(card)
             coil3.compose.AsyncImage(
                 model = thumb,

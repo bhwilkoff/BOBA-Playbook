@@ -1070,9 +1070,17 @@ private fun ScanViewfinder(
                 // the next scan starts fresh.
                 recentTokenBatches.addLast(perFrameTokens)
                 while (recentTokenBatches.size > 5) recentTokenBatches.removeFirst()
+                // Dedupe by uppercase text; when the same text appears
+                // in multiple frames, prefer the top-left occurrence
+                // so the hero-veto signal (which depends on top-left
+                // positioning) isn't lost to a frame that happened to
+                // catch the same text in a different position.
                 val tokens = recentTokenBatches
                     .flatten()
-                    .distinctBy { it.text.uppercase() }
+                    .groupBy { it.text.uppercase() }
+                    .map { (_, dupes) ->
+                        dupes.firstOrNull { it.isTopLeft } ?: dupes.first()
+                    }
                 val firstPass = matcher.match(tokens)
                 // Enriched diagnostic (iter 49). Captures every token
                 // + the matcher's top-pick score + reasons, throttled

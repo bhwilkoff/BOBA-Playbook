@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Offset
@@ -43,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.PhotoCameraFront
 import androidx.compose.material.icons.filled.PhotoLibrary
@@ -657,9 +659,41 @@ private fun ScanViewfinder(
         // states no longer show, only the final committed card.
         val committed = detectedCard
         if (committed != null) {
+            // Quick-Save plumbing — chip's "+" button writes the
+            // matched card to the user's Personal designation
+            // without leaving the scanner. iOS chip has the
+            // equivalent button. Auth state is read at tap time so
+            // signed-out users get a feedback snackbar instead of
+            // a silently-rejected RLS write.
+            val scope = androidx.compose.runtime.rememberCoroutineScope()
+            val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
             ScanDetectionChip(
                 card = committed,
                 onTap = { onChipTap(committed.bobaId) },
+                onQuickSave = {
+                    scope.launch {
+                        val auth = ScanModuleAccess.authManager.authState
+                            .first()
+                        val userId = (auth as? com.bobaplaybook.app.auth.AuthState.SignedIn)?.userId
+                        if (userId == null) {
+                            appSnackbar?.showSnackbar(
+                                "Sign in to Quick-Save ${committed.displayName}"
+                            )
+                            return@launch
+                        }
+                        val cardNumber = committed.cardNumber
+                            .ifEmpty { committed.bobaId.substringBefore('-') }
+                        ScanModuleAccess.collectionRepository.add(
+                            cardBobaId = committed.bobaId,
+                            cardNumber = cardNumber,
+                            designation = com.bobaplaybook.core.domain.model.Designation.PERSONAL,
+                            userId = userId,
+                        )
+                        appSnackbar?.showSnackbar(
+                            "Added ${committed.displayName} to Personal"
+                        )
+                    }
+                },
                 onDismiss = {
                     // User-initiated chip clear (the "X" affordance).
                     // iOS uses a swipe-down gesture for the same. Reset
@@ -694,6 +728,7 @@ private fun ScanViewfinder(
 private fun ScanDetectionChip(
     card: com.bobaplaybook.core.domain.model.Card,
     onTap: () -> Unit,
+    onQuickSave: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -742,6 +777,19 @@ private fun ScanDetectionChip(
                         color = Color.White.copy(alpha = 0.72f),
                     )
                 }
+            }
+            // Quick-Save "+" — adds the matched card to the user's
+            // Personal designation without leaving the scanner. iOS
+            // ScanDetectionChipView has the same affordance.
+            IconButton(
+                onClick = onQuickSave,
+                modifier = Modifier.width(36.dp).height(36.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Quick-Save to Personal",
+                    tint = Color(0xFFFF4D00),
+                )
             }
             // Dismiss "X" — clears the chip + resets the stabilizer
             // so the user can re-scan without leaving the screen.
@@ -904,15 +952,27 @@ private fun ScanStatusChip(
  */
 object ScanModuleAccess {
     lateinit var cardRepository: CardRepository
+    lateinit var collectionRepository: com.bobaplaybook.core.data.collection.CollectionRepository
+    lateinit var authManager: com.bobaplaybook.app.auth.AuthManager
 }
 
 /**
  * Hilt entry-point wired at Activity level — `MainActivity` sets the
  * static accessor at app start so the Composable can read it without
  * threading a Hilt dependency through `AndroidView`.
+ *
+ * Added collectionRepository + authManager in iter 11 so the chip's
+ * Quick-Save (+) action can write to user_cards without rerouting
+ * through onMatch (which dismisses Scan).
  */
 class ScanModuleAccessSeeder @Inject constructor(
     cardRepository: CardRepository,
+    collectionRepository: com.bobaplaybook.core.data.collection.CollectionRepository,
+    authManager: com.bobaplaybook.app.auth.AuthManager,
 ) {
-    init { ScanModuleAccess.cardRepository = cardRepository }
+    init {
+        ScanModuleAccess.cardRepository = cardRepository
+        ScanModuleAccess.collectionRepository = collectionRepository
+        ScanModuleAccess.authManager = authManager
+    }
 }

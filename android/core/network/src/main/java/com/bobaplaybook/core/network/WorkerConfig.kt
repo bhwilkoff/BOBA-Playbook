@@ -38,6 +38,16 @@ object WorkerConfig {
     /** YouTube feed aggregator for Learn → Watch tab. */
     const val YOUTUBE_FEED = "https://boba-youtube-feed.benwilkoff.workers.dev"
 
+    /**
+     * Supabase project — used by `PricingService.fetchCachedBundle` to
+     * read the `card_prices_latest` view directly via PostgREST. Anon
+     * key is hard-coded here because it's public by design; the
+     * `card_prices_history` table's RLS enforces actual access
+     * (public read / service-role write only).
+     */
+    const val SUPABASE_URL = "https://pazkimtkwwwekuguxkff.supabase.co"
+    const val SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhemtpbXRrd3d3ZWt1Z3V4a2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMzY4MTIsImV4cCI6MjA5MDgxMjgxMn0.8f-d_RT8ESxQR-QbYbfpp1MWqhQ7Tm5IKJJeivI-U9k"
+
     // Future: BOBA push dispatcher (DECISIONS.md #045)
     // const val PUSH_DISPATCHER = "https://boba-push-dispatcher.benwilkoff.workers.dev"
 }

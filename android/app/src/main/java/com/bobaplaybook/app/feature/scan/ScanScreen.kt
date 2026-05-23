@@ -1038,12 +1038,29 @@ private fun ScanViewfinder(
                             .first()
                         val userId = (auth as? com.bobaplaybook.app.auth.AuthState.SignedIn)?.userId
                         if (userId == null) {
+                            // Signed-out: keep the chip visible so
+                            // the user can sign in + tap Add again
+                            // without re-scanning. Just toast the
+                            // error.
                             onSaveToast(
                                 "Sign in to save ${card.displayName}",
                                 true,
                             )
                             return@launch
                         }
+                        // iOS-parity optimistic dismiss — clear the
+                        // chip + reset the stabilizer BEFORE the save
+                        // loop runs (iOS does the equivalent right
+                        // after the auth gate). Two wins:
+                        //   • User can't double-tap "Add" during the
+                        //     1-2s of sequential Supabase inserts.
+                        //   • Camera is immediately free for the next
+                        //     card (Whatnot box-break loop). Save
+                        //     runs invisibly in this coroutine; toast
+                        //     confirms result asynchronously.
+                        stabilizer.reset()
+                        lastMatchedBobaId = null
+                        detectedCard = null
                         val cardNumber = card.cardNumber
                             .ifEmpty { card.bobaId.substringBefore('-') }
                         // iOS-parity batch add: one row per copy. The
@@ -1061,23 +1078,17 @@ private fun ScanViewfinder(
                                 userId = userId,
                             )
                         }
+                        // Keep the card name in the toast for both
+                        // singular + multi-copy — collectors want
+                        // confirmation of *which* card landed, not
+                        // just "Saved 3". iOS uses "Saved N to {dest}"
+                        // (without the name); we read better with it.
                         val message = if (qty > 1) {
-                            "Saved $qty to Personal"
+                            "Saved $qty × ${card.displayName} to Personal"
                         } else {
                             "Saved ${card.displayName} to Personal"
                         }
                         onSaveToast(message, false)
-                        // iOS-parity auto-dismiss — after a successful
-                        // Quick-Save the chip clears + the stabilizer
-                        // resets so the user can immediately point the
-                        // camera at the next card without tapping X.
-                        // iOS calls `scanner.softReset()` here; the
-                        // Android equivalent is `stabilizer.reset()`
-                        // plus clearing the local commit cache so the
-                        // next match (even same card) fires fresh.
-                        stabilizer.reset()
-                        lastMatchedBobaId = null
-                        detectedCard = null
                     }
                 },
                 onDismiss = {

@@ -503,7 +503,14 @@ private fun ScanViewfinder(
     val matcher = remember { ScanCardMatcher { cardRepository.cards.value } }
     val stabilizer = remember { ScanFrameStabilizer() }
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-    var lastMatchedDisplayName by remember { mutableStateOf<String?>(null) }
+    // bobaId, not displayName — two distinct cards can share a display
+    // name (Maverick base + Maverick battlefoil + Maverick alt-art all
+    // render as "Maverick"). Deduplicating on displayName silently
+    // dropped the second / third variant when the user scanned them
+    // in sequence; the user saw the chip never update and assumed the
+    // matcher had stalled. bobaId is the catalog's canonical
+    // disambiguator (CLAUDE.md "One ID per Card") so we dedupe on it.
+    var lastMatchedBobaId by remember { mutableStateOf<String?>(null) }
     var scanState by remember { mutableStateOf<ScanFrameStabilizer.State>(ScanFrameStabilizer.State.Idle) }
     // Most-recent committed match — drives the detection chip + the
     // guide-frame element-coloured stroke. Declared BEFORE the
@@ -562,8 +569,8 @@ private fun ScanViewfinder(
                 // stabilizer so the de-dupe gate sees the gaps.
                 val stable = stabilizer.push(perFrame)
                 scanState = stabilizer.state
-                if (stable != null && lastMatchedDisplayName != stable.card.displayName) {
-                    lastMatchedDisplayName = stable.card.displayName
+                if (stable != null && lastMatchedBobaId != stable.card.bobaId) {
+                    lastMatchedBobaId = stable.card.bobaId
                     // Set the detection chip card on every commit
                     // (both modes). MULTI also auto-queues; SINGLE
                     // waits for the user to tap the chip. Reads
@@ -616,7 +623,7 @@ private fun ScanViewfinder(
             kotlinx.coroutines.delay(1600)
             // Reset stabilizer so the next commit re-fires the chip.
             stabilizer.reset()
-            lastMatchedDisplayName = null
+            lastMatchedBobaId = null
             detectedCard = null
         }
     }

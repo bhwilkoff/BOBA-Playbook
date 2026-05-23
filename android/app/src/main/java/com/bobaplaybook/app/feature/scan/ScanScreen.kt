@@ -195,11 +195,17 @@ fun ScanScreen(
                     )
                 },
                 onChipTap = { bobaId ->
-                    // User explicitly tapped the detection chip —
-                    // ALWAYS open the matched card (both modes).
-                    android.util.Log.i("ScanScreen", "onChipTap(bobaId=$bobaId) — appending + forwarding to onMatch")
-                    runCatching { queueHolder.queue.append(bobaId) }
-                        .onFailure { android.util.Log.e("ScanScreen", "queue.append threw", it) }
+                    // User tapped the detection chip → open the
+                    // matched card. Do NOT append to the queue here:
+                    //  • MULTI mode already auto-queued at commit
+                    //    time (line ~647 currentOnAutoQueue), so a
+                    //    chip-tap append would double-count if the
+                    //    user is faster than the 1.6s auto-clear.
+                    //  • SINGLE mode never queues; tap just opens
+                    //    detail (iOS parity — ScanView.swift onTap
+                    //    sets selectedCard + scanner.resetDetection,
+                    //    no queue mutation).
+                    android.util.Log.i("ScanScreen", "onChipTap(bobaId=$bobaId) — forwarding to onMatch")
                     runCatching { onMatch(bobaId) }
                         .onFailure { android.util.Log.e("ScanScreen", "outer onMatch threw", it) }
                 },

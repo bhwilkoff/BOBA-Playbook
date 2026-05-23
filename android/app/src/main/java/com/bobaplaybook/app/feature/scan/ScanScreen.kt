@@ -435,6 +435,10 @@ fun ScanScreen(
     // mid-flight (the queue is cleared optimistically, write-failures
     // surface via the toast).
     val bulkSaveScope = androidx.compose.runtime.rememberCoroutineScope()
+    // Saving-spinner state. iOS shows "Saving…" + ProgressView during
+    // the loop (ScanQueueView.swift saveAllLabel). Android matches by
+    // disabling the CTA + swapping the label while bulkSaveInProgress.
+    var bulkSaveInProgress by remember { mutableStateOf(false) }
     if (reviewSheetOpen) {
         ScanReviewSheet(
             entries = queueEntries,
@@ -446,6 +450,7 @@ fun ScanScreen(
             onRemove = { bobaId -> queueHolder.queue.remove(bobaId) },
             onSetQuantity = { bobaId, qty -> queueHolder.queue.setQuantity(bobaId, qty) },
             onClearAll = { queueHolder.queue.clear(); reviewSheetOpen = false },
+            saveAllInProgress = bulkSaveInProgress,
             onSaveAll = {
                 // iOS-parity bulk save (ScanQueueView.swift
                 // saveAllToCollection). Snapshot entries first, then
@@ -458,6 +463,8 @@ fun ScanScreen(
                 val totalCopies = snapshot.sumOf { it.quantity }
                 val catalog = queueHolder.cardRepository.cards.value
                 bulkSaveScope.launch {
+                    bulkSaveInProgress = true
+                    try {
                     val auth = ScanModuleAccess.authManager.authState.first()
                     val userId = (auth as? com.bobaplaybook.app.auth.AuthState.SignedIn)?.userId
                     if (userId == null) {
@@ -503,6 +510,15 @@ fun ScanScreen(
                         scanToastMessage = "Save failed: $firstError"
                         scanToastIsError = true
                     }
+                    } finally {
+                        // Clear the in-progress flag no matter how the
+                        // save resolves — success, signed-out early
+                        // return, or a Throwable bubbling from
+                        // collectionRepository.add(). Without finally
+                        // a thrown exception would leave the CTA
+                        // permanently disabled.
+                        bulkSaveInProgress = false
+                    }
                 }
             },
             onDismiss = { reviewSheetOpen = false },
@@ -519,6 +535,7 @@ private fun ScanReviewSheet(
     onRemove: (bobaId: String) -> Unit,
     onSetQuantity: (bobaId: String, quantity: Int) -> Unit,
     onClearAll: () -> Unit,
+    saveAllInProgress: Boolean,
     onSaveAll: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -684,25 +701,43 @@ private fun ScanReviewSheet(
                 val totalCopies = entries.sumOf { it.quantity }
                 Button(
                     onClick = onSaveAll,
+                    enabled = !saveAllInProgress,
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                         containerColor = androidx.compose.ui.graphics.Color(0xFFFF4D00),
                         contentColor = androidx.compose.ui.graphics.Color.White,
+                        disabledContainerColor = androidx.compose.ui.graphics.Color(0xFFFF4D00)
+                            .copy(alpha = 0.6f),
+                        disabledContentColor = androidx.compose.ui.graphics.Color.White
+                            .copy(alpha = 0.85f),
                     ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp, bottom = 8.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Inventory2,
-                        contentDescription = null,
-                        modifier = Modifier.width(18.dp).height(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Save $totalCopies to Personal",
-                        style = MaterialTheme.typography.labelLarge,
-                    )
+                    if (saveAllInProgress) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            color = androidx.compose.ui.graphics.Color.White,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.width(18.dp).height(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Saving…",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Inventory2,
+                            contentDescription = null,
+                            modifier = Modifier.width(18.dp).height(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Save $totalCopies to Personal",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                    }
                 }
             }
         }

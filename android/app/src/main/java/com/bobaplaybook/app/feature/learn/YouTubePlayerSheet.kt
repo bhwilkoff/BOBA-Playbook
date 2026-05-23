@@ -6,7 +6,9 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.webkit.CookieManager
 import android.webkit.WebChromeClient
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.browser.customtabs.CustomTabsIntent
@@ -124,29 +126,66 @@ fun YouTubePlayerSheet(
                     factory = { ctx ->
                         WebView(ctx).apply {
                             layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                            // Settings parity with iOS WKWebView's config in
+                            // YouTubePlayerView.swift. JS is required for the
+                            // IFrame Player runtime, DOM storage + cookies for
+                            // the cross-origin embed handshake, no user-gesture
+                            // gate so playback starts inline.
                             settings.javaScriptEnabled = true
                             settings.mediaPlaybackRequiresUserGesture = false
                             settings.domStorageEnabled = true
+                            settings.loadsImagesAutomatically = true
+                            settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                            // YouTube embed handshake needs to set + read
+                            // cross-origin cookies. Without third-party cookie
+                            // acceptance the player sometimes errors as
+                            // "video unavailable" (152) intermittently.
+                            CookieManager.getInstance().setAcceptCookie(true)
+                            CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                             webChromeClient = WebChromeClient()
                             webViewClient = WebViewClient()
                             setBackgroundColor(android.graphics.Color.BLACK)
+                            // Mirror iOS WKWebView fix in
+                            // BOBAPlaybook/Components/YouTubePlayerView.swift:
+                            //   - host iframe at `youtube-nocookie.com` (not
+                            //     `youtube.com`; the cookied host triggers
+                            //     embedder-identity self-checks → error 152)
+                            //   - meta + iframe referrerpolicy explicitly
+                            //     `strict-origin-when-cross-origin`
+                            //   - pass `origin` + `widget_referrer` query
+                            //     params pointing at our public domain
+                            //   - load with that same domain as the
+                            //     `baseUrl` so the WebView sends the
+                            //     correct Referer / Origin headers
+                            // Reference:
+                            //   simonwillison.net/2025/Dec/1/youtube-embed-153-error
+                            val appPublicOrigin = "https://bobaplaybook.com"
                             val embedHtml = """
                                 <!DOCTYPE html>
-                                <html><head>
-                                  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-                                  <style>
-                                    html,body{margin:0;padding:0;background:#000;height:100%;}
-                                    iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
-                                  </style>
-                                </head><body>
-                                  <iframe
-                                    src="https://www.youtube.com/embed/${video.videoId}?autoplay=1&playsinline=1&rel=0&modestbranding=1"
-                                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-                                    allowfullscreen></iframe>
-                                </body></html>
+                                <html>
+                                  <head>
+                                    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+                                    <meta name="referrer" content="strict-origin-when-cross-origin">
+                                    <style>
+                                      html, body { margin: 0; padding: 0; background: #000; height: 100%; width: 100%; overflow: hidden; }
+                                      .wrap { position: relative; width: 100%; height: 100%; }
+                                      .wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+                                    </style>
+                                  </head>
+                                  <body>
+                                    <div class="wrap">
+                                      <iframe
+                                        src="https://www.youtube-nocookie.com/embed/${video.videoId}?playsinline=1&modestbranding=1&rel=0&fs=1&enablejsapi=1&origin=$appPublicOrigin&widget_referrer=$appPublicOrigin"
+                                        referrerpolicy="strict-origin-when-cross-origin"
+                                        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                                        allowfullscreen>
+                                      </iframe>
+                                    </div>
+                                  </body>
+                                </html>
                             """.trimIndent()
                             loadDataWithBaseURL(
-                                "https://www.youtube.com",
+                                appPublicOrigin,
                                 embedHtml,
                                 "text/html",
                                 "utf-8",

@@ -201,7 +201,13 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         val powerHits = tokens
             .asSequence()
             .flatMap { tk -> BARE_DIGIT_REGEX.findAll(tk.text).map { it.groupValues[1].toIntOrNull() ?: 0 } }
-            .filter { it > 0 && it % 5 == 0 }  // BoBA powers are always multiples of 5
+            // BoBA hero powers are 50–250 in increments of 5. Values
+            // below 50 (5, 10, 15, ..., 45) are almost always print-run
+            // serials, set-codes, or card-body digits — NOT power. Old
+            // floor (> 0) was creating false +0.2 power bonuses on
+            // candidates with low artificial "power" values that
+            // happened to match a stray digit somewhere in the frame.
+            .filter { it >= 50 && it % 5 == 0 }
             .toSet()
 
         // Restrict the candidate pool: any card whose cardNumber, bare

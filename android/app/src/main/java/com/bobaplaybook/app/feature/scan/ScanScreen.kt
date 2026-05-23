@@ -456,6 +456,7 @@ fun ScanScreen(
                 // iters can add a designation picker.
                 val snapshot = queueEntries
                 val totalCopies = snapshot.sumOf { it.quantity }
+                val catalog = queueHolder.cardRepository.cards.value
                 bulkSaveScope.launch {
                     val auth = ScanModuleAccess.authManager.authState.first()
                     val userId = (auth as? com.bobaplaybook.app.auth.AuthState.SignedIn)?.userId
@@ -466,7 +467,19 @@ fun ScanScreen(
                     }
                     var firstError: String? = null
                     for (entry in snapshot) {
-                        val cardNumber = entry.bobaId.substringBefore('-')
+                        // Look the card up in the catalog for the
+                        // canonical cardNumber. The prior code's
+                        // `bobaId.substringBefore('-')` was WRONG for
+                        // any cardNumber containing a dash (e.g.
+                        // "BHBF-37" → it returned "BHBF" instead of
+                        // "BHBF-37"). bobaId format is
+                        // `{cardNumber}-{hero}-{treatment}-{variation}`
+                        // and reverse-parsing is ambiguous since
+                        // cardNumbers can themselves contain dashes.
+                        // The Card object holds the canonical string.
+                        val card = catalog.firstOrNull { it.bobaId == entry.bobaId }
+                        val cardNumber = card?.cardNumber.orEmpty()
+                            .ifEmpty { entry.bobaId.substringBefore('-') }
                         repeat(entry.quantity.coerceIn(1, 99)) {
                             try {
                                 ScanModuleAccess.collectionRepository.add(

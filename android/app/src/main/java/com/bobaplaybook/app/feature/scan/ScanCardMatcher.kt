@@ -289,21 +289,18 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
             .filter { it >= 50 && it % 5 == 0 }
             .toSet()
 
-        // Restrict the candidate pool: any card whose cardNumber, bare
-        // digit suffix, or mentioned hero shows up gets considered. Cuts
-        // 17k → typically <60 in practice.
+        // Restrict the candidate pool via the pre-built indexes (O(1)
+        // per hit instead of O(N) catalog scans). Cuts 17k → typically
+        // <60 in practice.
         val candidates = buildSet {
             cardNumberHits.forEach { num ->
-                addAll(all.filter { it.cardNumber.equals(num, ignoreCase = true) })
+                idx.byCardNumberUpper[num.uppercase()]?.let { addAll(it) }
             }
             bareDigitHits.forEach { digits ->
-                addAll(all.filter {
-                    val n = it.cardNumber.substringAfterLast('-').substringAfterLast('/')
-                    n.equals(digits, ignoreCase = true)
-                })
+                idx.byBareDigitSuffix[digits.uppercase()]?.let { addAll(it) }
             }
             heroesMentioned.forEach { hero ->
-                addAll(all.filter { it.hero.equals(hero, ignoreCase = true) })
+                idx.byHeroLowercase[hero.lowercase()]?.let { addAll(it) }
             }
         }
         if (candidates.isEmpty()) return null
@@ -464,6 +461,15 @@ private class HeroIndex(
     val heroNames: Set<String>,
     val canonical: Map<String, String>,
     val elements: Set<String>,
+    // O(1) candidate-gathering lookups. Each filter call in the prior
+    // candidate-building loop iterated 17k cards; at 15-30 fps with
+    // multiple hits/frame that was ~150-300k iterations/sec just to
+    // narrow the pool. Pre-indexing collapses each filter to a hash
+    // lookup. Keys uppercase so case-insensitive matches don't need
+    // per-element comparison.
+    val byCardNumberUpper: Map<String, List<Card>>,
+    val byBareDigitSuffix: Map<String, List<Card>>,
+    val byHeroLowercase: Map<String, List<Card>>,
 ) {
     companion object {
         fun build(catalog: List<Card>): HeroIndex {
@@ -477,11 +483,27 @@ private class HeroIndex(
             // tokens with catalog heroes containing the same chars.
             val canonical = heroNames.associateWith { canonicalizeHero(it) }
             val elements = catalog.asSequence().map { it.element.uppercase() }.toSet()
+            val byCardNumberUpper = catalog.groupBy { it.cardNumber.uppercase() }
+            // Bare-suffix derivation matches the per-card extraction at
+            // scoring time: cardNumber.substringAfterLast('-')
+            //   .substringAfterLast('/'). So "BHBF-37" → "37",
+            //   "BL-IRT-25/50" → "50".
+            val byBareDigitSuffix = catalog.groupBy {
+                it.cardNumber.substringAfterLast('-').substringAfterLast('/').uppercase()
+            }
+            // Hero lookup is keyed lowercase to make `equals(..., ignoreCase = true)`
+            // collapse to a normal hash hit. Sealed-product cards
+            // (hero blank) get a "" key — irrelevant because heroesMentioned
+            // never has the empty string.
+            val byHeroLowercase = catalog.groupBy { it.hero.lowercase() }
             return HeroIndex(
                 catalogSize = catalog.size,
                 heroNames = heroNames,
                 canonical = canonical,
                 elements = elements,
+                byCardNumberUpper = byCardNumberUpper,
+                byBareDigitSuffix = byBareDigitSuffix,
+                byHeroLowercase = byHeroLowercase,
             )
         }
     }

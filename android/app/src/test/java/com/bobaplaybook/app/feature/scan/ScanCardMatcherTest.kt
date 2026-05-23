@@ -316,13 +316,19 @@ class ScanCardMatcherTest {
 
     private fun token(text: String, topLeft: Boolean): ScanTextToken {
         // Frame is 1000x1000; "top-left" means bbox at (0,0,200,50),
-        // "elsewhere" means a box in the bottom-right at (700,700).
-        val frame = if (topLeft) Rect(0, 0, 200, 50) else Rect(700, 700, 900, 750)
-        return ScanTextToken(
+        // "elsewhere" means a box in the bottom-right at (700,700,900,750).
+        // Use the int constructor directly — Android Rect's JVM stub
+        // returns 0 for every field in unit tests, which would silently
+        // break the matcher's isTopLeft computation. The production
+        // analyzer uses ScanTextToken.fromRect(...).
+        return if (topLeft) ScanTextToken(
             text = text,
-            frame = frame,
-            frameWidth = 1000,
-            frameHeight = 1000,
+            left = 0, top = 0, right = 200, bottom = 50,
+            frameWidth = 1000, frameHeight = 1000,
+        ) else ScanTextToken(
+            text = text,
+            left = 700, top = 700, right = 900, bottom = 750,
+            frameWidth = 1000, frameHeight = 1000,
         )
     }
 }

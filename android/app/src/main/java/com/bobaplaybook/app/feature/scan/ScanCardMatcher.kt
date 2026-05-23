@@ -32,10 +32,38 @@ private val BARE_DIGIT_REGEX = Regex("""\b(\d{1,4})\b""")
  * know whether a hero name was printed in the top-left of the card
  * (where iOS DECISIONS.md #035 says the hero name lives most reliably).
  */
-data class ScanTextToken(val text: String, val frame: Rect, val frameWidth: Int, val frameHeight: Int) {
+data class ScanTextToken(
+    val text: String,
+    val left: Int,
+    val top: Int,
+    val right: Int,
+    val bottom: Int,
+    val frameWidth: Int,
+    val frameHeight: Int,
+) {
     /** True when this token sits in the upper-left quadrant of the frame. */
     val isTopLeft: Boolean
-        get() = frame.top < frameHeight * 0.5f && frame.left < frameWidth * 0.5f
+        get() = top < frameHeight * 0.5f && left < frameWidth * 0.5f
+
+    companion object {
+        /**
+         * Construct from an Android [Rect]. Used by the live analyzer
+         * path. The 4-int internal shape keeps the type pure-JVM-
+         * testable (Android Rect's SDK stub returns 0 for every field
+         * in unit tests, which broke the ScanGuideMath tests until we
+         * refactored).
+         */
+        fun fromRect(text: String, rect: Rect, frameWidth: Int, frameHeight: Int) =
+            ScanTextToken(
+                text = text,
+                left = rect.left,
+                top = rect.top,
+                right = rect.right,
+                bottom = rect.bottom,
+                frameWidth = frameWidth,
+                frameHeight = frameHeight,
+            )
+    }
 }
 
 /**

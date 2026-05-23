@@ -685,9 +685,9 @@ private fun ScanViewfinder(
                 val allTokens = text.textBlocks.flatMap { block ->
                     block.lines.mapNotNull { line ->
                         val bbox = line.boundingBox ?: return@mapNotNull null
-                        ScanTextToken(
+                        ScanTextToken.fromRect(
                             text = line.text,
-                            frame = bbox,
+                            rect = bbox,
                             frameWidth = previewW,
                             frameHeight = previewH,
                         )
@@ -706,40 +706,13 @@ private fun ScanViewfinder(
                 // previewW/H default to 1 until the PreviewView measures;
                 // when unmeasured, skip the filter so the first frames
                 // still scan.
-                val tokens = if (previewW > 100 && previewH > 100) {
-                    val w = previewW.toFloat()
-                    val h = previewH.toFloat()
-                    // Same math as ScanGuideOverlay so the filter rect
-                    // matches the visible card guide exactly.
-                    val cardW0 = w * 0.75f
-                    val cardH0 = cardW0 * 7f / 5f
-                    val finalH: Float
-                    val finalW: Float
-                    if (cardH0 > h * 0.62f) {
-                        finalH = h * 0.62f
-                        finalW = finalH * 5f / 7f
-                    } else {
-                        finalW = cardW0
-                        finalH = cardH0
-                    }
-                    val gLeft = (w - finalW) / 2f
-                    val gTop = (h - finalH) / 2f - h * 0.04f
-                    // 5% bleed: hero names + cardNumbers print near the
-                    // card edge; ML Kit bboxes round outward slightly.
-                    val bleed = finalW * 0.05f
-                    val rLeft = gLeft - bleed
-                    val rTop = gTop - bleed
-                    val rRight = gLeft + finalW + bleed
-                    val rBottom = gTop + finalH + bleed
-                    val filtered = allTokens.filter { tk ->
-                        val b = tk.frame
-                        // Reject only when bbox is entirely outside the
-                        // guide rect. Any intersection keeps it.
-                        b.right.toFloat() >= rLeft &&
-                            b.bottom.toFloat() >= rTop &&
-                            b.left.toFloat() <= rRight &&
-                            b.top.toFloat() <= rBottom
-                    }
+                // ROI gate via the shared ScanGuideMath helpers — same
+                // rect as the visible ScanGuideOverlay so the matcher's
+                // input stays in lockstep with what the user sees. Pure
+                // functions + JVM-tested in ScanGuideMathTest.
+                val guide = scanGuideRect(previewW, previewH)
+                val tokens = if (guide != null) {
+                    val filtered = allTokens.filter { it.intersectsScanGuide(guide) }
                     val dropped = allTokens.size - filtered.size
                     if (dropped > 0) {
                         android.util.Log.i(
@@ -1209,18 +1182,34 @@ private fun ScanGuideOverlay(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
-            val cardW = w * 0.75f
-            val cardH = cardW * 7f / 5f
-            val finalW: Float; val finalH: Float
-            if (cardH > h * 0.62f) {
-                finalH = h * 0.62f
-                finalW = finalH * 5f / 7f
+            // Source of truth lives in ScanGuideMath.scanGuideRect so
+            // the analyzer's ROI filter rect and the visible guide
+            // can't drift apart. `scanGuideRect` returns null when the
+            // Canvas hasn't been measured yet; fall back to the inline
+            // math for that one frame.
+            val rect = scanGuideRect(w.toInt(), h.toInt())
+            val finalW: Float
+            val finalH: Float
+            val left: Float
+            val top: Float
+            if (rect != null) {
+                finalW = rect.width
+                finalH = rect.height
+                left = rect.left
+                top = rect.top
             } else {
-                finalW = cardW
-                finalH = cardH
+                val cardW = w * 0.75f
+                val cardH = cardW * 7f / 5f
+                if (cardH > h * 0.62f) {
+                    finalH = h * 0.62f
+                    finalW = finalH * 5f / 7f
+                } else {
+                    finalW = cardW
+                    finalH = cardH
+                }
+                left = (w - finalW) / 2f
+                top = (h - finalH) / 2f - h * 0.04f
             }
-            val left = (w - finalW) / 2f
-            val top = (h - finalH) / 2f - h * 0.04f
 
             val dim = Color.Black.copy(alpha = 0.35f)
             drawRect(color = dim, topLeft = Offset(0f, 0f), size = GSize(w, top))

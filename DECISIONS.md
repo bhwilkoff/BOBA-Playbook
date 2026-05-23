@@ -441,3 +441,39 @@ Partially supersedes the web-side of [#012](#012). Scan on web is no longer "out
 - The native-app CTA tiles are the spec for *every* surface that wants to advertise iOS / Android — reuse `nativeAppCalloutHTML()` in `js/app.js` rather than re-inventing.
 - DESIGN.md / WEB-DESIGN.md / PARITY.md updated in tandem so this isn't whiplash-driven.
 - iOS Vision + Android ML Kit remain the canonical on-device scanners; web is the only platform with a server-OCR + QR-handoff posture.
+
+## 055 — Android scan: multi-pathway OCR recovery for shiny / holographic cards
+*2026-05-23*
+
+Real-world testing of **DEKAP GGL-779 (Great Grandma's Linoleum Battlefoil — Glow treatment)** drove a rewrite of the Android matcher to accumulate **six independent recovery paths** instead of relying on a single clean OCR read. iOS DECISIONS.md #035's strict cardNumber regex + hero veto stays as the core, but Android adds:
+
+1. **Joined-text cross-token reassembly** (split `BHBF` + `37` → `BHBF-37`)
+2. **Digit-confusion suffix normalisation** (`GGL-T79` → `GGL-779` via T→7, S→5, etc.)
+3. **Missing-dash reconstruction** (`GGL779` → `GGL-779`)
+4. **Prefix-only candidate gathering** (gated on heroesMentioned to prevent 786-card pool broadcast)
+5. **Digit-to-letter prefix normalisation** (`G6L` → `GGL` via 6→G, 0→O, etc.) — the most-impactful path; OCR consistently mis-reads `G` as `6` on shimmery prints
+6. **Reconstructed cardNumber** (prefix `GGL` + bareDigit `779` → synthesized `GGL-779`)
+
+Plus three signal-side enhancements:
+- **Cross-frame OCR token aggregation** (last 10 frames' tokens unioned before matching)
+- **Loose bare-digit recovery** (standalone garbled tokens like `T79` normalised)
+- **Fuzzy element matching** (`BRAWI` / `BRANL` → `BRAWL` via Levenshtein 1)
+
+And the **killer feature: a parallel preprocessed-OCR pipeline.** Every 600ms a custom `enhanceContrast` (5th/95th-percentile luma stretch) is applied to a `PreviewView.bitmap` snapshot and fed through a SECOND ML Kit pass. Output tokens join the same aggregation buffer. This dramatically expands mid-tone contrast in the cardNumber-strip area that AE blows out on shimmer.
+
+**Why Android diverges from iOS here:** the iOS scanner has a vastly cleaner OCR baseline (Vision + iPhone camera tuning) and `feature-prints.bin` image-fingerprint matching for hard cases (DECISIONS.md #035). Android's ML Kit OCR is noisier on shimmer + image-fingerprint matching is deferred to v2 (DECISIONS.md #043). The matcher-side recovery paths + preprocessing pipeline close that gap to "consistently scans at least as well as iOS for this card" (Ben validated 2026-05-23).
+
+**Why we DIDN'T do** (cautionary tale at iters 46-47):
+- Lowering the stabilizer single-frame tier below 2.5 → wrong-card commits at lower margin.
+- Relaxing the matcher's 0.3 margin floor → wrong-element-variant commits when OCR confused element on shiny prints, locked `lastCommittedBobaId`.
+
+Both reverted within minutes of install. The matcher's confidence + margin floors are load-bearing.
+
+**How to apply:**
+- New recovery paths get a SCANNER_LOOP.md iter row + a JVM test in `ScanCardMatcherTest`
+- Don't tune confidence floor < 1.4 or margin floor < 0.3
+- Don't lower stabilizer single-frame tier below 2.5
+- ALL changes verified via `adb logcat -s ShinyScanDiag` showing the signal breakdown PER FRAME — see iter 49 + 54b for the diagnostic shape
+- 29 JVM matcher tests + 9 stabilizer + 9 guide math + 10 queue + 10 canonicalize = 67 total — the test suite IS the safety net for further matcher tweaks
+
+The `[[reference_android_scanner_recovery_paths]]` memory has the full architecture diagram + don't-touch list.

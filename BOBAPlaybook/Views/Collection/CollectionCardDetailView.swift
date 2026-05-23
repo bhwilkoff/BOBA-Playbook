@@ -137,11 +137,11 @@ struct CollectionCardDetailView: View {
                         }
 
                         // Pricing surface — sealed products DO get pricing
-                        // (the eBay/Radish lookup works on Sealed Product
-                        // bobaIds and Find already displays it for sealed).
-                        // The earlier `!card.isSealed` gate hid pricing
-                        // from sealed entries in Collection only — fixed
-                        // per beta feedback 2026-05-20.
+                        // (the eBay lookup works on Sealed Product bobaIds
+                        // and Find already displays it for sealed). The
+                        // earlier `!card.isSealed` gate hid pricing from
+                        // sealed entries in Collection only — fixed per
+                        // beta feedback 2026-05-20.
                         if let card = catalogCard {
                             PricingSection(card: card, showActiveListings: false)
                         }
@@ -736,7 +736,7 @@ struct CollectionCardDetailView: View {
         }
     }
 
-    /// "eBay Sales" + "Radish Guide" row, mirrors the Find-tab card
+    /// "eBay Sales" + "View on Radish" row, mirrors the Find-tab card
     /// detail but skips the active "Buy Now" button.
     private func externalLinksRow(card: Card) -> some View {
         HStack(spacing: Design.Spacing.sm) {
@@ -759,24 +759,26 @@ struct CollectionCardDetailView: View {
                     )
                 }
             }
-            if let radishStr = card.radishUrl, let url = URL(string: radishStr) {
-                Link(destination: url) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.system(size: 11))
-                        Text("Radish Guide")
-                            .font(Design.Fonts.mono(12))
-                    }
-                    .foregroundStyle(Design.Colors.bobaCyan)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Design.Spacing.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: Design.Radius.sm)
-                            .fill(Design.Colors.bobaCyan.opacity(0.10))
-                            .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
-                                .strokeBorder(Design.Colors.bobaCyan.opacity(0.35), lineWidth: 1))
-                    )
+            // Per Radish (2026-05-23): ordinary user-facing link only,
+            // opens external browser. Uses the legacy catalog
+            // `radishUrl` field when present; falls back to the
+            // Radish homepage when null.
+            Link(destination: card.radishDisplayURL) {
+                HStack(spacing: 5) {
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.system(size: 11))
+                    Text("View on Radish")
+                        .font(Design.Fonts.mono(12))
                 }
+                .foregroundStyle(Design.Colors.bobaCyan)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Design.Spacing.sm)
+                .background(
+                    RoundedRectangle(cornerRadius: Design.Radius.sm)
+                        .fill(Design.Colors.bobaCyan.opacity(0.10))
+                        .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                            .strokeBorder(Design.Colors.bobaCyan.opacity(0.35), lineWidth: 1))
+                )
             }
         }
     }

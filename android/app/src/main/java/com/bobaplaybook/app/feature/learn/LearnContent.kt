@@ -652,7 +652,7 @@ object LearnCorpus {
         LearnSection.Term(term = "raw", definition = "Ungraded. The opposite of PSA/BGS/CGC/TAG graded."),
         LearnSection.Term(term = "graded", definition = "Encapsulated and scored by a third-party grader (PSA, BGS, CGC, TAG). 'PSA 10' is the top grade at PSA."),
         LearnSection.Term(term = "TAG", definition = "TAG Grading — an emerging alternative grader using laser-scored analysis. Ask your event organizer whether TAG slabs are accepted as proxies."),
-        LearnSection.Term(term = "comps", definition = "Comparable recent sales — used to sanity-check a price. The card detail view's pricing panel pulls comps from Radish + eBay."),
+        LearnSection.Term(term = "comps", definition = "Comparable recent sales — used to sanity-check a price. The card detail view's pricing panel pulls comps from eBay's Marketplace Insights API."),
         LearnSection.Term(term = "dumper", definition = "A card sold cheaply — often the lower-value hit in a break-day liquidation."),
         LearnSection.Term(term = "banger", definition = "An impressive or high-value pull. Affectionate."),
         LearnSection.Term(term = "scam / scammer", definition = "Don't engage, report to moderators, and check the vouch history before any trade with a new account."),

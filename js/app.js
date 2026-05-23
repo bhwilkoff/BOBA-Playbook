@@ -3529,39 +3529,6 @@
   /* ================================================================
      PRICING
   ================================================================ */
-  // Set name → [year, slug]. Radish URLs are
-  // /boba/{year}/{slug}/{name} for Heroes / Plays / Hot Dogs and
-  // /boba/sealed for Sealed Products. The cardNumber is NOT in
-  // the URL — earlier attempts to include it landed on Radish's
-  // filter route which renders an empty cardNumber-echo page
-  // instead of the hero detail page with sales data.
-  const SET_SLUG_MAP = {
-    'Alpha':                         ['2024', 'Alpha_Edition'],
-    'Alpha Edition':                 ['2024', 'Alpha_Edition'],
-    'alpha-edition':                 ['2024', 'Alpha_Edition'],
-    'Alpha Update':                  ['2025', 'Alpha_Update'],
-    'alpha-update':                  ['2025', 'Alpha_Update'],
-    'Alpha Blast':                   ['2025', 'Alpha_Blast'],
-    'Griffey':                       ['2026', 'Griffey_Edition'],
-    'Griffey Edition':               ['2026', 'Griffey_Edition'],
-    'griffey-edition':               ['2026', 'Griffey_Edition'],
-    'National Starter Set':          ['2024', 'National_24_Starter_Set'],
-    '2024 National Show Starter Set': ['2024', 'National_24_Starter_Set'],
-    "National '24":                  ['2024', 'National_24_Starter_Set'],
-    'National 24 Starter Set':       ['2024', 'National_24_Starter_Set'],
-    'World Champions':               ['2024', 'World_Champions'],
-    'world-champions':               ['2024', 'World_Champions'],
-    'World Champions 2024':          ['2024', 'World_Champions'],
-    'World Champions 2025':          ['2025', 'World_Champions'],
-    'Battle Trainer Kit':            ['2024', 'Battle_Trainer_Kit'],
-    'Superfan Series':               ['2024', 'Alpha_Edition'],
-    'Tecmo Bowl Edition':            ['2025', 'Tecmo_Bowl'],
-    'tecmo-bowl':                    ['2025', 'Tecmo_Bowl'],
-    'Promo Cards':                   ['2025', 'Promo_Cards'],
-    'Big League Chew':               ['2025', 'Big_League_Chew'],
-    'big-league-chew':               ['2025', 'Big_League_Chew'],
-    'sandstorm':                     ['2025', 'Sandstorm'],
-  };
 
   function buildEbayUrl(card) {
     // "bo jackson battle arena {hero} {cardNumber}" — card number encodes treatment
@@ -3576,54 +3543,16 @@
     return `https://www.ebay.com/sch/i.html?${params}`;
   }
 
-  // Radish is case-sensitive and uses different canonical spellings
-  // for a handful of heroes than our catalog does. Verified 2026-05-20
-  // via 100-card URL sweep:
-  //   - "ChetMate" (CamelCase) is correct on Radish (40 cards on
-  //     /Alpha_Update/ChetMate). An earlier alias mapped ChetMate to
-  //     "Chetmate" which returns a 200 but 0-card alias page. Removed.
-  //   - "BoJax" -> "Bojax" is correct (Bojax page has 25 cards, BoJax
-  //     is the empty alias).
-  const RADISH_HERO_ALIASES = {
-    BoJax: 'Bojax',
-  };
-
-  function buildRadishUrl(card) {
-    if (card.radishUrl) return card.radishUrl;
-    // Sealed Products land on Radish's sealed-sales index — no
-    // per-product detail page exists.
-    if (card.cardType === 'Sealed Product') {
-      return 'https://radishpriceguide.com/boba/sealed';
-    }
-    // Verified URL shape (Ben supplied two working examples):
-    //   /boba/2025/Alpha_Blast/Mean-Joe/BL-B18
-    //   /boba/2025/World_Champions/Chetmate/OKC-27
-    // Programmatic fallback — mirrors iOS Card+Radish.swift.
-    const [year, slug] = SET_SLUG_MAP[card.set] || ['2024', 'Alpha_Edition'];
-    // cardNumber prefix casing per current Radish (verified 2026-05-20):
-    //   LOGO- → Logo-   (Radish uses title-case for Logofoil)
-    //   everything else stays UPPERCASE
-    // An earlier version of this builder lowercased RAD- and MIX- too
-    // ("Rad-", "Mix-") — that 404s on current Radish, sending the
-    // pricing pipeline + the "Radish Guide" button into a
-    // hero-only-fallback path for ~2,970 catalog cards.
-    const prefixRemap = { LOGO: 'Logo' };
-    let cardNum = card.cardNumber || '';
-    for (const [ours, theirs] of Object.entries(prefixRemap)) {
-      if (cardNum.startsWith(ours + '-')) {
-        cardNum = theirs + cardNum.slice(ours.length);
-        break;
-      }
-    }
-    // Plays + Hot Dogs put their card name in the `hero` field
-    // (per One-ID-per-Card), so the same formula works for all
-    // three cardTypes.
-    const raw = card.hero || card.name || '';
-    if (!raw || !cardNum) return null;
-    const radishHero = RADISH_HERO_ALIASES[raw] || raw;
-    const heroEnc = encodeURIComponent(radishHero);
-    const numEnc  = encodeURIComponent(cardNum);
-    return `https://radishpriceguide.com/boba/${year}/${slug}/${heroEnc}/${numEnc}`;
+  // Radish Price Guide integration removed 2026-05-23 per request from
+  // Radish owner / lead dev. Per-card URL construction, alias tables,
+  // and automated lookups are all disallowed. The card-detail surface
+  // still ships ONE user-facing link per card — uses the legacy
+  // `card.radishUrl` field (acquired before the email, frozen as
+  // static reference data) when present, falls back to the homepage
+  // when null. See `radishDisplayUrl()` below.
+  const RADISH_HOMEPAGE = 'https://radishpriceguide.com';
+  function radishDisplayUrl(card) {
+    return (card && card.radishUrl) ? card.radishUrl : RADISH_HOMEPAGE;
   }
 
   function loadPricing(card) {
@@ -3631,7 +3560,6 @@
     if (!section) return;
 
     const ebayUrl   = buildEbayUrl(card);
-    const radishUrl = buildRadishUrl(card);
     let days = 30;
     /// When the user taps Refresh, append `&fresh=1` so the Worker
     /// bumps its cache key (the Worker also looks at this flag). Reset
@@ -3660,28 +3588,22 @@
         </div>
         <div class="pricing-links">
           <a href="${escHtml(ebayUrl)}" target="_blank" rel="noopener" class="btn-pricing-ebay">eBay Sales</a>
-          <a href="${escHtml(radishUrl)}" target="_blank" rel="noopener" class="btn-pricing-radish">Radish</a>
+          <a href="${escHtml(radishDisplayUrl(card))}" target="_blank" rel="noopener noreferrer" class="btn-pricing-radish">View on Radish</a>
         </div>
       `;
       section.querySelectorAll('.day-btn:not(.pricing-refresh-btn)').forEach(btn => {
         btn.addEventListener('click', () => { days = parseInt(btn.dataset.days); fetchAndRender(); });
       });
       // Refresh — same fetch, but flags the Worker cache to bypass so
-      // a fresh eBay/Radish/Worker round-trip happens immediately
-      // instead of serving the 6-hour cached response. Parity with the
-      // iOS + Android pricing refresh button (PARITY.md §8).
+      // a fresh eBay-pricing round-trip happens immediately instead of
+      // serving the 6-hour cached response. Parity with the iOS +
+      // Android pricing refresh button (PARITY.md §8).
       section.querySelector('.pricing-refresh-btn')?.addEventListener('click', () => {
         forceRefresh = true;
         fetchAndRender();
       });
 
       try {
-        // Build the Radish URL on the client so the Worker can scrape
-        // Radish's pre-validated sold data — without this, the Worker
-        // only saw radishUrl when the (rare) catalog field was set,
-        // which meant most cards silently fell back to an Insights-
-        // only path that's scope-gated.
-        const radishUrl = buildRadishUrl(card);
         const params = new URLSearchParams({
           cardNumber: card.cardNumber,
           hero:    card.hero    || '',
@@ -3690,28 +3612,18 @@
           days:    String(days),
           ...(card.power    != null ? { power:     String(card.power) }  : {}),
           ...(card.treatment       ? { treatment: card.treatment }       : {}),
-          ...(radishUrl            ? { radishUrl }                        : {}),
           ...(forceRefresh         ? { fresh: '1', _t: String(Date.now()) } : {}),
         });
         forceRefresh = false;
         // Fire eBay-pricing + COMC-listings in parallel. COMC is
         // additive (BUY NOW second source); soft-fails to [] so a
-        // failure doesn't block the eBay/Radish pricing render.
+        // failure doesn't block the eBay pricing render.
         const [res, comcResp] = await Promise.all([
           fetch(`${WORKER_URL}?${params}`),
           fetchComcListings(card.cardNumber),
         ]);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        // Snap the Radish button to whichever URL the Worker
-        // actually scraped sales from. The Worker tried the
-        // cardNumber-specific page first, fell back to the
-        // hero-only page, and reported back which one carried
-        // listings. Stronger signal than any client-side probe.
-        if (data.radishResolvedUrl) {
-          const radishLink = section.querySelector('.btn-pricing-radish');
-          if (radishLink) radishLink.href = data.radishResolvedUrl;
-        }
         renderPricingData(section, data, { days, comcListings: comcResp });
       } catch {
         const body = section.querySelector('.pricing-body');
@@ -3722,10 +3634,10 @@
     fetchAndRender();
   }
 
-  /// COMC.com asking-price listings, fetched alongside the eBay /
-  /// Radish pricing call. Soft-fails to [] on any error — additive
-  /// to the BUY NOW panel, never blocks the eBay render. Returns
-  /// the listings array (already cheapest-first from the worker).
+  /// COMC.com asking-price listings, fetched alongside the eBay pricing
+  /// call. Soft-fails to [] on any error — additive to the BUY NOW
+  /// panel, never blocks the eBay render. Returns the listings array
+  /// (already cheapest-first from the worker).
   async function fetchComcListings(cardNumber) {
     if (!cardNumber) return [];
     const url = `${COMC_PROXY_URL}/listings?cardNumber=${encodeURIComponent(cardNumber)}`;
@@ -4333,15 +4245,14 @@
                 </svg>
                 eBay Sales
               </a>` : ''}
-              ${card.radishUrl ? `
-              <a href="${escHtml(card.radishUrl)}" target="_blank" rel="noopener" class="btn-radish-sealed">
+              <a href="${escHtml(radishDisplayUrl(card))}" target="_blank" rel="noopener noreferrer" class="btn-radish-sealed">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                      width="14" height="14" aria-hidden="true">
                   <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
                   <polyline points="16 7 22 7 22 13"/>
                 </svg>
-                Radish Guide
-              </a>` : ''}
+                View on Radish
+              </a>
             </div>
             <div class="modal-collection-action">
               <button class="btn-collection-add" data-action="add-to-collection"

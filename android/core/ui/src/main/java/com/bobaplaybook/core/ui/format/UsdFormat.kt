@@ -14,8 +14,8 @@ import java.util.Locale
  * `Locale.US` is hard-pinned: devices in es-ES / de-DE / fr-FR
  * would otherwise render "1234,56" with comma-decimal, which is
  * disorienting next to the leading "$". BOBA pricing data is
- * USD-denominated (eBay / Radish / COMC are US marketplaces) so
- * the rendering should always be US-style.
+ * USD-denominated (eBay / COMC are US marketplaces) so the rendering
+ * should always be US-style.
  *
  * Returns just the digits + grouping commas + decimal. Callers
  * prepend "$" or wrap in their own pricing UI.

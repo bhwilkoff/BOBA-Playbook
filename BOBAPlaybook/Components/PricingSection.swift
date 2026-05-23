@@ -15,20 +15,12 @@ struct PricingSection: View {
     @State private var result: PricingService.PricingResult?
     @State private var isLoading = false
     @State private var fetchError: String?
-    @State private var showRadish = false
     @State private var showEbay = false
     @State private var selectedItemURL: IdentifiableURL?
-    /// HEAD-probed Radish URL — populated on appear by the resolver.
-    /// Falls back to `card.resolvedRadishURL` while the probe is in
-    /// flight or if both options 404. The Radish button + the
-    /// pricing-Worker request both read from this so they stay in
-    /// sync (we don't want the button to point one place while the
-    /// Worker scrapes a different page).
-    @State private var resolvedRadishURL: URL?
     /// COMC.com asking-price listings, fetched in parallel with the
-    /// eBay/Radish pricing call. Additive to the BUY NOW panel —
-    /// stays empty when COMC's WAF blocks the worker (current state
-    /// per 2026-04-29). Soft-fail by design.
+    /// eBay pricing call. Additive to the BUY NOW panel — stays empty
+    /// when COMC's WAF blocks the worker (current state per 2026-04-29).
+    /// Soft-fail by design.
     @State private var comcListings: [ComcService.Listing] = []
 
     private let dayOptions = [7, 30, 90]
@@ -140,10 +132,16 @@ struct PricingSection: View {
                     )
                 }
 
-                Button { showRadish = true } label: {
+                // Per Radish (2026-05-23): ordinary user-facing link
+                // ONLY — opens the system browser outside the app; no
+                // SafariView / SFSafariViewController. Uses the legacy
+                // catalog `radishUrl` field when present (static data
+                // acquired before the email; no probing or lookup),
+                // falls back to the Radish homepage when null.
+                Link(destination: card.radishDisplayURL) {
                     HStack(spacing: 5) {
-                        Image(systemName: "chart.line.uptrend.xyaxis").font(.system(size: 11))
-                        Text("Radish Guide").font(Design.Fonts.mono(12))
+                        Image(systemName: "arrow.up.right.square").font(.system(size: 11))
+                        Text("View on Radish").font(Design.Fonts.mono(12))
                     }
                     .foregroundStyle(Design.Colors.bobaCyan)
                     .frame(maxWidth: .infinity)
@@ -164,19 +162,10 @@ struct PricingSection: View {
             //     Show queue scanner, individual show "Refresh
             //     Prices", or per-card forceRefresh) bumps the
             //     pulse — every open PricingSection re-fetches.
-            //
-            // Probe Radish for the right URL before kicking off the
-            // pricing Worker request. The resolver caches per-bobaId
-            // so this is a one-time HEAD per card per session.
-            let probed = await RadishURLResolver.shared.resolve(for: card)
-            if probed != resolvedRadishURL {
-                resolvedRadishURL = probed
-            }
             fetch()
         }
         .onChange(of: selectedDays) { fetch() }
         .sheet(isPresented: $showEbay)   { SafariView(url: ebayURL) }
-        .sheet(isPresented: $showRadish) { SafariView(url: radishURL) }
         // sheet(item:) ensures the URL is set before the sheet is presented,
         // fixing the blank-on-first-tap bug that sheet(isPresented:) caused.
         .sheet(item: $selectedItemURL) { item in SafariView(url: item.url) }
@@ -621,18 +610,6 @@ struct PricingSection: View {
         return components.url ?? URL(string: "https://www.ebay.com")!
     }
 
-    // MARK: - Radish URL
-    //
-    // Shared builder lives on Card — see Card+Radish.swift. The same URL
-    // is sent to the pricing Worker so it can scrape Radish's pre-
-    // validated sold data, not just the one iOS users tap through to.
-
-    private var radishURL: URL {
-        resolvedRadishURL
-            ?? card.resolvedRadishURL
-            ?? URL(string: "https://radishpriceguide.com/boba")!
-    }
-
     // MARK: - Fetch
 
     private func fetch() {
@@ -653,37 +630,16 @@ struct PricingSection: View {
         }
         Task {
             do {
-                // Send the RESOLVED URL, not the raw constructed
-                // one. Without this, a card whose primary URL
-                // 404s would have its button point to the
-                // hero-only fallback while the Worker still tried
-                // (and failed) to scrape the original 404 — wasting
-                // the Radish lookup on every pricing fetch.
-                let radishStr = (resolvedRadishURL ?? card.resolvedRadishURL)?.absoluteString
                 let pricingResult = try await PricingService.shared.pricing(
                     for: card.cardNumber,
                     hero: card.hero,
                     set: card.set,
                     element: card.element,
                     power: card.power,
-                    radishUrl: radishStr,
                     days: selectedDays,
                     treatment: card.treatment
                 )
                 result = pricingResult
-                // Snap the Radish button to whichever URL actually
-                // returned data. The Worker tried the cardNumber-
-                // specific page first, fell back to the hero-only
-                // page, and reported back which one had real
-                // listings. Stronger signal than a bare HEAD probe
-                // (which can't tell a 200-OK shell from a 200-OK
-                // page with sales).
-                if let workerURL = pricingResult.radishResolvedUrl,
-                   let url = URL(string: workerURL),
-                   url != resolvedRadishURL {
-                    resolvedRadishURL = url
-                    RadishURLResolver.shared.cacheURL(url, for: card)
-                }
             } catch PricingService.PricingError.noData {
                 fetchError = "No eBay listings found for the last \(selectedDays) days."
             } catch PricingService.PricingError.notConfigured {

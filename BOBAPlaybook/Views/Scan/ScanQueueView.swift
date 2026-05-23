@@ -658,7 +658,6 @@ struct ScanQueueView: View {
                     set: c.set,
                     element: c.element,
                     power: c.power,
-                    radishUrl: c.resolvedRadishUrlString,
                     days: 30,
                     treatment: c.treatment
                 )

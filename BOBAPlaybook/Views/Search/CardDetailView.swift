@@ -49,7 +49,6 @@ struct CardDetailView: View {
     /// Toast surface reused for the Show add flow — "Added to {show}".
     @State private var addedToShowName: String?
     @State private var showSealedEbay = false
-    @State private var showSealedRadish = false
     @State private var shareItems: [Any] = []
     @State private var showingShare = false
     @State private var isPreparingShare = false
@@ -354,11 +353,6 @@ struct CardDetailView: View {
             }
             .sheet(isPresented: $showSealedEbay) {
                 if let url = sealedEbayURL { SafariView(url: url) }
-            }
-            .sheet(isPresented: $showSealedRadish) {
-                if let urlStr = card.radishUrl, let url = URL(string: urlStr) {
-                    SafariView(url: url)
-                }
             }
             .sheet(isPresented: $showingModEdit) {
                 ModCardEditSheet(card: card)
@@ -1088,25 +1082,26 @@ struct CardDetailView: View {
                     }
                 }
 
-                // Radish price guide
-                if card.radishUrl != nil {
-                    Button { showSealedRadish = true } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "chart.line.uptrend.xyaxis")
-                                .font(.system(size: 11))
-                            Text("Radish Guide")
-                                .font(Design.Fonts.mono(12))
-                        }
-                        .foregroundStyle(Design.Colors.bobaCyan)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Design.Spacing.sm)
-                        .background(
-                            RoundedRectangle(cornerRadius: Design.Radius.sm)
-                                .fill(Design.Colors.bobaCyan.opacity(0.10))
-                                .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
-                                    .strokeBorder(Design.Colors.bobaCyan.opacity(0.35), lineWidth: 1))
-                        )
+                // Per Radish (2026-05-23): ordinary user-facing link only,
+                // opens external browser. Uses the legacy catalog
+                // `radishUrl` field when present; falls back to the
+                // Radish homepage when null.
+                Link(destination: card.radishDisplayURL) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.system(size: 11))
+                        Text("View on Radish")
+                            .font(Design.Fonts.mono(12))
                     }
+                    .foregroundStyle(Design.Colors.bobaCyan)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Design.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.sm)
+                            .fill(Design.Colors.bobaCyan.opacity(0.10))
+                            .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .strokeBorder(Design.Colors.bobaCyan.opacity(0.35), lineWidth: 1))
+                    )
                 }
             }
         }

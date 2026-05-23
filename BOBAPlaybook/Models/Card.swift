@@ -41,6 +41,13 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
     var imageFile: String?
     let imageSource: String?
     let imageAvailable: Bool
+    /// Frozen legacy field — populated for cards in the catalog before
+    /// 2026-05-23. Used SOLELY as the destination of the per-card
+    /// "View on Radish" external-link button per Radish's email-stated
+    /// allowance for "ordinary user-facing linking." Nil for new
+    /// cards; the button falls back to the Radish homepage. NEVER
+    /// passed to any Worker / matcher / pricing lookup — that
+    /// automation is prohibited.
     let radishUrl: String?
 
     // Sealed product fields (nil for regular cards)
@@ -214,6 +221,20 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
 extension Card: Transferable {
     nonisolated static var transferRepresentation: some TransferRepresentation {
         CodableRepresentation(contentType: .json)
+    }
+}
+
+extension Card {
+    /// Destination for the per-card "View on Radish" external-link
+    /// button. Prefers the legacy frozen `radishUrl` field (acquired
+    /// before 2026-05-23 from Radish's sitemap, treated as static
+    /// reference data); falls back to the Radish homepage when the
+    /// field is null. This is the ONE permitted use of Radish-derived
+    /// data per the email — no probing, no validation, no lookups,
+    /// no pricing impact, no Worker call.
+    var radishDisplayURL: URL {
+        if let raw = radishUrl, let url = URL(string: raw) { return url }
+        return URL(string: "https://radishpriceguide.com")!
     }
 }
 

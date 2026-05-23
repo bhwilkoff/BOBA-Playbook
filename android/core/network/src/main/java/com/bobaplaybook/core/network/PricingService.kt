@@ -15,10 +15,10 @@ import kotlinx.serialization.json.Json
 
 /**
  * Pricing service — single request to the `boba-ebay-proxy` Worker
- * root which aggregates eBay active + eBay sold + Radish sales into
- * one response. Matches iOS PricingService.swift exactly.
+ * root which aggregates eBay active + eBay sold into one response.
+ * Matches iOS PricingService.swift exactly.
  *
- * **Worker contract** (verified 2026-05-19 via curl):
+ * **Worker contract** (verified 2026-05-23, v18 — Radish-free):
  *   `GET /?cardNumber={n}&hero={h}&set={s}&element={e}&days=90`
  *   →
  *   {
@@ -26,18 +26,13 @@ import kotlinx.serialization.json.Json
  *     "sold":   { "low":..., "average":..., "high":..., "count":..., "items":[...] },
  *     "low":..., "average":..., "high":..., "count":..., "priceType":"listed"|"sold",
  *     "items":  [...],                  // legacy flat list (mirrors whichever section drove the headline)
- *     "radishResolvedUrl": "..."        // Worker resolved this card's Radish landing page, optional
  *   }
  *
- * The previous Android impl hit `/ebay/active`, `/ebay/sold`, and
- * `/radish/recent` as separate paths with a `q=` param. That returned
- * `{"error":"cardNumber parameter required"}` from the Worker on every
- * call, which the soft-fail catch turned into empty lists silently.
- * Net effect: no pricing anywhere. Fix is a single request to root with
- * the right param shape.
- *
  * COMC stays out of the sold-comp waterfall (DECISIONS.md #034); the
- * Worker doesn't fold it in.
+ * Worker doesn't fold it in. Radish Price Guide is no longer consulted
+ * by the Worker (DECISIONS.md #056 / RADISH_REMOVAL_LOOP.md). The
+ * client-side "View on Radish" button reads `Card.radishUrl` from the
+ * catalog directly — not from this Worker response.
  */
 @Singleton
 class PricingService @Inject constructor(
@@ -67,35 +62,21 @@ class PricingService @Inject constructor(
                 parameter("days", days)
             }.body()
 
-            // Active listings are always eBay; sold comps can be Radish
-            // OR eBay depending on which the Worker found first. Classify
-            // per-item by URL host so the tile label ("Radish" vs "eBay")
-            // matches the actual buyer site the tap-through opens.
+            // Every listing comes from eBay post-2026-05-23 — the Worker
+            // no longer consults Radish. Tagging all tiles EBAY so the
+            // UI label and tap-through expectations match reality.
             val activeItems = response.active?.items.orEmpty().map { it.toListing(PricingSource.EBAY) }
-            val soldItems = response.sold?.items.orEmpty().map { item ->
-                val url = item.url.orEmpty()
-                val source = when {
-                    url.contains("radishpriceguide.com", ignoreCase = true) -> PricingSource.RADISH
-                    url.contains("ebay.com", ignoreCase = true) -> PricingSource.EBAY
-                    // Worker default: Radish-first waterfall, so unknown
-                    // URLs (e.g. missing `url`) almost always came from
-                    // Radish. Tagging them EBAY would mislabel; pick
-                    // RADISH for the unknown case.
-                    else -> PricingSource.RADISH
-                }
-                item.toListing(source)
-            }
+            val soldItems = response.sold?.items.orEmpty().map { it.toListing(PricingSource.EBAY) }
             // Worker pre-computes the canonical low/average/high over
-            // the preferred source (sold first via Radish or Insights;
-            // active as fallback). The `priceType` field tags which
-            // source landed in the top-level fields. Surfacing these
-            // directly avoids re-deriving the waterfall on-device, so
-            // the iOS app and Android render identical market
-            // estimates for the same Worker response.
+            // the preferred source (sold first; active as fallback).
+            // The `priceType` field tags which source landed in the
+            // top-level fields. Surfacing these directly avoids
+            // re-deriving the waterfall on-device, so iOS and Android
+            // render identical market estimates for the same Worker
+            // response.
             PricingBundle(
                 ebayActive = activeItems,
                 ebaySold = soldItems,
-                radishResolvedUrl = response.radishResolvedUrl,
                 marketAverageUsd = response.average,
                 marketSource = response.priceType,
                 marketCount = response.count,
@@ -113,7 +94,6 @@ class PricingService @Inject constructor(
 data class PricingBundle(
     val ebayActive: List<PricingListing> = emptyList(),
     val ebaySold: List<PricingListing> = emptyList(),
-    val radishResolvedUrl: String? = null,
     /**
      * Worker's pre-computed canonical market average. Reflects the
      * Worker's source-waterfall (sold > active). Use this directly
@@ -136,7 +116,7 @@ data class PricingListing(
     val source: PricingSource,
 )
 
-enum class PricingSource { EBAY, RADISH }
+enum class PricingSource { EBAY }
 
 // ─────────────────────────────────────────────────────────────────
 // Worker response wire shapes
@@ -152,7 +132,6 @@ private data class PricingResponse(
     val count: Int = 0,
     @SerialName("priceType") val priceType: String? = null,
     val items: List<PricingItem> = emptyList(),
-    @SerialName("radishResolvedUrl") val radishResolvedUrl: String? = null,
 )
 
 @Serializable

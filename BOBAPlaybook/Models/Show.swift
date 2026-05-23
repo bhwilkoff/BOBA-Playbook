@@ -79,7 +79,8 @@ enum ShowHorizon: String, CaseIterable, Identifiable, Codable {
 
     /// Days value to send to the pricing Worker. The Worker caps at 90,
     /// so longer windows still clamp server-side — acceptable since
-    /// Radish data rarely contains reliable history beyond ~90d anyway.
+    /// eBay Marketplace Insights data rarely contains reliable history
+    /// beyond ~90 days anyway.
     var days: Int {
         switch self {
         case .d7:  return 7

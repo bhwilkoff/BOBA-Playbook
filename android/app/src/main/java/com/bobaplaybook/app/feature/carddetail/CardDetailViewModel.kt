@@ -33,8 +33,6 @@ data class CardDetailUiState(
     val isLoadingPricing: Boolean = false,
     val ebayActive: ImmutableList<PricingListing> = persistentListOf(),
     val ebaySold: ImmutableList<PricingListing> = persistentListOf(),
-    /** Worker-resolved Radish landing URL (when present); used for tap-through. */
-    val radishUrl: String? = null,
     val otherVersions: ImmutableList<Card> = persistentListOf(),
     /**
      * Worker's pre-computed canonical market average — preferred over
@@ -66,8 +64,8 @@ data class CardDetailUiState(
     val marketEstimateBasis: String?
         get() {
             // Worker-derived basis when available — names the source
-            // the Worker actually used (sold via Radish/Insights vs
-            // active fallback) and the exact count it averaged over.
+            // the Worker actually used (eBay sold vs active fallback)
+            // and the exact count it averaged over.
             if (workerMarketAverageUsd != null) {
                 val srcLabel = if (workerMarketSource == "sold") "recent sold comps"
                                else "active listings"
@@ -86,9 +84,9 @@ data class CardDetailUiState(
  *
  * Reactive lookup from the live catalog plus on-demand pricing fetch
  * when the screen opens. ONE Worker round-trip per bobaId; Worker
- * aggregates eBay active + sold + Radish into the same response.
- * Pricing soft-fails — a Worker outage shows "no data" rather than
- * crashing the detail view.
+ * aggregates eBay active + sold into the same response. Pricing
+ * soft-fails — a Worker outage shows "no data" rather than crashing
+ * the detail view.
  */
 @HiltViewModel
 class CardDetailViewModel @Inject constructor(
@@ -148,7 +146,6 @@ class CardDetailViewModel @Inject constructor(
                 isLoadingPricing = pricing.isLoading,
                 ebayActive = pricing.ebayActive[bobaId].orEmpty().toPersistentList(),
                 ebaySold = pricing.ebaySold[bobaId].orEmpty().toPersistentList(),
-                radishUrl = pricing.radishUrl[bobaId],
                 otherVersions = otherVersions.toPersistentList(),
                 workerMarketAverageUsd = pricing.marketAverage[bobaId],
                 workerMarketSource = pricing.marketSource[bobaId],
@@ -176,7 +173,6 @@ class CardDetailViewModel @Inject constructor(
                 isLoading = false,
                 ebayActive = pricingState.value.ebayActive + (bobaId to bundle.ebayActive),
                 ebaySold = pricingState.value.ebaySold + (bobaId to bundle.ebaySold),
-                radishUrl = pricingState.value.radishUrl + (bobaId to bundle.radishResolvedUrl),
                 marketAverage = pricingState.value.marketAverage + (bobaId to bundle.marketAverageUsd),
                 marketSource = pricingState.value.marketSource + (bobaId to bundle.marketSource),
                 marketCount = pricingState.value.marketCount + (bobaId to bundle.marketCount),
@@ -202,7 +198,6 @@ private data class PricingState(
     val startedForBobaId: Set<String> = emptySet(),
     val ebayActive: Map<String, List<PricingListing>> = emptyMap(),
     val ebaySold: Map<String, List<PricingListing>> = emptyMap(),
-    val radishUrl: Map<String, String?> = emptyMap(),
     /** Worker pre-computed average — per-bobaId. */
     val marketAverage: Map<String, Double?> = emptyMap(),
     /** "sold" / "listed" — per-bobaId. */

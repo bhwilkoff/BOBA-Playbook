@@ -3,19 +3,22 @@
  *
  * Auth: OAuth client credentials (EBAY_APP_ID + EBAY_CERT_ID).
  *
- * Per-card pricing — two-source strategy (Feature A):
- *   1. Radish Price Guide + eBay Browse API run in parallel → returns both
- *      a "sold" section (Radish or Marketplace Insights) and an "active"
- *      section (Browse API) in every response. Never early-returns on Radish
- *      data — users can always see Buy Now listings.
- *   2. Marketplace Insights API used for sold when no Radish URL available.
+ * Per-card pricing — eBay-only (v18, 2026-05-23):
+ *   - Marketplace Insights API for sold history (90-day window by default).
+ *   - Browse API for currently-active listings.
+ *   - Sold history is scored via `normaliseSoldEnriched` (hero + cardNumber +
+ *     power + treatment + element signals) with AI image verification on
+ *     ambiguous matches.
+ *   - Market Est. fallback (when no eBay sold data) is provided by the
+ *     separate `boba-price-estimator` Worker — see RADISH_REMOVAL_LOOP.md
+ *     Phase 7 for the comparability-function design.
  *
  * Market Feed cron (Feature B):
  *   Runs every 30 minutes, searches for all recent BOBA sold items, matches
  *   them to the card catalog by extracting card number + hero from titles,
  *   and upserts them to the Supabase `recent_sales` table.
  *
- * Response JSON (per-card, v10):
+ * Response JSON (per-card, v18):
  *   {
  *     "sold":   { "low", "average", "high", "count", "items" },  // may be absent
  *     "active": { "low", "average", "high", "count", "items" },  // may be absent
@@ -488,365 +491,6 @@ function isExactMatch(title, aspects, cardNumber, hero, power) {
   }
 }
 
-// ── Radish Price Guide data source ────────────────────────────────────────────
-
-/**
- * Fetches pre-validated sold data from Radish Price Guide.
- * Radish embeds all sales in __NEXT_DATA__ — no separate API call needed.
- * Their allSales array has already matched each eBay sale to the specific card,
- * so accuracy is far higher than our own eBay title/aspect filtering.
- *
- * Returns an array of normalised items, or null on failure.
- */
-async function fetchRadishHTML(url) {
-  try {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        "Accept":     "text/html,application/xhtml+xml",
-      },
-    });
-    if (!res.ok) {
-      // CRITICAL: drain the body even when we don't want it.
-      // Cloudflare Workers warn ("stalled HTTP response was
-      // canceled to prevent deadlock") and start cancelling other
-      // in-flight requests when too many fetch() calls have
-      // un-consumed bodies in flight at once. With the parallel
-      // namespace sweep firing ~30 requests at a time and most
-      // returning 404, leaking those bodies caused subsequent
-      // legitimate calls (e.g. the Market Est. card_id lookup)
-      // to be cancelled mid-flight — silently breaking pricing
-      // for cards that should have produced an estimate.
-      await res.body?.cancel();
-      return null;
-    }
-    return await res.text();
-  } catch {
-    return null;
-  }
-}
-
-function stripCardNumberFromRadishURL(url) {
-  // Drop the last path segment so /boba/{year}/{slug}/{hero}/{num}
-  // becomes /boba/{year}/{slug}/{hero}. Returns null when the URL
-  // doesn't match that shape (e.g. /boba/sealed has no cardNumber).
-  try {
-    const u = new URL(url);
-    const parts = u.pathname.split("/").filter(Boolean);
-    if (parts.length < 5) return null;
-    parts.pop();
-    u.pathname = "/" + parts.join("/");
-    return u.toString();
-  } catch {
-    return null;
-  }
-}
-
-// Every year/slug pair Radish actually serves. Built from
-// curl 'https://radishpriceguide.com/boba'. Cards in our catalog
-// can live under a different (year, slug) than their `set`
-// suggests — e.g. LeBoss-1 has set="Alpha Edition" in our data but
-// Radish hosts him under /2025/Alpha_Update/. So when the catalog-
-// hinted URL has no data, we sweep all known (year, slug) pairs.
-const RADISH_NAMESPACES = [
-  ["2026", "Griffey_Edition"],
-  ["2025", "Alpha_Update"],
-  ["2025", "Alpha_Blast"],
-  ["2025", "World_Champions"],
-  ["2025", "Big_League_Chew"],
-  ["2025", "Promo_Cards"],
-  ["2024", "Alpha_Edition"],
-  ["2024", "World_Champions"],
-  ["2024", "National_24_Starter_Set"],
-  ["2024", "Battle_Trainer_Kit"],
-  ["2024", "Promo_Cards"],
-  ["2026", "Promo_Cards"],
-];
-
-async function fetchRadishSales(radishUrl, days) {
-  // Walk a list of candidate URLs and pick whichever one has the
-  // most useful data:
-  //   - First preference: a URL with items inside the requested
-  //     date window (these become the sold-comp data).
-  //   - Second preference: a URL with sales aggregated but none in
-  //     the window — surface the single most recent sale as a
-  //     stale comp so the card still gets a price. We'd rather show
-  //     a 90-day-old sale than nothing at all, since most users
-  //     just want a market-value anchor.
-  //   - Last resort: nothing carried any data; return null and the
-  //     client falls back to its constructed URL.
-  const parsed = parseRadishURL(radishUrl);
-  let candidates;
-  if (!parsed) {
-    // Unrecognized shape (e.g. /boba/sealed). Just probe the
-    // original URL once.
-    candidates = [radishUrl];
-  } else {
-    const { hero, cardNumber, year: hintYear, slug: hintSlug } = parsed;
-    // Catalog-hinted (year, slug) first, then every other namespace.
-    const namespaceOrder = [
-      [hintYear, hintSlug],
-      ...RADISH_NAMESPACES.filter(([y, s]) => y !== hintYear || s !== hintSlug),
-    ];
-    // Hero-name variants. Our catalog stores hyphenated names
-    // (Mean-Joe, Bell-Camp, Maxed-Out) but Radish is inconsistent —
-    // some live at hyphen-form ("Mean-Joe"), some at space-form
-    // ("Maxed Out"). Try both shapes. Capped at 2 variants total
-    // because Cloudflare's 50-subrequest-per-invocation cap means
-    // 11 namespaces × N variants × 1 cardNumber URL + 11 hero-only
-    // URLs has to stay under ~45 to leave headroom for eBay calls.
-    const heroVariants = Array.from(new Set([
-      hero,
-      hero.includes("-") ? hero.replaceAll("-", " ") : null,
-      hero.includes(" ") ? hero.replaceAll(" ", "-") : null,
-    ].filter(Boolean)));
-    candidates = [];
-    for (const [year, slug] of namespaceOrder) {
-      for (const heroVariant of heroVariants) {
-        const base = `https://radishpriceguide.com/boba/${year}/${slug}/${encodeURIComponent(heroVariant)}`;
-        if (cardNumber) candidates.push(`${base}/${encodeURIComponent(cardNumber)}`);
-      }
-      // One hero-only fallback per namespace, using the canonical
-      // (catalog) hero spelling. Hero pages exist whenever Radish
-      // has any sales for that hero in that set, regardless of
-      // which exact card_number we asked about.
-      candidates.push(`https://radishpriceguide.com/boba/${year}/${slug}/${encodeURIComponent(hero)}`);
-    }
-  }
-
-  // Fire every candidate probe in parallel. Sequential walk took
-  // 4-5s on cold cache (11 namespaces × 2 URLs each × ~400ms),
-  // which intermittently exceeded iOS's 7s URLSession timeout
-  // (DeKap GGL-779, Crosbow FT-76). Stamping a 10-min negative
-  // cache then meant the card stayed blank in the app even though
-  // the worker would have eventually returned data. Promise.allSettled
-  // collapses the wallclock cost to a single round-trip (~500ms)
-  // and well under Cloudflare's 50-subrequest cap.
-  const settled = await Promise.allSettled(
-    candidates.map(url => tryRadishURL(url, days))
-  );
-  // Walk results in original priority order so the catalog-hinted
-  // namespace wins ties.
-  let staleBest = null;  // { item, url }
-  for (let i = 0; i < candidates.length; i++) {
-    const url = candidates[i];
-    const s   = settled[i];
-    const result = s.status === "fulfilled" ? s.value : null;
-    if (!result) continue;  // 404, network error, or non-card page
-    if (result.inWindow.length > 0) {
-      return { items: result.inWindow, resolvedUrl: url, stale: false };
-    }
-    const newest = result.allItems[0];
-    if (newest) {
-      const newestMs = new Date(newest.date).getTime();
-      if (!staleBest || newestMs > new Date(staleBest.item.date).getTime()) {
-        staleBest = { item: newest, url };
-      }
-    }
-  }
-  if (staleBest) {
-    return { items: [staleBest.item], resolvedUrl: staleBest.url, stale: true };
-  }
-  return { items: null, resolvedUrl: null, stale: false };
-}
-
-/// Pull (year, slug, hero, treatment?, cardNumber?) out of a Radish
-/// card URL. Handles both legacy 4-segment shape
-///   /boba/{year}/{slug}/{hero}/{cardNumber}
-/// AND the current canonical 5-segment shape
-///   /boba/{year}/{slug}/{hero}/{treatment}/{cardNumber}
-/// Returns null when the URL doesn't match either (e.g. /boba/sealed).
-///
-/// The catalog now bakes canonical 5-segment URLs sourced from
-/// Radish's sitemap (scripts/build_radish_url_map.py). When the
-/// client sends one of those, parts.length is 6 and the cardNumber
-/// is in the LAST segment, not parts[4].
-function parseRadishURL(url) {
-  try {
-    const u = new URL(url);
-    const parts = u.pathname.split("/").filter(Boolean);
-    if (parts.length < 4 || parts[0] !== "boba") return null;
-    const year = parts[1];
-    const slug = parts[2];
-    if (!/^\d{4}$/.test(year)) return null;
-    const heroEnc = parts[3];
-    let treatment = null;
-    let cardNumberEnc = null;
-    if (parts.length === 5) {
-      // Legacy 4-segment shape: hero + cardNumber
-      cardNumberEnc = parts[4];
-    } else if (parts.length >= 6) {
-      // Current canonical shape: hero + treatment + cardNumber
-      treatment    = decodeURIComponent(parts[4]);
-      cardNumberEnc = parts[5];
-    }
-    return {
-      year,
-      slug,
-      hero:       decodeURIComponent(heroEnc),
-      treatment,
-      cardNumber: cardNumberEnc ? decodeURIComponent(cardNumberEnc) : null,
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function tryRadishURL(url, days) {
-  // Returns { inWindow, allItems } where:
-  //   inWindow  — sales within the requested days window
-  //   allItems  — every aggregated sale (newest-first), used to
-  //               surface a stale-but-real comp when the window
-  //               has nothing.
-  // Returns null only when the URL itself doesn't exist or doesn't
-  // carry the Next.js allSales structure.
-  try {
-    const html = await fetchRadishHTML(url);
-    if (!html) return null;
-
-    const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">([^<]+)<\/script>/);
-    if (!match) return null;
-
-    const nextData = JSON.parse(match[1]);
-    const allSales = nextData?.props?.pageProps?.allSales;
-    if (!Array.isArray(allSales) || allSales.length === 0) return null;
-
-    const visible = allSales
-      .filter(s => !s.hide && s.sold_date)
-      .map(s => ({
-        title: s.title ?? s.card_name ?? "",
-        price: parseFloat(s.price ?? "0"),
-        date:  s.sold_date ?? "",
-        url:   s.link ?? "",
-      }))
-      .filter(i => i.price > 0 && i.title);
-    if (visible.length === 0) return null;
-
-    const cutoffMs = Date.now() - days * 86400 * 1000;
-    const inWindow = visible.filter(i => new Date(i.date).getTime() >= cutoffMs);
-    // allItems sorted newest-first so the caller can pick [0] for
-    // "most recent sale of any age."
-    const allItems = [...visible].sort((a, b) =>
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    return { inWindow, allItems };
-  } catch {
-    return null;
-  }
-}
-
-// ── Radish Market Est. fallback ───────────────────────────────────────────────
-//
-// When a card has no in-window sales AND no historical sales of its
-// own, Radish's UI surfaces a "Market Est." range computed from
-// comparable cards (same hero / same weapon / same power, across
-// other parallels and treatments). The midpoint of that range is a
-// reasonable market anchor for cards that have never sold.
-//
-// Implementation:
-//   1. Hit the Next.js static-data endpoint for the card URL to
-//      learn Radish's internal integer card_id (the public
-//      catalog uses card_number + hero, but the estimated-value API
-//      keys on card_id).
-//   2. Hit /api/boba/estimated-value?card_id={id} which returns
-//      {marketEstimatedValue, marketEstimatedValueLow,
-//       marketEstimatedValueHigh, marketEstimatedValueSource}.
-//   3. When marketEstimatedValueSource is "comps" or "own_sales" and
-//      the value is positive, return it as the estimate.
-//
-// The Next.js buildId rotates on every Radish redeploy, so we scrape
-// it on-demand from any rendered page and cache it for 24h.
-
-let RADISH_BUILD_ID_CACHE = { value: null, fetchedAt: 0 };
-const RADISH_BUILD_ID_TTL_MS = 86400 * 1000;
-
-async function getRadishBuildId() {
-  if (
-    RADISH_BUILD_ID_CACHE.value &&
-    Date.now() - RADISH_BUILD_ID_CACHE.fetchedAt < RADISH_BUILD_ID_TTL_MS
-  ) {
-    return RADISH_BUILD_ID_CACHE.value;
-  }
-  // Any page works — sealed index is the lightest.
-  const html = await fetchRadishHTML("https://radishpriceguide.com/boba/sealed");
-  if (!html) return RADISH_BUILD_ID_CACHE.value;  // serve stale on probe failure
-  const m = html.match(/"buildId":"([^"]+)"/);
-  if (!m) return RADISH_BUILD_ID_CACHE.value;
-  RADISH_BUILD_ID_CACHE = { value: m[1], fetchedAt: Date.now() };
-  return m[1];
-}
-
-async function fetchRadishCardId(year, slug, hero, cardNumber) {
-  const buildId = await getRadishBuildId();
-  if (!buildId) return null;
-  const path = `${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}.json`;
-  const buildUrl = (id) =>
-    `https://radishpriceguide.com/_next/data/${id}/boba/${year}/${slug}/${path}`;
-  try {
-    let res = await fetch(buildUrl(buildId), { headers: { "User-Agent": "Mozilla/5.0" } });
-    if (res.status === 404) {
-      // Stale buildId is the most likely cause of a 404 on this
-      // endpoint (Radish redeploys rotate the value, our 24h
-      // in-memory cache lags reality). Bust the cache and refetch
-      // immediately so this request still produces a card_id —
-      // otherwise Market Est. silently no-ops every time the
-      // buildId rotates, even though the card exists.
-      await res.body?.cancel();   // drain stale 404 before reassigning
-      RADISH_BUILD_ID_CACHE = { value: null, fetchedAt: 0 };
-      const fresh = await getRadishBuildId();
-      if (fresh && fresh !== buildId) {
-        res = await fetch(buildUrl(fresh), { headers: { "User-Agent": "Mozilla/5.0" } });
-      } else {
-        return null;  // couldn't get a fresh buildId — give up
-      }
-    }
-    if (!res.ok) { await res.body?.cancel(); return null; }
-    const data = await res.json();
-    return data?.pageProps?.card?.id ?? null;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchRadishMarketEst(radishUrl) {
-  // Targeted lookup, not a sweep — Cloudflare Workers cap each
-  // invocation at 50 subrequests, and `fetchRadishSales` already
-  // burned a chunk walking every namespace. Just probe the single
-  // (year, slug, hero, cardNumber) tuple the caller passes in. If
-  // the caller needs to retry under a different namespace, they
-  // should call us again with the corrected URL.
-  const parsed = parseRadishURL(radishUrl);
-  if (!parsed) return null;
-  const { hero, cardNumber, year, slug } = parsed;
-  if (!cardNumber) return null;  // hero-only URLs don't map to a card_id
-
-  const cardId = await fetchRadishCardId(year, slug, hero, cardNumber);
-  if (!cardId) return null;
-  try {
-    const apiUrl = `https://radishpriceguide.com/api/boba/estimated-value?card_id=${cardId}`;
-    const res = await fetch(apiUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
-    if (!res.ok) { await res.body?.cancel(); return null; }
-    const json = await res.json();
-    const value  = parseFloat(json?.marketEstimatedValue ?? "0");
-    const low    = parseFloat(json?.marketEstimatedValueLow ?? "0");
-    const high   = parseFloat(json?.marketEstimatedValueHigh ?? "0");
-    const source = json?.marketEstimatedValueSource ?? null;
-    if (!source || !(value > 0 || (low > 0 && high > 0))) return null;
-    // Prefer the explicit `marketEstimatedValue` (Radish's chosen
-    // mid). Fall back to (low+high)/2 when the API returned a range
-    // but no single mid value.
-    const mid = value > 0 ? value : (low + high) / 2;
-    return {
-      mid:     round2(mid),
-      low:     low > 0  ? round2(low)  : round2(mid),
-      high:    high > 0 ? round2(high) : round2(mid),
-      source,  // "comps" | "own_sales"
-      resolvedUrl: `https://radishpriceguide.com/boba/${year}/${slug}/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}`,
-    };
-  } catch {
-    return null;
-  }
-}
 
 // ── AI image verification ─────────────────────────────────────────────────────
 
@@ -1435,182 +1079,6 @@ function clampFrac(v, defaultVal = 0) {
   return Math.max(0, Math.min(1, n));
 }
 
-// ── Radish URL resolver (sitemap-driven, edge-cached) ────────────────────────
-//
-// Single source of truth for Radish URL construction. Clients NEVER
-// hardcode Radish URL templates — they call /radish-url with the
-// catalog tuple (set, hero, cardNumber) and get back the canonical
-// URL. When Radish changes shape (4-segment → 5-segment, hero-casing
-// drift, whatever's next), only this Worker needs an update; the
-// edge cache evicts on the next miss and all clients get the new
-// shape on next launch.
-//
-// Storage strategy: pure Cloudflare edge cache (caches.default).
-// First call after expiry fetches Radish's sitemap.xml (~4 MB),
-// parses every 5-segment URL into a {key → URL} map, and stuffs
-// the JSON back into the cache with a 7-day TTL. Subsequent calls
-// hit cache and do a single hashmap lookup.
-//
-// Lookup key: `{year}/{slug}/{lower(hero)}/{lower(cardnum)}`. The
-// lowercase normalization means every drift dimension we've found
-// (RAD vs Rad, ChetMate vs Chetmate, etc.) resolves to the SAME
-// key — Radish's sitemap entry is the canonical answer regardless
-// of input casing.
-
-const RADISH_SITEMAP_URL = "https://radishpriceguide.com/sitemap.xml";
-const RADISH_MAP_CACHE_TTL = 7 * 24 * 3600;  // 7 days
-
-// Catalog set name → (year, slug). Mirrors SET_MAP on iOS / web /
-// scripts/apply_radish_urls.py. The ONLY hardcoded thing in this
-// pipeline that isn't auto-derived from Radish's sitemap.
-const SET_TO_NAMESPACE = {
-  "Alpha":                          ["2024", "Alpha_Edition"],
-  "Alpha Edition":                  ["2024", "Alpha_Edition"],
-  "Alpha Update":                   ["2025", "Alpha_Update"],
-  "Alpha Blast":                    ["2025", "Alpha_Blast"],
-  "Griffey":                        ["2026", "Griffey_Edition"],
-  "Griffey Edition":                ["2026", "Griffey_Edition"],
-  "National Starter Set":           ["2024", "National_24_Starter_Set"],
-  "2024 National Show Starter Set": ["2024", "National_24_Starter_Set"],
-  "National '24":                   ["2024", "National_24_Starter_Set"],
-  "National 24 Starter Set":        ["2024", "National_24_Starter_Set"],
-  "World Champions":                ["2024", "World_Champions"],
-  "World Champions 2024":           ["2024", "World_Champions"],
-  "World Champions 2025":           ["2025", "World_Champions"],
-  "Battle Trainer Kit":             ["2024", "Battle_Trainer_Kit"],
-  "Superfan Series":                ["2024", "Superfan_Series"],
-  "Promo Cards":                    ["2025", "Promo_Cards"],
-  "Big League Chew":                ["2025", "Big_League_Chew"],
-  "Tecmo Bowl Edition":             ["2025", "Tecmo_Bowl"],
-};
-
-/// Fetch + parse Radish's sitemap. Returns a JSON-serializable
-/// lookup object. Pure function — no side effects.
-async function fetchRadishURLMap() {
-  const res = await fetch(RADISH_SITEMAP_URL, {
-    headers: { "User-Agent": "Mozilla/5.0 (BOBA Playbook Worker)" },
-  });
-  if (!res.ok) {
-    await res.body?.cancel();
-    throw new Error(`Sitemap fetch failed: ${res.status}`);
-  }
-  const xml = await res.text();
-  const locRegex = /<loc>([^<]+)<\/loc>/g;
-  const map = {};
-  const byHeroCardnum = {};   // (lower_hero, lower_cardnum) → first URL across any namespace
-  const namespaces = new Set();
-  let total = 0;
-  let m;
-  while ((m = locRegex.exec(xml)) !== null) {
-    const u = m[1];
-    const idx = u.indexOf("/boba/");
-    if (idx < 0) continue;
-    const parts = u.slice(idx + 6).split("/");
-    if (parts.length !== 5) continue;  // only canonical 5-segment URLs
-    let year, slug, heroEnc, _treatmentEnc, cardnumEnc;
-    [year, slug, heroEnc, _treatmentEnc, cardnumEnc] = parts;
-    try {
-      year = decodeURIComponent(year);
-      slug = decodeURIComponent(slug);
-      const hero = decodeURIComponent(heroEnc);
-      const cardnum = decodeURIComponent(cardnumEnc);
-      const key = `${year}/${slug}/${hero.toLowerCase()}/${cardnum.toLowerCase()}`;
-      if (!(key in map)) {
-        map[key] = u;
-        total++;
-      }
-      const hcKey = `${hero.toLowerCase()}/${cardnum.toLowerCase()}`;
-      if (!(hcKey in byHeroCardnum)) byHeroCardnum[hcKey] = u;
-      namespaces.add(`${year}/${slug}`);
-    } catch { /* skip malformed URI */ }
-  }
-  return {
-    builtAt: new Date().toISOString(),
-    source: RADISH_SITEMAP_URL,
-    totalUrls: total,
-    namespaces: Array.from(namespaces).sort(),
-    map,
-    byHeroCardnum,
-  };
-}
-
-/// Edge-cached wrapper. First call after TTL expiry refetches.
-async function getRadishURLMap() {
-  const cache = caches.default;
-  const cacheKey = new Request("https://boba-cache.internal/radish-url-map/v1");
-  const cached = await cache.match(cacheKey);
-  if (cached) return cached.json();
-  const data = await fetchRadishURLMap();
-  await cache.put(cacheKey, new Response(JSON.stringify(data), {
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": `public, max-age=${RADISH_MAP_CACHE_TTL}`,
-    },
-  }));
-  return data;
-}
-
-/// GET /radish-url?set=&hero=&cardNumber= → {url, namespace, lookup}
-async function handleRadishURL(request) {
-  const { searchParams } = new URL(request.url);
-  const setField   = (searchParams.get("set")        || "").trim();
-  const hero       = (searchParams.get("hero")       || "").trim();
-  const cardNumber = (searchParams.get("cardNumber") || "").trim();
-  if (!hero || !cardNumber) {
-    return json({ error: "hero + cardNumber required" }, 400);
-  }
-  let data;
-  try {
-    data = await getRadishURLMap();
-  } catch (err) {
-    return json({ error: `sitemap unavailable: ${err.message}` }, 502);
-  }
-  const lhero = hero.toLowerCase();
-  const lcn   = cardNumber.toLowerCase();
-
-  // Primary lookup: use the catalog set → namespace map.
-  const ns = SET_TO_NAMESPACE[setField];
-  if (ns) {
-    const [year, slug] = ns;
-    const url = data.map[`${year}/${slug}/${lhero}/${lcn}`];
-    if (url) return json({ url, namespace: `${year}/${slug}`, lookup: "primary" });
-  }
-
-  // Cross-namespace fallback: same (hero, cardnum) lives at a different (year, slug).
-  const crossUrl = data.byHeroCardnum[`${lhero}/${lcn}`];
-  if (crossUrl) {
-    return json({ url: crossUrl, namespace: null, lookup: "cross-namespace" });
-  }
-
-  // Hero-page fallback: at least direct to the hero index.
-  if (ns) {
-    return json({
-      url: `https://radishpriceguide.com/boba/${ns[0]}/${ns[1]}/${encodeURIComponent(hero)}`,
-      namespace: `${ns[0]}/${ns[1]}`,
-      lookup: "hero-only",
-    });
-  }
-  return json({ error: "no match", lookup: "none" }, 404);
-}
-
-/// GET /radish-url-map → the full lookup table (for offline catalog
-/// bake / batch refresh). Cached at edge for 7 days; clients should
-/// also cache locally.
-async function handleRadishURLMapDump(_request) {
-  try {
-    const data = await getRadishURLMap();
-    return json({
-      builtAt: data.builtAt,
-      source: data.source,
-      totalUrls: data.totalUrls,
-      namespaces: data.namespaces,
-      map: data.map,
-    }, 200, { "Cache-Control": `public, max-age=${RADISH_MAP_CACHE_TTL}` });
-  } catch (err) {
-    return json({ error: `sitemap unavailable: ${err.message}` }, 502);
-  }
-}
-
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export default {
@@ -1624,15 +1092,12 @@ export default {
     if (request.method === "GET"  && url.pathname.endsWith("/discord/messages")) return handleDiscordMessages(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/whatnot/upcoming")) return handleWhatnotUpcoming(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/scrape-ebay"))      return handleScrapeEbay(request, env);
-    if (request.method === "GET"  && url.pathname.endsWith("/radish-url"))       return handleRadishURL(request);
-    if (request.method === "GET"  && url.pathname.endsWith("/radish-url-map"))   return handleRadishURLMapDump(request);
     const { searchParams } = url;
     const cardNumber = searchParams.get("cardNumber");
     const hero       = searchParams.get("hero") || "";
     const powerRaw   = searchParams.get("power");
     const power      = powerRaw != null ? parseInt(powerRaw, 10) : null;
     const days       = Math.min(Math.max(parseInt(searchParams.get("days") ?? "30", 10), 1), 90);
-    const radishUrl  = searchParams.get("radishUrl") || "";
     /// User-initiated refresh: when the client passes `fresh=1`, skip
     /// the cache lookup AND don't write a fresh cached entry — so the
     /// next click of the day-picker for the same card hits a clean
@@ -1643,16 +1108,11 @@ export default {
     if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
 
     // ── Cache ─────────────────────────────────────────────────────────────────
-    // v17: Cloudflare's stalled-HTTP-response auto-cancel was
-    // killing the Radish card_id lookup mid-flight when ~33
-    // parallel namespace probes leaked their 404 bodies. Now we
-    // drain bodies on every non-200 (await res.body?.cancel()),
-    // so Market Est. actually reaches the API. Plus a one-shot
-    // buildId-rotation retry. v16 caches lock in the old broken
-    // responses (NO_DATA where there should be data), so a
-    // version bump is the only way to evict.
+    // v18: Radish Price Guide integration removed 2026-05-23. Old cached
+    // entries (v17 and earlier) carry `radishResolvedUrl` fields that
+    // clients now ignore. Bumping the cache namespace evicts them all.
     const cache    = caches.default;
-    const cacheURL = `https://boba-cache.internal/v17/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
+    const cacheURL = `https://boba-cache.internal/v18/${encodeURIComponent(hero)}/${encodeURIComponent(cardNumber)}/${days}`;
     const cacheKey = new Request(cacheURL);
     if (!forceFresh) {
       const cached = await cache.match(cacheKey);
@@ -1673,49 +1133,24 @@ export default {
     cutoff.setUTCDate(cutoff.getUTCDate() - days);
     const cutoffISO = cutoff.toISOString();
 
-    // ── Run Radish fetch + OAuth token in parallel ────────────────────────────
-    // Radish has pre-matched each eBay sale to the specific card — far more
-    // accurate than title/aspect filtering. The token is always needed for Browse.
-    const [radishResult, tokenResult] = await Promise.allSettled([
-      radishUrl ? fetchRadishSales(radishUrl, days) : Promise.resolve(null),
-      getAppToken(env, cache),
-    ]);
+    // ── OAuth token (always needed for Browse + Marketplace Insights) ─────────
+    const tokenResult = await getAppToken(env, cache).then(
+      v => ({ status: "fulfilled", value: v }),
+      e => ({ status: "rejected", reason: e })
+    );
 
-    // ── Build sold section from Radish ────────────────────────────────────────
+    // ── Build sold section from eBay Marketplace Insights ─────────────────────
     let soldSection  = null;
-    let radishResolvedUrl = null;
-    const radishPayload = radishResult.status === "fulfilled" ? radishResult.value : null;
-    const radishItems = radishPayload?.items ?? null;
-    const radishStale = radishPayload?.stale ?? false;
-    radishResolvedUrl = radishPayload?.resolvedUrl ?? null;
-    if (radishItems && radishItems.length > 0) {
-      const sorted = [...radishItems].sort((a, b) => a.price - b.price);
-      const prices = sorted.map(i => i.price);
-      soldSection = {
-        low:     round2(prices[0]),
-        average: round2(prices.reduce((s, p) => s + p, 0) / prices.length),
-        high:    round2(prices[prices.length - 1]),
-        count:   radishItems.length,
-        items:   radishItems.slice(0, 10),   // already newest-first from fetchRadishSales
-        // When stale=true the only "comp" is a single sale older than
-        // `days`. UI surfaces it as "Last sold {date}" instead of the
-        // window-based average copy, since one stale sale is not
-        // really a 30-day average.
-        ...(radishStale ? { stale: true } : {}),
-      };
-    }
-
-    // ── eBay API calls (require OAuth token) ──────────────────────────────────
     let activeSection = null;
     let browseError   = null;
 
     if (tokenResult.status === "fulfilled") {
       const token = tokenResult.value;
 
-      // If Radish had no data, try Marketplace Insights for sold history.
+      // Marketplace Insights sold-history (the eBay-only path, post-Radish).
       // Per MATCH_MODE env flag: "enriched" (default) uses the new scorer;
       // "legacy" falls back to the binary isExactMatch filter.
-      if (!soldSection) {
+      {
         const { items, error, noScope } = await searchSold(token, keywordsSpecific, cutoffISO);
         if (!noScope && !error) {
           const mode = (env.MATCH_MODE ?? "enriched").toLowerCase();
@@ -1780,8 +1215,8 @@ export default {
         }
       }
 
-      // Always fetch active (Browse API) — regardless of whether Radish had sold data.
-      // Users should always be able to see cards currently for sale.
+      // Always fetch active (Browse API) — regardless of whether sold data
+      // exists. Users should always be able to see cards currently for sale.
       const { items: activeRaw, error: activeErr } = await searchActive(token, keywordsSpecific);
       if (!activeErr) {
         const activeItems = await normaliseActive(activeRaw, cardNumber, hero, power, env);
@@ -1799,51 +1234,14 @@ export default {
       } else {
         browseError = activeErr;
       }
-    } else {
-      // Token fetch failed — soldSection might still come from Radish
-      // sales or, below, Market Est. Don't bail yet; let the Market
-      // Est. fallback have a shot at producing a number.
     }
-
-    // ── Market Est. fallback (final tier) ─────────────────────────────────────
-    // Reached when neither Radish sales (in-window or stale) nor
-    // eBay sold history produced a soldSection. This is the third
-    // tier of the price waterfall: Radish sales → eBay sold →
-    // Radish Market Est. (range computed from comparable cards on
-    // Radish's side). Better to ship a comp-based estimate than no
-    // number at all, since most users just want a market anchor.
-    if (!soldSection && radishUrl) {
-      try {
-        // Prefer the namespace fetchRadishSales already validated
-        // (radishResolvedUrl) — that's where a real Radish card page
-        // exists, so the card_id lookup lands on the first try. Falls
-        // back to the catalog-hinted URL when the sweep didn't
-        // validate any namespace. Targeted single-namespace lookup
-        // keeps us under Cloudflare's 50-subrequest cap.
-        const probeUrl = radishResolvedUrl || radishUrl;
-        const est = await fetchRadishMarketEst(probeUrl);
-        if (est && est.mid > 0) {
-          soldSection = {
-            low:     est.low,
-            average: est.mid,
-            high:    est.high,
-            count:   0,
-            items:   [],
-            estimated: true,
-            estimatedSource: est.source,
-          };
-          if (!radishResolvedUrl) radishResolvedUrl = est.resolvedUrl;
-        }
-      } catch {
-        // Estimate is best-effort. Silent failure preserves the
-        // active-only path below.
-      }
-    }
+    // (Market Est. fallback tier moved to a separate Worker — see
+    // RADISH_REMOVAL_LOOP.md Phase 7. This Worker now returns
+    // sold + active only; the estimator Worker is consulted by
+    // clients independently when soldSection is absent.)
 
     if (!soldSection && !activeSection) {
       if (browseError) return json({ error: browseError, count: 0, low: 0, average: 0, high: 0, priceType: "sold", items: [] }, 502);
-      // Token-fetch failure is only fatal if every other tier also
-      // failed (Radish sales, eBay sold, Market Est., active listings).
       if (tokenResult.status !== "fulfilled") {
         return json({ error: String(tokenResult.reason), count: 0, low: 0, average: 0, high: 0, priceType: "sold", items: [] }, 502);
       }
@@ -1862,12 +1260,6 @@ export default {
     const result = {
       ...(soldSection   ? { sold:   soldSection }   : {}),
       ...(activeSection ? { active: activeSection } : {}),
-      // The Radish URL that actually carried data — clients use this
-      // for the "Radish Guide" button so it lands on a page with
-      // listings rather than a 200-OK shell with no comps. Null
-      // when neither the primary nor the hero-only fallback had any
-      // sales (the client falls back to its own constructed URL).
-      ...(radishResolvedUrl ? { radishResolvedUrl } : {}),
       // Legacy backward-compat fields
       low:       primary?.low       ?? 0,
       average:   primary?.average   ?? 0,

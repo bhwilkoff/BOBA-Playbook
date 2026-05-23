@@ -384,7 +384,6 @@ final class CollectionStore {
                 set: card.set,
                 element: card.element,
                 power: card.power,
-                radishUrl: card.resolvedRadishUrlString,
                 days: 30,
                 treatment: card.treatment,
                 forceRefresh: forceRefresh

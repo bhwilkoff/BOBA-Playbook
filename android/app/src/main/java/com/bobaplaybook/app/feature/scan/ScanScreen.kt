@@ -526,7 +526,19 @@ private fun ScanReviewSheet(
                                     )
                                 }
                             },
-                            headlineContent = { Text(card?.displayName ?: entry.bobaId) },
+                            headlineContent = {
+                                // iOS-parity "×N" quantity suffix when the
+                                // queue collapsed multiple scans of the
+                                // same card into one row (Whatnot box-
+                                // break workflow). Subtle — only appears
+                                // when quantity > 1.
+                                val name = card?.displayName ?: entry.bobaId
+                                Text(
+                                    text = if (entry.quantity > 1)
+                                        "$name  ×${entry.quantity}"
+                                    else name,
+                                )
+                            },
                             supportingContent = {
                                 val sub = listOfNotNull(
                                     card?.cardNumber,

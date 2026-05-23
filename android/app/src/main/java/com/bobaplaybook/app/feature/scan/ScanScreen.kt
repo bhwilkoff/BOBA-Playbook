@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as GSize
@@ -579,8 +580,20 @@ private fun ScanViewfinder(
             },
         )
         onDispose {
-            controller.clearImageAnalysisAnalyzer()
-            recognizer.close()
+            android.util.Log.i("ScanViewfinder", "onDispose — clearing analyzer + closing ML Kit recognizer (background)")
+            // Clear the analyzer first (synchronous, fast). The ML Kit
+            // recognizer.close() releases native resources and can block
+            // for tens of ms; defer to a background dispatcher so we
+            // don't compete with the simultaneous Compose navigation
+            // that happens right after a chip tap (Ben's "app
+            // quits/crashes on chip tap" — the prior logcat showed
+            // Activity pause-timeout, classic main-thread blocking).
+            runCatching { controller.clearImageAnalysisAnalyzer() }
+                .onFailure { android.util.Log.e("ScanViewfinder", "clearImageAnalysisAnalyzer threw", it) }
+            kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { recognizer.close() }
+                    .onFailure { android.util.Log.e("ScanViewfinder", "recognizer.close threw", it) }
+            }
         }
     }
 

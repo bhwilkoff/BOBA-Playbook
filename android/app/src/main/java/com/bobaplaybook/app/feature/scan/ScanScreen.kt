@@ -34,6 +34,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -773,7 +775,27 @@ private fun ScanDetectionChip(
         card.element.uppercase()
     )
     Surface(
-        modifier = modifier,
+        modifier = modifier
+            // Swipe-down gesture to dismiss — iOS ScanDetectionChipView
+            // uses `.simultaneousGesture(DragGesture).onEnded { ... }`
+            // with a 30pt threshold. Android equivalent: accumulate the
+            // vertical drag amount; trigger onDismiss when the user
+            // pulls down ≥ 60 px. Lives BEFORE the inner row's
+            // clickable so the drag detector consumes the gesture
+            // before tap propagation (tap stays usable as long as
+            // the user doesn't drag past the threshold).
+            .pointerInput(Unit) {
+                var dy = 0f
+                detectVerticalDragGestures(
+                    onDragStart = { _: androidx.compose.ui.geometry.Offset -> dy = 0f },
+                    onDragEnd = {
+                        if (dy >= 60f) onDismiss()
+                    },
+                    onDragCancel = { dy = 0f },
+                ) { _: androidx.compose.ui.input.pointer.PointerInputChange, dragAmount: Float ->
+                    dy += dragAmount
+                }
+            },
         color = Color.Black.copy(alpha = 0.78f),
         shape = RoundedCornerShape(14.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.55f)),

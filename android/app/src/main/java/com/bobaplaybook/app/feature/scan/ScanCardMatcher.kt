@@ -132,13 +132,23 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         // uses exact substring; we improve on it.
         val heroesMentioned = mutableSetOf<String>()
         val heroesTopLeft = mutableSetOf<String>()
+        // Strict subset of heroesTopLeft — only heroes with an EXACT
+        // substring top-left match. The -2.0 hero veto is harsh; we
+        // don't want a low-confidence fuzzy match (Levenshtein 2 on
+        // OCR noise) to incorrectly suppress every other candidate.
+        // Fuzzy matches still earn the +1.5 positive bonus; only
+        // exact matches gate the veto.
+        val heroesTopLeftStrict = mutableSetOf<String>()
         for (tk in tokens) {
             val upper = tk.text.uppercase().replace(Regex("\\s+"), "")
             for (hero in idx.heroNames) {
                 val canonical = idx.canonical[hero] ?: continue
                 if (matchesHero(upper, canonical)) {
                     heroesMentioned += hero
-                    if (tk.isTopLeft) heroesTopLeft += hero
+                    if (tk.isTopLeft) {
+                        heroesTopLeft += hero
+                        if (upper.contains(canonical)) heroesTopLeftStrict += hero
+                    }
                 }
             }
         }
@@ -161,7 +171,10 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
                 if (hero in heroesMentioned) continue
                 if (matchesHero(joined, canonical)) {
                     heroesMentioned += hero
-                    if (a.isTopLeft) heroesTopLeft += hero
+                    if (a.isTopLeft) {
+                        heroesTopLeft += hero
+                        if (joined.contains(canonical)) heroesTopLeftStrict += hero
+                    }
                 }
             }
         }
@@ -241,9 +254,15 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
             // clearly named top-left and this candidate isn't that hero,
             // hammer the score. This is what kills the "partial-OCR
             // landed on a real-but-wrong cardNumber" failure mode.
-            if (heroesTopLeft.isNotEmpty() && card.hero.isNotBlank()) {
+            //
+            // Gate on `heroesTopLeftStrict` (exact substring match) so
+            // a low-confidence fuzzy hero claim from OCR noise can't
+            // wrongly suppress every legitimate candidate. Fuzzy
+            // top-left matches still earn the +1.5 positive bonus
+            // above; only exact matches drive the negative veto.
+            if (heroesTopLeftStrict.isNotEmpty() && card.hero.isNotBlank()) {
                 val heroUpper = card.hero.uppercase()
-                val topLeftUppercased = heroesTopLeft.map { it.uppercase() }.toSet()
+                val topLeftUppercased = heroesTopLeftStrict.map { it.uppercase() }.toSet()
                 if (heroUpper !in topLeftUppercased) {
                     score -= 2.0
                     reasons += "hero veto −2.0"

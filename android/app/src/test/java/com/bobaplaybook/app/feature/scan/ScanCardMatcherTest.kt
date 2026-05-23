@@ -222,6 +222,37 @@ class ScanCardMatcherTest {
     }
 
     @Test
+    fun `fuzzy-only top-left does not veto legitimate cardNumber match`() {
+        // Scenario: OCR catches a strong cardNumber match (clean
+        // "BHBF-37" → JacHammer) but a top-left token is OCR garbage
+        // that happens to fuzzy-match a different hero name at
+        // Levenshtein 2 (e.g. "JACKHAMMR" ← JacHammer at distance 2
+        // — wait, that matches JacHammer exactly via substring at
+        // Levenshtein 0 because "JACKHAMMR".contains("JACHAMMER")
+        // would be false; use a deliberately broken read).
+        //
+        // For a real veto-false-positive case, imagine top-left
+        // OCR reads "TYGRE" (typo for Tigre at Levenshtein 1).
+        // Before iter 9, that fuzzy hero match would credit Tigre
+        // top-left → veto JacHammer despite BHBF-37 being the
+        // clear cardNumber signal. After iter 9, the veto only
+        // fires when an EXACT top-left match is found — so
+        // JacHammer's cardNumber + non-top-left hero combo wins.
+        val tokens = listOf(
+            token("TYGRE", topLeft = true),  // fuzzy = Tigre, Levenshtein 1
+            token("BHBF-37", topLeft = false),
+            token("JacHammer", topLeft = false),
+        )
+        val result = matcher.match(tokens)
+        assertNotNull(result)
+        assertEquals(
+            "Expected JacHammer to commit (cardNumber + hero mid-frame); fuzzy 'TYGRE' must not veto",
+            "JacHammer",
+            result?.card?.hero,
+        )
+    }
+
+    @Test
     fun `multi-word treatment matches across token split`() {
         // Cards with multi-word treatments like "Red Battlefoil" or
         // "Inspired Ink" print the treatment with each word on its

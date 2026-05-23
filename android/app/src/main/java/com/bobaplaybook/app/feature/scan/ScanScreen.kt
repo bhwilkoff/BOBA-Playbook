@@ -520,6 +520,16 @@ private fun ScanViewfinder(
     // guide-frame element-coloured stroke. Declared BEFORE the
     // analyzer setup so the analyzer closure captures it.
     var detectedCard by remember { mutableStateOf<com.bobaplaybook.core.domain.model.Card?>(null) }
+    // iOS-parity Quick-Save counter. iOS scanner shows "+2 in Personal"
+    // when the user taps the chip's + button twice on the same chip.
+    // Android previously showed the same "Added X to Personal" each tap
+    // regardless of count — collectors couldn't tell their 3rd tap had
+    // landed. Reset to 0 whenever the chip's bobaId changes (new card
+    // committed) or the chip dismisses (detectedCard goes null).
+    var quickSaveCount by remember { mutableStateOf(0) }
+    androidx.compose.runtime.LaunchedEffect(detectedCard?.bobaId) {
+        quickSaveCount = 0
+    }
     // rememberUpdatedState — analyzer closure binds once but reads
     // the CURRENT scanMode on every fire. Without this, the closure
     // captures the initial SINGLE value and toggling MULTI in the UI
@@ -710,11 +720,21 @@ private fun ScanViewfinder(
                 card = card,
                 onTap = { onChipTap(card.bobaId) },
                 onQuickSave = {
+                    // Increment optimistically so the snackbar reflects
+                    // this tap's count even if the user mashes faster
+                    // than the coroutine resolves. The +N badge in the
+                    // chip reads from quickSaveCount directly.
+                    quickSaveCount += 1
+                    val count = quickSaveCount
                     scope.launch {
                         val auth = ScanModuleAccess.authManager.authState
                             .first()
                         val userId = (auth as? com.bobaplaybook.app.auth.AuthState.SignedIn)?.userId
                         if (userId == null) {
+                            // Roll back the optimistic increment so the
+                            // chip doesn't show a phantom +N on signed-
+                            // out taps.
+                            quickSaveCount -= 1
                             appSnackbar?.showSnackbar(
                                 "Sign in to Quick-Save ${card.displayName}"
                             )
@@ -728,9 +748,16 @@ private fun ScanViewfinder(
                             designation = com.bobaplaybook.core.domain.model.Designation.PERSONAL,
                             userId = userId,
                         )
-                        appSnackbar?.showSnackbar(
+                        // iOS-parity copy: show running count when the
+                        // user has tapped + more than once on the same
+                        // chip ("Added Maverick ×3 to Personal"). First
+                        // tap stays at the cleaner singular form.
+                        val message = if (count > 1) {
+                            "Added ${card.displayName} ×$count to Personal"
+                        } else {
                             "Added ${card.displayName} to Personal"
-                        )
+                        }
+                        appSnackbar?.showSnackbar(message)
                     }
                 },
                 onDismiss = {
@@ -743,6 +770,7 @@ private fun ScanViewfinder(
                     lastMatchedBobaId = null
                     detectedCard = null
                 },
+                quickSaveCount = quickSaveCount,
                 // AnimatedVisibility owns the position + padding +
                 // alignment now; the chip itself is just full-width.
                 modifier = Modifier.fillMaxWidth(),
@@ -764,6 +792,7 @@ private fun ScanDetectionChip(
     onTap: () -> Unit,
     onQuickSave: () -> Unit,
     onDismiss: () -> Unit,
+    quickSaveCount: Int,
     modifier: Modifier = Modifier,
 ) {
     // Element-coloured accent stripe + outline — iOS ScanDetectionChipView
@@ -853,16 +882,31 @@ private fun ScanDetectionChip(
             }
             // Quick-Save "+" — adds the matched card to the user's
             // Personal designation without leaving the scanner. iOS
-            // ScanDetectionChipView has the same affordance.
-            IconButton(
-                onClick = onQuickSave,
-                modifier = Modifier.width(36.dp).height(36.dp),
+            // ScanDetectionChipView has the same affordance. After the
+            // first save, a small "×N" badge appears next to the icon
+            // so collectors know their second + tap landed without
+            // watching the snackbar fade in/out.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Quick-Save to Personal",
-                    tint = Color(0xFFFF4D00),
-                )
+                if (quickSaveCount > 0) {
+                    Text(
+                        text = "×$quickSaveCount",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFFFF4D00),
+                    )
+                }
+                IconButton(
+                    onClick = onQuickSave,
+                    modifier = Modifier.width(36.dp).height(36.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Quick-Save to Personal",
+                        tint = Color(0xFFFF4D00),
+                    )
+                }
             }
             // Dismiss "X" — clears the chip + resets the stabilizer
             // so the user can re-scan without leaving the screen.

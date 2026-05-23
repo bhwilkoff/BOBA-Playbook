@@ -1381,19 +1381,59 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
     }
 
     // "Recent Sales" — eBay sold comps (scored + filtered by the Worker).
-    BOBASectionHeader(title = "Recent Sales")
+    // When no eBay sold comps, fall back to the comparability-derived
+    // Market Est. from `boba-price-estimator` (DECISIONS.md #056).
     val sold = state.ebaySold.distinctBy { it.url }
-    if (sold.isEmpty()) {
+    val estimate = state.marketEstimate
+    if (sold.isEmpty() && estimate != null) {
+        BOBASectionHeader(title = "Market Est.")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            for ((label, value) in listOf(
+                "EST. LOW" to estimate.low,
+                "EST. MID" to estimate.mid,
+                "EST. HIGH" to estimate.high,
+            )) {
+                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "$${value.formatUsdAmount()}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+        }
         Text(
-            text = "No recent sales found",
-            style = MaterialTheme.typography.bodyMedium,
+            text = if (estimate.comparableCount > 0)
+                "Estimated from ${estimate.comparableCount} comparable cards"
+            else "Estimated value",
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
     } else {
-        ListingsRow(
-            listings = kotlinx.collections.immutable.persistentListOf<PricingListing>().addAll(sold),
-        )
+        BOBASectionHeader(title = "Recent Sales")
+        if (sold.isEmpty()) {
+            Text(
+                text = "No recent sales found",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+        } else {
+            ListingsRow(
+                listings = kotlinx.collections.immutable.persistentListOf<PricingListing>().addAll(sold),
+            )
+        }
     }
 
     // "View on Radish" — single ordinary user-facing link permitted by

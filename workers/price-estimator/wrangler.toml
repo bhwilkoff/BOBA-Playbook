@@ -7,7 +7,7 @@ compatibility_date = "2024-01-01"
 # the printed id below.
 [[kv_namespaces]]
 binding = "ESTIMATES"
-id      = "REPLACE_AFTER_CREATE"
+id      = "b44ff8f1197646c2a4ba5563a2a68959"
 
 # Cron schedule — nightly at 03:00 UTC. Recomputes estimates for every
 # catalog card. Walks ~18k cards in batches; total runtime well under
@@ -24,7 +24,10 @@ CATALOG_URL = "https://bobaplaybook.com/assets/data/cards.json"
 # its per-card eBay queries here so the OAuth + scoring logic stays in
 # one place (no Worker-to-Worker scoring duplication).
 EBAY_PROXY  = "https://boba-ebay-proxy.benwilkoff.workers.dev"
-# Per-card eBay query budget per cron run. 18k cards × 1 query = 18k
-# subrequests, well within the per-cron limit but cron itself runs
-# under a 30-min wallclock budget — batch + spread accordingly.
-PER_CRON_BUDGET = "18000"
+# Cap on cards processed PER CRON RUN. The cron is incremental:
+# skips cards whose KV estimate is fresh (within last 5 days) and
+# stops at this many newly-computed entries (or at the 25-min
+# wallclock soft cap, whichever fires first). At 600/night the
+# 18k-card catalog rotates through in ~30 nights at steady state;
+# tune up if cron consistently has time left in the wallclock budget.
+PER_CRON_BUDGET = "600"

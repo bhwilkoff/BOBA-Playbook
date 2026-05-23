@@ -15,6 +15,14 @@ object WorkerConfig {
     /** eBay Browse + Marketplace Insights API + Whatnot show feed proxy. */
     const val EBAY_PROXY = "https://boba-ebay-proxy.benwilkoff.workers.dev"
 
+    /**
+     * Market Est. fallback Worker. Consulted by `PricingService` when
+     * `EBAY_PROXY` returns no sold section. Replaces the Radish Market
+     * Est. tier that was removed 2026-05-23 (DECISIONS.md #056). See
+     * workers/price-estimator/README.md.
+     */
+    const val PRICE_ESTIMATOR = "https://boba-price-estimator.benwilkoff.workers.dev"
+
     /** COMC asking-price proxy. Soft-fails when Turnstile is up (DECISIONS.md #034). */
     const val COMC_PROXY = "https://boba-comc-proxy.benwilkoff.workers.dev"
 

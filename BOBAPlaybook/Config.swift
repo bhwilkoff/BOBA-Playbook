@@ -13,6 +13,12 @@ enum SupabaseConfig {
 // Format: "https://boba-ebay-proxy.<your-subdomain>.workers.dev"
 enum WorkerConfig {
     static let ebayProxyURL    = "https://boba-ebay-proxy.benwilkoff.workers.dev"
+    /// boba-price-estimator — Market Est. fallback Worker. Consulted by
+    /// `PricingService` when `boba-ebay-proxy` returns no sold section
+    /// (e.g. cards with zero eBay activity in the 90-day window).
+    /// Replaces what Radish's `/api/boba/estimated-value` previously
+    /// provided. See workers/price-estimator/README.md + DECISIONS.md #056.
+    static let priceEstimatorURL = "https://boba-price-estimator.benwilkoff.workers.dev"
     /// boba-youtube-feed — aggregates BoBA YouTube content into 3
     /// categorized feeds (live / short / regular) refreshed every 4h.
     /// See workers/youtube-feed/README.md.

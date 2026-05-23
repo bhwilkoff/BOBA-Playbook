@@ -1333,6 +1333,14 @@
      SCAN VIEW
   ================================================================ */
   const WORKER_URL = 'https://boba-ebay-proxy.benwilkoff.workers.dev';
+  // boba-price-estimator — Market Est. fallback Worker. Consulted
+  // when the eBay-proxy Worker returns no sold section (cards with
+  // zero recent eBay activity). Replaces the Radish Market Est. tier
+  // that was removed 2026-05-23 (DECISIONS.md #056). Returns null /
+  // 404 for cards the nightly cron hasn't computed yet — caller
+  // falls back gracefully to no Market Est. (same UX as today's
+  // "Pricing unavailable" path for those cards).
+  const ESTIMATOR_URL = 'https://boba-price-estimator.benwilkoff.workers.dev';
   // boba-comc-proxy — surfaces COMC.com asking-price listings as a
   // second source on the BUY NOW panel alongside eBay active listings.
   // Soft-fails to "no COMC items" when blocked by Cloudflare Turnstile
@@ -3624,6 +3632,15 @@
         ]);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+        // Market Est. fallback — when the eBay-proxy Worker returned
+        // no sold section, query boba-price-estimator for a
+        // comparability-derived estimate. Injects an `estimated: true`
+        // sold bucket which the renderer surfaces as "MARKET EST."
+        // instead of "RECENT SALES" (see renderPricingSection).
+        if (!data.sold && card.bobaId) {
+          const est = await fetchMarketEstimate(card.bobaId);
+          if (est) data.sold = est;
+        }
         renderPricingData(section, data, { days, comcListings: comcResp });
       } catch {
         const body = section.querySelector('.pricing-body');
@@ -3632,6 +3649,31 @@
     }
 
     fetchAndRender();
+  }
+
+  /// Market Est. fallback — `boba-price-estimator` Worker. Returns an
+  /// `estimated: true` sold-bucket shape compatible with
+  /// `renderPricingSection`'s estimated path, or null when the Worker
+  /// has no entry for this bobaId yet (404; cron hasn't computed).
+  async function fetchMarketEstimate(bobaId) {
+    if (!bobaId) return null;
+    try {
+      const res = await fetch(`${ESTIMATOR_URL}/estimate?bobaId=${encodeURIComponent(bobaId)}`);
+      if (!res.ok) return null;
+      const body = await res.json();
+      if (!body || typeof body.mid !== 'number' || body.mid <= 0) return null;
+      return {
+        low:             body.low,
+        average:         body.mid,
+        high:            body.high,
+        count:           0,
+        items:           [],
+        estimated:       true,
+        estimatedSource: 'comps',
+      };
+    } catch {
+      return null;
+    }
   }
 
   /// COMC.com asking-price listings, fetched alongside the eBay pricing

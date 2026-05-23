@@ -236,7 +236,18 @@ function computeEstimate(comparables, priceMap) {
 }
 
 /**
- * Cron handler — refresh estimates for every catalog card.
+ * Cron handler — refresh estimates incrementally. Each invocation:
+ *   1. Reads a rotating cursor from KV (or starts at 0 on first run).
+ *   2. Skips cards whose KV estimate is fresh (computed in last 5 days).
+ *   3. Processes UP TO `PER_CRON_BUDGET` cards needing work, OR stops
+ *      when wallclock approaches the 25-min soft cap.
+ *   4. Writes the new cursor back so the next cron picks up where this
+ *      one left off.
+ *
+ * Net effect at steady state: 18k catalog rotates through the cron over
+ * ~30 nights at default budget; staler entries naturally take priority
+ * once their TTL approaches. Brand-new cards get picked up on the very
+ * next cron after they land in cards.json.
  */
 async function refreshAllEstimates(env) {
   const catalogRes = await fetch(env.CATALOG_URL);
@@ -245,16 +256,44 @@ async function refreshAllEstimates(env) {
     return { processed: 0, written: 0, error: "catalog_fetch_failed" };
   }
   const catalog = await catalogRes.json();
-  // Bound the per-cron work — large catalogs + per-card eBay queries
-  // multiply quickly. PER_CRON_BUDGET is the absolute ceiling; cron
-  // processes a daily rotating slice when catalog > budget.
-  const budget = parseInt(env.PER_CRON_BUDGET || "18000", 10);
+  const cardsWithBobaId = catalog.filter(c => c.bobaId);
+  const budget = parseInt(env.PER_CRON_BUDGET || "600", 10);
+  // Wallclock soft cap — Cloudflare cron has a 30-min hard cap.
+  // Stop slightly early so KV writes + cursor save are guaranteed to
+  // land before the worker is killed.
+  const SOFT_CAP_MS = 25 * 60 * 1000;
+  // KV entries written by `refreshAllEstimates` carry 7-day TTL; cards
+  // with KV entries fresher than this threshold are skipped this run.
+  const FRESH_THRESHOLD_MS = 5 * 24 * 3600 * 1000;
   const startedAt = Date.now();
+
+  // Load rotating cursor.
+  const cursorRaw = await env.ESTIMATES.get("cursor:next_index");
+  let cursor = cursorRaw != null ? parseInt(cursorRaw, 10) : 0;
+  if (!Number.isFinite(cursor) || cursor < 0 || cursor >= cardsWithBobaId.length) cursor = 0;
+
   let processed = 0;
+  let skipped   = 0;
   let written   = 0;
-  for (const target of catalog) {
-    if (!target.bobaId) continue;
-    if (processed >= budget) break;
+  let i = cursor;
+  let wraps = 0;
+  while (processed < budget && (Date.now() - startedAt) < SOFT_CAP_MS && wraps < 2) {
+    if (i >= cardsWithBobaId.length) { i = 0; wraps++; continue; }
+    const target = cardsWithBobaId[i++];
+
+    // Skip-if-fresh check.
+    const existing = await env.ESTIMATES.get(`estimate:${target.bobaId}`);
+    if (existing) {
+      try {
+        const parsed = JSON.parse(existing);
+        const computedMs = parsed.computedAt ? Date.parse(parsed.computedAt) : 0;
+        if (computedMs && (Date.now() - computedMs) < FRESH_THRESHOLD_MS) {
+          skipped++;
+          continue;
+        }
+      } catch { /* stale-format entry — fall through and recompute */ }
+    }
+
     processed++;
     const comparables = findComparables(target, catalog);
     const allCompIds = Array.from(new Set([
@@ -274,17 +313,17 @@ async function refreshAllEstimates(env) {
     await env.ESTIMATES.put(
       `estimate:${target.bobaId}`,
       JSON.stringify(entry),
-      // 7-day TTL — cron refreshes nightly so a stale entry only
-      // survives if the cron itself fails for multiple days. Past
-      // 7 days, the entry expires and clients see "no estimate"
-      // (graceful degrade) until cron catches up.
       { expirationTtl: 7 * 24 * 3600 },
     );
     written++;
   }
+
+  // Save cursor for next cron. Modulo to wrap to head.
+  await env.ESTIMATES.put("cursor:next_index", String(i % cardsWithBobaId.length));
+
   const elapsedMs = Date.now() - startedAt;
-  console.log(`[estimator-cron] processed=${processed} written=${written} elapsedMs=${elapsedMs}`);
-  return { processed, written, elapsedMs };
+  console.log(`[estimator-cron] cursor_started=${cursor} cursor_now=${i % cardsWithBobaId.length} processed=${processed} skipped=${skipped} written=${written} elapsedMs=${elapsedMs}`);
+  return { processed, skipped, written, elapsedMs, cursorStart: cursor, cursorEnd: i % cardsWithBobaId.length };
 }
 
 /**

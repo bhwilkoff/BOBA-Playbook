@@ -192,6 +192,21 @@ actor PricingService {
             await MainActor.run { PricingPulse.shared.bump() }
         }
 
+        // Persistence-layer fast path. boba-pricing-snapshot's nightly
+        // cron writes the latest market data to Supabase's
+        // card_prices_history table; the `card_prices_latest` view
+        // returns the most-recent row per (boba_id, source). When a
+        // fresh row (< 24h) exists, render it immediately and skip
+        // the live eBay-proxy roundtrip — significant latency win on
+        // re-opened cards + saves eBay API quota. Refresh button
+        // bypasses this path by setting forceRefresh=true.
+        if !forceRefresh,
+           let bobaId = bobaIdHint(cardNumber: cardNumber, hero: hero, treatment: treatment, variation: variation),
+           let cachedResult = await fetchCachedPricingResult(bobaId: bobaId) {
+            cache[key] = cachedResult
+            return cachedResult
+        }
+
         let base = await MainActor.run { WorkerConfig.ebayProxyURL }
         guard !base.isEmpty else { throw PricingError.notConfigured }
 
@@ -293,6 +308,90 @@ actor PricingService {
         let high:              Double
         let comparableCount:   Int?
         let comparableSources: [String]?
+    }
+
+    private struct CardPricesLatestRow: Decodable {
+        let source:      String
+        let snapshotAt:  String
+        let lowUsd:      Decimal?
+        let avgUsd:      Decimal?
+        let highUsd:     Decimal?
+        let itemCount:   Int?
+
+        enum CodingKeys: String, CodingKey {
+            case source
+            case snapshotAt = "snapshot_at"
+            case lowUsd     = "low_usd"
+            case avgUsd     = "avg_usd"
+            case highUsd    = "high_usd"
+            case itemCount  = "item_count"
+        }
+    }
+
+    /// Returns a PricingResult assembled from the latest snapshot rows
+    /// for `bobaId` in Supabase's `card_prices_latest` view. nil when
+    /// no fresh row (< 24h) exists; the caller falls through to the
+    /// live ebay-proxy path.
+    private func fetchCachedPricingResult(bobaId: String) async -> PricingResult? {
+        // Anon-key Supabase REST read. The card_prices_history table
+        // RLS allows public read; service-role write only.
+        let supabaseURL = "https://pazkimtkwwwekuguxkff.supabase.co/rest/v1"
+        let anonKey = SupabaseConfig.anonKey
+        let encoded = bobaId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? bobaId
+        let urlString = "\(supabaseURL)/card_prices_latest?boba_id=eq.\(encoded)&select=source,snapshot_at,low_usd,avg_usd,high_usd,item_count"
+        guard let url = URL(string: urlString) else { return nil }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 3
+        req.setValue(anonKey, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { return nil }
+            let rows = try JSONDecoder().decode([CardPricesLatestRow].self, from: data)
+            if rows.isEmpty { return nil }
+            let freshThreshold: TimeInterval = 24 * 3600
+            let isoFormatter = ISO8601DateFormatter()
+            isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            var sold: PricingBucket?
+            var active: PricingBucket?
+            for row in rows {
+                let parsed = isoFormatter.date(from: row.snapshotAt)
+                    ?? ISO8601DateFormatter().date(from: row.snapshotAt)
+                guard let snapshot = parsed,
+                      Date().timeIntervalSince(snapshot) < freshThreshold else { continue }
+                let bucket = PricingBucket(
+                    low:             row.lowUsd ?? 0,
+                    average:         row.avgUsd ?? 0,
+                    high:            row.highUsd ?? 0,
+                    count:           row.itemCount ?? 0,
+                    items:           [],
+                    countProbable:   nil,
+                    stale:           nil,
+                    estimated:       row.source == "estimator" ? true : nil,
+                    estimatedSource: row.source == "estimator" ? "comps" : nil
+                )
+                switch row.source {
+                case "ebay_sold":   sold = bucket
+                case "ebay_active": active = bucket
+                case "estimator":   if sold == nil { sold = bucket }
+                default: break
+                }
+            }
+            guard let primary = sold ?? active else { return nil }
+            return PricingResult(
+                low:       primary.low,
+                average:   primary.average,
+                high:      primary.high,
+                count:     primary.count,
+                priceType: sold != nil ? "sold" : "listed",
+                items:     [],
+                fetchedAt: Date(),
+                sold:      sold,
+                active:    active
+            )
+        } catch {
+            return nil
+        }
     }
 
     private func fetchEstimatorBucket(bobaId: String) async -> PricingBucket? {

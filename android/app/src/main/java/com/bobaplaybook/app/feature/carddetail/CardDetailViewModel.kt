@@ -172,7 +172,13 @@ class CardDetailViewModel @Inject constructor(
 
     private fun loadPricing(bobaId: String, card: Card) {
         viewModelScope.launch {
-            val bundle = pricingService.fetchAll(
+            // Persistence-layer fast path — query Supabase's
+            // card_prices_latest view first. When a fresh row (< 24h)
+            // exists, skip the live ebay-proxy round-trip; significant
+            // latency win + saves eBay API quota. Falls through to the
+            // live path when no row or stale.
+            val cached = pricingService.fetchCachedBundle(bobaId)
+            val bundle = cached ?: pricingService.fetchAll(
                 cardNumber = card.cardNumber,
                 hero = card.hero,
                 set = card.set,
@@ -181,8 +187,10 @@ class CardDetailViewModel @Inject constructor(
             // Market Est. fallback — query boba-price-estimator when
             // the eBay-proxy returned no sold history. Surfaces as a
             // "MARKET EST." section in the UI. Best-effort; null
-            // result is fine (graceful "no data" path).
-            val estimate = if (bundle.ebaySold.isEmpty()) {
+            // result is fine (graceful "no data" path). When `cached`
+            // hit, the snapshot Worker already folded the estimator
+            // into its result so we skip the per-card call here.
+            val estimate = if (cached == null && bundle.ebaySold.isEmpty()) {
                 pricingService.fetchMarketEstimate(bobaId)
             } else null
             pricingState.value = pricingState.value.copy(

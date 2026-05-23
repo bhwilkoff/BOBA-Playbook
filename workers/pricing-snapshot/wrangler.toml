@@ -1,0 +1,44 @@
+name               = "boba-pricing-snapshot"
+main               = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Stores the rotating cursor + last-run stats. Created via
+# `wrangler kv namespace create SNAPSHOT_KV`.
+[[kv_namespaces]]
+binding = "SNAPSHOT_KV"
+id      = "6380f365d13247e28f978b7d76c8e4a9"
+
+# Cron — nightly at 04:00 UTC (one hour after the estimator). Cron
+# walks a rotating slice of the catalog each night and writes the
+# latest snapshot to the Supabase `card_prices_history` table.
+[triggers]
+crons = ["0 4 * * *"]
+
+[vars]
+# Source catalog. The snapshot Worker walks this list of cards each
+# night, calling the eBay-proxy + estimator per card to capture the
+# latest market data.
+CATALOG_URL = "https://bobaplaybook.com/assets/data/cards.json"
+# The other two Workers it consults. Live URLs.
+EBAY_PROXY      = "https://boba-ebay-proxy.benwilkoff.workers.dev"
+PRICE_ESTIMATOR = "https://boba-price-estimator.benwilkoff.workers.dev"
+# Cards processed per cron run. 600/night × 30 nights covers the
+# full catalog at steady state; freshness threshold below skips
+# already-snapshotted cards so the cron naturally prioritizes stale
+# entries. Tunable via wrangler.toml without redeploy.
+PER_CRON_BUDGET    = "600"
+# Skip cards whose newest snapshot is fresher than this many hours.
+# 18h = roughly daily but with slop so cron timing variance doesn't
+# cause double-work.
+FRESH_THRESHOLD_HRS = "18"
+# Drop snapshots older than this when the cron sees them. Keeps the
+# table bounded as more data accumulates. 90 days = enough for the
+# value-history chart deferred in SCRATCHPAD.md.
+RETENTION_DAYS     = "90"
+# Supabase REST endpoint. Public URL is fine; SERVICE_KEY (secret)
+# gates the actual writes.
+SUPABASE_URL = "https://pazkimtkwwwekuguxkff.supabase.co"
+
+# Secrets (set via `wrangler secret put <NAME>`):
+#   SUPABASE_SERVICE_KEY — service_role JWT, bypasses RLS so the
+#                          Worker can insert into card_prices_history.

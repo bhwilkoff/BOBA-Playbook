@@ -68,10 +68,20 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-// Weights — sum to 1.0 when all three axes match.
-const WEIGHT_SAME_HERO         = 0.6;
-const WEIGHT_SAME_WEAPON_POWER = 0.3;
-const WEIGHT_SAME_SET          = 0.1;
+// Weights — primary axes sum to 1.0 when all three match. Fallback
+// axes are only consulted when primary axes are sparse; they carry
+// reduced weight to reflect the looser comparability.
+const WEIGHT_SAME_HERO              = 0.6;
+const WEIGHT_SAME_WEAPON_POWER      = 0.3;
+const WEIGHT_SAME_SET               = 0.1;
+const WEIGHT_SAME_WEAPON_TREATMENT  = 0.2;   // fallback
+const WEIGHT_SAME_CARD_TYPE         = 0.1;   // fallback
+const WEIGHT_SAME_TREATMENT         = 0.1;   // fallback
+
+// Confidence threshold. ≥ 6 priced comps from primary axes = high
+// confidence; ≥ 3 = medium; below = low (UI surfaces a caveat).
+const CONFIDENCE_HIGH = 6;
+const CONFIDENCE_MED  = 3;
 
 // Cap on price range deviation. The estimate is clamped so that
 // low/mid/high never spread > 50% of mid in either direction.
@@ -111,12 +121,22 @@ function treatmentFamily(treatment) {
  * Find comparable cards for a target card. Returns an object keyed by
  * comparability axis; each value is a list of bobaIds. The same card can
  * appear under multiple axes (additive).
+ *
+ * Six axes total — three primary (high signal) and three fallback
+ * (looser, only consulted when primaries miss). The fallbacks let
+ * brand-new cards in brand-new sets still get an estimate when the
+ * primary axes return nothing.
  */
 function findComparables(target, catalog) {
   const result = {
     same_hero:         [],
     same_weapon_power: [],
     same_set:          [],
+    // Fallback axes — looser comparators, only used when the primary 3
+    // are sparse.
+    same_weapon_treatment: [],   // weapon + treatment-family only (no power-tier match)
+    same_card_type:        [],   // weapon + card type (Hero / Play / Hot Dog)
+    same_treatment:        [],   // any card of the same treatment family
   };
   const tHero  = (target.hero || "").toLowerCase();
   const tPower = powerTier(target.power);
@@ -131,17 +151,31 @@ function findComparables(target, catalog) {
     if (tHero && (c.hero || "").toLowerCase() === tHero) {
       result.same_hero.push(c.bobaId);
     }
-    // Same (weapon, power-tier, treatment-family)
+    const cFam = treatmentFamily(c.treatment);
+    const cPower = powerTier(c.power);
+    // Primary: same (weapon, power-tier, treatment-family)
     if (
       tEl && c.element === tEl &&
-      tPower && powerTier(c.power) === tPower &&
-      tFam && treatmentFamily(c.treatment) === tFam
+      tPower && cPower === tPower &&
+      tFam && cFam === tFam
     ) {
       result.same_weapon_power.push(c.bobaId);
     }
-    // Same (set, cardType)
+    // Primary: same (set, cardType)
     if (tSet && c.set === tSet && tType && c.cardType === tType) {
       result.same_set.push(c.bobaId);
+    }
+    // Fallback: same (weapon, treatment-family) without power-tier
+    if (tEl && c.element === tEl && tFam && cFam === tFam) {
+      result.same_weapon_treatment.push(c.bobaId);
+    }
+    // Fallback: same (weapon, cardType) — broader cross-set
+    if (tEl && c.element === tEl && tType && c.cardType === tType) {
+      result.same_card_type.push(c.bobaId);
+    }
+    // Fallback: same treatment family across all cards
+    if (tFam && cFam === tFam) {
+      result.same_treatment.push(c.bobaId);
     }
   }
   // Cap each axis at 20 comps to keep eBay-query fan-out bounded.
@@ -198,40 +232,77 @@ async function fetchCompPrices(bobaIds, catalog, ebayProxyUrl) {
 /**
  * Combine the per-axis comparable prices into a single weighted estimate.
  * Returns null when no axis has data.
+ *
+ * Tiered: primary axes (same_hero, same_weapon_power, same_set) are
+ * always weighted. Fallback axes (same_weapon_treatment, same_card_type,
+ * same_treatment) are only consulted when the primary axes are sparse —
+ * they prevent a brand-new card in a brand-new set from getting a null
+ * estimate just because its in-set comps don't exist yet. The fallback
+ * paths drive the `confidence` field (low / med / high) so the UI can
+ * caveat estimates derived from looser data.
  */
 function computeEstimate(comparables, priceMap) {
-  const axes = [
+  const primaryAxes = [
     { ids: comparables.same_hero,         weight: WEIGHT_SAME_HERO,         tag: "same_hero" },
     { ids: comparables.same_weapon_power, weight: WEIGHT_SAME_WEAPON_POWER, tag: "same_weapon_power" },
     { ids: comparables.same_set,          weight: WEIGHT_SAME_SET,          tag: "same_set" },
   ];
-  let weightedSum = 0;
-  let totalWeight = 0;
-  let totalCount  = 0;
-  const sourcesHit = [];
-  for (const axis of axes) {
-    const compsWithPrice = axis.ids.filter(id => priceMap.has(id));
-    if (compsWithPrice.length === 0) continue;
-    const avg = compsWithPrice
-      .map(id => priceMap.get(id))
-      .reduce((a, b) => a + b, 0) / compsWithPrice.length;
-    weightedSum  += avg * axis.weight;
-    totalWeight  += axis.weight;
-    totalCount   += compsWithPrice.length;
-    sourcesHit.push(axis.tag);
+  const fallbackAxes = [
+    { ids: comparables.same_weapon_treatment, weight: WEIGHT_SAME_WEAPON_TREATMENT, tag: "same_weapon_treatment" },
+    { ids: comparables.same_card_type,        weight: WEIGHT_SAME_CARD_TYPE,        tag: "same_card_type" },
+    { ids: comparables.same_treatment,        weight: WEIGHT_SAME_TREATMENT,        tag: "same_treatment" },
+  ];
+
+  function aggregateAxes(axes) {
+    let weightedSum = 0;
+    let totalWeight = 0;
+    let totalCount  = 0;
+    const sourcesHit = [];
+    for (const axis of axes) {
+      const compsWithPrice = axis.ids.filter(id => priceMap.has(id));
+      if (compsWithPrice.length === 0) continue;
+      const avg = compsWithPrice
+        .map(id => priceMap.get(id))
+        .reduce((a, b) => a + b, 0) / compsWithPrice.length;
+      weightedSum  += avg * axis.weight;
+      totalWeight  += axis.weight;
+      totalCount   += compsWithPrice.length;
+      sourcesHit.push(axis.tag);
+    }
+    return { weightedSum, totalWeight, totalCount, sourcesHit };
   }
+
+  const primary = aggregateAxes(primaryAxes);
+  // Only consult fallback axes when primary axes returned too little —
+  // they're noisier, so consulting them when primaries had data
+  // would dilute the signal.
+  const useFallbacks = primary.totalCount < CONFIDENCE_MED;
+  const fallback = useFallbacks ? aggregateAxes(fallbackAxes) : null;
+  const totalWeight = primary.totalWeight + (fallback?.totalWeight ?? 0);
   if (totalWeight === 0) return null;
+  const weightedSum = primary.weightedSum + (fallback?.weightedSum ?? 0);
+  const totalCount = primary.totalCount + (fallback?.totalCount ?? 0);
+  const sourcesHit = [...primary.sourcesHit, ...(fallback?.sourcesHit ?? [])];
+
   const mid = weightedSum / totalWeight;
-  // Clamp range to ±CLAMP_FRAC of mid.
   const low  = Math.max(0, mid * (1 - CLAMP_FRAC));
   const high = mid * (1 + CLAMP_FRAC);
+
+  // Confidence reflects how much primary-axis signal underpins the
+  // estimate. Fallback-only estimates are always low-confidence.
+  let confidence;
+  if (primary.totalCount >= CONFIDENCE_HIGH) confidence = "high";
+  else if (primary.totalCount >= CONFIDENCE_MED) confidence = "med";
+  else confidence = "low";
+
   return {
     low:               Math.round(low  * 100) / 100,
     mid:               Math.round(mid  * 100) / 100,
     high:              Math.round(high * 100) / 100,
     comparableCount:   totalCount,
     comparableSources: sourcesHit,
-    method:            "comparability",
+    confidence,
+    method:            useFallbacks ? "comparability_tiered" : "comparability",
   };
 }
 

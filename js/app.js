@@ -3612,6 +3612,23 @@
       });
 
       try {
+        // Persistence-layer fast path — when the snapshot Worker has a
+        // fresh row (< 24h) for this bobaId in card_prices_history,
+        // render it immediately and skip the live eBay-proxy roundtrip.
+        // Massive latency win on cards that get re-opened often (no
+        // cold-cache eBay API hit) and silent fallback to live when
+        // the snapshot is stale or missing.
+        // Refresh button bypasses this path so users can force-pull
+        // fresh data anytime.
+        if (!forceRefresh && card.bobaId) {
+          const cached = await fetchCachedPricing(card.bobaId);
+          if (cached) {
+            // COMC is still live (it's not in card_prices_history).
+            const comcResp = await fetchComcListings(card.cardNumber);
+            renderPricingData(section, cached, { days, comcListings: comcResp });
+            return;
+          }
+        }
         const params = new URLSearchParams({
           cardNumber: card.cardNumber,
           hero:    card.hero    || '',
@@ -3649,6 +3666,68 @@
     }
 
     fetchAndRender();
+  }
+
+  /// Persistence-layer read — `boba-pricing-snapshot` Worker's nightly
+  /// cron writes timestamped rows into `card_prices_history`; the
+  /// `card_prices_latest` view returns the most-recent per
+  /// (boba_id, source). When fresh (< 24h), use it instead of the
+  /// live eBay-proxy roundtrip — much faster + saves eBay quota.
+  /// Returns a shape compatible with `renderPricingData` (sold +
+  /// active buckets), or null when no fresh row exists.
+  ///
+  /// Reads via PostgREST anon key directly (public-read RLS policy
+  /// permits it) to avoid taking a hard dependency on the API
+  /// module's internal supa() instance.
+  const SNAPSHOT_FRESH_MS = 24 * 60 * 60 * 1000;
+  const SUPABASE_REST_URL = 'https://pazkimtkwwwekuguxkff.supabase.co/rest/v1';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhemtpbXRrd3d3ZWt1Z3V4a2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMzY4MTIsImV4cCI6MjA5MDgxMjgxMn0.8f-d_RT8ESxQR-QbYbfpp1MWqhQ7Tm5IKJJeivI-U9k';
+  async function fetchCachedPricing(bobaId) {
+    if (!bobaId) return null;
+    try {
+      const url = `${SUPABASE_REST_URL}/card_prices_latest?boba_id=eq.${encodeURIComponent(bobaId)}&select=source,snapshot_at,low_usd,avg_usd,high_usd,item_count`;
+      const res = await fetch(url, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) return null;
+      const now = Date.now();
+      const out = {};
+      for (const r of data) {
+        const ageMs = now - Date.parse(r.snapshot_at);
+        if (ageMs > SNAPSHOT_FRESH_MS) continue;
+        const bucket = {
+          low:     Number(r.low_usd  || 0),
+          average: Number(r.avg_usd  || 0),
+          high:    Number(r.high_usd || 0),
+          count:   r.item_count || 0,
+          items:   [],
+        };
+        if (r.source === 'ebay_sold')   out.sold = bucket;
+        else if (r.source === 'ebay_active') out.active = bucket;
+        else if (r.source === 'estimator') {
+          // Only use estimator as sold when no real sold snapshot exists.
+          if (!out.sold) out.sold = { ...bucket, estimated: true, estimatedSource: 'comps' };
+        }
+      }
+      // Top-level legacy fields the renderer falls back to. Prefer sold
+      // (estimator counts as sold), else active.
+      const primary = out.sold || out.active;
+      if (!primary) return null;
+      out.low       = primary.low;
+      out.average   = primary.average;
+      out.high      = primary.high;
+      out.count     = primary.count;
+      out.priceType = out.sold ? 'sold' : 'listed';
+      out.items     = [];
+      return out;
+    } catch {
+      return null;
+    }
   }
 
   /// Market Est. fallback — `boba-price-estimator` Worker. Returns an

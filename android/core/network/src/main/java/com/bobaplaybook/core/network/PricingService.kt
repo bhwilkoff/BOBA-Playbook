@@ -4,6 +4,7 @@ import android.util.Log
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -68,6 +69,57 @@ class PricingService @Inject constructor(
             )
         }.onFailure { e ->
             Log.d(TAG, "fetchMarketEstimate($bobaId) — no estimate yet: ${e.message}")
+        }.getOrNull()
+    }
+
+    /**
+     * Persistence-layer fast path — read the latest snapshot rows for
+     * [bobaId] from Supabase's `card_prices_latest` view. Returns a
+     * [PricingBundle] equivalent to a live ebay-proxy response when a
+     * fresh row (< 24h) exists, or null when nothing usable is in the
+     * table yet (cron hasn't seen this card, no eBay data, etc.) so
+     * the caller falls through to the live ebay-proxy path.
+     */
+    suspend fun fetchCachedBundle(bobaId: String): PricingBundle? = withContext(Dispatchers.IO) {
+        if (bobaId.isBlank()) return@withContext null
+        runCatching {
+            val rows: List<CardPricesLatestRow> = httpClient.get(
+                "${WorkerConfig.SUPABASE_URL}/rest/v1/card_prices_latest"
+            ) {
+                parameter("boba_id", "eq.$bobaId")
+                parameter("select", "source,snapshot_at,low_usd,avg_usd,high_usd,item_count")
+                header("apikey", WorkerConfig.SUPABASE_ANON_KEY)
+                header("Authorization", "Bearer ${WorkerConfig.SUPABASE_ANON_KEY}")
+            }.body()
+            if (rows.isEmpty()) return@runCatching null
+            val freshThresholdMs = 24L * 3600 * 1000
+            val now = System.currentTimeMillis()
+            var soldAvg: Double? = null
+            var soldCount = 0
+            var activeRows = 0
+            for (row in rows) {
+                val snapMs = parseIso(row.snapshotAt) ?: continue
+                if ((now - snapMs) >= freshThresholdMs) continue
+                when (row.source) {
+                    "ebay_sold"   -> { soldAvg = row.avgUsd; soldCount = row.itemCount ?: 0 }
+                    "ebay_active" -> { activeRows++ }
+                    "estimator"   -> { if (soldAvg == null) { soldAvg = row.avgUsd; soldCount = row.itemCount ?: 0 } }
+                }
+            }
+            val anyFresh = rows.any { row ->
+                val snapMs = parseIso(row.snapshotAt) ?: return@any false
+                (now - snapMs) < freshThresholdMs
+            }
+            if (!anyFresh) return@runCatching null
+            PricingBundle(
+                ebayActive = emptyList(),   // Snapshot stores aggregates only; per-listing rows not cached.
+                ebaySold = emptyList(),
+                marketAverageUsd = soldAvg ?: 0.0,
+                marketSource = if (activeRows > 0 && soldAvg == null) "listed" else "sold",
+                marketCount = soldCount,
+            )
+        }.onFailure { e ->
+            Log.d(TAG, "fetchCachedBundle($bobaId) skipped: ${e.message}")
         }.getOrNull()
     }
 
@@ -181,6 +233,20 @@ private data class PricingSection(
     val count: Int = 0,
     val items: List<PricingItem> = emptyList(),
 )
+
+@Serializable
+private data class CardPricesLatestRow(
+    val source: String,
+    @SerialName("snapshot_at") val snapshotAt: String,
+    @SerialName("low_usd")    val lowUsd: Double? = null,
+    @SerialName("avg_usd")    val avgUsd: Double? = null,
+    @SerialName("high_usd")   val highUsd: Double? = null,
+    @SerialName("item_count") val itemCount: Int? = null,
+)
+
+private fun parseIso(s: String): Long? = runCatching {
+    java.time.OffsetDateTime.parse(s).toInstant().toEpochMilli()
+}.getOrNull()
 
 @Serializable
 private data class EstimatorResponse(

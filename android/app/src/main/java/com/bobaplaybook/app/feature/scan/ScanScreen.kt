@@ -439,6 +439,7 @@ fun ScanScreen(
                 onMatch(bobaId)
             },
             onRemove = { bobaId -> queueHolder.queue.remove(bobaId) },
+            onSetQuantity = { bobaId, qty -> queueHolder.queue.setQuantity(bobaId, qty) },
             onClearAll = { queueHolder.queue.clear(); reviewSheetOpen = false },
             onDismiss = { reviewSheetOpen = false },
         )
@@ -452,6 +453,7 @@ private fun ScanReviewSheet(
     cardRepository: com.bobaplaybook.core.data.catalog.CardRepository,
     onTap: (bobaId: String) -> Unit,
     onRemove: (bobaId: String) -> Unit,
+    onSetQuantity: (bobaId: String, quantity: Int) -> Unit,
     onClearAll: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -547,17 +549,58 @@ private fun ScanReviewSheet(
                                 if (sub.isNotBlank()) Text(sub)
                             },
                             trailingContent = {
-                                // Tick 426 — BOBAIconTooltip for hover/long-press
-                                // affordance hint. Particularly useful here since
-                                // the X icon in a list-row trailing slot can be
-                                // mistaken for "close the sheet" — the tooltip
-                                // clarifies "Remove this scan only".
-                                BOBAIconTooltip("Remove from queue") {
-                                    IconButton(onClick = { onRemove(entry.bobaId) }) {
+                                // iOS-parity quantity stepper + remove.
+                                // ScanQueueView.swift renders a −/+ pill
+                                // next to the trash button on every row.
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(0.dp),
+                                ) {
+                                    IconButton(
+                                        onClick = {
+                                            if (entry.quantity > 1) {
+                                                onSetQuantity(entry.bobaId, entry.quantity - 1)
+                                            }
+                                        },
+                                        enabled = entry.quantity > 1,
+                                        modifier = Modifier.width(28.dp).height(28.dp),
+                                    ) {
                                         Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Remove from queue",
+                                            imageVector = Icons.Default.Remove,
+                                            contentDescription = "Decrement quantity",
                                         )
+                                    }
+                                    Text(
+                                        text = "${entry.quantity}",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        modifier = Modifier.width(22.dp),
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            if (entry.quantity < 99) {
+                                                onSetQuantity(entry.bobaId, entry.quantity + 1)
+                                            }
+                                        },
+                                        enabled = entry.quantity < 99,
+                                        modifier = Modifier.width(28.dp).height(28.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "Increment quantity",
+                                        )
+                                    }
+                                    // Tick 426 — BOBAIconTooltip clarifies
+                                    // "remove this scan, not the sheet".
+                                    BOBAIconTooltip("Remove from queue") {
+                                        IconButton(onClick = { onRemove(entry.bobaId) }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Remove from queue",
+                                                tint = androidx.compose.ui.graphics.Color(0xFFC0392B)
+                                                    .copy(alpha = 0.8f),
+                                            )
+                                        }
                                     }
                                 }
                             },

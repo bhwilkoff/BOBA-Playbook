@@ -46,6 +46,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as GSize
 import androidx.compose.ui.geometry.CornerRadius
@@ -275,11 +277,25 @@ fun ScanScreen(
                     // mode opens cards directly so the queue stays
                     // empty + the tray would only confuse.
                     if (scanMode == ScanMode.MULTI && queueEntries.isNotEmpty()) {
-                        IconButton(onClick = { reviewSheetOpen = true }) {
+                        // Accessibility: merge the icon + badge into a
+                        // single semantic node so TalkBack reads
+                        // "Review scan queue, 3 cards" rather than two
+                        // disjoint utterances. Icon + Text inner
+                        // contentDescription is cleared since the
+                        // IconButton's semantics carry the label.
+                        val queueCount = queueEntries.size
+                        IconButton(
+                            onClick = { reviewSheetOpen = true },
+                            modifier = Modifier.semantics(mergeDescendants = true) {
+                                contentDescription =
+                                    "Review scan queue, $queueCount card" +
+                                        if (queueCount == 1) "" else "s"
+                            },
+                        ) {
                             Box(contentAlignment = Alignment.TopEnd) {
                                 Icon(
                                     imageVector = Icons.Default.Inventory2,
-                                    contentDescription = "Review scan queue",
+                                    contentDescription = null,
                                     tint = androidx.compose.ui.graphics.Color.White,
                                     modifier = Modifier.width(22.dp).height(22.dp),
                                 )
@@ -291,7 +307,7 @@ fun ScanScreen(
                                         .defaultMinSize(minWidth = 18.dp, minHeight = 18.dp),
                                 ) {
                                     Text(
-                                        text = "${queueEntries.size}",
+                                        text = "$queueCount",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = androidx.compose.ui.graphics.Color.White,
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,

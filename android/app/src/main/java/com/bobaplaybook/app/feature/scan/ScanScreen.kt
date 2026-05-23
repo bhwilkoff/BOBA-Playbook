@@ -932,6 +932,43 @@ private fun ScanViewfinder(
             android.util.Log.w("ScanViewfinder", "enableTorch threw", it)
         }
     }
+    // Iter 51: bias auto-exposure toward UNDER-EXPOSURE in scan
+    // mode. On shiny / holographic prints the camera AE biases
+    // toward the bright shimmer / specular highlights, blowing out
+    // the printed text and making OCR worthless. Mild underexposure
+    // (-1 EV) preserves highlight detail at the cost of slightly
+    // darker mid-tones. Most BoBA cards have high-contrast printed
+    // text on the card face that's still readable when slightly
+    // underexposed — but shiny ones become DRAMATICALLY more
+    // readable. Applied once the lifecycle binds + camera is
+    // available. The cameraControl reference may be null briefly
+    // during binding; the LaunchedEffect's loop catches that.
+    LaunchedEffect(lifecycleOwner) {
+        // Wait up to a second for cameraControl to be non-null
+        // (LifecycleCameraController.cameraControl returns null
+        // until the camera has actually opened).
+        repeat(20) {
+            val control = controller.cameraControl
+            if (control != null) {
+                val range = controller.cameraInfo?.exposureState?.exposureCompensationRange
+                if (range != null && range.contains(-2)) {
+                    // -2 EV clicks if the device supports it (most do —
+                    // typical range is ±6 in 1/3-stop clicks).
+                    runCatching {
+                        control.setExposureCompensationIndex(-2)
+                        android.util.Log.i(
+                            "ScanViewfinder",
+                            "Set exposure compensation -2 clicks (≈ -2/3 EV)",
+                        )
+                    }.onFailure {
+                        android.util.Log.w("ScanViewfinder", "setExposureCompensationIndex threw", it)
+                    }
+                }
+                return@LaunchedEffect
+            }
+            kotlinx.coroutines.delay(50)
+        }
+    }
     // PreviewView dimensions for top-left-quadrant detection. The
     // MlKitAnalyzer maps text-block bounds into VIEW-REFERENCED
     // coordinates, so frameWidth/Height is the PreviewView size.

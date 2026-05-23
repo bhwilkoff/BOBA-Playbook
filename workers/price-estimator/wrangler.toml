@@ -15,6 +15,13 @@ id      = "b44ff8f1197646c2a4ba5563a2a68959"
 [triggers]
 crons = ["0 3 * * *"]
 
+# Service binding — Worker-to-Worker fetch via public URLs gets
+# 404'd by Cloudflare's edge router. Service bindings route directly
+# through the runtime without going through DNS / edge.
+[[services]]
+binding = "EBAY_PROXY_SVC"
+service = "boba-ebay-proxy"
+
 # Variables
 [vars]
 # URL of the canonical catalog JSON the estimator reads from. GitHub

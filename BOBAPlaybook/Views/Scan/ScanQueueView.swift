@@ -659,7 +659,8 @@ struct ScanQueueView: View {
                     element: c.element,
                     power: c.power,
                     days: 30,
-                    treatment: c.treatment
+                    treatment: c.treatment,
+                    variation: c.variation
                 )
                 next[c.id] = p.average
                 // Commit incrementally so the running total ticks

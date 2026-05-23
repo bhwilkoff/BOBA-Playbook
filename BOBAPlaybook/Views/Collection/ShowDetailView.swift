@@ -665,6 +665,7 @@ struct ShowDetailView: View {
                     power: card.power,
                     days: days,
                     treatment: card.treatment,
+                    variation: card.variation,
                     forceRefresh: force
                 )
                 next[card.id] = p.average

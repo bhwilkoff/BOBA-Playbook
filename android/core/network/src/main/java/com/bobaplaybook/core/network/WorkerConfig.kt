@@ -12,7 +12,7 @@ package com.bobaplaybook.core.network
  */
 object WorkerConfig {
 
-    /** eBay Browse API + Radish pricing + Whatnot show feed proxy. */
+    /** eBay Browse + Marketplace Insights API + Whatnot show feed proxy. */
     const val EBAY_PROXY = "https://boba-ebay-proxy.benwilkoff.workers.dev"
 
     /** COMC asking-price proxy. Soft-fails when Turnstile is up (DECISIONS.md #034). */

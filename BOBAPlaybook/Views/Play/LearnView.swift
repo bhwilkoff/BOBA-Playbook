@@ -1852,7 +1852,7 @@ private struct GlossaryView: View {
         .init(term: "raw",   definition: "Ungraded. The opposite of PSA/BGS/CGC/TAG graded."),
         .init(term: "graded", definition: "Encapsulated and scored by a third-party grader (PSA, BGS, CGC, TAG). 'PSA 10' is the top grade at PSA."),
         .init(term: "TAG",   definition: "TAG Grading — an emerging alternative grader using laser-scored analysis. Ask your event organizer whether TAG slabs are accepted as proxies."),
-        .init(term: "comps", definition: "Comparable recent sales — used to sanity-check a price. The card detail view's pricing panel pulls comps from Radish + eBay."),
+        .init(term: "comps", definition: "Comparable recent sales — used to sanity-check a price. The card detail view's pricing panel pulls comps from eBay's Marketplace Insights API."),
         .init(term: "dumper", definition: "A card sold cheaply — often the lower-value hit in a break-day liquidation."),
         .init(term: "banger", definition: "An impressive or high-value pull. Affectionate."),
         .init(term: "scam / scammer", definition: "Don't engage, report to moderators, and check the vouch history before any trade with a new account."),

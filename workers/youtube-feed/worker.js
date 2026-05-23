@@ -49,9 +49,9 @@
 // ════════════════════════════════════════════════════════════════
 
 // `priority: 0` means the channel's NEW videos pin to the top of
-// each feed — that surface treatment is reserved for the single most
-// active community reviewer (currently RadishDijital). Adding a new
-// priority channel later is a one-line edit.
+// each feed. No channel currently holds this treatment; it remains
+// available as a one-line edit if/when we elevate a community
+// reviewer at their explicit invitation.
 //
 // `priority: 5` means we pull the channel's uploads into the feed
 // (so the dedupe attaches a sourceChannel tag if the same video
@@ -61,7 +61,6 @@
 // `priority: 9` (search-sourced) is set inline when we merge search
 // results in `refreshFeeds`.
 const KNOWN_CHANNELS = [
-  { handle: "radishdijital",          priority: 0 },
   { handle: "BoBattleArena",          priority: 5 },
   { handle: "InsideTheVault_Bazooka", priority: 5 },
   { handle: "BattleArenaLeague",      priority: 5 },
@@ -81,8 +80,8 @@ const YT_API = "https://www.googleapis.com/youtube/v3";
 //                   creator first set up the YouTube event).
 //   - vertical    → previously-recorded vertical content. Includes
 //                   Shorts AND any non-Shorts upload with a vertical
-//                   thumbnail (Radish posts both phone + desktop
-//                   versions of their daily show).
+//                   thumbnail (some creators post both phone +
+//                   desktop versions of the same content).
 //   - horizontal  → previously-recorded landscape content.
 const FEED_KEYS = {
   upcoming:   "boba_videos:upcoming",
@@ -247,12 +246,10 @@ async function refreshFeeds(env) {
   // scheduled → recent replays).
   upcoming.sort(sortByStreamTime);
 
-  // Recorded feeds: pin only the TOP-3 most-recent priority-0
-  // (RadishDijital today) videos to the top of the feed; everything
-  // else sorts by publishedAt desc. Per Ben (2026-04-28): "we
-  // shouldn't have the full radish catalog at the top of each view.
-  // Rather, it should only show the latest 3 items from radish and
-  // then mix in the most recent videos from other creators."
+  // Recorded feeds: pin only the TOP-3 most-recent priority-0 videos
+  // to the top of the feed; everything else sorts by publishedAt
+  // desc. Cap of 3 prevents any single channel from dominating the
+  // top of the view even when they're posting at a high cadence.
   pinTopPriorityItems(vertical,   3);
   pinTopPriorityItems(horizontal, 3);
   vertical.sort(sortByPinnedAndDate);
@@ -506,8 +503,8 @@ function pickThumbnail(detailsThumbs, baseThumbs) {
 /// horizontal source uploads — so we have to lean on creator-side
 /// signals that telegraph orientation:
 ///
-///   1. The 📱 emoji in the title — Radish marks their daily show's
-///      phone-edition cuts this way ("9 Minute Edition 📱").
+///   1. The 📱 emoji in the title — some creators mark phone-edition
+///      cuts of their show this way (e.g. "9 Minute Edition 📱").
 ///   2. Explicit "phone" / "mobile" / "vertical" / "portrait"
 ///      keywords in the title or description.
 ///   3. The #shorts hashtag, which by definition implies vertical.

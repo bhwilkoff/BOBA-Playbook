@@ -47,8 +47,8 @@ For the full picture (architectural patterns, deferred follow-ups, credential in
 
 - LargeTopAppBar collapse + canonical 6-cell stats grid
 - Power/Cost/DBS (Plays only), Ability/Bonus text
-- Pricing panels (eBay active + sold + Radish via Worker; COMC NOT wired)
-- Market estimate header w/ Radish-first waterfall
+- Pricing panels (eBay active + sold via Worker; COMC NOT wired; Radish removed per DECISIONS.md #056)
+- Market estimate header (eBay sold > active waterfall, Worker-computed canonical average)
 - Other Versions thumbnail row
 - **Add menu** opens proper sheets:
   - Add to Collection → AddToCollectionSheet with designation, condition, grading, pricing, notes

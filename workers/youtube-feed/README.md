@@ -8,9 +8,9 @@ the result in Workers KV, and serves it to the iOS + web Watch tab.
 
 - **Cron** (`0 */4 * * *`) refreshes feeds every 4 hours.
 - **Sources** merged:
-  - **Top-priority channels** (`priority: 0`) — currently just
-    RadishDijital. Their FRESH uploads (within `PRIORITY_FRESH_DAYS`,
-    default 30) are pinned to the top of each feed.
+  - **Top-priority channels** (`priority: 0`) — none currently.
+    FRESH uploads (within `PRIORITY_FRESH_DAYS`, default 30) from any
+    priority-0 channel are pinned to the top of each feed.
   - **Standard channels** (`priority: 5`) — BoBattleArena,
     InsideTheVault_Bazooka, BattleArenaLeague, blokpax, PullsAndPars.
     We pull their full uploads list so the feed has rich BoBA-only
@@ -69,7 +69,7 @@ POST /refresh       → triggers a fresh fetch + KV write
   "description":  "...",
   "publishedAt":  "2026-04-28T14:30:00Z",
   "channelId":    "UCxxxxxxxxxxxxxxxxxx",
-  "channelTitle": "Radish Dijital",
+  "channelTitle": "BoBattleArena",
   "thumbnail":    "https://i.ytimg.com/vi/abc123/maxresdefault.jpg",
   "durationSec":  712,
   "viewCount":    4321,
@@ -78,8 +78,8 @@ POST /refresh       → triggers a fresh fetch + KV write
   "embeddable":   true,
   "liveBroadcastContent": "none",  // "live" | "upcoming" | "none"
   "liveStreamingDetails": null,    // populated for live + replays
-  "priority":     0,               // 0 = pinned channel, 9 = search
-  "sourceChannel":"radishdijital", // null when sourced from search
+  "priority":     5,               // 0 = pinned channel, 5 = known, 9 = search
+  "sourceChannel":"BoBattleArena", // null when sourced from search
   "url":          "https://www.youtube.com/watch?v=abc123",
   "embedUrl":     "https://www.youtube.com/embed/abc123"
 }

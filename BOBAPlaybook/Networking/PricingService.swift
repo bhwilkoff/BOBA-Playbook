@@ -68,12 +68,12 @@ actor PricingService {
         /// stale sale isn't really a window-based aggregate.
         let stale: Bool?
         /// Sold-only: true when the bucket carries no real sales —
-        /// just Radish's Market Est. range (low/avg/high) computed
+        /// just a comparability-function range (low/avg/high) computed
         /// from comparable cards. UI surfaces it as "MARKET EST."
         /// instead of "RECENT SALES" so users know the figure is a
         /// model estimate, not a transaction.
         let estimated: Bool?
-        /// "comps" or "own_sales" — only meaningful when estimated=true.
+        /// Free-form provenance string — only meaningful when estimated=true.
         let estimatedSource: String?
 
         enum CodingKeys: String, CodingKey {
@@ -95,12 +95,6 @@ actor PricingService {
         // New dual-section fields (nil when Worker returns legacy shape)
         let sold:      PricingBucket?
         let active:    PricingBucket?
-        /// Worker-validated Radish URL — present when the Worker
-        /// actually pulled sales data. Clients should prefer this
-        /// for the user-facing "Radish Guide" button so the link
-        /// lands on a page that has listings instead of a 200-OK
-        /// shell with no comps.
-        let radishResolvedUrl: String?
 
         var isSold: Bool { priceType == "sold" }
     }
@@ -172,7 +166,6 @@ actor PricingService {
                  set: String,
                  element: String,
                  power: Int?,
-                 radishUrl: String?,
                  days: Int,
                  treatment: String? = nil,
                  forceRefresh: Bool = false) async throws -> PricingResult {
@@ -210,7 +203,6 @@ actor PricingService {
             URLQueryItem(name: "days",       value: "\(days)"),
         ]
         if let power     { queryItems.append(URLQueryItem(name: "power",     value: "\(power)")) }
-        if let radishUrl { queryItems.append(URLQueryItem(name: "radishUrl", value: radishUrl)) }
         if let treatment, !treatment.isEmpty {
             // Sent only so the Worker's enriched sold-comp scorer can
             // credit treatment matches. No effect on legacy mode.
@@ -235,10 +227,10 @@ actor PricingService {
             // which trapped users in a blank pricing pane any time
             // a single cold-cache request blew past 7s — even
             // though the Worker was returning real data on retry.
-            // The parallel namespace sweep (worker.js fetchRadishSales)
-            // dropped cold-path latency from 4-5s → 0.9-1.5s, so a
-            // 7s timeout is now a genuine network/server hiccup
-            // worth retrying immediately, not caching as no-data.
+            // The Worker's parallel sold + active fetch keeps cold-path
+            // latency around 0.9-1.5s, so a 7s timeout is now a genuine
+            // network/server hiccup worth retrying immediately, not
+            // caching as no-data.
             // Per-card retries already happen on next view appearance.
             throw PricingError.noData
         }
@@ -260,8 +252,7 @@ actor PricingService {
             items:     response.items,
             fetchedAt: Date(),
             sold:      response.sold,
-            active:    response.active,
-            radishResolvedUrl: response.radishResolvedUrl
+            active:    response.active
         )
         cache[key] = result
         return result
@@ -280,8 +271,5 @@ actor PricingService {
         // New dual-section fields
         let sold:      PricingBucket?
         let active:    PricingBucket?
-        // Worker-validated Radish URL (present when the Worker
-        // actually scraped sales data, nil otherwise).
-        let radishResolvedUrl: String?
     }
 }

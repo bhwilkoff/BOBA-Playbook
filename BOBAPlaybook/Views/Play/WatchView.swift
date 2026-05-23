@@ -13,8 +13,8 @@ import SwiftUI
 //     not the publishedAt timestamp YouTube stamps when the event
 //     placeholder was first created. Big 16:9 cards.
 //   - Vertical → previously-recorded vertical content. Catches both
-//     YouTube Shorts AND longer phone-edition cuts (e.g. Radish's
-//     daily show 📱 variant). 9:16 grid.
+//     YouTube Shorts AND longer phone-edition cuts (any video tagged
+//     with the 📱 emoji or otherwise flagged as a vertical post). 9:16 grid.
 //   - Horizontal → previously-recorded landscape content. 16:9 grid.
 //
 // Tapping any tile presents a sheet hosting `YouTubePlayerView` so
@@ -349,16 +349,16 @@ private struct VerticalCard: View {
 /// to get a true portrait first-frame for vertical content — but
 /// that URL only reliably exists for genuine Shorts. Most of the
 /// videos in our vertical bucket are regular 16:9 uploads tagged
-/// with the 📱 emoji (Radish's phone-edition daily show), so
-/// YouTube serves a generic gray placeholder for the OAR variant
+/// with the 📱 emoji (a phone-edition convention some creators use),
+/// so YouTube serves a generic gray placeholder for the OAR variant
 /// instead of returning 404, and AsyncImage's .failure phase
 /// never fires.
 ///
 /// Pragmatic resolution: just use the worker-supplied thumbnail
 /// (always populated, always real) and let `.scaledToFill` center-
 /// crop it into the 9:16 frame. The cropped slice shows the
-/// vertical center of the 16:9 art — for Radish's daily show
-/// that's the player figure, which reads cleanly.
+/// vertical center of the 16:9 art — typically the on-camera figure,
+/// which reads cleanly.
 private struct VerticalThumbnail: View {
     let video: YouTubeVideo
 

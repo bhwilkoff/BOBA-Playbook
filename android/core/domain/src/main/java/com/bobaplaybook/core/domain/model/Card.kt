@@ -71,6 +71,14 @@ data class Card(
     val imageFile: String? = null,
     val imageSource: String? = null,
     val imageAvailable: Boolean = false,
+    /**
+     * Frozen legacy field — populated for cards added to the catalog
+     * before 2026-05-23. Used SOLELY as the destination of the per-card
+     * "View on Radish" external-link button per Radish's email-stated
+     * allowance for "ordinary user-facing linking." Null for new cards;
+     * the button falls back to the Radish homepage. NEVER passed to any
+     * Worker / matcher / pricing lookup — that automation is prohibited.
+     */
     val radishUrl: String? = null,
     val bvUrl: String? = null,
 

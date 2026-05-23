@@ -663,7 +663,6 @@ struct ShowDetailView: View {
                     set: card.set,
                     element: card.element,
                     power: card.power,
-                    radishUrl: card.resolvedRadishUrlString,
                     days: days,
                     treatment: card.treatment,
                     forceRefresh: force

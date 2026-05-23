@@ -51,6 +51,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -108,7 +109,7 @@ import kotlinx.collections.immutable.ImmutableList
  *  2. Element-gradient art panel (full-res Coil image, sharedBounds key)
  *  3. Canonical 6-cell BOBAStatsGrid (DECISIONS.md #029)
  *  4. Cost/DBS/Power (Plays only) BELOW the canonical six
- *  5. Pricing panels — Buy Now (eBay active) + Sold (Radish + eBay)
+ *  5. Pricing panels — Buy Now (eBay active) + Sold (eBay)
  *  6. Add to Collection / Deck / Show CTAs at bottom
  */
 @Composable
@@ -1360,8 +1361,8 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
         )
     } else {
         // First-run hint above the first non-empty tile row —
-        // teaches that price tiles tap-through to the buyer site
-        // (eBay / Radish). Dismissible per HintsStore.
+        // teaches that price tiles tap-through to the buyer site.
+        // Dismissible per HintsStore.
         val hintsVm: com.bobaplaybook.app.hints.HintsViewModel =
             androidx.hilt.navigation.compose.hiltViewModel()
         val tapHintDismissed by hintsVm
@@ -1370,7 +1371,7 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
         if (!tapHintDismissed) {
             com.bobaplaybook.core.ui.components.BOBAHintBanner(
                 title = "Tap a price to open",
-                body = "Each tile links straight to the listing — eBay for actives + sold comps, Radish when available.",
+                body = "Each tile links straight to the eBay listing — actives + sold comps.",
                 onDismiss = {
                     hintsVm.dismiss(com.bobaplaybook.app.hints.HintsStore.Ids.CARD_DETAIL_TAP_PRICE)
                 },
@@ -1379,18 +1380,9 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
         ListingsRow(listings = state.ebayActive)
     }
 
-    // "Recent Sales" (iOS parity) groups Radish + eBay sold comps.
-    // The Worker returns whichever it found first; per-item URL is
-    // populated for eBay but often blank for Radish, so the
-    // `radishUrl` from the bundle is the tap-fallback for any
-    // Radish-source tile with an empty url.
+    // "Recent Sales" — eBay sold comps (scored + filtered by the Worker).
     BOBASectionHeader(title = "Recent Sales")
-    // De-dupe by URL where present; collapsing empty-URL tiles to a
-    // single key was hiding multiple Radish sales. Use index when
-    // URL is blank so each row survives the distinct pass.
-    val sold = state.ebaySold.mapIndexed { i, l ->
-        if (l.url.isBlank()) l.copy(url = "radish-stub-$i") else l
-    }.distinctBy { it.url }
+    val sold = state.ebaySold.distinctBy { it.url }
     if (sold.isEmpty()) {
         Text(
             text = "No recent sales found",
@@ -1401,21 +1393,36 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
     } else {
         ListingsRow(
             listings = kotlinx.collections.immutable.persistentListOf<PricingListing>().addAll(sold),
-            fallbackUrlForBlankRadish = state.radishUrl,
         )
+    }
+
+    // "View on Radish" — single ordinary user-facing link permitted by
+    // Radish per email 2026-05-23. Opens the system default browser
+    // (Intent.ACTION_VIEW, not CustomTabsIntent) so the user fully
+    // leaves BOBA Playbook. Uses the legacy `Card.radishUrl` field
+    // when present, falls back to the homepage otherwise. The catalog
+    // `radishUrl` field is treated as frozen static data — never
+    // refreshed, validated, or used for pricing.
+    state.card?.let { card ->
+        val ctx = LocalContext.current
+        val target = (card.radishUrl?.takeIf { it.isNotBlank() })
+            ?: "https://radishpriceguide.com"
+        TextButton(
+            onClick = {
+                runCatching {
+                    ctx.startActivity(Intent(Intent.ACTION_VIEW, target.toUri()))
+                }
+            },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            Text(text = "View on Radish")
+        }
     }
 }
 
 @Composable
 private fun ListingsRow(
     listings: ImmutableList<PricingListing>,
-    /**
-     * Radish landing-page URL from the Worker. Used as the tap-target
-     * for sold-comp tiles where `listing.url` is blank (the Worker
-     * sometimes ships Radish sales without per-item URLs; without
-     * this fallback the user taps and nothing happens).
-     */
-    fallbackUrlForBlankRadish: String? = null,
 ) {
     val context = LocalContext.current
     LazyRow(
@@ -1423,35 +1430,31 @@ private fun ListingsRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(items = listings, key = { it.url }) { listing ->
-            val effectiveUrl = listing.url
-                .takeIf { it.isNotBlank() && !it.startsWith("radish-stub-") }
-                ?: fallbackUrlForBlankRadish.orEmpty()
             BOBAPriceTile(
                 priceUsd = listing.priceUsd,
                 title = listing.title,
                 thumbUrl = listing.thumbUrl,
                 source = when (listing.source) {
                     com.bobaplaybook.core.network.PricingSource.EBAY -> "eBay"
-                    com.bobaplaybook.core.network.PricingSource.RADISH -> "Radish"
                 },
                 date = listing.date,
                 onClick = {
-                    if (effectiveUrl.isNotBlank()) {
+                    if (listing.url.isNotBlank()) {
                         // Custom Tab keeps the BOBA back-arrow context
                         // — user taps Back and lands on the card detail
-                        // instead of leaving the app entirely. eBay /
-                        // Radish handle Custom Tab fine; if the user has
-                        // the eBay app installed it still routes there
-                        // via the Custom Tab app-handoff.
+                        // instead of leaving the app entirely. eBay
+                        // handles Custom Tab fine; if the user has the
+                        // eBay app installed it still routes there via
+                        // the Custom Tab app-handoff.
                         runCatching {
                             androidx.browser.customtabs.CustomTabsIntent.Builder()
                                 .build()
-                                .launchUrl(context, effectiveUrl.toUri())
+                                .launchUrl(context, listing.url.toUri())
                         }.onFailure {
                             // Fallback for devices without a Custom Tabs
                             // provider (rare; AOSP / older Chrome).
                             runCatching {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, effectiveUrl.toUri()))
+                                context.startActivity(Intent(Intent.ACTION_VIEW, listing.url.toUri()))
                             }
                         }
                     }

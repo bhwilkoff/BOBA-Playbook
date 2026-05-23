@@ -39,6 +39,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as GSize
 import androidx.compose.ui.geometry.CornerRadius
@@ -236,14 +240,37 @@ fun ScanScreen(
                         )
                     }
                     Spacer(modifier = Modifier.weight(1f))
-                    if (queueEntries.isNotEmpty()) {
-                        androidx.compose.material3.TextButton(
-                            onClick = { reviewSheetOpen = true },
-                        ) {
-                            Text(
-                                "Queue · ${queueEntries.size}",
-                                color = androidx.compose.ui.graphics.Color.White,
-                            )
+                    // iOS-parity queue affordance — tray icon w/ small
+                    // orange circle badge top-right showing the count.
+                    // Only renders when MULTI mode AND queue is non-
+                    // empty (matches iOS ScanView.swift:243). SINGLE
+                    // mode opens cards directly so the queue stays
+                    // empty + the tray would only confuse.
+                    if (scanMode == ScanMode.MULTI && queueEntries.isNotEmpty()) {
+                        IconButton(onClick = { reviewSheetOpen = true }) {
+                            Box(contentAlignment = Alignment.TopEnd) {
+                                Icon(
+                                    imageVector = Icons.Default.Inventory2,
+                                    contentDescription = "Review scan queue",
+                                    tint = androidx.compose.ui.graphics.Color.White,
+                                    modifier = Modifier.width(22.dp).height(22.dp),
+                                )
+                                androidx.compose.material3.Surface(
+                                    shape = androidx.compose.foundation.shape.CircleShape,
+                                    color = androidx.compose.ui.graphics.Color(0xFFFF4D00),
+                                    modifier = Modifier
+                                        .offset(x = 8.dp, y = (-8).dp)
+                                        .defaultMinSize(minWidth = 18.dp, minHeight = 18.dp),
+                                ) {
+                                    Text(
+                                        text = "${queueEntries.size}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = androidx.compose.ui.graphics.Color.White,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                                    )
+                                }
+                            }
                         }
                     } else {
                         // Visual balance — keep the wordmark centered

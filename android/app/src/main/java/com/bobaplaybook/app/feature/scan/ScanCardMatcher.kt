@@ -23,6 +23,19 @@ private val CARD_NUMBER_REGEX =
 private val BARE_DIGIT_REGEX = Regex("""\b(\d{1,4})\b""")
 
 /**
+ * Loose bare-digit fallback for shiny prints — captures 2-4 char tokens
+ * that are MOSTLY digits but contain a single letter-digit confusion
+ * (T for 7, S for 5, etc.). Combined with [normalizeDigitConfusions]
+ * this recovers "T79" → "779" suffix matches that the strict
+ * BARE_DIGIT_REGEX would miss entirely.
+ *
+ * Constrained to tokens of length 2-4 (real card-number suffixes are
+ * 1-3 digits; we accept up to 4 for safety) AND requiring at least
+ * ONE digit present so pure-letter tokens ("BOX", "FOO") don't fire.
+ */
+private val LOOSE_BARE_DIGIT_REGEX = Regex("""\b([A-Z0-9]{2,4})\b""")
+
+/**
  * Looser card-number regex used as a shiny-card fallback. Accepts
  * letters in the suffix slot where digits would normally be — OCR on
  * glow / holographic / foil prints frequently mis-reads digits as
@@ -291,10 +304,35 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
             .filter { idx.byCardNumberPrefix.containsKey(it) }
             .toSet()
 
-        val bareDigitHits = tokens
+        val strictBareDigitHits = tokens
             .asSequence()
             .flatMap { tk -> BARE_DIGIT_REGEX.findAll(tk.text).map { it.groupValues[1] } }
             .toSet()
+        // Loose bare-digit recovery for shiny prints (extends iter 44).
+        // OCR may garble "779" as "T79" / "S79" / "77Q" as a STANDALONE
+        // token. The strict regex needs pure digits; the loose regex
+        // accepts mixed letter/digit tokens, then normalises common
+        // letter→digit confusions (T→7, S→5, B→8, etc.) before lookup.
+        // Filters guard against pure-letter tokens ("BOX", "DEKAP")
+        // becoming false-positive digit hits:
+        //   • require ≥1 digit OR letter in confusion set after normalize
+        //   • require result to be all digits after normalize
+        //   • length 2-4 (matches real cardNumber suffix lengths)
+        val looseBareDigitHits = tokens.asSequence()
+            .flatMap { tk -> LOOSE_BARE_DIGIT_REGEX.findAll(tk.text.uppercase()).map { it.groupValues[1] } }
+            .filter { tok ->
+                // Skip tokens with NO letter-to-digit-confusion potential —
+                // those are either already strict digits (caught above)
+                // or pure non-confusable letters ("DEKAP", "GGL", "BOX").
+                tok.any { c -> c in "OQDILSTBZ|" }
+            }
+            .map { normalizeDigitConfusions(it) }
+            .filter { tok ->
+                // Post-normalization MUST be pure digits AND <=4 long.
+                tok.length in 1..4 && tok.all { it.isDigit() }
+            }
+            .toSet()
+        val bareDigitHits = strictBareDigitHits + looseBareDigitHits
 
         // Hero names mentioned anywhere + the subset top-left. Fuzzy
         // match (Levenshtein ≤ 1 for short heroes, ≤ 2 for ≥6-char

@@ -510,6 +510,40 @@ class ScanCardMatcherTest {
     }
 
     @Test
+    fun `loose bare-digit recovers T79 standalone token to 779 suffix`() {
+        // Real-world shiny case: OCR returns "T79" alone (not as part
+        // of a full cardNumber like "GGL-T79"). Strict BARE_DIGIT_REGEX
+        // requires pure digits → "T79" misses. iter 50's
+        // LOOSE_BARE_DIGIT_REGEX accepts mixed letter/digit + applies
+        // normalizeDigitConfusions, so "T79" → "779" → matches cards
+        // with cardNumber suffix "779".
+        val ggl779 = card("GGL-779", hero = "DeKap", element = "BRAWL", power = 80)
+        val custom = ScanCardMatcher { listOf(ggl779, maverickBase) }
+        val tokens = listOf(
+            token("DEKAP", topLeft = true),
+            token("GGL", topLeft = false),
+            token("T79", topLeft = false),     // OCR mis-read of "779"
+            token("BRAWL", topLeft = false),
+        )
+        val result = custom.match(tokens)
+        assertNotNull("Loose bare-digit T79→779 should recover the commit", result)
+        assertEquals("GGL-779", result?.card?.cardNumber)
+    }
+
+    @Test
+    fun `loose bare-digit ignores pure-letter tokens like DEKAP`() {
+        // Safety: "DEKAP" must not be normalized into some digit-like
+        // string that creates a false bareDigit hit. DEKAP has D, E, A
+        // — D and A would normalize but the result isn't all-digits.
+        val mav = card("1", hero = "Maverick", element = "FIRE", power = 100)
+        val custom = ScanCardMatcher { listOf(mav) }
+        val tokens = listOf(token("DEKAP", topLeft = true))
+        // No commit (no other Maverick signal + DEKAP is a different hero)
+        val result = custom.match(tokens)
+        assertNull("Pure-letter hero name should NOT generate false bareDigit hits", result)
+    }
+
+    @Test
     fun `LeBoss disambiguated by hero top-left even when Maverick power leaks`() {
         // Adversarial case: tokens have LeBoss top-left but a "135"
         // (Maverick's power) somewhere else in frame — maybe a

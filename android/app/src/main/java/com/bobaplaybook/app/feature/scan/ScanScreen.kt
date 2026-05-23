@@ -660,6 +660,16 @@ private fun ScanViewfinder(
             ScanDetectionChip(
                 card = committed,
                 onTap = { onChipTap(committed.bobaId) },
+                onDismiss = {
+                    // User-initiated chip clear (the "X" affordance).
+                    // iOS uses a swipe-down gesture for the same. Reset
+                    // the stabilizer so the next commit fires fresh —
+                    // including for the same card the user just
+                    // dismissed (deliberate re-scan).
+                    stabilizer.reset()
+                    lastMatchedBobaId = null
+                    detectedCard = null
+                },
                 // Pin to ~96dp above the bottom (clears the mode
                 // pills row that lives in the parent at 32dp from
                 // bottom).
@@ -684,15 +694,18 @@ private fun ScanViewfinder(
 private fun ScanDetectionChip(
     card: com.bobaplaybook.core.domain.model.Card,
     onTap: () -> Unit,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.clickable { onTap() },
+        modifier = modifier,
         color = Color.Black.copy(alpha = 0.78f),
         shape = RoundedCornerShape(14.dp),
     ) {
         Row(
-            modifier = Modifier.padding(10.dp),
+            modifier = Modifier
+                .clickable { onTap() }
+                .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -729,6 +742,21 @@ private fun ScanDetectionChip(
                         color = Color.White.copy(alpha = 0.72f),
                     )
                 }
+            }
+            // Dismiss "X" — clears the chip + resets the stabilizer
+            // so the user can re-scan without leaving the screen.
+            // iOS uses a swipe-down gesture; Android takes the more
+            // discoverable tap-X affordance (Material 3 norm for
+            // dismissable surfaces).
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.width(36.dp).height(36.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Dismiss",
+                    tint = Color.White.copy(alpha = 0.72f),
+                )
             }
         }
     }

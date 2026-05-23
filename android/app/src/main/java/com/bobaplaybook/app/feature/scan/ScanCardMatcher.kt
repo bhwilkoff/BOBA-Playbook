@@ -480,11 +480,35 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         // Element names are all pure letters (FIRE, ICE, STEEL, BRAWL,
         // GLOW, HEX, GUM, SUPER, NONE) so splitting on non-letters is
         // safe.
-        val elementHits = tokens
+        val strictElementHits = tokens
             .asSequence()
             .flatMap { it.text.uppercase().split(Regex("[^A-Z]+")).asSequence() }
             .filter { it.isNotBlank() && it in idx.elements }
             .toSet()
+        // Iter 55: fuzzy element matching (Levenshtein 1) for OCR
+        // letter-confusions in element names. Real data showed
+        // "BRAWI" (BRAWL with L→I) and "BRANL" (BRAWL with W→N).
+        // Bounded by length-match against the 9 element names
+        // (FIRE, ICE, STEEL, BRAWL, GLOW, HEX, GUM, SUPER, NONE)
+        // so noise tokens with unrelated lengths get skipped.
+        // Risk: hero "BRAWN" → matches "BRAWL" at distance 1 → adds
+        // BRAWL to elementHits. Harmless because:
+        //   • If user scans a Brawn FIRE card, FIRE token gets caught
+        //     separately and Brawn FIRE candidate gets +0.2 from FIRE.
+        //     The phantom BRAWL hit only adds +0.2 to Brawn BRAWL
+        //     candidates (different from the scanned card) — those
+        //     score the same as Brawn FIRE before, so margin 0 → null.
+        val fuzzyElementHits = tokens
+            .asSequence()
+            .flatMap { it.text.uppercase().split(Regex("[^A-Z]+")).asSequence() }
+            .filter { it.length in 3..6 }
+            .flatMap { tok ->
+                idx.elements.asSequence().filter { elem ->
+                    elem.length == tok.length && levenshtein(tok, elem) <= 1
+                }
+            }
+            .toSet()
+        val elementHits = strictElementHits + fuzzyElementHits
         val powerHits = tokens
             .asSequence()
             .flatMap { tk -> BARE_DIGIT_REGEX.findAll(tk.text).map { it.groupValues[1].toIntOrNull() ?: 0 } }

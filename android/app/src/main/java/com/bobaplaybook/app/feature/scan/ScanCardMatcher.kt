@@ -55,7 +55,12 @@ private val LOOSE_CARD_NUMBER_REGEX =
  * unrelated words ("BIG10" tokens etc.).
  */
 private val NO_DASH_CARD_NUMBER_REGEX =
-    Regex("""([A-Z]{2,6})(\d{1,4})""")
+    // Anchored with \b so we only capture full prefix+suffix tokens
+    // ("GGL779") and NOT prefix+digit fragments inside larger
+    // alphanumeric tokens. Without the boundary, "DEKAP779RBF" would
+    // capture "DEKAP-779" (not a real card → silently dropped, but
+    // still wasted work).
+    Regex("""\b([A-Z]{2,6})(\d{1,4})\b""")
 
 /**
  * Standalone cardNumber-prefix tokens: shiny-card reads sometimes

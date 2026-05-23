@@ -451,6 +451,65 @@ class ScanCardMatcherTest {
     }
 
     @Test
+    fun `prefix-only OCR with hero + element + power commits the right DeKap GGL variant`() {
+        // Real-world failure: DEKAP GGL-779 on a shiny print. OCR
+        // catches the hero + the prefix "GGL" (digits washed out by
+        // glow shimmer) + element "BRAWL" + power "80". iter 45's
+        // prefix-recovery should narrow to GGL-* cards and the
+        // element + power disambiguate among the 6 DeKap GGL variants.
+        val dekapVariants = listOf(
+            card("GGL-124", hero = "DeKap", element = "HEX",   power = 145),
+            card("GGL-255", hero = "DeKap", element = "GLOW",  power = 100),
+            card("GGL-386", hero = "DeKap", element = "FIRE",  power = 95),
+            card("GGL-517", hero = "DeKap", element = "ICE",   power = 95),
+            card("GGL-648", hero = "DeKap", element = "STEEL", power = 90),
+            card("GGL-779", hero = "DeKap", element = "BRAWL", power = 80),
+            // Distractors: same hero, OTHER treatments (BF-353 etc.).
+            card("BF-353", hero = "DeKap", element = "BRAWL", power = 80, treatment = "Battlefoil"),
+            card("RBF-124", hero = "DeKap", element = "BRAWL", power = 80, treatment = "Red Battlefoil"),
+        )
+        val custom = ScanCardMatcher { dekapVariants }
+        val tokens = listOf(
+            token("DEKAP", topLeft = true),
+            token("GGL", topLeft = false),
+            token("BRAWL", topLeft = false),
+            token("80", topLeft = false),
+        )
+        val result = custom.match(tokens)
+        assertNotNull("Prefix + element + power should commit", result)
+        assertEquals("GGL-779", result?.card?.cardNumber)
+    }
+
+    @Test
+    fun `prefix recovery does NOT fire without a hero match`() {
+        // Safety: prefix candidates are only added when heroesMentioned
+        // is non-empty. Otherwise a stray "BF" token on a billboard
+        // would broadcast 1000s of cards into the candidate pool.
+        val mav = card("BF-353", hero = "Maverick", element = "FIRE", power = 100, treatment = "Battlefoil")
+        val custom = ScanCardMatcher { listOf(mav) }
+        // No hero token, just a prefix
+        val tokens = listOf(token("BF", topLeft = false))
+        val result = custom.match(tokens)
+        assertNull("Prefix-only without hero should NOT commit", result)
+    }
+
+    @Test
+    fun `missing-dash cardNumber still commits via no-dash regex`() {
+        // ML Kit drops the hyphen: "GGL-779" → "GGL779". The strict
+        // regex requires a dash so the per-token + joined paths miss.
+        // iter 45 adds a no-dash regex that reconstructs "GGL-779".
+        val target = card("GGL-779", hero = "DeKap", element = "BRAWL", power = 80)
+        val custom = ScanCardMatcher { listOf(target) }
+        val tokens = listOf(
+            token("DEKAP", topLeft = true),
+            token("GGL779", topLeft = false),  // dash dropped
+        )
+        val result = custom.match(tokens)
+        assertNotNull(result)
+        assertEquals("GGL-779", result?.card?.cardNumber)
+    }
+
+    @Test
     fun `LeBoss disambiguated by hero top-left even when Maverick power leaks`() {
         // Adversarial case: tokens have LeBoss top-left but a "135"
         // (Maverick's power) somewhere else in frame — maybe a

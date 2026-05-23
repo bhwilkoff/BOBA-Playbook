@@ -34,6 +34,27 @@ private val LOOSE_CARD_NUMBER_REGEX =
     Regex("""#?([A-Z]{1,6}-[A-Z0-9]{1,4}(?:[/-][A-Z0-9]{1,4})?)""")
 
 /**
+ * Missing-dash recovery: ML Kit sometimes drops the hyphen between
+ * prefix and suffix (font kerning, glow shimmer, etc.) — "GGL-779"
+ * arrives as "GGL779" with no separator. Capture prefix + suffix
+ * even when the dash is missing, then reconstruct the canonical
+ * form. Only applied to JOINED token text so we don't fire on
+ * unrelated words ("BIG10" tokens etc.).
+ */
+private val NO_DASH_CARD_NUMBER_REGEX =
+    Regex("""([A-Z]{2,6})(\d{1,4})""")
+
+/**
+ * Standalone cardNumber-prefix tokens: shiny-card reads sometimes
+ * give us "GGL" alone without the digit suffix. Letters only,
+ * 2-6 chars, anchored as a full token (word boundary). The
+ * downstream scoring requires the prefix to actually exist in the
+ * catalog (via byCardNumberPrefix) so random letter sequences
+ * don't pollute the candidate pool.
+ */
+private val PREFIX_TOKEN_REGEX = Regex("""\b([A-Z]{2,6})\b""")
+
+/**
  * Map common OCR letter→digit confusions back to their probable digit.
  * Only applied to the SUFFIX part of a cardNumber (after the last dash)
  * because the prefix is genuinely letters. Conservative substitutions
@@ -241,7 +262,34 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
             .map { normalizeCardNumber(it.groupValues[1].uppercase()) }
             .filter { CARD_NUMBER_REGEX.matches(it) }
             .toSet()
-        val cardNumberHits = perTokenHits + joinedHits + looseHits
+
+        // Fourth pass: missing-dash recovery (iter 45). ML Kit sometimes
+        // returns "GGL779" instead of "GGL-779" (font kerning / shimmer).
+        // Capture letter-prefix + digit-suffix even with no dash, then
+        // reconstruct the canonical "PREFIX-SUFFIX" form. Run against
+        // both joined-text forms. False positives are bounded by the
+        // downstream `idx.byCardNumberUpper` lookup — non-existent
+        // synthetic cardNumbers are silently dropped.
+        val noDashHits = (
+            NO_DASH_CARD_NUMBER_REGEX.findAll(joinedNone) +
+                NO_DASH_CARD_NUMBER_REGEX.findAll(joinedSpace)
+            )
+            .map { "${it.groupValues[1]}-${it.groupValues[2]}" }
+            .toSet()
+        val cardNumberHits = perTokenHits + joinedHits + looseHits + noDashHits
+
+        // Fifth pass: prefix-only recovery (iter 45). Shiny prints
+        // sometimes give OCR the cardNumber PREFIX but not the digit
+        // suffix — "GGL" alone on a DEKAP GGL-779 scan. Detect
+        // standalone letter tokens 2-6 chars and look them up in the
+        // prefix index. Only known catalog prefixes pass — random
+        // letter sequences ("RED", "BIG") that don't map to a real
+        // prefix get silently dropped.
+        val cardPrefixHits = tokens.asSequence()
+            .flatMap { PREFIX_TOKEN_REGEX.findAll(it.text.uppercase()) }
+            .map { it.groupValues[1] }
+            .filter { idx.byCardNumberPrefix.containsKey(it) }
+            .toSet()
 
         val bareDigitHits = tokens
             .asSequence()
@@ -365,6 +413,16 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
             heroesMentioned.forEach { hero ->
                 idx.byHeroLowercase[hero.lowercase()]?.let { addAll(it) }
             }
+            // Prefix-only candidates: GGL → all 786 GGL-* cards. Only
+            // populated when a heroesMentioned hit ALSO exists, so we
+            // don't broadcast 786 cards into the pool every frame.
+            // The intersection of "matches a known prefix" AND
+            // "matches a hero" is the discriminating set.
+            if (heroesMentioned.isNotEmpty()) {
+                cardPrefixHits.forEach { prefix ->
+                    idx.byCardNumberPrefix[prefix]?.let { addAll(it) }
+                }
+            }
         }
         if (candidates.isEmpty()) return null
 
@@ -393,6 +451,19 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
             if (bareSuffix in bareDigitHits) {
                 score += 0.4
                 reasons += "bare-digit +0.4"
+            }
+            // Prefix-only signal (iter 45): GGL prefix on a DEKAP scan
+            // narrows the candidate pool to GGL-* cards. Combined with
+            // hero +1.5 and element/power matches, this is enough
+            // signal to push GGL-779 above the +0.3 margin floor over
+            // sibling GGL-124 / GGL-255 / etc. (which have different
+            // elements + powers).
+            val cardPrefix = if ('-' in card.cardNumber) {
+                card.cardNumber.substringBefore('-').uppercase()
+            } else ""
+            if (cardPrefix.isNotEmpty() && cardPrefix in cardPrefixHits) {
+                score += 0.4
+                reasons += "prefix +0.4"
             }
             if (card.hero.isNotBlank()) {
                 val heroUpper = card.hero.uppercase()
@@ -533,6 +604,11 @@ private class HeroIndex(
     val byCardNumberUpper: Map<String, List<Card>>,
     val byBareDigitSuffix: Map<String, List<Card>>,
     val byHeroLowercase: Map<String, List<Card>>,
+    // cardNumber-prefix → cards. The part of the cardNumber BEFORE
+    // the first dash (e.g. "GGL" → 786 cards for Great Grandma's
+    // Linoleum Battlefoil). Used as a shiny-card recovery signal when
+    // OCR catches only the prefix without the digit suffix.
+    val byCardNumberPrefix: Map<String, List<Card>>,
 ) {
     companion object {
         fun build(catalog: List<Card>): HeroIndex {
@@ -559,6 +635,12 @@ private class HeroIndex(
             // (hero blank) get a "" key — irrelevant because heroesMentioned
             // never has the empty string.
             val byHeroLowercase = catalog.groupBy { it.hero.lowercase() }
+            // Prefix: everything BEFORE the first dash. Cards without
+            // a dash (base set "1", "20") land under "" → won't be
+            // hit by the prefix-token regex (which requires ≥2 chars).
+            val byCardNumberPrefix = catalog
+                .filter { '-' in it.cardNumber }
+                .groupBy { it.cardNumber.substringBefore('-').uppercase() }
             return HeroIndex(
                 catalogSize = catalog.size,
                 heroNames = heroNames,
@@ -567,6 +649,7 @@ private class HeroIndex(
                 byCardNumberUpper = byCardNumberUpper,
                 byBareDigitSuffix = byBareDigitSuffix,
                 byHeroLowercase = byHeroLowercase,
+                byCardNumberPrefix = byCardNumberPrefix,
             )
         }
     }

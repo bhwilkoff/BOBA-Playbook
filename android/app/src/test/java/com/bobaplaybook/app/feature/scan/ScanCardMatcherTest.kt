@@ -222,6 +222,58 @@ class ScanCardMatcherTest {
     }
 
     @Test
+    fun `treatment with apostrophe matches when OCR drops the apostrophe`() {
+        // Real catalog treatment: "Chillin' Battlefoil". OCR usually
+        // drops the apostrophe → "CHILLIN BATTLEFOIL". Without
+        // canonicalisation the +0.2 treatment bonus silently never
+        // fires for this print.
+        val chillin = card(
+            "CHBF-1", hero = "Maverick", element = "FIRE", power = 135,
+            treatment = "Chillin' Battlefoil",
+        )
+        val custom = ScanCardMatcher { listOf(maverickBase, chillin) }
+        val tokens = listOf(
+            token("CHBF-1", topLeft = false),
+            token("Maverick", topLeft = true),
+            // OCR canonical: "CHILLIN BATTLEFOIL" (no apostrophe)
+            token("Chillin Battlefoil", topLeft = false),
+        )
+        val result = custom.match(tokens)
+        assertNotNull(result)
+        assertEquals("CHBF-1", result?.card?.cardNumber)
+        assertTrue(
+            "Expected treatment bonus despite apostrophe drop",
+            result?.reasons?.any { it.contains("treatment") } == true,
+        )
+    }
+
+    @Test
+    fun `treatment matches when ML Kit splits it across two tokens`() {
+        // "Blue Battlefoil" split into ["Blue", "Battlefoil"] per
+        // ML Kit's line segmentation. Per-token contains() can't
+        // assemble the phrase; joined-text fallback (canonicalised,
+        // no-space concat) does.
+        val blueBf = card(
+            "BBBF-1", hero = "Maverick", element = "FIRE", power = 135,
+            treatment = "Blue Battlefoil",
+        )
+        val custom = ScanCardMatcher { listOf(maverickBase, blueBf) }
+        val tokens = listOf(
+            token("BBBF-1", topLeft = false),
+            token("Maverick", topLeft = true),
+            token("Blue", topLeft = false),
+            token("Battlefoil", topLeft = false),
+        )
+        val result = custom.match(tokens)
+        assertNotNull(result)
+        assertEquals("BBBF-1", result?.card?.cardNumber)
+        assertTrue(
+            "Expected treatment bonus from joined-text path",
+            result?.reasons?.any { it.contains("treatment") } == true,
+        )
+    }
+
+    @Test
     fun `fuzzy-only top-left does not veto legitimate cardNumber match`() {
         // Scenario: OCR catches a strong cardNumber match (clean
         // "BHBF-37" → JacHammer) but a top-left token is OCR garbage

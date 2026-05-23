@@ -975,6 +975,21 @@ private fun ScanViewfinder(
     // Throttle state for the ShinyScanDiag log — write at most once
     // per second so logcat stays readable when running 15-30 fps.
     var lastShinyDiagLogMs by remember { mutableStateOf(0L) }
+    // Iter 53: cross-frame token aggregation buffer. Real-world finding
+    // from DEKAP GGL-779 logcat: OCR catches `DEKAP` consistently +
+    // `80` (power) consistently + chrome text ("POWER", "BATTLE",
+    // "FIRST EDITION") BUT the discriminating cardNumber tokens
+    // (`GGL`, `779`) appear only intermittently across frames. The
+    // matcher's per-frame view can't commit because no single frame
+    // has all the signal. Aggregating tokens over the last ~5 frames
+    // gives the matcher a UNION view: even if `GGL` only landed in
+    // frame N and `779` only in frame N+2, the union has both.
+    //
+    // Mutable list rather than Compose state — the analyzer closure
+    // captures it and we mutate in place. Cleared after any commit
+    // (lastMatchedBobaId change) so the buffer can't pollute a new
+    // card scan with stale tokens.
+    val recentTokenBatches = remember { java.util.ArrayDeque<List<ScanTextToken>>() }
     var previewW by remember { mutableStateOf(1) }
     var previewH by remember { mutableStateOf(1) }
     DisposableEffect(lifecycleOwner) {
@@ -1039,14 +1054,25 @@ private fun ScanViewfinder(
                 // substring guard) is what protects the unfiltered
                 // path from background-text noise — a stray cardNumber
                 // on a sign won't beat a real DEKAP top-left.
-                val tokens = filteredTokens.takeIf { it.isNotEmpty() } ?: allTokens
-                if (tokens.isEmpty()) return@MlKitAnalyzer
-                // Diagnostic: dump every OCR token + matcher reasons
-                // so we can see what ML Kit actually returns on shiny
-                // cards. Throttled to once-per-second to keep logcat
-                // readable. Tagged ShinyScanDiag — `adb logcat -s
-                // ShinyScanDiag` while scanning shows the real OCR
-                // output to inform the next matcher tweak.
+                val perFrameTokens = filteredTokens.takeIf { it.isNotEmpty() } ?: allTokens
+                if (perFrameTokens.isEmpty()) return@MlKitAnalyzer
+
+                // Iter 53: aggregate the last 5 frames' tokens into a
+                // union and feed THAT to the matcher. Each frame's
+                // sparse OCR contributes to a richer signal pool —
+                // even if `GGL` only landed in frame N and `779` only
+                // in frame N+2, the matcher sees BOTH at frame N+2.
+                // Dedupe by uppercase text so identical re-reads don't
+                // bloat the pool. Capped at 5 frames (matches the
+                // stabilizer window) so a new card swap ages out the
+                // old card's tokens in ~1/3 second at 15 fps. The
+                // buffer also clears on every successful commit so
+                // the next scan starts fresh.
+                recentTokenBatches.addLast(perFrameTokens)
+                while (recentTokenBatches.size > 5) recentTokenBatches.removeFirst()
+                val tokens = recentTokenBatches
+                    .flatten()
+                    .distinctBy { it.text.uppercase() }
                 val firstPass = matcher.match(tokens)
                 // Enriched diagnostic (iter 49). Captures every token
                 // + the matcher's top-pick score + reasons, throttled
@@ -1098,6 +1124,11 @@ private fun ScanViewfinder(
                 scanState = stabilizer.state
                 if (stable != null && lastMatchedBobaId != stable.card.bobaId) {
                     lastMatchedBobaId = stable.card.bobaId
+                    // Iter 53: clear the aggregation buffer on commit
+                    // so the next scan starts with a fresh token pool.
+                    // Otherwise stale tokens from the previous card
+                    // would contaminate the new scan's signal.
+                    recentTokenBatches.clear()
                     // Set the detection chip card on every commit
                     // (both modes). MULTI also auto-queues; SINGLE
                     // waits for the user to tap the chip. Reads

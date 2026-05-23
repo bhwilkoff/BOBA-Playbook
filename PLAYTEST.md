@@ -22,7 +22,7 @@ That's where you come in. The iOS beta has open slots:
 - **Practice Battle** — play a full 7-battle match against a CPU, with all 383 unique Play card effects wired to actual game logic
 - Curated lists (WOBA, Bo Jackson, Ken Griffey Jr., Dr. J, and by sport / weapon)
 
-**Pricing.** Each card detail shows live Buy Now listings and recent sales via an eBay API proxy, plus a Radish price-guide link.
+**Pricing.** Each card detail shows live Buy Now listings and recent sales via an eBay API proxy, plus a "View on Radish" external link that opens the Radish Price Guide site in your browser.
 
 ---
 

@@ -157,7 +157,7 @@ When shipping any user-facing feature:
 | Pricing panels (Buy Now + Sold) | ✅ | ✅ | ✅ | DECISIONS.md #013 |
 | eBay listings | ✅ | ✅ | ✅ | Worker proxy |
 | eBay sold comps | ✅ | ✅ | ✅ | Worker proxy |
-| Radish recent sales | ✅ | ✅ | ✅ | Worker proxy |
+| Radish recent sales | 🚫 | 🚫 | 🚫 | Removed 2026-05-23 per DECISIONS.md #056 + RADISH_REMOVAL_LOOP.md. Per-card "View on Radish" external link retained on all three platforms (homepage fallback when `card.radishUrl` is null). |
 | COMC asking (separate, NOT in waterfall) | ✅ | ✅ | 🚫 | DECISIONS.md #034 — Android skipping per `feedback_comc_blocked_all_platforms` Turnstile gate |
 | Add to Collection / Deck / Show | ✅ | ✅ | ✅ | Auth-required |
 | Edit Designation | ✅ | ✅ | ✅ | Collection context — Android Edit Copy sheet shipped |

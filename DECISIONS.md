@@ -58,7 +58,7 @@ Card identification uses iOS Vision (`VNRecognizeTextRequest`) and AVFoundation 
 
 ## 013 — Pricing Comps Strategy
 *2026-04-03*
-Pricing fetched live at card-detail view time via Cloudflare Worker (eBay Browse API + Radish Price Guide in parallel). Prices not stored in Supabase — live lookups only. Collection value dashboard caches last-fetched price in `user_cards.estimated_value`.
+Pricing fetched live at card-detail view time via Cloudflare Worker (eBay Browse + Marketplace Insights APIs). Prices not stored in Supabase — live lookups only. Collection value dashboard caches last-fetched price in `user_cards.estimated_value`. **Radish Price Guide integration was removed 2026-05-23** per the partner's request — see #056.
 
 Worker URL: `boba-ebay-proxy.benwilkoff.workers.dev` — stored in `BOBAPlaybook/Config.swift` and `js/app.js`.
 
@@ -218,7 +218,7 @@ Three items blocked on external signal — documented so they don't get lost.
 *2026-04-29*
 COMC.com exposes 931 BoBA listings matching cards.json. Wired as a parallel BUY NOW source alongside eBay actives (iOS `ComcService` + web `fetchComcListings`).
 
-**Critical: COMC asking stays OUT of the sold-comp waterfall.** Radish sales → eBay sold → Market Est. measures TRANSACTED prices. Asking runs ~10-25% above sold; folding it in inflates the estimate. COMC is purely additive on BUY NOW (where to buy now), not pricing (what it's worth). Each COMC row shows "COMC asking · Ungraded NM" so users read it as a list price.
+**Critical: COMC asking stays OUT of the sold-comp waterfall.** eBay sold → Market Est. measures TRANSACTED prices. Asking runs ~10-25% above sold; folding it in inflates the estimate. COMC is purely additive on BUY NOW (where to buy now), not pricing (what it's worth). Each COMC row shows "COMC asking · Ungraded NM" so users read it as a list price.
 
 **Turnstile blocked.** COMC turned on Cloudflare managed-JS challenge after recon. `boba-comc-proxy` detects `challenged: true` and returns `count: 0`; clients soft-fail. Bypass requires Browser Rendering API / Playwright / cf_clearance persistence. Defer until COMC's WAF stance changes (memory `feedback_comc_blocked_all_platforms`).
 
@@ -477,3 +477,30 @@ Both reverted within minutes of install. The matcher's confidence + margin floor
 - 29 JVM matcher tests + 9 stabilizer + 9 guide math + 10 queue + 10 canonicalize = 67 total — the test suite IS the safety net for further matcher tweaks
 
 The `[[reference_android_scanner_recovery_paths]]` memory has the full architecture diagram + don't-touch list.
+
+## 056 — Radish Price Guide integration removed (compliance request)
+*2026-05-23*
+
+Email from Scot + Rob (Radish Price Guide owner / lead developer) on 2026-05-23 stated they consider BOBA Playbook a potentially competing product and revoked authorization for Radish data, images, pricing, catalog mapping, lookup logic, automated workflows, and partner/primary-source language. The ONE thing they remain comfortable with is "ordinary user-facing linking to Radish Price Guide" where the user leaves BOBA Playbook to view information directly on Radish.
+
+**What was removed** (`RADISH_REMOVAL_LOOP.md` has the full tick log):
+
+- **Worker (`boba-ebay-proxy`)** — `fetchRadishSales`, `fetchRadishMarketEst`, `fetchRadishCardId`, `getRadishBuildId`, `RADISH_NAMESPACES`, hero/casing alias tables, sitemap-driven URL resolver, `/radish-url` + `/radish-url-map` endpoints, `radishResolvedUrl` response field. Pricing collapsed to eBay sold + active only. Cache namespace bumped to v18.
+- **Worker (`boba-youtube-feed`)** — `radishdijital` removed from `KNOWN_CHANNELS`; priority-0 channel pin emptied. Their YouTube content can still surface organically via the BoBA search-query path (ordinary public-content discovery), but BOBA no longer specifically pulls or elevates their channel.
+- **iOS** — `Card+Radish.swift` deleted in full (URL resolver + alias tables + `RadishURLResolver` HEAD-probe logic). `Card.radishUrl` field retained as frozen legacy reference data. New helper `Card.radishDisplayURL` returns `radishUrl` when present, else the Radish homepage. "Radish Guide" Button + SafariView sheet replaced with SwiftUI `Link` to that URL — opens the system default browser externally, never `SFSafariViewController`.
+- **Web** — `SET_SLUG_MAP`, `RADISH_HERO_ALIASES`, `buildRadishUrl` deleted from `js/app.js`. Per-card anchor reads `radishDisplayUrl(card)` (legacy `card.radishUrl` when present, else homepage). `target="_blank" rel="noopener noreferrer"`.
+- **Android** — `PricingSource` enum collapsed to `{EBAY}`. `radishResolvedUrl` field stripped from Worker response model + `PricingBundle` + `CardDetailUiState` + `PricingState`. New "View on Radish" `TextButton` at the bottom of pricing panels using `Intent.ACTION_VIEW` with `card.radishUrl ?: homepage` — opens the system default browser (not `CustomTabsIntent`).
+- **Pipeline** — deleted `pipeline/scripts/stage_a_scrape_radish.py`, `scripts/build_radish_url_map.py`, `scripts/apply_radish_urls.py`, `scripts/probe_radish_urls.py`, and `assets/data/radish-url-map.json`. New helper `scripts/identify_radish_sourced_cards.py` emits a backfill queue for the 8,386 cards whose images came from Radish; Ben runs the existing `pipeline/scripts/stage_a_scrape_bv.py` against the queue to re-source from BazookaVault.
+- **Docs** — `DECISIONS.md` #013 amended; this entry added; `DESIGN.md` §8.7, `ANDROID-DESIGN.md` §8.7, `PARITY.md`, `README.md`, `PITCH.md`, `SCRATCHPAD.md`, `terms/index.html`, `LearnView.swift` glossary, `index.html` glossary, `LearnContent.kt` glossary all updated.
+
+**The one approved use case — per-card external link.** Email allowed "ordinary user-facing linking." Ben confirmed mid-loop that direct-linking to specific cards is within the spirit. Reconciliation: use the legacy `card.radishUrl` field already in `cards.json` (acquired pre-email from Radish's sitemap; treated as frozen static data going forward) as the per-card link destination; fall back to `https://radishpriceguide.com` when the field is null. Every form of automation the email prohibits — sitemap pulls, HEAD probing, alias tables, runtime URL construction, Worker `/radish-url` endpoint — stays fully deleted. Button label is "View on Radish."
+
+**Pricing replacement plan** (separate entry coming when shipped):
+- Tier 1 (sold history) — tuned `normaliseSoldEnriched` over eBay Marketplace Insights, 180-day window, AI image-verification on ambiguous matches.
+- Tier 2 (Market Est. for cards with no eBay activity) — new `boba-price-estimator` Worker. Comparability function over our own catalog (hero / weapon / power-tier / treatment-family / set / cardType), KV-cached, cross-set hero anchoring as bootstrap. Replaces what Radish's Market Est. previously did.
+- Tier 3 (long-term coverage moat) — community-submitted comps. Auth-gated form + mod queue piggybacking on the existing `card_corrections` plumbing.
+- External-source research (separate sub-agent) returned: no third-party source is worth integrating to replace Radish. PSA APR is graded-only (near-zero BOBA coverage), 130point has no API and derives from eBay, TCDb forbids scraping, Whatnot post-stream sales have no public API, COMC sold is Turnstile-blocked, Goldin / Sportlots have no APIs. eBay Marketplace Insights is the only first-party-licensed long-tail source for the foreseeable future.
+
+**Why this matters principle-wise:** preserving the ability to operate independently of any single third party is the load-bearing concern. The removal cost was bounded (~3 weeks per walk-away §8.4), and the replacement plan deepens BOBA's own moat (community comps + our own comparability model) rather than swapping one external dependency for another. CLAUDE.md "Why We Build": tools that make users more capable, not more dependent.
+
+**How to apply:** any PR adding a Radish reference (data fetch, URL construction beyond the homepage fallback, alias table, lookup logic, source pill, partner language) is rejected. The only Radish-related code permitted: the `Card.radishUrl` field's per-card link destination + the homepage fallback string. Worker, scrapers, alias tables — all permanently gone.

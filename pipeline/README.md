@@ -29,7 +29,7 @@ Goal: every card with zero art either gets art shipped automatically OR lands in
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  CLOUDFLARE WORKER (cron, hourly)                           │
-│  Discovers candidate URLs from Radish / BV / eBay search    │
+│  Discovers candidate URLs from BV / eBay search             │
 │  → INSERTs into Supabase pipeline_image_candidates          │
 │  Pure orchestration; no image work (10ms CPU cap on free)   │
 └────────────────────┬────────────────────────────────────────┘
@@ -91,7 +91,6 @@ pipeline/
 │   └── README.md                 ← how to apply migrations
 ├── scripts/                      ← Python pipeline glue (consolidated from research folder)
 │   ├── import_research_queue.py  ← one-time migration of existing queue → Supabase
-│   ├── scrape_radish.py          ← (Stage A) Radish scraper
 │   ├── scrape_bazookavault.py    ← (Stage A) BazookaVault w/ Playwright auth
 │   ├── scrape_ebay.py            ← (Stage A) eBay Browse API sourcer
 │   ├── pre_crop.py               ← (Stage A) OpenCV 5:7 pre-crop
@@ -139,7 +138,7 @@ Each workflow is independently testable via `workflow_dispatch`. Stages A/B/C ch
 | Phase | Days | Deliverable |
 |---|---|---|
 | **0** Foundation | 1–2 | Pipeline directory + Supabase schema + research-queue import script + Resend/secrets runbook + this README |
-| **1** Stage A — Scrape | 3–4 | Linux workflow: ports of Radish + eBay + BV scrapers from research folder, pre-crop, R2 staging upload |
+| **1** Stage A — Scrape | 3–4 | Linux workflow: ports of eBay + BV scrapers from research folder, pre-crop, R2 staging upload |
 | **2** Stage B — Recognize | 3–4 | `recognition/CardRecognitionCLI/` mirroring `tools/GridDetectorCLI`; macOS workflow w/ matrix sharding; threshold calibration against research-queue corpus |
 | **3** Stage C — Commit | 2–3 | Collision check + R2 upload + cards.json delta + PR opener + Resend email |
 | **4** Backfill + tune | 1–2 | Run end-to-end on existing 1,570-card backlog; manual audit of first auto-merged PRs |

@@ -71,7 +71,6 @@ When you toggle "Public collection" on in Profile, your collection becomes share
 
 BOBA Playbook is one tool in a growing ecosystem. These others are excellent and worth knowing:
 
-- **[Radish Price Guide](https://radishpriceguide.com)** — detailed eBay sales history and price tracking
 - **[Bazooka Vault](https://bazookavault.com)** — card database and collection management
 - **[Bo Jackson Battle Arena](https://bobattlearena.com)** — the official game site
 

@@ -24,7 +24,8 @@ Pattern memories from the pre-compaction sessions (preserved across compaction):
 
 ## Open Questions / Blockers
 
-- **OKC art sourcing** — 54 OKC records ship with `imageFile=null`. Confirm what's published on bobattlearena.com / BazookaVault / Radish, then trigger a BV-scrape pass scoped to OKC- pages.
+- **OKC art sourcing** — 54 OKC records ship with `imageFile=null`. Confirm what's published on bobattlearena.com / BazookaVault, then trigger a BV-scrape pass scoped to OKC- pages.
+- **Radish removal backfill** — see RADISH_REMOVAL_LOOP.md. 8,386 cards still ship with `imageSource: "RADISH"` attribution; bytes stay on R2 (they're ours per DECISIONS.md #008), but provenance needs to flip as BV / eBay-image-sourcer / community submissions re-source each one. Backfill queue at `assets/data/radish_backfill_queue.json` (regenerate via `scripts/identify_radish_sourced_cards.py`).
 - **COMC Cloudflare Turnstile** — `boba-comc-proxy` returns `count: 0, challenged: true`. Bypass requires Cloudflare Browser Rendering API or a Playwright runner. Defer until COMC's WAF stance changes.
 - **Practice executor IP review** — admin-gated per DECISIONS.md #033; access via the bolt icon on the Profile role badge. No timeline.
 - **R2 /full/ tier resolution upgrade** (Hero Shot pixelation root cause). v7.x ships Lanczos 2× upscale + PBR matte + mipmaps as a stopgap that masks the issue perceptually, but the authoritative fix is regenerating R2's `/full/` tier at higher resolution. Measured today: `/full/` serves cards at 477×667 (1-Maverick) to 745×1040 (1-LeBoss) — far smaller than CARD_SCHEMA's "≤1200px WebP" claim. At Hero Shot's 1080×1920 output, the card art is UPsampled 1.5-2.3× from source = "thumbnail blown up" look at push-climax frame.

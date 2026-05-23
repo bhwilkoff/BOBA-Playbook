@@ -1,0 +1,30 @@
+name               = "boba-price-estimator"
+main               = "worker.js"
+compatibility_date = "2024-01-01"
+
+# KV namespace stores per-card market estimates.
+# Create once with `wrangler kv:namespace create ESTIMATES` and paste
+# the printed id below.
+[[kv_namespaces]]
+binding = "ESTIMATES"
+id      = "REPLACE_AFTER_CREATE"
+
+# Cron schedule — nightly at 03:00 UTC. Recomputes estimates for every
+# catalog card. Walks ~18k cards in batches; total runtime well under
+# Cloudflare's 30-min cron-invocation cap.
+[triggers]
+crons = ["0 3 * * *"]
+
+# Variables
+[vars]
+# URL of the canonical catalog JSON the estimator reads from. GitHub
+# Pages serves this with edge caching; the Worker pulls once per cron.
+CATALOG_URL = "https://bobaplaybook.com/assets/data/cards.json"
+# eBay Marketplace Insights / Browse API proxy. The estimator delegates
+# its per-card eBay queries here so the OAuth + scoring logic stays in
+# one place (no Worker-to-Worker scoring duplication).
+EBAY_PROXY  = "https://boba-ebay-proxy.benwilkoff.workers.dev"
+# Per-card eBay query budget per cron run. 18k cards × 1 query = 18k
+# subrequests, well within the per-cron limit but cron itself runs
+# under a 30-min wallclock budget — batch + spread accordingly.
+PER_CRON_BUDGET = "18000"

@@ -10,8 +10,7 @@ are public.
 
 This sourcer joins the BV CSV against cards.json's missing-art set
 and downloads the matching image for each. Far higher hit rate than
-eBay (long-tail listings rarely exist) or Radish (long-tail card pages
-sometimes exist but don't always have the image embedded).
+eBay (long-tail listings rarely exist).
 
 ENV: SUPABASE_URL, SUPABASE_SERVICE_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY,
      R2_SECRET_KEY

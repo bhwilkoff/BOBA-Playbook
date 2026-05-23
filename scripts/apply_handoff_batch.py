@@ -84,7 +84,10 @@ def load_prefix_records(prefix_dir: Path, prefix_lower: str) -> list[dict]:
                 r.get("subSet"), r.get("athleteInspiration"),
             )
         r.setdefault("bvId", None)
-        # Strip non-catalog fields (radishUrl, sourceNote, etc.)
+        # Restrict to whitelisted catalog fields. radishUrl is omitted
+        # for new cards going forward (RADISH_REMOVAL_LOOP.md: no new
+        # Radish URL data after 2026-05-23); legacy radishUrl values on
+        # existing cards.json rows are preserved untouched by the merge.
         out.append({k: v for k, v in r.items() if k in CATALOG_FIELDS})
     return out
 

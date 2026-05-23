@@ -13,7 +13,7 @@ A companion iOS app for Bo Jackson Battle Arena. Search. Scan. Collect. Play!
 - **Track** your collection across five designations (Personal / For Sale / For Trade / Wanted / Grails), synced so you can pull it up anywhere
 - **Practice** full 7-battle matches against a CPU — every one of the 383 unique Play card effects are wired to real game logic
 - **Build** decks with live legality checks — 60 heroes, 10 hot dogs, 30 plays, all the copy limits enforced
-- **Price** each card with live eBay Buy Now + recent sales, plus Radish price-guide links
+- **Price** each card with live eBay Buy Now + recent-sales comps
 
 ---
 

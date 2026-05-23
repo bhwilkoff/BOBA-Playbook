@@ -404,11 +404,11 @@ Three structs (`CardDetailView`, `BrowserCardDetailSheet`, `CollectionCardDetail
 Lives inside `CardDetailView`. Live-fetched (DECISIONS.md #013). COMC asking stays OUT of sold-comp waterfall (#034) — asking inflates 10-25%.
 
 1. **Buy Now** (asking): eBay actives + COMC asking w/ "COMC asking · Ungraded NM" pill. Soft-fail COMC silently when Worker returns `challenged: true`.
-2. **Sold history** (transacted): Radish recent (preferred TCG comps) + eBay sold. Market est = Radish-first waterfall.
+2. **Sold history** (transacted): eBay sold (Marketplace Insights API, 90-day window, tuned `normaliseSoldEnriched` scorer). Market est for cards with no eBay sold activity falls through to the `boba-price-estimator` Worker (comparability function over our own catalog, KV-cached). Radish removed 2026-05-23 — see DECISIONS.md #056. A single per-card "View on Radish" external-browser link is preserved on every card detail (uses the legacy frozen `card.radishUrl` when present, falls back to the Radish homepage).
 
 Per-section: horizontal scroll of price tiles (thumb + price + source pill + tap-through). Empty = section-local `ContentUnavailableView` w/ refresh. Loading = 3-tile skeleton.
 
-Market estimate header (single line): *"~$24 · based on 8 recent sales (Radish + eBay)"*. Asking NEVER folded in. Cached `user_cards.estimated_value` for Collection value-summary; grid doesn't re-fetch live.
+Market estimate header (single line): *"~$24 · based on 8 recent eBay sold comps"*. Asking NEVER folded in. Cached `user_cards.estimated_value` for Collection value-summary; grid doesn't re-fetch live.
 
 **Anti-patterns:** asking+sold combined (inflation); one source when both available; sources behind disclosure (provenance is the trust mechanism).
 
@@ -418,7 +418,7 @@ Both lifted from streamer-only gate (DECISIONS.md #036).
 
 **Wall view.** Render N cards as a single shareable image (sale lists, trade lists, deck composition, teaching). Invocation: Collection display-mode picker; Decks ⋯ Menu ("Generate deck wall"); Find multi-select ("Wall these N cards"). Full-screen small-multiples grid (`BOBACardCell`, near-black bg) + inline-editable title strip. Toolbar: Save / Share / Copy / aspect picker (9:19.5, 1:1, 16:9, 3:4) / Price Overlay toggle. Default aspect = source-context (Collection→IG square, Deck→16:9). Honors current scope — never re-filter inside Wall.
 
-**Price Overlay.** Toggle in Wall view only (sharing affordance, not browsing). Chip: lower-third inset, source pill (eBay / COMC / Radish / Custom) + price. Default source = lowest-asking; toggle to "My price" (`estimated_value` or per-card override). Glass with `.tint()` per §5. Optional condition chip (NM/EX/GD) for Sale/Trade. Per-designation defaults: Sale ON / My price · Trade ON / market est · Grails+Personal OFF · Wanted ON / market est / "WTB" prefix.
+**Price Overlay.** Toggle in Wall view only (sharing affordance, not browsing). Chip: lower-third inset, source pill (eBay / COMC / Custom) + price. Default source = lowest-asking; toggle to "My price" (`estimated_value` or per-card override). Glass with `.tint()` per §5. Optional condition chip (NM/EX/GD) for Sale/Trade. Per-designation defaults: Sale ON / My price · Trade ON / market est · Grails+Personal OFF · Wanted ON / market est / "WTB" prefix.
 
 ---
 

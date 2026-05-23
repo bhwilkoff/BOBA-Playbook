@@ -47,7 +47,14 @@ const MARKETPLACE  = "EBAY_US";
 // scoring ≥ CONFIRMED contributes to low/avg/high. A listing in
 // [PROBABLE, CONFIRMED) is shown with a "probable" badge but excluded
 // from aggregates. Below PROBABLE, the listing is dropped entirely.
-const SCORE_CONFIRMED = 0.70;
+//
+// Lowered CONFIRMED 0.70 → 0.60 post-Radish (walk-away §8.3 plan):
+// the scorer is now the sole sold-comp signal on every card, so
+// aggregating from probable-but-likely matches is the difference
+// between "$24 estimate" and "no data" for the long tail. The
+// boosted treatment + hero weights (above) make the looser threshold
+// safer than it would have been at the original weights.
+const SCORE_CONFIRMED = 0.60;
 const SCORE_PROBABLE  = 0.45;
 
 // Base scope for Browse API. Marketplace Insights requires buy.marketplace.insights
@@ -378,9 +385,13 @@ function scoreSoldListing(item, card) {
   }
 
   // Hero signal — canonical hero or alias in title / player aspect.
+  // Post-Radish (2026-05-23) the scorer is load-bearing for every
+  // sold comp — Radish's pre-matched sales no longer back-fill us
+  // when our titles-based filter is uncertain. Bumped hero weight
+  // 0.20 → 0.25 to compensate (walk-away §8.3 plan).
   const heroHit = asp.playerHit || heroMatches(titleLower, card.hero);
   if (heroHit) {
-    score += 0.20;
+    score += 0.25;
     reasons.push("hero");
   }
 
@@ -400,9 +411,14 @@ function scoreSoldListing(item, card) {
     reasons.push("element");
   }
 
-  // Treatment — aspect or title.
+  // Treatment — aspect or title. Bumped 0.05 → 0.15 post-Radish
+  // (walk-away §8.3) since Battlefoil colorway variants ("Red
+  // Battlefoil" vs "Silver Battlefoil") are the dominant mis-match
+  // we need to catch on the title-matching path. Radish previously
+  // handled this via pre-matched sales; without it, the scorer has
+  // to lean harder on the treatment signal.
   if (asp.treatmentHit || (card.treatment && treatmentMatches(titleLower, card.treatment))) {
-    score += 0.05;
+    score += 0.15;
     reasons.push("treatment");
   }
 

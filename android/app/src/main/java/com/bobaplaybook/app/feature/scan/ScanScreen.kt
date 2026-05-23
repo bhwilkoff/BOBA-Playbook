@@ -884,6 +884,9 @@ private fun ScanViewfinder(
     // PreviewView dimensions for top-left-quadrant detection. The
     // MlKitAnalyzer maps text-block bounds into VIEW-REFERENCED
     // coordinates, so frameWidth/Height is the PreviewView size.
+    // Throttle state for the ShinyScanDiag log — write at most once
+    // per second so logcat stays readable when running 15-30 fps.
+    var lastShinyDiagLogMs by remember { mutableStateOf(0L) }
     var previewW by remember { mutableStateOf(1) }
     var previewH by remember { mutableStateOf(1) }
     DisposableEffect(lifecycleOwner) {
@@ -950,6 +953,24 @@ private fun ScanViewfinder(
                 // on a sign won't beat a real DEKAP top-left.
                 val tokens = filteredTokens.takeIf { it.isNotEmpty() } ?: allTokens
                 if (tokens.isEmpty()) return@MlKitAnalyzer
+                // Diagnostic: dump every OCR token + matcher reasons
+                // so we can see what ML Kit actually returns on shiny
+                // cards. Throttled to once-per-second to keep logcat
+                // readable. Tagged ShinyScanDiag — `adb logcat -s
+                // ShinyScanDiag` while scanning shows the real OCR
+                // output to inform the next matcher tweak.
+                run {
+                    val now = System.currentTimeMillis()
+                    val sinceLast = now - lastShinyDiagLogMs
+                    if (sinceLast > 1000) {
+                        lastShinyDiagLogMs = now
+                        val tokSnippet = tokens.take(12).joinToString(" | ") { it.text }
+                        android.util.Log.i(
+                            "ShinyScanDiag",
+                            "tokens(${tokens.size}/${allTokens.size}): $tokSnippet",
+                        )
+                    }
+                }
                 val firstPass = matcher.match(tokens)
                 val perFrame = if (firstPass == null && tokens !== allTokens) {
                     val secondPass = matcher.match(allTokens)

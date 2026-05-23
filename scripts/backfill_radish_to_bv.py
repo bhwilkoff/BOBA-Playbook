@@ -60,7 +60,7 @@ load_dotenv(REPO_ROOT / ".env")
 
 USER_AGENT = "Mozilla/5.0 (compatible; BoBA-RadishBackfill/1.0)"
 BV_CSV_PATH = REPO_ROOT / "pipeline" / "data" / "bv_scan_results.csv"
-QUEUE_PATH  = REPO_ROOT / "assets" / "data" / "radish_backfill_queue.json"
+DEFAULT_QUEUE = REPO_ROOT / "assets" / "data" / "radish_backfill_queue.json"
 
 # Every catalog JSON file that mirrors the master cards.json. Each card
 # row is keyed by bobaId; we update imageSource in lockstep across all.
@@ -166,9 +166,11 @@ def upload_to_r2(r2, bucket: str, key: str, body: bytes, content_type: str = "im
         return False
 
 
-def update_catalogs(updated_boba_ids: set[str], new_source: str = "BV") -> dict[str, int]:
+def update_catalogs(updated_boba_ids: set[str], from_source: str = "RADISH", new_source: str = "BV") -> dict[str, int]:
     """Flip imageSource on every catalog file in lockstep. Returns
-    per-file count of rows updated."""
+    per-file count of rows updated. Only flips rows whose current
+    imageSource matches `from_source` — protects against accidentally
+    rewriting non-RADISH cards if a queue is misconfigured."""
     counts = {}
     for path in CATALOG_FILES:
         if not path.exists():
@@ -178,7 +180,7 @@ def update_catalogs(updated_boba_ids: set[str], new_source: str = "BV") -> dict[
         n = 0
         for c in cards:
             bid = c.get("bobaId")
-            if bid in updated_boba_ids and c.get("imageSource") == "RADISH":
+            if bid in updated_boba_ids and c.get("imageSource") == from_source:
                 c["imageSource"] = new_source
                 n += 1
         path.write_text(json.dumps(cards, indent=2))
@@ -197,12 +199,22 @@ def main():
                     help="Skip the first N cards in the queue (for resume)")
     ap.add_argument("--workers", type=int, default=10,
                     help="Concurrent download/upload workers (default 10)")
+    ap.add_argument("--queue", default=str(DEFAULT_QUEUE),
+                    help="Backfill queue JSON to read (default: assets/data/radish_backfill_queue.json)")
+    ap.add_argument("--from-source", default="RADISH",
+                    help="Catalog imageSource value to replace (default: RADISH)")
+    ap.add_argument("--new-source", default="BV",
+                    help="New imageSource value to write (default: BV)")
     args = ap.parse_args()
 
-    if not QUEUE_PATH.exists():
-        print(f"Queue not found at {QUEUE_PATH} — run scripts/identify_radish_sourced_cards.py first.", file=sys.stderr)
+    queue_path = Path(args.queue)
+    if not queue_path.is_absolute():
+        queue_path = REPO_ROOT / args.queue
+
+    if not queue_path.exists():
+        print(f"Queue not found at {queue_path} — run scripts/identify_radish_sourced_cards.py first.", file=sys.stderr)
         return 1
-    queue = json.loads(QUEUE_PATH.read_text())
+    queue = json.loads(queue_path.read_text())
     bv_index = index_bv_csv()
     bucket = os.environ.get("R2_BUCKET", "boba-card-images")
     r2 = make_r2_client() if not args.dry_run else None
@@ -281,7 +293,7 @@ def main():
     upload_err   = counters["upload_err"]
 
     if not args.dry_run and succeeded_boba_ids:
-        counts = update_catalogs(succeeded_boba_ids, new_source="BV")
+        counts = update_catalogs(succeeded_boba_ids, from_source=args.from_source, new_source=args.new_source)
         print("Catalog updates:")
         for path, n in counts.items():
             print(f"  {path}: {n} rows flipped")

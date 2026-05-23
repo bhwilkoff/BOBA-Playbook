@@ -53,6 +53,10 @@ import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -520,16 +524,6 @@ private fun ScanViewfinder(
     // guide-frame element-coloured stroke. Declared BEFORE the
     // analyzer setup so the analyzer closure captures it.
     var detectedCard by remember { mutableStateOf<com.bobaplaybook.core.domain.model.Card?>(null) }
-    // iOS-parity Quick-Save counter. iOS scanner shows "+2 in Personal"
-    // when the user taps the chip's + button twice on the same chip.
-    // Android previously showed the same "Added X to Personal" each tap
-    // regardless of count — collectors couldn't tell their 3rd tap had
-    // landed. Reset to 0 whenever the chip's bobaId changes (new card
-    // committed) or the chip dismisses (detectedCard goes null).
-    var quickSaveCount by remember { mutableStateOf(0) }
-    androidx.compose.runtime.LaunchedEffect(detectedCard?.bobaId) {
-        quickSaveCount = 0
-    }
     // rememberUpdatedState — analyzer closure binds once but reads
     // the CURRENT scanMode on every fire. Without this, the closure
     // captures the initial SINGLE value and toggling MULTI in the UI
@@ -719,22 +713,12 @@ private fun ScanViewfinder(
             ScanDetectionChip(
                 card = card,
                 onTap = { onChipTap(card.bobaId) },
-                onQuickSave = {
-                    // Increment optimistically so the snackbar reflects
-                    // this tap's count even if the user mashes faster
-                    // than the coroutine resolves. The +N badge in the
-                    // chip reads from quickSaveCount directly.
-                    quickSaveCount += 1
-                    val count = quickSaveCount
+                onQuickSave = { qty ->
                     scope.launch {
                         val auth = ScanModuleAccess.authManager.authState
                             .first()
                         val userId = (auth as? com.bobaplaybook.app.auth.AuthState.SignedIn)?.userId
                         if (userId == null) {
-                            // Roll back the optimistic increment so the
-                            // chip doesn't show a phantom +N on signed-
-                            // out taps.
-                            quickSaveCount -= 1
                             appSnackbar?.showSnackbar(
                                 "Sign in to Quick-Save ${card.displayName}"
                             )
@@ -742,18 +726,23 @@ private fun ScanViewfinder(
                         }
                         val cardNumber = card.cardNumber
                             .ifEmpty { card.bobaId.substringBefore('-') }
-                        ScanModuleAccess.collectionRepository.add(
-                            cardBobaId = card.bobaId,
-                            cardNumber = cardNumber,
-                            designation = com.bobaplaybook.core.domain.model.Designation.PERSONAL,
-                            userId = userId,
-                        )
-                        // iOS-parity copy: show running count when the
-                        // user has tapped + more than once on the same
-                        // chip ("Added Maverick ×3 to Personal"). First
-                        // tap stays at the cleaner singular form.
-                        val message = if (count > 1) {
-                            "Added ${card.displayName} ×$count to Personal"
+                        // iOS-parity batch add: one row per copy. The
+                        // user picks N via the stepper, the chip emits
+                        // one quickSave callback, we loop N inserts.
+                        // CollectionRepository.add() accepts a quantity
+                        // param but currently ignores it (one row per
+                        // call) — the loop here is the chip's
+                        // canonical contract regardless.
+                        repeat(qty.coerceIn(1, 99)) {
+                            ScanModuleAccess.collectionRepository.add(
+                                cardBobaId = card.bobaId,
+                                cardNumber = cardNumber,
+                                designation = com.bobaplaybook.core.domain.model.Designation.PERSONAL,
+                                userId = userId,
+                            )
+                        }
+                        val message = if (qty > 1) {
+                            "Added $qty × ${card.displayName} to Personal"
                         } else {
                             "Added ${card.displayName} to Personal"
                         }
@@ -770,7 +759,7 @@ private fun ScanViewfinder(
                     lastMatchedBobaId = null
                     detectedCard = null
                 },
-                quickSaveCount = quickSaveCount,
+                isSingleMode = currentScanMode == ScanMode.SINGLE,
                 // AnimatedVisibility owns the position + padding +
                 // alignment now; the chip itself is just full-width.
                 modifier = Modifier.fillMaxWidth(),
@@ -790,11 +779,18 @@ private fun ScanViewfinder(
 private fun ScanDetectionChip(
     card: com.bobaplaybook.core.domain.model.Card,
     onTap: () -> Unit,
-    onQuickSave: () -> Unit,
+    onQuickSave: (Int) -> Unit,
     onDismiss: () -> Unit,
-    quickSaveCount: Int,
+    isSingleMode: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    // Chip-owned quantity stepper state — iOS parity. SINGLE mode lets
+    // the user pre-set N (1–99) and commit once; MULTI mode auto-queues
+    // each commit (no stepper). Reset to 1 whenever the matched card
+    // changes so a new chip starts at qty=1.
+    var quantity by androidx.compose.runtime.remember(card.bobaId) {
+        androidx.compose.runtime.mutableStateOf(1)
+    }
     // Element-coloured accent stripe + outline — iOS ScanDetectionChipView
     // tints the chip with the matched card's weapon colour so a quick
     // glance at the screen tells the user "FIRE / ICE / etc." without
@@ -829,6 +825,7 @@ private fun ScanDetectionChip(
         shape = RoundedCornerShape(14.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.55f)),
     ) {
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier
                 .clickable { onTap() }
@@ -880,31 +877,64 @@ private fun ScanDetectionChip(
                     )
                 }
             }
-            // Quick-Save "+" — adds the matched card to the user's
-            // Personal designation without leaving the scanner. iOS
-            // ScanDetectionChipView has the same affordance. After the
-            // first save, a small "×N" badge appears next to the icon
-            // so collectors know their second + tap landed without
-            // watching the snackbar fade in/out.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(0.dp),
-            ) {
-                if (quickSaveCount > 0) {
+            // iOS-parity right-side affordance:
+            //   • SINGLE → quantity stepper (- N +); paired with the
+            //     full-width "Add N to Collection" button rendered
+            //     BELOW the row.
+            //   • MULTI  → minimal chevron-up + "VIEW" label (auto-
+            //     queue handles the save; tapping opens detail).
+            if (isSingleMode) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    IconButton(
+                        onClick = { if (quantity > 1) quantity -= 1 },
+                        enabled = quantity > 1,
+                        modifier = Modifier.width(28.dp).height(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Remove,
+                            contentDescription = "Decrement quantity",
+                            tint = if (quantity > 1) Color.White
+                                   else Color.White.copy(alpha = 0.35f),
+                        )
+                    }
                     Text(
-                        text = "×$quickSaveCount",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFFFF4D00),
+                        text = "$quantity",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        modifier = Modifier.width(22.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     )
+                    IconButton(
+                        onClick = { if (quantity < 99) quantity += 1 },
+                        enabled = quantity < 99,
+                        modifier = Modifier.width(28.dp).height(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Increment quantity",
+                            tint = if (quantity < 99) Color.White
+                                   else Color.White.copy(alpha = 0.35f),
+                        )
+                    }
                 }
-                IconButton(
-                    onClick = onQuickSave,
-                    modifier = Modifier.width(36.dp).height(36.dp),
+            } else {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.width(44.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Quick-Save to Personal",
-                        tint = Color(0xFFFF4D00),
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.7f),
+                    )
+                    Text(
+                        text = "VIEW",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.7f),
                     )
                 }
             }
@@ -924,6 +954,38 @@ private fun ScanDetectionChip(
                 )
             }
         }
+        // SINGLE-mode commit button — iOS-parity full-width orange CTA
+        // ("Add to Collection" / "Add N to Collection") rendered below
+        // the row. Tap fires onQuickSave(quantity). MULTI mode hides
+        // this — the auto-queue flow doesn't ask for a quantity since
+        // each commit is one card and the queue review surface owns
+        // any multi-copy editing.
+        if (isSingleMode) {
+            Button(
+                onClick = { onQuickSave(quantity) },
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFF4D00),
+                    contentColor = Color.White,
+                ),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.width(16.dp).height(16.dp),
+                )
+                androidx.compose.foundation.layout.Spacer(Modifier.width(6.dp))
+                Text(
+                    text = if (quantity == 1) "Add to Collection"
+                           else "Add $quantity to Collection",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
+      }
     }
 }
 

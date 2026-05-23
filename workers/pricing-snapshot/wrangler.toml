@@ -14,6 +14,17 @@ id      = "6380f365d13247e28f978b7d76c8e4a9"
 [triggers]
 crons = ["0 4 * * *"]
 
+# Service bindings — Worker-to-Worker fetch via public URLs gets
+# 404'd by Cloudflare's edge router. Service bindings call the
+# destination Worker directly without going through DNS / edge.
+[[services]]
+binding = "EBAY_PROXY_SVC"
+service = "boba-ebay-proxy"
+
+[[services]]
+binding = "ESTIMATOR_SVC"
+service = "boba-price-estimator"
+
 [vars]
 # Source catalog. The snapshot Worker walks this list of cards each
 # night, calling the eBay-proxy + estimator per card to capture the
@@ -22,11 +33,14 @@ CATALOG_URL = "https://bobaplaybook.com/assets/data/cards.json"
 # The other two Workers it consults. Live URLs.
 EBAY_PROXY      = "https://boba-ebay-proxy.benwilkoff.workers.dev"
 PRICE_ESTIMATOR = "https://boba-price-estimator.benwilkoff.workers.dev"
-# Cards processed per cron run. 600/night × 30 nights covers the
-# full catalog at steady state; freshness threshold below skips
-# already-snapshotted cards so the cron naturally prioritizes stale
-# entries. Tunable via wrangler.toml without redeploy.
-PER_CRON_BUDGET    = "600"
+# Cards processed PER CRON RUN. Hard ceiling is the Cloudflare
+# Workers 1,000-subrequest cap per invocation: each card uses 2-3
+# subrequests (ebay-proxy + maybe estimator + supabase insert),
+# plus a handful of startup / closing subrequests. 200 cards × 3 =
+# 600 worst-case, well under the 1,000 cap. At 200/night the 18k
+# catalog rotates through in ~90 nights — slower than ideal but
+# safely bounded; bump only if telemetry shows headroom.
+PER_CRON_BUDGET    = "200"
 # Skip cards whose newest snapshot is fresher than this many hours.
 # 18h = roughly daily but with slop so cron timing variance doesn't
 # cause double-work.

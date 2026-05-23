@@ -190,7 +190,7 @@ function findComparables(target, catalog) {
  * boba-ebay-proxy. Returns a map bobaId → number (skipping cards with
  * no eBay sold data).
  */
-async function fetchCompPrices(bobaIds, catalog, ebayProxyUrl) {
+async function fetchCompPrices(bobaIds, catalog, env) {
   const indexByBobaId = new Map(catalog.map(c => [c.bobaId, c]));
   const prices = new Map();
   // Cap concurrency at 6 — Cloudflare Workers prefer fewer in-flight
@@ -213,7 +213,11 @@ async function fetchCompPrices(bobaIds, catalog, ebayProxyUrl) {
         });
         if (card.treatment) params.set("treatment", card.treatment);
         if (card.power != null) params.set("power", String(card.power));
-        const res = await fetch(`${ebayProxyUrl}?${params}`);
+        // Service-binding fetch — public-URL Worker-to-Worker gets 404'd
+        // by Cloudflare's edge router. The binding goes through the
+        // runtime directly.
+        const req = new Request(`https://internal/?${params}`);
+        const res = await env.EBAY_PROXY_SVC.fetch(req);
         if (!res.ok) continue;
         const data = await res.json();
         // Prefer the explicitly-sold section's average. Falls back to
@@ -320,7 +324,7 @@ function computeEstimate(comparables, priceMap) {
  * once their TTL approaches. Brand-new cards get picked up on the very
  * next cron after they land in cards.json.
  */
-async function refreshAllEstimates(env) {
+async function refreshAllEstimates(env, budgetOverride) {
   const catalogRes = await fetch(env.CATALOG_URL);
   if (!catalogRes.ok) {
     console.error("Catalog fetch failed:", catalogRes.status);
@@ -328,7 +332,7 @@ async function refreshAllEstimates(env) {
   }
   const catalog = await catalogRes.json();
   const cardsWithBobaId = catalog.filter(c => c.bobaId);
-  const budget = parseInt(env.PER_CRON_BUDGET || "600", 10);
+  const budget = budgetOverride ?? parseInt(env.PER_CRON_BUDGET || "600", 10);
   // Wallclock soft cap — Cloudflare cron has a 30-min hard cap.
   // Stop slightly early so KV writes + cursor save are guaranteed to
   // land before the worker is killed.
@@ -373,7 +377,7 @@ async function refreshAllEstimates(env) {
       ...comparables.same_set,
     ]));
     if (allCompIds.length === 0) continue;
-    const prices = await fetchCompPrices(allCompIds, catalog, env.EBAY_PROXY);
+    const prices = await fetchCompPrices(allCompIds, catalog, env);
     const estimate = computeEstimate(comparables, prices);
     if (!estimate) continue;
     const entry = {
@@ -436,7 +440,13 @@ export default {
     // Manual refresh trigger (rate-limit yourself manually; intended for
     // testing + the initial post-deploy seed run).
     if (request.method === "POST" && url.pathname.endsWith("/refresh")) {
-      const result = await refreshAllEstimates(env);
+      // Manual `?budget=N` lets HTTP /refresh stay within the 30s CPU
+      // cap. Without it, full PER_CRON_BUDGET runs hit "Exceeded CPU
+      // Limit" on the HTTP path while still working fine via cron
+      // (which has a 15-min budget).
+      const budgetParam = url.searchParams.get("budget");
+      const budgetOverride = budgetParam ? Math.max(1, parseInt(budgetParam, 10)) : undefined;
+      const result = await refreshAllEstimates(env, budgetOverride);
       return new Response(JSON.stringify(result), {
         status: 200,
         headers: { ...CORS, "Content-Type": "application/json" },

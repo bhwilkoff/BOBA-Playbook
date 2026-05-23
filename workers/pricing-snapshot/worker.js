@@ -69,25 +69,43 @@ async function supabaseInsert(env, rows) {
   return { written: rows.length };
 }
 
-async function supabaseLatestSnapshotAt(env, bobaId) {
-  const url = new URL(`${env.SUPABASE_URL}/rest/v1/card_prices_history`);
-  url.searchParams.set("boba_id", `eq.${bobaId}`);
-  url.searchParams.set("select", "snapshot_at");
-  url.searchParams.set("order", "snapshot_at.desc");
-  url.searchParams.set("limit", "1");
-  const res = await fetch(url, {
-    headers: {
-      "apikey":        env.SUPABASE_SERVICE_KEY,
-      "Authorization": `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-    },
-  });
-  if (!res.ok) {
-    await res.body?.cancel();
-    return null;
+/**
+ * Bulk freshness map — one Supabase query at cron start, returns a
+ * Set of bobaIds whose most-recent snapshot is within `freshHours`.
+ * Per-card calls were eating the Worker's 1,000-subrequest cap; this
+ * collapses N per-card queries down to 1 + an in-memory lookup.
+ *
+ * Paginates via PostgREST Range headers when the result exceeds
+ * Supabase's default 1,000-row response cap.
+ */
+async function supabaseFreshBobaIds(env, freshHours) {
+  const cutoff = new Date(Date.now() - freshHours * 3600 * 1000).toISOString();
+  const fresh = new Set();
+  const PAGE = 1000;
+  let offset = 0;
+  while (true) {
+    const url = new URL(`${env.SUPABASE_URL}/rest/v1/card_prices_history`);
+    url.searchParams.set("snapshot_at", `gte.${cutoff}`);
+    url.searchParams.set("select", "boba_id");
+    const res = await fetch(url, {
+      headers: {
+        "apikey":        env.SUPABASE_SERVICE_KEY,
+        "Authorization": `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+        "Range":         `${offset}-${offset + PAGE - 1}`,
+        "Range-Unit":    "items",
+      },
+    });
+    if (!res.ok) { await res.body?.cancel(); break; }
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.length === 0) break;
+    for (const r of rows) if (r.boba_id) fresh.add(r.boba_id);
+    if (rows.length < PAGE) break;
+    offset += PAGE;
+    // Hard safety stop — if we somehow loop past the catalog size,
+    // something's wrong and we bail rather than burn subrequests.
+    if (offset > 50_000) break;
   }
-  const rows = await res.json();
-  if (!Array.isArray(rows) || rows.length === 0) return null;
-  return rows[0].snapshot_at;
+  return fresh;
 }
 
 async function supabasePruneOlderThan(env, daysAgo) {
@@ -120,7 +138,11 @@ async function fetchEbayPricing(env, card) {
   if (card.power != null) params.set("power", String(card.power));
   params.set("days", "90");
   try {
-    const res = await fetch(`${env.EBAY_PROXY}?${params}`);
+    // Service-binding fetch — Worker-to-Worker via public URL gets
+    // 404'd by Cloudflare's edge router on `.workers.dev` hosts.
+    // The service binding routes directly through the runtime.
+    const req = new Request(`https://internal/?${params}`);
+    const res = await env.EBAY_PROXY_SVC.fetch(req);
     if (!res.ok) {
       await res.body?.cancel();
       return null;
@@ -133,8 +155,9 @@ async function fetchEbayPricing(env, card) {
 
 async function fetchEstimator(env, bobaId) {
   try {
-    const url = `${env.PRICE_ESTIMATOR}/estimate?bobaId=${encodeURIComponent(bobaId)}`;
-    const res = await fetch(url);
+    // Service-binding fetch — see note in fetchEbayPricing.
+    const req = new Request(`https://internal/estimate?bobaId=${encodeURIComponent(bobaId)}`);
+    const res = await env.ESTIMATOR_SVC.fetch(req);
     if (!res.ok) {
       await res.body?.cancel();
       return null;
@@ -188,15 +211,6 @@ function buildRowFromEstimator(bobaId, est) {
 async function processOneCard(env, card) {
   const bobaId = card.bobaId;
   if (!bobaId) return { processed: false, written: 0 };
-  // Skip if a fresh snapshot already exists.
-  const freshHours = parseInt(env.FRESH_THRESHOLD_HRS || "18", 10);
-  const lastAt = await supabaseLatestSnapshotAt(env, bobaId);
-  if (lastAt) {
-    const ageMs = Date.now() - Date.parse(lastAt);
-    if (ageMs < freshHours * 3600 * 1000) {
-      return { processed: false, skipped: true, written: 0 };
-    }
-  }
   // Fetch live eBay; if no sold+active, try estimator.
   const ebay = await fetchEbayPricing(env, card);
   const rows = buildRowsFromEbayResponse(bobaId, ebay);
@@ -224,7 +238,7 @@ async function refreshAll(env) {
   let cursor = cursorRaw != null ? parseInt(cursorRaw, 10) : 0;
   if (!Number.isFinite(cursor) || cursor < 0 || cursor >= cards.length) cursor = 0;
 
-  const budget = parseInt(env.PER_CRON_BUDGET || "600", 10);
+  const budget = parseInt(env.PER_CRON_BUDGET || "200", 10);
   const SOFT_CAP_MS = 25 * 60 * 1000;
   const startedAt = Date.now();
   let processed = 0;
@@ -236,9 +250,19 @@ async function refreshAll(env) {
   // burn too many DELETEs against Supabase).
   const retention = parseInt(env.RETENTION_DAYS || "90", 10);
   await supabasePruneOlderThan(env, retention);
+  // Bulk-load the freshness set ONCE per cron rather than per card.
+  // Per-card freshness checks were burning the 1,000-subrequest cap
+  // (4 subrequests × 250 cards = past the limit). One Supabase call
+  // returns every fresh boba_id; in-memory lookup from there is free.
+  const freshHours = parseInt(env.FRESH_THRESHOLD_HRS || "18", 10);
+  const freshBobaIds = await supabaseFreshBobaIds(env, freshHours);
   while (processed < budget && (Date.now() - startedAt) < SOFT_CAP_MS && wraps < 2) {
     if (i >= cards.length) { i = 0; wraps++; continue; }
     const target = cards[i++];
+    if (target.bobaId && freshBobaIds.has(target.bobaId)) {
+      skipped++;
+      continue;
+    }
     let result;
     try {
       result = await processOneCard(env, target);
@@ -246,7 +270,6 @@ async function refreshAll(env) {
       console.error("processOneCard failed", target.bobaId, e?.message);
       continue;
     }
-    if (result.skipped) { skipped++; continue; }
     if (result.processed) processed++;
     written += result.written;
   }

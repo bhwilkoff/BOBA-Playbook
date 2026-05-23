@@ -169,7 +169,16 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         // Treatment text — if the user's card has a battlefoil/foil
         // treatment, the print often says so explicitly. Score +0.2
         // when an OCR token matches the candidate's treatment.
+        // Treatment matching needs to handle multi-word treatments like
+        // "Red Battlefoil" or "Inspired Ink". ML Kit puts each word in
+        // its own token, so a per-token contains() check fails to find
+        // "RED BATTLEFOIL" inside "RED" or "BATTLEFOIL" alone. Build a
+        // joined-text uppercase blob to search against (same pattern as
+        // iter 4's cardNumber joined-text fallback). Also keep the
+        // per-token form so single-word treatments ("Battlefoil",
+        // "Superfoil") still match on the cheap path.
         val treatmentTokens = tokens.map { it.text.uppercase() }
+        val joinedTreatmentText = tokens.joinToString(" ") { it.text.uppercase() }
 
         // Element / treatment / power scraps (low-confidence additives).
         val elementHits = tokens
@@ -249,11 +258,15 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
                 score += 0.2
                 reasons += "power +0.2"
             }
-            // Treatment text — "Battlefoil", "Inspired Ink", "Superfoil",
-            // etc. When OCR catches the treatment label, candidates with
-            // a matching treatment get a small bonus.
+            // Treatment text — "Battlefoil", "Red Battlefoil", "Inspired
+            // Ink", "Superfoil", etc. Check per-token first (fast path,
+            // single-word treatments) then fall back to joined-text for
+            // multi-word treatments that ML Kit splits across tokens.
             val treatment = card.treatment?.uppercase() ?: ""
-            if (treatment.isNotEmpty() && treatmentTokens.any { it.contains(treatment) }) {
+            if (treatment.isNotEmpty() &&
+                (treatmentTokens.any { it.contains(treatment) } ||
+                    joinedTreatmentText.contains(treatment))
+            ) {
                 score += 0.2
                 reasons += "treatment +0.2"
             }

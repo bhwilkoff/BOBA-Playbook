@@ -222,6 +222,33 @@ class ScanCardMatcherTest {
     }
 
     @Test
+    fun `multi-word treatment matches across token split`() {
+        // Cards with multi-word treatments like "Red Battlefoil" or
+        // "Inspired Ink" print the treatment with each word on its
+        // own line. ML Kit returns them as separate tokens, so the
+        // per-token contains() check never sees the full phrase.
+        // The joined-text fallback closes this gap.
+        val redBattlefoilMav = card("RBF-1", hero = "Maverick", element = "FIRE",
+            power = 135, treatment = "Red Battlefoil")
+        val plainMav = card("1", hero = "Maverick", element = "FIRE", power = 135)
+        val custom = ScanCardMatcher { listOf(plainMav, redBattlefoilMav) }
+        val tokens = listOf(
+            token("RBF-1", topLeft = false),
+            token("Maverick", topLeft = true),
+            token("RED", topLeft = false),
+            token("BATTLEFOIL", topLeft = false),
+        )
+        val result = custom.match(tokens)
+        assertNotNull(result)
+        assertEquals("RBF-1", result?.card?.cardNumber)
+        // Should reflect the treatment bonus in reasons
+        assertTrue(
+            "Expected treatment bonus on the joined-text fallback path",
+            result?.reasons?.any { it.contains("treatment") } == true,
+        )
+    }
+
+    @Test
     fun `LeBoss disambiguated by hero top-left even when Maverick power leaks`() {
         // Adversarial case: tokens have LeBoss top-left but a "135"
         // (Maverick's power) somewhere else in frame — maybe a

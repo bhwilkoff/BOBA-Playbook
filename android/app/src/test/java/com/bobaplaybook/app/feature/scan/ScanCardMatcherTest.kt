@@ -161,6 +161,48 @@ class ScanCardMatcherTest {
     }
 
     @Test
+    fun `hero name split across tokens still commits`() {
+        // ML Kit splits "JacHammer" into ["Jac", "Hammer"] on
+        // wide-spaced or interrupted prints. Neither token alone
+        // passes the matcher's per-token fuzzy hero check. The
+        // adjacent-pair concatenation pass reconstructs "JacHammer"
+        // from "Jac"+"Hammer" and credits the hero top-left.
+        val tokens = listOf(
+            token("Jac", topLeft = true),
+            token("Hammer", topLeft = false),
+            token("BHBF-37", topLeft = false),
+        )
+        val result = matcher.match(tokens)
+        assertNotNull("Expected adjacent-pair hero assembly to recover JacHammer", result)
+        assertEquals("JacHammer", result?.card?.hero)
+        // Reason set should include hero top-left since "Jac" sat
+        // top-left even though the full match is reconstructed.
+        assertTrue(
+            "Expected hero top-left bonus for split JacHammer",
+            result?.reasons?.any { it.contains("hero top-left") } == true,
+        )
+    }
+
+    @Test
+    fun `split-hero top-left still vetoes wrong-card commits`() {
+        // Same partial-OCR-silent-wrong scenario as the headline
+        // matcher test, but with a SPLIT hero name. "Jac" top-left
+        // + "Hammer" elsewhere → JacHammer assembled → top-left.
+        // The bare digit "20" would have committed Tigre without
+        // the veto. With the adjacent-pair pass adding JacHammer to
+        // heroesTopLeft, Tigre takes the −2.0 veto and JacHammer
+        // commits.
+        val tokens = listOf(
+            token("Jac", topLeft = true),
+            token("Hammer", topLeft = false),
+            token("20", topLeft = false),
+        )
+        val result = matcher.match(tokens)
+        assertNotNull(result)
+        assertEquals("Veto suppressed Tigre even with split hero", "JacHammer", result?.card?.hero)
+    }
+
+    @Test
     fun `treatment text earns the 0_2 bonus`() {
         val battlefoilMav = card("RBF-1", hero = "Maverick", element = "FIRE", power = 135, treatment = "Red Battlefoil")
         val custom = ScanCardMatcher { listOf(maverickBase, battlefoilMav) }

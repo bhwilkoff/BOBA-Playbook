@@ -1069,7 +1069,14 @@ private fun ScanViewfinder(
                 // buffer also clears on every successful commit so
                 // the next scan starts fresh.
                 recentTokenBatches.addLast(perFrameTokens)
-                while (recentTokenBatches.size > 5) recentTokenBatches.removeFirst()
+                // Iter 53b: bumped 5 → 10 frames. At 15-30 fps that's
+                // ~0.3-0.7s of token signal. Real-world data on DEKAP
+                // GGL-779 (logcat 11:40-11:41) showed GGL/779/BRAWL
+                // appearing in maybe 1-of-30 frames. 10-frame window
+                // doubles the chance of catching a discriminator
+                // while still aging out the previous card in under a
+                // second on a swap.
+                while (recentTokenBatches.size > 10) recentTokenBatches.removeFirst()
                 // Dedupe by uppercase text; when the same text appears
                 // in multiple frames, prefer the top-left occurrence
                 // so the hero-veto signal (which depends on top-left

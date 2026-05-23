@@ -1106,14 +1106,10 @@ private fun ScanViewfinder(
                         val matchInfo = firstPass?.let { r ->
                             "MATCH=${r.card.displayName} score=${"%.2f".format(r.score)} margin=${"%.2f".format(r.margin)} via [${r.reasons.joinToString(", ")}]"
                         } ?: run {
-                            // No commit — show what was ALMOST committed
-                            // so we can target the right gap (sub-floor
-                            // confidence vs sub-floor margin vs wrong
-                            // candidate winning).
+                            val signals = matcher.debugSignals(tokens)
                             val debug = matcher.debugTop(tokens)
-                            debug?.let { d ->
-                                "no-commit; debug-top=${d.card.displayName} (${d.card.cardNumber}) reasons=${d.reasons.joinToString(", ")}"
-                            } ?: "no-commit; no candidates"
+                            val topStr = debug?.let { "top=${it.card.displayName} (${it.card.cardNumber})" } ?: "no-cands"
+                            "no-commit; $topStr ;; signals: $signals"
                         }
                         android.util.Log.i(
                             "ShinyScanDiag",

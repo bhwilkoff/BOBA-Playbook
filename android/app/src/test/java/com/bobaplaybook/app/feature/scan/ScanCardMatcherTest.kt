@@ -316,6 +316,48 @@ class ScanCardMatcherTest {
     }
 
     @Test
+    fun `element bonus fires when element is on a shared line with other text`() {
+        // ML Kit often returns the element + power on one line:
+        // token text = "FIRE 135". Previously the matcher checked the
+        // entire token text against `idx.elements` — "FIRE 135" is
+        // not "FIRE", so no +0.2 bonus. After iter 38, tokens split
+        // on non-letters before matching, so "FIRE" hits.
+        // The +0.2 doesn't change the winning card (cardNumber + hero
+        // dominate) but the score reasons list reveals it.
+        val tokens = listOf(
+            token("1", topLeft = false),
+            token("Maverick", topLeft = true),
+            token("FIRE 135", topLeft = false),  // shared-line element
+        )
+        val result = matcher.match(tokens)
+        assertNotNull(result)
+        assertEquals("Maverick", result?.card?.hero)
+        assertTrue(
+            "Expected element bonus in reasons",
+            result?.reasons?.any { it.contains("element") } == true,
+        )
+    }
+
+    @Test
+    fun `element bonus survives trailing punctuation`() {
+        // OCR sometimes appends a stray dot or comma to the element
+        // when it's the last on a line: token "FIRE." Previously no
+        // element hit (token != "FIRE"). After iter 38, splits on
+        // non-letters so "FIRE" hits.
+        val tokens = listOf(
+            token("1", topLeft = false),
+            token("Maverick", topLeft = true),
+            token("FIRE.", topLeft = false),
+        )
+        val result = matcher.match(tokens)
+        assertNotNull(result)
+        assertTrue(
+            "Expected element bonus in reasons",
+            result?.reasons?.any { it.contains("element") } == true,
+        )
+    }
+
+    @Test
     fun `LeBoss disambiguated by hero top-left even when Maverick power leaks`() {
         // Adversarial case: tokens have LeBoss top-left but a "135"
         // (Maverick's power) somewhere else in frame — maybe a

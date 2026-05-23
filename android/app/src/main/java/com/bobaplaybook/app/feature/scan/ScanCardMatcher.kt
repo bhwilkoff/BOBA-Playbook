@@ -242,9 +242,20 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         val joinedTreatmentText = tokens.joinToString(" ") { it.text.uppercase() }
 
         // Element / treatment / power scraps (low-confidence additives).
+        // Split each token on non-letter chars before matching so:
+        //   • "FIRE 135" (element + power on one line) → ["FIRE","135"]
+        //     → "FIRE" hits idx.elements
+        //   • "FIRE!" / "FIRE." (OCR-trailed punctuation) → ["FIRE",""]
+        //     → "FIRE" hits
+        //   • "FIREBRAND" (hero name containing "FIRE") → ["FIREBRAND"]
+        //     → no false positive
+        // Element names are all pure letters (FIRE, ICE, STEEL, BRAWL,
+        // GLOW, HEX, GUM, SUPER, NONE) so splitting on non-letters is
+        // safe.
         val elementHits = tokens
-            .map { it.text.uppercase() }
-            .filter { it in idx.elements }
+            .asSequence()
+            .flatMap { it.text.uppercase().split(Regex("[^A-Z]+")).asSequence() }
+            .filter { it.isNotBlank() && it in idx.elements }
             .toSet()
         val powerHits = tokens
             .asSequence()

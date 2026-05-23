@@ -682,7 +682,7 @@ private fun ScanViewfinder(
                 // Build the per-LINE token list with bounding boxes so
                 // ScanCardMatcher can apply iOS DECISIONS.md #035's
                 // hero-name top-left detection.
-                val tokens = text.textBlocks.flatMap { block ->
+                val allTokens = text.textBlocks.flatMap { block ->
                     block.lines.mapNotNull { line ->
                         val bbox = line.boundingBox ?: return@mapNotNull null
                         ScanTextToken(
@@ -692,6 +692,64 @@ private fun ScanViewfinder(
                             frameHeight = previewH,
                         )
                     }
+                }
+                if (allTokens.isEmpty()) return@MlKitAnalyzer
+
+                // iOS-parity ROI gate: filter out OCR tokens whose
+                // bounding box falls entirely outside the card-guide
+                // rect (plus a 5% bleed). iOS uses Vision's regionOfInterest
+                // to skip background pixels entirely — cheaper on Android
+                // to crop the token set after OCR than to crop frames
+                // before. Removes false-positive cardNumber matches from
+                // text printed on table/hands/signage, and reduces noise
+                // tokens that dilute the matcher's confidence floor.
+                // previewW/H default to 1 until the PreviewView measures;
+                // when unmeasured, skip the filter so the first frames
+                // still scan.
+                val tokens = if (previewW > 100 && previewH > 100) {
+                    val w = previewW.toFloat()
+                    val h = previewH.toFloat()
+                    // Same math as ScanGuideOverlay so the filter rect
+                    // matches the visible card guide exactly.
+                    val cardW0 = w * 0.75f
+                    val cardH0 = cardW0 * 7f / 5f
+                    val finalH: Float
+                    val finalW: Float
+                    if (cardH0 > h * 0.62f) {
+                        finalH = h * 0.62f
+                        finalW = finalH * 5f / 7f
+                    } else {
+                        finalW = cardW0
+                        finalH = cardH0
+                    }
+                    val gLeft = (w - finalW) / 2f
+                    val gTop = (h - finalH) / 2f - h * 0.04f
+                    // 5% bleed: hero names + cardNumbers print near the
+                    // card edge; ML Kit bboxes round outward slightly.
+                    val bleed = finalW * 0.05f
+                    val rLeft = gLeft - bleed
+                    val rTop = gTop - bleed
+                    val rRight = gLeft + finalW + bleed
+                    val rBottom = gTop + finalH + bleed
+                    val filtered = allTokens.filter { tk ->
+                        val b = tk.frame
+                        // Reject only when bbox is entirely outside the
+                        // guide rect. Any intersection keeps it.
+                        b.right.toFloat() >= rLeft &&
+                            b.bottom.toFloat() >= rTop &&
+                            b.left.toFloat() <= rRight &&
+                            b.top.toFloat() <= rBottom
+                    }
+                    val dropped = allTokens.size - filtered.size
+                    if (dropped > 0) {
+                        android.util.Log.i(
+                            "ScanViewfinder",
+                            "ROI filter: kept ${filtered.size}/${allTokens.size} tokens (dropped $dropped outside guide rect)",
+                        )
+                    }
+                    filtered
+                } else {
+                    allTokens
                 }
                 if (tokens.isEmpty()) return@MlKitAnalyzer
 

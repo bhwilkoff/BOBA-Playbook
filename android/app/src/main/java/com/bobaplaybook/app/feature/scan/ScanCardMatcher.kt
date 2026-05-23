@@ -99,10 +99,26 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
             ?: HeroIndex.build(all).also { heroIndex = it }
 
         // ── Pull observable signals out of the tokens ────────────
-        val cardNumberHits = tokens
+        // First pass: per-token regex hits. Catches the clean case
+        // where ML Kit returns "BHBF-37" as one token.
+        val perTokenHits = tokens
             .asSequence()
             .flatMap { tk -> CARD_NUMBER_REGEX.findAll(tk.text).map { it.groupValues[1].uppercase() } }
             .toSet()
+
+        // Second pass: ML Kit OFTEN splits a printed cardNumber across
+        // tokens — "BHBF" and "37" arrive as separate text lines, or
+        // "BHBF-" + "37", or "BHBF" + "-37". The per-token regex misses
+        // every variant. Joined-text search picks them up. False
+        // positives are limited by the regex's letters-dash-digits
+        // shape — random words don't accidentally form a valid card
+        // number across boundaries.
+        val joinedSpace = tokens.joinToString(" ") { it.text.uppercase() }
+        val joinedNone = tokens.joinToString("") { it.text.uppercase() }
+        val joinedHits = (CARD_NUMBER_REGEX.findAll(joinedSpace) + CARD_NUMBER_REGEX.findAll(joinedNone))
+            .map { it.groupValues[1].uppercase() }
+            .toSet()
+        val cardNumberHits = perTokenHits + joinedHits
 
         val bareDigitHits = tokens
             .asSequence()

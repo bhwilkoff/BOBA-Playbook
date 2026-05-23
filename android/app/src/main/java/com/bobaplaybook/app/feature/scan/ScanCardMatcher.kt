@@ -638,6 +638,57 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
      * we can target the right gap. Not for production scoring — the
      * regular [match] is what drives the chip + queue.
      */
+    /**
+     * Returns a one-line string summarising every detected signal
+     * (cardNumber hits, bare-digit hits, prefix hits, hero matches,
+     * element/power) for the given token list. Used by the
+     * ShinyScanDiag log to show WHY a commit didn't happen.
+     */
+    fun debugSignals(tokens: List<ScanTextToken>): String {
+        val all = catalog()
+        if (all.isEmpty()) return "no-catalog"
+        val idx = heroIndex?.takeIf { it.catalogSize == all.size }
+            ?: HeroIndex.build(all).also { heroIndex = it }
+
+        val joinedSpace = tokens.joinToString(" ") { it.text.uppercase() }
+        val joinedNone = tokens.joinToString("") { it.text.uppercase() }
+        val perTokenHits = tokens.asSequence()
+            .flatMap { CARD_NUMBER_REGEX.findAll(it.text.uppercase()).map { m -> m.groupValues[1].uppercase() } }
+            .toSet()
+        val joinedHits = (CARD_NUMBER_REGEX.findAll(joinedSpace) + CARD_NUMBER_REGEX.findAll(joinedNone))
+            .map { it.groupValues[1].uppercase() }.toSet()
+        val bareDigitHits = tokens.asSequence()
+            .flatMap { BARE_DIGIT_REGEX.findAll(it.text).map { m -> m.groupValues[1] } }.toSet()
+        val loosePrefixCandidates = (
+            tokens.asSequence()
+                .flatMap { Regex("""\b([A-Z0-9]{2,6})\b""").findAll(it.text.uppercase()).map { m -> m.groupValues[1] } } +
+                tokens.asSequence().flatMap { tk ->
+                    Regex("""\b([A-Z0-9]{2,6})-""").findAll(tk.text.uppercase()).map { m -> m.groupValues[1] }
+                }
+            ).toSet()
+        val cardPrefixHits = loosePrefixCandidates
+            .flatMap { listOf(it, normalizePrefixDigits(it)) }
+            .filter { idx.byCardNumberPrefix.containsKey(it) }
+            .toSet()
+        val elementHits = tokens.asSequence()
+            .flatMap { it.text.uppercase().split(Regex("[^A-Z]+")).asSequence() }
+            .filter { it.isNotBlank() && it in idx.elements }
+            .toSet()
+        val powerHits = tokens.asSequence()
+            .flatMap { BARE_DIGIT_REGEX.findAll(it.text).map { m -> m.groupValues[1].toIntOrNull() ?: 0 } }
+            .filter { it >= 50 && it % 5 == 0 }
+            .toSet()
+        val heroesTopLeft = mutableSetOf<String>()
+        for (tk in tokens.filter { it.isTopLeft }) {
+            val upper = canonicalizeHero(tk.text)
+            for (hero in idx.heroNames) {
+                val canonical = idx.canonical[hero] ?: continue
+                if (matchesHero(upper, canonical)) heroesTopLeft += hero
+            }
+        }
+        return "cn=$perTokenHits joined=$joinedHits digits=$bareDigitHits prefix=$cardPrefixHits elem=$elementHits pwr=$powerHits heroTL=$heroesTopLeft"
+    }
+
     fun debugTop(tokens: List<ScanTextToken>): ScanMatchResult? {
         val all = catalog()
         if (all.isEmpty()) return null

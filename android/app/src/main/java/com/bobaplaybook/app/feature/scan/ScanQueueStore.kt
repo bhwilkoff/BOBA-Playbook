@@ -28,19 +28,47 @@ class ScanQueueStore @Inject constructor() {
 
     data class Entry(
         val bobaId: String,
+        val quantity: Int = 1,
         val matchedAt: Long = System.currentTimeMillis(),
     )
 
     private val _entries = MutableStateFlow<List<Entry>>(emptyList())
     val entries: StateFlow<List<Entry>> = _entries.asStateFlow()
 
+    /**
+     * Append a scanned card to the queue. iOS-parity (ScanStore.addToQueue):
+     * if a row with the same bobaId already exists, bump its quantity
+     * (clamped 1–99) instead of pruning + re-inserting. This is the
+     * Whatnot box-break workflow — scan 3 physical copies of Maverick
+     * in a row → queue shows "Maverick ×3", not just one row. The
+     * prior "prune + re-insert" semantics lost the count entirely.
+     */
     fun append(bobaId: String) {
         if (bobaId.isBlank()) return
         val current = _entries.value
-        // De-dupe by bobaId — if the user scans the same card twice
-        // in a row, surface it once at the top with a fresh timestamp.
-        val pruned = current.filter { it.bobaId != bobaId }
-        _entries.value = (listOf(Entry(bobaId)) + pruned).take(CAP)
+        val existingIdx = current.indexOfFirst { it.bobaId == bobaId }
+        if (existingIdx >= 0) {
+            val existing = current[existingIdx]
+            val bumped = existing.copy(
+                quantity = (existing.quantity + 1).coerceAtMost(MAX_QUANTITY),
+                matchedAt = System.currentTimeMillis(),
+            )
+            _entries.value = current.toMutableList().apply { set(existingIdx, bumped) }
+        } else {
+            _entries.value = (listOf(Entry(bobaId = bobaId)) + current).take(CAP)
+        }
+    }
+
+    /**
+     * Manually set the quantity for a queued card (review-sheet stepper
+     * parity with iOS ScanStore.setQuantity). Clamped 1…99; 0 has no
+     * effect — use [remove] to drop the entry.
+     */
+    fun setQuantity(bobaId: String, quantity: Int) {
+        val clamped = quantity.coerceIn(1, MAX_QUANTITY)
+        _entries.value = _entries.value.map { entry ->
+            if (entry.bobaId == bobaId) entry.copy(quantity = clamped) else entry
+        }
     }
 
     fun remove(bobaId: String) {
@@ -53,5 +81,6 @@ class ScanQueueStore @Inject constructor() {
 
     private companion object {
         const val CAP = 25
+        const val MAX_QUANTITY = 99
     }
 }

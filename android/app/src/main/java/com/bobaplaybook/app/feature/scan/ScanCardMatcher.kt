@@ -142,6 +142,29 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
                 }
             }
         }
+        // Second pass: adjacent-token concatenation. ML Kit splits
+        // mid-word more often than its line-detection docs suggest —
+        // "JacHammer" arrives as ["Jac", "Hammer"], "MAVERICK" can
+        // arrive as ["MAV", "ERICK"] on a wide-spaced print. None of
+        // those reach the per-token matcher above. Try every adjacent
+        // pair's concatenation; if it matches a hero AND the FIRST
+        // token sits top-left, treat the hero as top-left. Mirrors
+        // iter 4's joined-text cardNumber fallback.
+        for (i in 0 until tokens.size - 1) {
+            val a = tokens[i]
+            val b = tokens[i + 1]
+            val joined = (a.text + b.text).uppercase().replace(Regex("\\s+"), "")
+            for (hero in idx.heroNames) {
+                val canonical = idx.canonical[hero] ?: continue
+                // Skip heroes already detected in the per-token pass
+                // — saves work + avoids double-counting top-left.
+                if (hero in heroesMentioned) continue
+                if (matchesHero(joined, canonical)) {
+                    heroesMentioned += hero
+                    if (a.isTopLeft) heroesTopLeft += hero
+                }
+            }
+        }
 
         // Treatment text — if the user's card has a battlefoil/foil
         // treatment, the print often says so explicitly. Score +0.2

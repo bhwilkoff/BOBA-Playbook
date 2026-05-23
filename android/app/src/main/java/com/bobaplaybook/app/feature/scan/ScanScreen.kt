@@ -1024,6 +1024,17 @@ private fun ScanViewfinder(
         // "misfires (card not found)" leakage Ben flagged — those
         // states no longer show, only the final committed card.
         val committed = detectedCard
+        // Cache the last-rendered chip card so the AnimatedVisibility
+        // exit transition has content to draw. Without this, when the
+        // user taps X (or MULTI auto-clears at 1.6s), `detectedCard`
+        // flips to null → the content lambda is re-invoked with null
+        // → early return → chip vanishes instantly. The cache holds
+        // the previous Card during the ~250ms exit slide so the
+        // animation actually plays out.
+        var lastShownChipCard by remember { mutableStateOf<com.bobaplaybook.core.domain.model.Card?>(null) }
+        androidx.compose.runtime.LaunchedEffect(committed) {
+            if (committed != null) lastShownChipCard = committed
+        }
         // AnimatedVisibility — slide-from-bottom + opacity fade,
         // matching iOS's .transition(.move(edge:.bottom).combined(.opacity)).
         // The chip render moves into the AnimatedVisibility block so
@@ -1041,10 +1052,14 @@ private fun ScanViewfinder(
                 .padding(bottom = 96.dp)
                 .align(Alignment.BottomCenter),
         ) {
-            // Capture into a stable val so the lambda body inside the
-            // AnimatedVisibility (rendered during exit transition)
-            // doesn't NPE if `committed` becomes null mid-animation.
-            val card = committed ?: return@AnimatedVisibility
+            // Use the cached `lastShownChipCard` so the exit
+            // transition has content to render even after the parent
+            // flipped `detectedCard` to null. Falls through to
+            // `committed` if the cache hasn't filled yet (first chip
+            // ever). The early return is a paranoid no-content guard
+            // that should never fire in practice once a chip has
+            // shown.
+            val card = (lastShownChipCard ?: committed) ?: return@AnimatedVisibility
             // Quick-Save plumbing — chip's "+" button writes the
             // matched card to the user's Personal designation
             // without leaving the scanner. iOS chip has the

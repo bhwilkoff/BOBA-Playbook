@@ -410,6 +410,47 @@ class ScanCardMatcherTest {
     }
 
     @Test
+    fun `shiny card with T-for-7 digit confusion still commits`() {
+        // Real-world report: DEKAP GGL-779 (Glow Battlefoil) fails
+        // to scan on shiny prints because OCR returns "GGL-T79" or
+        // similar letter-for-digit confusions in the suffix slot.
+        // The strict cardNumber regex requires \d so any letter
+        // kills the match. iter 44 adds a loose regex pass that
+        // normalises common letter→digit confusions and revalidates.
+        val dekap = card("GGL-779", hero = "DEKAP", element = "GLOW", power = 100)
+        val custom = ScanCardMatcher { listOf(dekap, maverickBase) }
+        val tokens = listOf(
+            token("GGL-T79", topLeft = false),    // T mis-read for 7
+            token("DEKAP", topLeft = true),
+        )
+        val result = custom.match(tokens)
+        assertNotNull("Expected loose-regex recovery to commit GGL-779", result)
+        assertEquals("GGL-779", result?.card?.cardNumber)
+    }
+
+    @Test
+    fun `shiny card with Q-for-0 digit confusion still commits`() {
+        // Similar: OCR mis-reads 0 as Q under glow shimmer.
+        val card770 = card("HEX-770", hero = "DEKAP", element = "HEX", power = 100)
+        val custom = ScanCardMatcher { listOf(card770, maverickBase) }
+        val tokens = listOf(
+            token("HEX-77Q", topLeft = false),    // Q mis-read for 0
+            token("DEKAP", topLeft = true),
+        )
+        val result = custom.match(tokens)
+        assertNotNull("Expected loose-regex recovery to commit HEX-770", result)
+        assertEquals("HEX-770", result?.card?.cardNumber)
+    }
+
+    @Test
+    fun `normalizeDigitConfusions handles the common substitutions`() {
+        assertEquals("0123", normalizeDigitConfusions("O1Z3"))
+        assertEquals("779", normalizeDigitConfusions("T79"))
+        assertEquals("588", normalizeDigitConfusions("SBB"))
+        assertEquals("100", normalizeDigitConfusions("IOO"))
+    }
+
+    @Test
     fun `LeBoss disambiguated by hero top-left even when Maverick power leaks`() {
         // Adversarial case: tokens have LeBoss top-left but a "135"
         // (Maverick's power) somewhere else in frame — maybe a

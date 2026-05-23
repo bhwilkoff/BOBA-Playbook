@@ -277,6 +277,17 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         }
         if (candidates.isEmpty()) return null
 
+        // Hoisted uppercased sets — the per-candidate loop below
+        // checks `heroUpper in heroesTopLeftUpper` (and the strict
+        // variant) for every candidate. Previously these were
+        // recomputed inside the loop body via `.map { ... }`. With
+        // ~30-60 candidates × ~3 hero strings = ~150 uppercase calls
+        // per frame, per-frame OCR runs at 15-30 fps → ~3-5k
+        // redundant uppercase ops/sec. Hoisting is free correctness.
+        val heroesTopLeftUpper = heroesTopLeft.mapTo(HashSet()) { it.uppercase() }
+        val heroesTopLeftStrictUpper = heroesTopLeftStrict.mapTo(HashSet()) { it.uppercase() }
+        val heroesMentionedUpper = heroesMentioned.mapTo(HashSet()) { it.uppercase() }
+
         // ── Score every candidate ────────────────────────────────
         val scored = candidates.map { card ->
             val reasons = mutableListOf<String>()
@@ -294,10 +305,10 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
             }
             if (card.hero.isNotBlank()) {
                 val heroUpper = card.hero.uppercase()
-                if (card.hero in heroesTopLeft || heroUpper in heroesTopLeft.map { it.uppercase() }) {
+                if (card.hero in heroesTopLeft || heroUpper in heroesTopLeftUpper) {
                     score += 1.5
                     reasons += "hero top-left +1.5"
-                } else if (card.hero in heroesMentioned || heroUpper in heroesMentioned.map { it.uppercase() }) {
+                } else if (card.hero in heroesMentioned || heroUpper in heroesMentionedUpper) {
                     score += 0.6
                     reasons += "hero +0.6"
                 }
@@ -314,10 +325,9 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
             // wrongly suppress every legitimate candidate. Fuzzy
             // top-left matches still earn the +1.5 positive bonus
             // above; only exact matches drive the negative veto.
-            if (heroesTopLeftStrict.isNotEmpty() && card.hero.isNotBlank()) {
+            if (heroesTopLeftStrictUpper.isNotEmpty() && card.hero.isNotBlank()) {
                 val heroUpper = card.hero.uppercase()
-                val topLeftUppercased = heroesTopLeftStrict.map { it.uppercase() }.toSet()
-                if (heroUpper !in topLeftUppercased) {
+                if (heroUpper !in heroesTopLeftStrictUpper) {
                     score -= 2.0
                     reasons += "hero veto −2.0"
                 }

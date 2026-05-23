@@ -171,13 +171,24 @@ fun ScanScreen(
                     // MULTI-mode auto-queue path. Append to the
                     // session queue and DON'T navigate; the user
                     // keeps scanning the next card.
+                    android.util.Log.i(
+                        "ScanScreen",
+                        "onAutoQueue(bobaId=$bobaId) — appending to queue (sizeBefore=${queueHolder.queue.entries.value.size})",
+                    )
                     queueHolder.queue.append(bobaId)
+                    android.util.Log.i(
+                        "ScanScreen",
+                        "onAutoQueue done (sizeAfter=${queueHolder.queue.entries.value.size})",
+                    )
                 },
                 onChipTap = { bobaId ->
                     // User explicitly tapped the detection chip —
                     // ALWAYS open the matched card (both modes).
-                    queueHolder.queue.append(bobaId)
-                    onMatch(bobaId)
+                    android.util.Log.i("ScanScreen", "onChipTap(bobaId=$bobaId) — appending + forwarding to onMatch")
+                    runCatching { queueHolder.queue.append(bobaId) }
+                        .onFailure { android.util.Log.e("ScanScreen", "queue.append threw", it) }
+                    runCatching { onMatch(bobaId) }
+                        .onFailure { android.util.Log.e("ScanScreen", "outer onMatch threw", it) }
                 },
                 modifier = Modifier.fillMaxSize(),
             )
@@ -496,6 +507,14 @@ private fun ScanViewfinder(
     // guide-frame element-coloured stroke. Declared BEFORE the
     // analyzer setup so the analyzer closure captures it.
     var detectedCard by remember { mutableStateOf<com.bobaplaybook.core.domain.model.Card?>(null) }
+    // rememberUpdatedState — analyzer closure binds once but reads
+    // the CURRENT scanMode on every fire. Without this, the closure
+    // captures the initial SINGLE value and toggling MULTI in the UI
+    // doesn't reach the auto-queue branch. Ben 2026-05-22: "multi-scan
+    // does not queue any cards." Same pattern for the callbacks so
+    // late-passed lambdas aren't lost either.
+    val currentScanMode by androidx.compose.runtime.rememberUpdatedState(scanMode)
+    val currentOnAutoQueue by androidx.compose.runtime.rememberUpdatedState(onAutoQueue)
 
     val controller = remember {
         LifecycleCameraController(context).apply {
@@ -545,10 +564,16 @@ private fun ScanViewfinder(
                     lastMatchedDisplayName = stable.card.displayName
                     // Set the detection chip card on every commit
                     // (both modes). MULTI also auto-queues; SINGLE
-                    // waits for the user to tap the chip.
+                    // waits for the user to tap the chip. Reads
+                    // currentScanMode (rememberUpdatedState) so a
+                    // late toggle to MULTI does fire the auto-queue.
                     detectedCard = stable.card
-                    if (scanMode == ScanMode.MULTI) {
-                        onAutoQueue(stable.card.bobaId)
+                    android.util.Log.i(
+                        "ScanViewfinder",
+                        "Committed match: ${stable.card.displayName} (${stable.card.bobaId}) mode=$currentScanMode",
+                    )
+                    if (currentScanMode == ScanMode.MULTI) {
+                        currentOnAutoQueue(stable.card.bobaId)
                     }
                 }
             },

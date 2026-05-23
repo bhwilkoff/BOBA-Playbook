@@ -19,6 +19,7 @@ The loop exits when **all** of the following are true:
 | Iter | When | Hypothesis | Test | Result |
 |---|---|---|---|---|
 | 0 | 2026-05-22 evening | Baseline — chip crash + multi queue + accuracy | initial state | Three known bugs |
+| 1 | 2026-05-22 19:55 | Multi-mode queue never appends because the MlKitAnalyzer closure captured `scanMode` at DisposableEffect creation (always SINGLE). Fixed via `rememberUpdatedState(scanMode)` + `rememberUpdatedState(onAutoQueue)` — the analyzer now reads CURRENT mode on every fire. Added diagnostic Log.i in the analyzer + onAutoQueue + onChipTap so the next iter can read crash/queue logs. | `./gradlew :app:testDebugUnitTest` — 9 ScanCardMatcherTest cases pass, no regressions. Build SUCCESSFUL, APK installed. | Build green. Logs will reveal whether multi queue now appends + what the chip-tap crash actually surfaces. |
 
 ## Test methodology
 

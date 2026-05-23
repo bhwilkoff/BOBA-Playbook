@@ -335,8 +335,12 @@ actor PricingService {
     private func fetchCachedPricingResult(bobaId: String) async -> PricingResult? {
         // Anon-key Supabase REST read. The card_prices_history table
         // RLS allows public read; service-role write only.
+        // Project default isolation is MainActor (per .pbxproj
+        // SWIFT_DEFAULT_ACTOR_ISOLATION setting), so SupabaseConfig
+        // is implicitly MainActor-isolated. PricingService is its own
+        // actor — hop through MainActor.run to read the constant.
         let supabaseURL = "https://pazkimtkwwwekuguxkff.supabase.co/rest/v1"
-        let anonKey = SupabaseConfig.anonKey
+        let anonKey = await MainActor.run { SupabaseConfig.anonKey }
         let encoded = bobaId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? bobaId
         let urlString = "\(supabaseURL)/card_prices_latest?boba_id=eq.\(encoded)&select=source,snapshot_at,low_usd,avg_usd,high_usd,item_count"
         guard let url = URL(string: urlString) else { return nil }

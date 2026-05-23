@@ -43,6 +43,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.draw.shadow
@@ -189,6 +191,15 @@ fun ScanScreen(
     // a heads-up event without crowding the controls.
     var scanToastMessage by remember { mutableStateOf<String?>(null) }
     var scanToastIsError by remember { mutableStateOf(false) }
+    // Torch state for shiny-card recovery. Direct phone light
+    // overpowers ambient reflections on glow / holographic prints
+    // (DEKAP GGL-779 class) where AE biases toward the bright
+    // shimmer and washes out the printed text. Off by default —
+    // dark cards don't need flash and most non-shiny scans don't
+    // either. Lifted to ScanScreen so the top-bar IconButton can
+    // toggle it; passed into ScanViewfinder which applies it to
+    // the LifecycleCameraController via LaunchedEffect.
+    var torchEnabled by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(scanToastMessage) {
         if (scanToastMessage != null) {
             kotlinx.coroutines.delay(2000)
@@ -200,6 +211,7 @@ fun ScanScreen(
         if (hasPermission) {
             ScanViewfinder(
                 scanMode = scanMode,
+                torchEnabled = torchEnabled,
                 onAutoQueue = { bobaId ->
                     // MULTI-mode auto-queue path. Append to the
                     // session queue and DON'T navigate; the user
@@ -274,6 +286,28 @@ fun ScanScreen(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = androidx.compose.ui.graphics.Color.White,
+                        )
+                    }
+                    // Torch toggle for shiny / holographic card recovery
+                    // (DEKAP GGL-779 class). AE on glow prints biases
+                    // toward the bright shimmer and washes out the
+                    // printed text — direct phone light overpowers
+                    // ambient reflections and lets the camera see real
+                    // contrast. Tinted orange when on so it's obvious.
+                    IconButton(onClick = { torchEnabled = !torchEnabled }) {
+                        Icon(
+                            imageVector = if (torchEnabled)
+                                Icons.Default.FlashOn
+                            else
+                                Icons.Default.FlashOff,
+                            contentDescription = if (torchEnabled)
+                                "Turn flashlight off"
+                            else
+                                "Turn flashlight on for shiny cards",
+                            tint = if (torchEnabled)
+                                androidx.compose.ui.graphics.Color(0xFFFF4D00)
+                            else
+                                androidx.compose.ui.graphics.Color.White,
                         )
                     }
                     Spacer(modifier = Modifier.weight(1f))
@@ -826,6 +860,7 @@ private fun ScanModePill(
 @Composable
 private fun ScanViewfinder(
     scanMode: ScanMode,
+    torchEnabled: Boolean,
     onAutoQueue: (bobaId: String) -> Unit,
     onChipTap: (bobaId: String) -> Unit,
     onSaveToast: (message: String, isError: Boolean) -> Unit,
@@ -879,6 +914,22 @@ private fun ScanViewfinder(
                     )
                     .build()
             )
+        }
+    }
+    // Drive the camera torch from the lifted state in ScanScreen.
+    // Restart when the lifecycle owner rebinds so the torch state
+    // persists across re-binds.
+    LaunchedEffect(torchEnabled, lifecycleOwner) {
+        runCatching {
+            // enableTorch returns a ListenableFuture; we don't need
+            // to await — torch state applies asynchronously.
+            controller.enableTorch(torchEnabled)
+            android.util.Log.i(
+                "ScanViewfinder",
+                "Torch -> $torchEnabled",
+            )
+        }.onFailure {
+            android.util.Log.w("ScanViewfinder", "enableTorch threw", it)
         }
     }
     // PreviewView dimensions for top-left-quadrant detection. The

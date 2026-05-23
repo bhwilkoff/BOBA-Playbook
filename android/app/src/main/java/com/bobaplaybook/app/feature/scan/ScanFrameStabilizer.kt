@@ -80,20 +80,29 @@ class ScanFrameStabilizer(
 
         // Tiered required-agreements: high-confidence matches commit
         // faster. The matcher already rejects scores < 1.4 (confidence
-        // floor + margin floor in ScanCardMatcher), so anything reaching
-        // here is a "real" hit. iOS commits on a SINGLE 1.4+ frame
-        // (DECISIONS.md #035) — Android's 3-of-5 default was over-
-        // stabilizing for clean reads, which Ben perceived as
-        // accuracy/latency lag versus iOS. Tier:
-        //   • avgScore >= 2.5 → 1 agreement (single-frame commit)
-        //   • avgScore >= 1.8 → 2 agreements
+        // floor) AND requires margin >= 0.3 over second-best, so
+        // anything reaching here has already passed two gates.
+        //
+        // Tier (iter 46 — lowered for shiny-card recovery):
+        //   • avgScore >= 2.0 → 1 agreement (single-frame commit)
+        //   • avgScore >= 1.5 → 2 agreements
         //   • default         → requiredAgreements (3)
-        // Wrong-card protection still works: a noisy 1.4-floor frame
-        // followed by a different 1.4-floor frame can't reach 2
-        // agreements (different bobaIds).
+        //
+        // Why 2.0 as the single-frame bar:
+        //   • Clean cardNumber + hero top-left = 2.5 (still single)
+        //   • Shiny-card recovery shape (hero + prefix + element + power)
+        //     = 1.5 + 0.4 + 0.2 + 0.2 = 2.3 — now single-frame too.
+        //     Before iter 46 this needed 2 consecutive consistent frames,
+        //     hard to get on shimmery prints where each frame reads
+        //     different OCR garbage.
+        //
+        // Wrong-card protection still works: the matcher's margin >= 0.3
+        // gate already rejected confused candidates. The stabilizer's
+        // bobaId-dedupe + per-frame matcher gates are the safety net,
+        // not the agreement count.
         val effectiveRequired = when {
-            avgScore >= 2.5 -> 1
-            avgScore >= 1.8 -> 2
+            avgScore >= 2.0 -> 1
+            avgScore >= 1.5 -> 2
             else            -> requiredAgreements
         }
 

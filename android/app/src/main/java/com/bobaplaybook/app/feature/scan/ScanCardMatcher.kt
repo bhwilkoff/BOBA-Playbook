@@ -526,11 +526,27 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         val resolved = best.copy(margin = margin)
 
         // ── Commit gates ─────────────────────────────────────────
-        // 1.4 confidence + 0.3 margin = iOS-matched thresholds.
-        // Returning null is the right thing when neither is met:
-        // the live UI keeps scanning instead of committing a guess.
+        // 1.4 confidence + 0.3 margin = iOS-matched defaults for the
+        // normal cardNumber-bearing path. Returning null is the right
+        // thing when neither is met: the live UI keeps scanning
+        // instead of committing a guess.
         if (best.score < 1.4) return null
-        if (margin < 0.3) return null
+
+        // Iter 47: relaxed 0.2 margin floor for prefix-recovery wins.
+        // When OCR catches the cardNumber PREFIX but not the full
+        // number (heavily-shimmery prints like DEKAP GGL-779 with
+        // glow blowing out the digits), the discriminating signal
+        // among same-prefix variants is element + power. Each is
+        // only +0.2, so the margin against a sibling variant that
+        // matches only one of them is exactly 0.2 — right at the
+        // strict 0.3 floor. Identify "prefix recovery" cases via
+        // the reasons list (has "prefix" but not "cardNumber") and
+        // relax the margin floor to 0.2 for those alone. The 0.3
+        // strict floor still gates every normal full-cardNumber read.
+        val isPrefixRecovery = best.reasons.any { it.contains("prefix") } &&
+            best.reasons.none { it.contains("cardNumber") }
+        val marginFloor = if (isPrefixRecovery) 0.2 else 0.3
+        if (margin < marginFloor) return null
         return resolved
     }
 }

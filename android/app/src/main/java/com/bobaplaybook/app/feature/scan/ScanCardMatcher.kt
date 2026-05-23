@@ -42,6 +42,18 @@ private val HERO_PUNCT_STRIP = Regex("""[\s.\-']+""")
 internal fun canonicalizeHero(s: String): String =
     s.uppercase().replace(HERO_PUNCT_STRIP, "")
 
+/**
+ * Canonical form for treatment names — uses the same strip rules as
+ * [canonicalizeHero]. Real catalog treatments include multi-word
+ * forms ("Blue Battlefoil", "Inspired Ink Battlefoil") and
+ * apostrophe forms ("Chillin' Battlefoil", "Grillin' Battlefoil").
+ * OCR drops apostrophes, may compress whitespace, and may add
+ * trailing punctuation — without normalising both sides the
+ * `contains` check silently misses many treatment cards.
+ */
+internal fun canonicalizeTreatment(s: String): String =
+    s.uppercase().replace(HERO_PUNCT_STRIP, "")
+
 // ────────────────────────────────────────────────────────────────
 // Domain — text token + observation shape
 // ────────────────────────────────────────────────────────────────
@@ -238,8 +250,16 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         // iter 4's cardNumber joined-text fallback). Also keep the
         // per-token form so single-word treatments ("Battlefoil",
         // "Superfoil") still match on the cheap path.
-        val treatmentTokens = tokens.map { it.text.uppercase() }
-        val joinedTreatmentText = tokens.joinToString(" ") { it.text.uppercase() }
+        // Pre-canonicalised per-token + joined-text forms for treatment
+        // matching. Both sides strip whitespace + punctuation per
+        // `canonicalizeTreatment` so:
+        //   • "Chillin' Battlefoil" (catalog) → "CHILLINBATTLEFOIL"
+        //   • OCR "CHILLIN BATTLEFOIL" → "CHILLINBATTLEFOIL" → match
+        //   • OCR "Chillin' Battlefoil" → "CHILLINBATTLEFOIL" → match
+        // Joined-text uses no-space concat so multi-word treatments
+        // catch even when ML Kit splits the phrase across tokens.
+        val treatmentTokens = tokens.map { canonicalizeTreatment(it.text) }
+        val joinedTreatmentText = tokens.joinToString("") { canonicalizeTreatment(it.text) }
 
         // Element / treatment / power scraps (low-confidence additives).
         // Split each token on non-letter chars before matching so:
@@ -356,7 +376,7 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
             // Ink", "Superfoil", etc. Check per-token first (fast path,
             // single-word treatments) then fall back to joined-text for
             // multi-word treatments that ML Kit splits across tokens.
-            val treatment = card.treatment?.uppercase() ?: ""
+            val treatment = card.treatment?.let { canonicalizeTreatment(it) } ?: ""
             if (treatment.isNotEmpty() &&
                 (treatmentTokens.any { it.contains(treatment) } ||
                     joinedTreatmentText.contains(treatment))

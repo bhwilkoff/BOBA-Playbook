@@ -43,6 +43,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as GSize
 import androidx.compose.ui.geometry.CornerRadius
@@ -888,36 +889,59 @@ private fun ScanDetectionChip(
                     .background(accent),
             )
             val thumb = com.bobaplaybook.core.network.CDN.thumbUrl(card)
-            coil3.compose.AsyncImage(
-                model = thumb,
-                contentDescription = null,
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            // iOS-parity element glow on the thumbnail. iOS uses
+            // `.elementGlow(card.element)` which renders a soft
+            // element-coloured shadow under the thumb. Android Box
+            // wrapper applies `shadow(elevation, ambient, spot)` with
+            // the element accent so the same hint of colour bleeds out
+            // from behind the card art.
+            Box(
                 modifier = Modifier
-                    .width(44.dp)
-                    .height(62.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-            )
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(4.dp),
+                        ambientColor = accent,
+                        spotColor = accent,
+                    ),
+            ) {
+                coil3.compose.AsyncImage(
+                    model = thumb,
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier
+                        .width(44.dp)
+                        .height(62.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                )
+            }
+            // iOS-parity caption layout: name / card-number / power
+            // on three separate lines (vs Android's prior single
+            // muted caption). cardNumber renders in BOBA orange mono
+            // and power in the element accent — collectors recognise
+            // the layout from the rest of the app.
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Text(
-                    card.displayName,
+                    text = card.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
-                val caption = listOfNotNull(
-                    card.element.takeIf { it.isNotBlank() }?.uppercase(),
-                    card.power?.takeIf { it > 0 }?.let { "⚡$it" },
-                    card.cardNumber.takeIf { it.isNotBlank() },
-                ).joinToString(" · ")
-                if (caption.isNotBlank()) {
+                if (card.cardNumber.isNotBlank()) {
                     Text(
-                        caption,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.72f),
+                        text = card.cardNumber,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFFFF4D00),
+                    )
+                }
+                card.power?.takeIf { it > 0 }?.let { p ->
+                    Text(
+                        text = "PWR $p",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = accent,
                     )
                 }
             }

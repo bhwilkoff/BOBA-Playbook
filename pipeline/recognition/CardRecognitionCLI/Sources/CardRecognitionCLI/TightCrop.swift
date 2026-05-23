@@ -1,6 +1,6 @@
 // TightCrop.swift
 //
-// Pre-recognition tight-crop step. eBay / Radish / BV listing photos
+// Pre-recognition tight-crop step. eBay / BV listing photos
 // arrive at variable aspect ratios (0.467 – 1.333 observed) — far from
 // the 5:7 (~0.715) physical card shape. The catalog's feature prints
 // were built on tight 5:7 crops, so feeding loose photos into Vision FP

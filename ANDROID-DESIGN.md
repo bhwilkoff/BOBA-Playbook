@@ -340,9 +340,9 @@ Hero-zoom rules: `SharedTransitionLayout` wraps the nav graph; source + destinat
 Lives inside `CardDetailScreen` between stats and per-context body. Live-fetched (DECISIONS.md #013). COMC asking stays OUT of sold-comp waterfall (#034).
 
 - **Buy Now:** eBay actives + COMC asking with *"COMC asking · Ungraded NM"* `AssistChip` (soft-fail on `challenged: true`).
-- **Sold history:** Radish recent + eBay sold. Market est = Radish-first waterfall.
+- **Sold history:** eBay sold (Marketplace Insights, 90-day window, tuned `normaliseSoldEnriched` scorer). Market est for cards with no eBay sold activity falls through to the `boba-price-estimator` Worker. Radish removed 2026-05-23 — see DECISIONS.md #056. A single per-card "View on Radish" external-browser link is preserved on every card detail (`Intent.ACTION_VIEW` with `card.radishUrl ?: homepage`, NOT `CustomTabsIntent` — user fully leaves the app).
 - Per-section: horizontal scroll of `BOBAPriceTile` (M3 `Card` w/ `surfaceContainerLow`, thumb + price + source chip + `CustomTabsIntent` tap-through). Empty = `BOBAEmptyState` w/ refresh. Loading = 3-tile skeleton.
-- Market header (single line): *"~$24 · based on 8 recent sales (Radish + eBay)"*. Asking NEVER folded in.
+- Market header (single line): *"~$24 · based on 8 recent eBay sold comps"*. Asking NEVER folded in.
 
 ### 8.8 Wall view + Price Overlay
 

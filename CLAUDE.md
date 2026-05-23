@@ -312,7 +312,7 @@ Cost + DBS for Plays render BELOW the canonical six.
 | `BOBAPlaybook/cards-head.json` | First 500 cards for instant iOS load |
 | `supabase_schema.sql` | Supabase table definitions |
 | `docs/CARD_SCHEMA.md` | Full cards.json field documentation |
-| `workers/ebay-proxy/worker.js` | Cloudflare Worker: eBay Browse API + Radish pricing proxy (deployed: boba-ebay-proxy.benwilkoff.workers.dev) |
+| `workers/ebay-proxy/worker.js` | Cloudflare Worker: eBay Browse + Marketplace Insights API proxy (deployed: boba-ebay-proxy.benwilkoff.workers.dev). Radish integration removed 2026-05-23 — see DECISIONS.md #056. |
 | `DECISIONS.md` | Architecture decision log |
 | `DESIGN.md` | iOS design theory — binding rules for every iOS UI feature |
 | `WEB-DESIGN.md` | Web design theory — binding rules for every web UI feature |

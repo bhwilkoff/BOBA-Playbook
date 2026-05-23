@@ -747,6 +747,17 @@ private fun ScanViewfinder(
                             "Added ${card.displayName} to Personal"
                         }
                         appSnackbar?.showSnackbar(message)
+                        // iOS-parity auto-dismiss — after a successful
+                        // Quick-Save the chip clears + the stabilizer
+                        // resets so the user can immediately point the
+                        // camera at the next card without tapping X.
+                        // iOS calls `scanner.softReset()` here; the
+                        // Android equivalent is `stabilizer.reset()`
+                        // plus clearing the local commit cache so the
+                        // next match (even same card) fires fresh.
+                        stabilizer.reset()
+                        lastMatchedBobaId = null
+                        detectedCard = null
                     }
                 },
                 onDismiss = {

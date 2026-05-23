@@ -280,6 +280,42 @@ class ScanCardMatcherTest {
     }
 
     @Test
+    fun `hero with hyphen still matches when OCR drops the hyphen`() {
+        // Real catalog has heroes like "D-Harp", "D-Hop", "Amon-Ra".
+        // ML Kit normalizes a hyphen to nothing or a space depending
+        // on glyph spacing. With the pre-iter-33 canonical form
+        // ("uppercase + strip whitespace only"), "D-HARP" stays
+        // "D-HARP" in the catalog while OCR's "DHARP" stays "DHARP"
+        // — Levenshtein 1, short-hero tolerance 0, NO MATCH.
+        // After iter 33, both canonicalise to "DHARP" → exact.
+        val dHarp = card("BLBF-95", hero = "D-Harp", element = "ICE", power = 95)
+        val matcher2 = ScanCardMatcher { listOf(dHarp) }
+        val tokens = listOf(
+            token("BLBF-95", topLeft = false),
+            token("DHARP", topLeft = true),  // OCR dropped the hyphen
+        )
+        val result = matcher2.match(tokens)
+        assertNotNull("D-Harp should commit despite hyphen-stripped OCR", result)
+        assertEquals("D-Harp", result?.card?.hero)
+    }
+
+    @Test
+    fun `short hero with dots still matches when OCR drops the dots`() {
+        // "A.C." is a real catalog hero. Short heroes (length ≤ 4)
+        // run at Levenshtein tolerance 0, so the canonical-form fix
+        // is the only way they match OCR-dropped punctuation.
+        val ac = card("1", hero = "A.C.", element = "FIRE", power = 75)
+        val matcher2 = ScanCardMatcher { listOf(ac) }
+        val tokens = listOf(
+            token("1", topLeft = false),
+            token("AC", topLeft = true),  // OCR dropped both dots
+        )
+        val result = matcher2.match(tokens)
+        assertNotNull("A.C. should commit despite dot-stripped OCR", result)
+        assertEquals("A.C.", result?.card?.hero)
+    }
+
+    @Test
     fun `LeBoss disambiguated by hero top-left even when Maverick power leaks`() {
         // Adversarial case: tokens have LeBoss top-left but a "135"
         // (Maverick's power) somewhere else in frame — maybe a

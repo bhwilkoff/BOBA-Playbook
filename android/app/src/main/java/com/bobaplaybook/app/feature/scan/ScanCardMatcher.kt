@@ -22,6 +22,26 @@ private val CARD_NUMBER_REGEX =
 /** Bare-digit suffix lookup for partial OCR reads (e.g. "20" → matches card_numbers ending in `-20`). */
 private val BARE_DIGIT_REGEX = Regex("""\b(\d{1,4})\b""")
 
+/**
+ * Canonical hero-name form. Uppercase + strip whitespace + punctuation
+ * commonly dropped or normalised by OCR (dots, hyphens, apostrophes).
+ *
+ * Without this: catalog heroes like "A.C.", "D-Harp", "D'Artagnan"
+ * canonicalise to "A.C.", "D-HARP", "D'ARTAGNAN" (just whitespace
+ * stripped). OCR drops the punctuation → tokens read "AC", "DHARP",
+ * "DARTAGNAN". Levenshtein for short heroes is tolerance 0 — no match.
+ *
+ * Stripping punctuation in BOTH sides puts them in the same space:
+ *   "A.C." → "AC"  vs  OCR "AC" → "AC"          → exact substring
+ *   "D-Harp" → "DHARP"  vs  OCR "DHARP" → "DHARP" → exact substring
+ *
+ * Non-ASCII letters (e.g. "ç" in "Curaçao Kid") are PRESERVED so the
+ * brand isn't quietly Anglicised.
+ */
+private val HERO_PUNCT_STRIP = Regex("""[\s.\-']+""")
+internal fun canonicalizeHero(s: String): String =
+    s.uppercase().replace(HERO_PUNCT_STRIP, "")
+
 // ────────────────────────────────────────────────────────────────
 // Domain — text token + observation shape
 // ────────────────────────────────────────────────────────────────
@@ -168,7 +188,7 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         // exact matches gate the veto.
         val heroesTopLeftStrict = mutableSetOf<String>()
         for (tk in tokens) {
-            val upper = tk.text.uppercase().replace(Regex("\\s+"), "")
+            val upper = canonicalizeHero(tk.text)
             for (hero in idx.heroNames) {
                 val canonical = idx.canonical[hero] ?: continue
                 if (matchesHero(upper, canonical)) {
@@ -191,7 +211,7 @@ class ScanCardMatcher(private val catalog: () -> List<Card>) {
         for (i in 0 until tokens.size - 1) {
             val a = tokens[i]
             val b = tokens[i + 1]
-            val joined = (a.text + b.text).uppercase().replace(Regex("\\s+"), "")
+            val joined = canonicalizeHero(a.text + b.text)
             for (hero in idx.heroNames) {
                 val canonical = idx.canonical[hero] ?: continue
                 // Skip heroes already detected in the per-token pass
@@ -410,10 +430,11 @@ private class HeroIndex(
                 .map { it.hero }
                 .filter { it.isNotBlank() }
                 .toSet()
-            // Canonical match-form: uppercased + spaces collapsed. ML Kit
-            // returns "JACHAMMER" or "Jac Hammer" depending on the font
-            // kerning; we match against the collapsed form.
-            val canonical = heroNames.associateWith { it.uppercase().replace(Regex("\\s+"), "") }
+            // Canonical match-form: uppercase + strip whitespace +
+            // punctuation (dots, hyphens, apostrophes) — see
+            // `canonicalizeHero` doc. Aligns OCR-dropped-punctuation
+            // tokens with catalog heroes containing the same chars.
+            val canonical = heroNames.associateWith { canonicalizeHero(it) }
             val elements = catalog.asSequence().map { it.element.uppercase() }.toSet()
             return HeroIndex(
                 catalogSize = catalog.size,

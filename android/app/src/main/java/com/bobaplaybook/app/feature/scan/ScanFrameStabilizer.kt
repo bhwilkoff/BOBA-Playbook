@@ -78,12 +78,31 @@ class ScanFrameStabilizer(
         val agreeing = window.mapNotNull { it.result }.filter { it.card.bobaId == candidate }
         val avgScore = agreeing.map { it.score }.average()
 
-        if (agreeing.size < requiredAgreements) {
-            state = State.Scoring(result.card, agreeing.size, requiredAgreements, avgScore)
+        // Tiered required-agreements: high-confidence matches commit
+        // faster. The matcher already rejects scores < 1.4 (confidence
+        // floor + margin floor in ScanCardMatcher), so anything reaching
+        // here is a "real" hit. iOS commits on a SINGLE 1.4+ frame
+        // (DECISIONS.md #035) — Android's 3-of-5 default was over-
+        // stabilizing for clean reads, which Ben perceived as
+        // accuracy/latency lag versus iOS. Tier:
+        //   • avgScore >= 2.5 → 1 agreement (single-frame commit)
+        //   • avgScore >= 1.8 → 2 agreements
+        //   • default         → requiredAgreements (3)
+        // Wrong-card protection still works: a noisy 1.4-floor frame
+        // followed by a different 1.4-floor frame can't reach 2
+        // agreements (different bobaIds).
+        val effectiveRequired = when {
+            avgScore >= 2.5 -> 1
+            avgScore >= 1.8 -> 2
+            else            -> requiredAgreements
+        }
+
+        if (agreeing.size < effectiveRequired) {
+            state = State.Scoring(result.card, agreeing.size, effectiveRequired, avgScore)
             return null
         }
         if (avgScore < 1.4) {
-            state = State.Scoring(result.card, agreeing.size, requiredAgreements, avgScore)
+            state = State.Scoring(result.card, agreeing.size, effectiveRequired, avgScore)
             return null
         }
         if (lastCommittedBobaId == candidate) {

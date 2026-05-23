@@ -20,8 +20,13 @@ class ScanFrameStabilizerTest {
 
     // bobaId formula (CLAUDE.md): "{cardNumber}-{hero}-{treatment}-{variation}"
     // Trailing dashes are intentional and stable.
-    private val mav = match(cardNumber = "1", hero = "Maverick", score = 2.5)
-    private val tig = match(cardNumber = "20", hero = "Tigre", score = 1.8)
+    // Scores deliberately fall below the fast-commit tier (>=1.8 ⇒ 2
+    // agreements; >=2.5 ⇒ 1) so these tests continue to validate
+    // the default 3-of-5 multi-frame path. Fast-commit tier behavior
+    // is exercised by the *high-confidence* / *medium-confidence*
+    // tests below.
+    private val mav = match(cardNumber = "1", hero = "Maverick", score = 1.5)
+    private val tig = match(cardNumber = "20", hero = "Tigre", score = 1.5)
     private val mavBobaId = "1-Maverick--"
 
     @Test
@@ -80,6 +85,43 @@ class ScanFrameStabilizerTest {
         // Two more identical frames — no re-emit.
         assertNull(s.push(mav))
         assertNull(s.push(mav))
+    }
+
+    @Test
+    fun `very-high-confidence first frame commits immediately`() {
+        // iOS-parity fast-commit path. A score >= 2.5 (cardNumber +
+        // hero top-left + extras) shouldn't have to wait for 3-of-5
+        // agreement — that's what iOS DECISIONS.md #035 already does.
+        // Android's prior default of "always wait for 3" introduced
+        // multi-second perceived lag on clean reads.
+        val s = ScanFrameStabilizer(windowSize = 5, requiredAgreements = 3)
+        val confidentMav = match(cardNumber = "1", hero = "Maverick", score = 2.8)
+        val commit = s.push(confidentMav)
+        assertNotNull("Expected single-frame commit for score 2.8", commit)
+        assertEquals(mavBobaId, commit?.card?.bobaId)
+    }
+
+    @Test
+    fun `medium-confidence commits at 2 agreements`() {
+        // 1.8 <= score < 2.5 → 2-of-5 instead of 3-of-5. Mid-tier
+        // scores get a faster path while staying validated.
+        val s = ScanFrameStabilizer(windowSize = 5, requiredAgreements = 3)
+        val midMav = match(cardNumber = "1", hero = "Maverick", score = 1.9)
+        assertNull("First mid-confidence frame should NOT commit yet", s.push(midMav))
+        val commit = s.push(midMav)
+        assertNotNull("Two-of-five at score 1.9 should commit", commit)
+    }
+
+    @Test
+    fun `low-confidence still requires 3 agreements`() {
+        // Default 3-of-5 path stays for noisy 1.4-1.7 reads —
+        // wrong-card-protection unchanged.
+        val s = ScanFrameStabilizer(windowSize = 5, requiredAgreements = 3)
+        val lowMav = match(cardNumber = "1", hero = "Maverick", score = 1.5)
+        assertNull(s.push(lowMav))
+        assertNull(s.push(lowMav))
+        val commit = s.push(lowMav)
+        assertNotNull("Three-of-five at score 1.5 should commit", commit)
     }
 
     @Test

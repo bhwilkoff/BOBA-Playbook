@@ -168,6 +168,7 @@ actor PricingService {
                  power: Int?,
                  days: Int,
                  treatment: String? = nil,
+                 variation: String? = nil,
                  forceRefresh: Bool = false) async throws -> PricingResult {
         let key = "\(hero)_\(cardNumber)_\(days)"
         if !forceRefresh,
@@ -245,7 +246,7 @@ actor PricingService {
         // response so callers see one consistent result.
         var soldSection = response.sold
         if soldSection == nil {
-            if let bobaId = bobaIdHint(cardNumber: cardNumber, hero: hero, treatment: treatment),
+            if let bobaId = bobaIdHint(cardNumber: cardNumber, hero: hero, treatment: treatment, variation: variation),
                let estimated = await fetchEstimatorBucket(bobaId: bobaId) {
                 soldSection = estimated
             }
@@ -276,17 +277,14 @@ actor PricingService {
     // MARK: - Estimator Worker fallback
 
     /// Reconstruct the v2 bobaId from the call params. Mirrors
-    /// `scripts/boba_id.py` (CLAUDE.md "One ID per Card"): hero ||
-    /// name, treatment, variation. PricingService callers pass
-    /// `treatment` already; `variation` is not in the pricing-call
-    /// signature, so this helper handles the common "no-variation"
-    /// case which covers ~99% of the catalog. Cards with a non-empty
-    /// `variation` will miss the KV lookup and gracefully fall back
-    /// to no Market Est. — same UX as today's behavior.
-    private func bobaIdHint(cardNumber: String, hero: String, treatment: String?) -> String? {
+    /// `scripts/boba_id.py` (CLAUDE.md "One ID per Card"):
+    /// `{cardNumber}-{hero or name}-{treatment or ""}-{variation or ""}`.
+    /// All four fields are passed through; trailing dashes are
+    /// intentional and stable.
+    private func bobaIdHint(cardNumber: String, hero: String, treatment: String?, variation: String?) -> String? {
         guard !cardNumber.isEmpty else { return nil }
         let id = hero.isEmpty ? "" : hero
-        return "\(cardNumber)-\(id)-\(treatment ?? "")-"
+        return "\(cardNumber)-\(id)-\(treatment ?? "")-\(variation ?? "")"
     }
 
     private struct EstimatorResponse: Decodable {

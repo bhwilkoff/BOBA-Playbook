@@ -637,7 +637,8 @@ struct PricingSection: View {
                     element: card.element,
                     power: card.power,
                     days: selectedDays,
-                    treatment: card.treatment
+                    treatment: card.treatment,
+                    variation: card.variation
                 )
                 result = pricingResult
             } catch PricingService.PricingError.noData {

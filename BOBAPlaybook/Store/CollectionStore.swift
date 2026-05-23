@@ -386,6 +386,7 @@ final class CollectionStore {
                 power: card.power,
                 days: 30,
                 treatment: card.treatment,
+                variation: card.variation,
                 forceRefresh: forceRefresh
             )
             let fields = UpdateUserCard(

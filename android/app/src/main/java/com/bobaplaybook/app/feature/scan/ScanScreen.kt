@@ -461,7 +461,14 @@ fun ScanScreen(
                 // iters can add a designation picker.
                 val snapshot = queueEntries
                 val totalCopies = snapshot.sumOf { it.quantity }
-                val catalog = queueHolder.cardRepository.cards.value
+                // Build an O(1) bobaId→Card lookup ONCE before the
+                // coroutine launches. Prior code did O(N) `firstOrNull`
+                // per entry — 25 entries × 17k catalog = ~425k
+                // iterations on every Save tap. Catalog is also
+                // snapshotted here so a mid-flight refresh doesn't
+                // shift the lookup target.
+                val catalogByBobaId = queueHolder.cardRepository.cards.value
+                    .associateBy { it.bobaId }
                 bulkSaveScope.launch {
                     bulkSaveInProgress = true
                     try {
@@ -484,7 +491,7 @@ fun ScanScreen(
                         // and reverse-parsing is ambiguous since
                         // cardNumbers can themselves contain dashes.
                         // The Card object holds the canonical string.
-                        val card = catalog.firstOrNull { it.bobaId == entry.bobaId }
+                        val card = catalogByBobaId[entry.bobaId]
                         val cardNumber = card?.cardNumber.orEmpty()
                             .ifEmpty { entry.bobaId.substringBefore('-') }
                         repeat(entry.quantity.coerceIn(1, 99)) {

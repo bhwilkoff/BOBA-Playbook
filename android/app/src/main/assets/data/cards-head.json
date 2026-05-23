@@ -103,7 +103,7 @@
     "athleteInspiration": "Cooper Flagg",
     "isInspiredInk": false,
     "imageFile": "1-Maverick-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "2025",
@@ -1217,7 +1217,7 @@
     "athleteInspiration": "Jaxson Dart",
     "isInspiredInk": false,
     "imageFile": "10-Dart-Board-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "10",
@@ -1343,7 +1343,7 @@
     "athleteInspiration": "Cal Raleigh",
     "isInspiredInk": false,
     "imageFile": "11-Dumper-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "11",
@@ -1469,7 +1469,7 @@
     "athleteInspiration": "Travis Hunter",
     "isInspiredInk": false,
     "imageFile": "12-Switchblade-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "12",
@@ -1597,7 +1597,7 @@
     "athleteInspiration": "Jordan Love",
     "isInspiredInk": false,
     "imageFile": "13-Cupid-Base_Set-2026_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "13",
@@ -6110,7 +6110,7 @@
     "isHTD": false,
     "dbs": null,
     "dbsTier": null,
-    "athleteInspiration": "Fernando Tatís Jr.",
+    "athleteInspiration": "Fernando Tat\u00eds Jr.",
     "isInspiredInk": false,
     "imageFile": "49-Tattoo-Base_Set-First_Edition.webp",
     "imageSource": "BV",
@@ -6128,7 +6128,7 @@
       "release",
       "set",
       "tattoo",
-      "tatís"
+      "tat\u00eds"
     ],
     "rookieInspired": false,
     "release": "Alpha",
@@ -6238,7 +6238,7 @@
     "isHTD": false,
     "dbs": null,
     "dbsTier": null,
-    "athleteInspiration": "Fernando Tatís Jr.",
+    "athleteInspiration": "Fernando Tat\u00eds Jr.",
     "isInspiredInk": false,
     "imageFile": "50-Tattoo-Base_Set-First_Edition.webp",
     "imageSource": "BV",
@@ -6256,7 +6256,7 @@
       "release",
       "set",
       "tattoo",
-      "tatís"
+      "tat\u00eds"
     ],
     "rookieInspired": false,
     "release": "Alpha",
@@ -6365,7 +6365,7 @@
     "isHTD": false,
     "dbs": null,
     "dbsTier": null,
-    "athleteInspiration": "Fernando Tatís Jr.",
+    "athleteInspiration": "Fernando Tat\u00eds Jr.",
     "isInspiredInk": false,
     "imageFile": "51-Tattoo-Base_Set-First_Edition.webp",
     "imageSource": "BV",
@@ -6383,7 +6383,7 @@
       "set",
       "steel",
       "tattoo",
-      "tatís"
+      "tat\u00eds"
     ],
     "rookieInspired": false,
     "release": "Alpha",
@@ -12743,7 +12743,7 @@
     "athleteInspiration": "Nick Kurtz",
     "isInspiredInk": false,
     "imageFile": "101-Homestead-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "101",
@@ -12869,7 +12869,7 @@
     "athleteInspiration": "Terry McLaurin",
     "isInspiredInk": false,
     "imageFile": "102-Scary-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "102",
@@ -13122,7 +13122,7 @@
     "athleteInspiration": "Rafael Devers",
     "isInspiredInk": false,
     "imageFile": "104-Superbaby-Base_Set-2026_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "104",
@@ -13248,7 +13248,7 @@
     "athleteInspiration": "Jamal Murray",
     "isInspiredInk": false,
     "imageFile": "105-Javalanche-Base_Set-2026_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "105",
@@ -13374,7 +13374,7 @@
     "athleteInspiration": "William Contreras",
     "isInspiredInk": false,
     "imageFile": "106-Wild_Bill-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "106",
@@ -13501,7 +13501,7 @@
     "athleteInspiration": "DeMarr Derozen",
     "isInspiredInk": false,
     "imageFile": "107-Thorn-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "107",
@@ -13754,7 +13754,7 @@
     "athleteInspiration": "Jung Hoo Lee",
     "isInspiredInk": false,
     "imageFile": "109-Zephyr-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "109",
@@ -13881,7 +13881,7 @@
     "athleteInspiration": "James Wood",
     "isInspiredInk": false,
     "imageFile": "110-Lumber-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "110",
@@ -14007,7 +14007,7 @@
     "athleteInspiration": "Matthew Golden",
     "isInspiredInk": false,
     "imageFile": "111-Golden_Bullet-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "111",
@@ -14133,7 +14133,7 @@
     "athleteInspiration": "Ozzie Albies",
     "isInspiredInk": false,
     "imageFile": "112-Ozzmosis-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "112",
@@ -14259,7 +14259,7 @@
     "athleteInspiration": "DK Metcalf",
     "isInspiredInk": false,
     "imageFile": "113-DeKap-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "113",
@@ -14638,7 +14638,7 @@
     "athleteInspiration": "Justin Fields",
     "isInspiredInk": false,
     "imageFile": "116-Forcefield-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "116",
@@ -15017,7 +15017,7 @@
     "athleteInspiration": "Evan Carter",
     "isInspiredInk": false,
     "imageFile": "119-Go-Cart-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "119",
@@ -15270,7 +15270,7 @@
     "athleteInspiration": "Cooper Flagg",
     "isInspiredInk": false,
     "imageFile": "121-Maverick-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "121",
@@ -15396,7 +15396,7 @@
     "athleteInspiration": "Aaron Judge",
     "isInspiredInk": false,
     "imageFile": "122-Gaveler-Base_Set-2026_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "122",
@@ -15522,7 +15522,7 @@
     "athleteInspiration": "Victor Wembanyama",
     "isInspiredInk": false,
     "imageFile": "123-Victory-Base_Set-2026_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "123",
@@ -15648,7 +15648,7 @@
     "athleteInspiration": "Bijon Robinson",
     "isInspiredInk": false,
     "imageFile": "124-Dijon-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "124",
@@ -15774,7 +15774,7 @@
     "athleteInspiration": "Sidney Crosby",
     "isInspiredInk": false,
     "imageFile": "125-Crosbow-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "125",
@@ -15900,7 +15900,7 @@
     "athleteInspiration": "Cam Ward",
     "isInspiredInk": false,
     "imageFile": "126-Warden-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "126",
@@ -16027,7 +16027,7 @@
     "athleteInspiration": "Paige Bueckers",
     "isInspiredInk": false,
     "imageFile": "127-PB_Buckets-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "127",
@@ -16154,7 +16154,7 @@
     "athleteInspiration": "Tarik Skubal",
     "isInspiredInk": false,
     "imageFile": "128-Skuba-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "128",
@@ -16280,7 +16280,7 @@
     "athleteInspiration": "Tyrese Haliburton",
     "isInspiredInk": false,
     "imageFile": "129-Haliburst-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "129",
@@ -16406,7 +16406,7 @@
     "athleteInspiration": "Jaxson Dart",
     "isInspiredInk": false,
     "imageFile": "130-Dart-Board-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "130",
@@ -16532,7 +16532,7 @@
     "athleteInspiration": "Cal Raleigh",
     "isInspiredInk": false,
     "imageFile": "131-Dumper-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "131",
@@ -16658,7 +16658,7 @@
     "athleteInspiration": "Travis Hunter",
     "isInspiredInk": false,
     "imageFile": "132-Switchblade-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "132",
@@ -16744,7 +16744,7 @@
     "athleteInspiration": "Lamelo Ball",
     "isInspiredInk": false,
     "imageFile": "133-Triple_Threat-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "133",
@@ -16787,7 +16787,7 @@
     "athleteInspiration": "Jordan Love",
     "isInspiredInk": false,
     "imageFile": "133-Cupid-Base_Set-2026_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "133",
@@ -16872,7 +16872,7 @@
     "athleteInspiration": "Lamelo Ball",
     "isInspiredInk": false,
     "imageFile": "134-Triple_Threat-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "134",
@@ -16999,7 +16999,7 @@
     "athleteInspiration": "Lamelo Ball",
     "isInspiredInk": false,
     "imageFile": "135-Triple_Threat-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "135",
@@ -17042,7 +17042,7 @@
     "athleteInspiration": "Tyrese Maxey",
     "isInspiredInk": false,
     "imageFile": "135-Maxed_Out-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "135",
@@ -17127,7 +17127,7 @@
     "athleteInspiration": "Kyle Tucker",
     "isInspiredInk": false,
     "imageFile": "136-King_Tuck-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "136",
@@ -17212,7 +17212,7 @@
     "athleteInspiration": "Manny Machado",
     "isInspiredInk": false,
     "imageFile": "137-Macho-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "137",
@@ -17296,7 +17296,7 @@
     "athleteInspiration": "Roman Anthony",
     "isInspiredInk": false,
     "imageFile": "138-Gladiator-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "138",
@@ -17464,7 +17464,7 @@
     "athleteInspiration": "Kawhi Leonard",
     "isInspiredInk": false,
     "imageFile": "140-Fungi-Base_Set-2026_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "140",
@@ -17548,7 +17548,7 @@
     "athleteInspiration": "TJ Watt",
     "isInspiredInk": false,
     "imageFile": "141-Wattage-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "141",
@@ -17632,7 +17632,7 @@
     "athleteInspiration": "Gunnar Henderson",
     "isInspiredInk": false,
     "imageFile": "142-Gunner-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "142",
@@ -17716,7 +17716,7 @@
     "athleteInspiration": "Lauri Markkanen",
     "isInspiredInk": false,
     "imageFile": "143-Marksman-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "143",
@@ -17800,7 +17800,7 @@
     "athleteInspiration": "Dylan Harper",
     "isInspiredInk": false,
     "imageFile": "144-D-Harp-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "144",
@@ -17884,7 +17884,7 @@
     "athleteInspiration": "Ashton Jeanty",
     "isInspiredInk": false,
     "imageFile": "145-Jeanetic-Base_Set-First_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "145",
@@ -17968,7 +17968,7 @@
     "athleteInspiration": "Aaron Rodgers",
     "isInspiredInk": false,
     "imageFile": "146-Doublecheck-Base_Set-2026_Edition.webp",
-    "imageSource": "RADISH",
+    "imageSource": "BV",
     "imageAvailable": true,
     "searchTokens": [
       "146",

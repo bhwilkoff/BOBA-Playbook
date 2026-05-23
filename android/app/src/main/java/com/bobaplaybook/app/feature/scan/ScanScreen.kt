@@ -658,7 +658,27 @@ private fun ScanViewfinder(
         // "misfires (card not found)" leakage Ben flagged — those
         // states no longer show, only the final committed card.
         val committed = detectedCard
-        if (committed != null) {
+        // AnimatedVisibility — slide-from-bottom + opacity fade,
+        // matching iOS's .transition(.move(edge:.bottom).combined(.opacity)).
+        // The chip render moves into the AnimatedVisibility block so
+        // the same animator handles both enter (committed -> non-null)
+        // and exit (committed -> null on dismiss / auto-clear).
+        androidx.compose.animation.AnimatedVisibility(
+            visible = committed != null,
+            enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }) +
+                androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it }) +
+                androidx.compose.animation.fadeOut(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 96.dp)
+                .align(Alignment.BottomCenter),
+        ) {
+            // Capture into a stable val so the lambda body inside the
+            // AnimatedVisibility (rendered during exit transition)
+            // doesn't NPE if `committed` becomes null mid-animation.
+            val card = committed ?: return@AnimatedVisibility
             // Quick-Save plumbing — chip's "+" button writes the
             // matched card to the user's Personal designation
             // without leaving the scanner. iOS chip has the
@@ -668,8 +688,8 @@ private fun ScanViewfinder(
             val scope = androidx.compose.runtime.rememberCoroutineScope()
             val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
             ScanDetectionChip(
-                card = committed,
-                onTap = { onChipTap(committed.bobaId) },
+                card = card,
+                onTap = { onChipTap(card.bobaId) },
                 onQuickSave = {
                     scope.launch {
                         val auth = ScanModuleAccess.authManager.authState
@@ -677,20 +697,20 @@ private fun ScanViewfinder(
                         val userId = (auth as? com.bobaplaybook.app.auth.AuthState.SignedIn)?.userId
                         if (userId == null) {
                             appSnackbar?.showSnackbar(
-                                "Sign in to Quick-Save ${committed.displayName}"
+                                "Sign in to Quick-Save ${card.displayName}"
                             )
                             return@launch
                         }
-                        val cardNumber = committed.cardNumber
-                            .ifEmpty { committed.bobaId.substringBefore('-') }
+                        val cardNumber = card.cardNumber
+                            .ifEmpty { card.bobaId.substringBefore('-') }
                         ScanModuleAccess.collectionRepository.add(
-                            cardBobaId = committed.bobaId,
+                            cardBobaId = card.bobaId,
                             cardNumber = cardNumber,
                             designation = com.bobaplaybook.core.domain.model.Designation.PERSONAL,
                             userId = userId,
                         )
                         appSnackbar?.showSnackbar(
-                            "Added ${committed.displayName} to Personal"
+                            "Added ${card.displayName} to Personal"
                         )
                     }
                 },
@@ -704,14 +724,9 @@ private fun ScanViewfinder(
                     lastMatchedBobaId = null
                     detectedCard = null
                 },
-                // Pin to ~96dp above the bottom (clears the mode
-                // pills row that lives in the parent at 32dp from
-                // bottom).
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 96.dp)
-                    .align(Alignment.BottomCenter),
+                // AnimatedVisibility owns the position + padding +
+                // alignment now; the chip itself is just full-width.
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }

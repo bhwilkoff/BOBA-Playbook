@@ -502,6 +502,7 @@ private fun ScanViewfinder(
     val cardRepository: CardRepository = remember { ScanModuleAccess.cardRepository }
     val matcher = remember { ScanCardMatcher { cardRepository.cards.value } }
     val stabilizer = remember { ScanFrameStabilizer() }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     var lastMatchedDisplayName by remember { mutableStateOf<String?>(null) }
     var scanState by remember { mutableStateOf<ScanFrameStabilizer.State>(ScanFrameStabilizer.State.Idle) }
     // Most-recent committed match — drives the detection chip + the
@@ -572,6 +573,16 @@ private fun ScanViewfinder(
                     android.util.Log.i(
                         "ScanViewfinder",
                         "Committed match: ${stable.card.displayName} (${stable.card.bobaId}) mode=$currentScanMode",
+                    )
+                    // Haptic on commit — physical confirmation that
+                    // the matcher landed on a card. iOS uses a similar
+                    // success-style haptic on the scan commit moment.
+                    // LongPress maps to a single short pulse on Android
+                    // — close to the iOS UIImpactFeedbackGenerator
+                    // (.medium) feel without needing platform-specific
+                    // tuning.
+                    haptic.performHapticFeedback(
+                        androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress
                     )
                     if (currentScanMode == ScanMode.MULTI) {
                         currentOnAutoQueue(stable.card.bobaId)

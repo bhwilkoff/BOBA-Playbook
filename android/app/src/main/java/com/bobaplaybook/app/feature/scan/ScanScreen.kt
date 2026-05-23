@@ -430,6 +430,11 @@ fun ScanScreen(
         }
     }
 
+    // Coroutine scope for bulk save — survives sheet close so a long
+    // batch insert keeps writing even if the user dismisses the sheet
+    // mid-flight (the queue is cleared optimistically, write-failures
+    // surface via the toast).
+    val bulkSaveScope = androidx.compose.runtime.rememberCoroutineScope()
     if (reviewSheetOpen) {
         ScanReviewSheet(
             entries = queueEntries,
@@ -441,6 +446,52 @@ fun ScanScreen(
             onRemove = { bobaId -> queueHolder.queue.remove(bobaId) },
             onSetQuantity = { bobaId, qty -> queueHolder.queue.setQuantity(bobaId, qty) },
             onClearAll = { queueHolder.queue.clear(); reviewSheetOpen = false },
+            onSaveAll = {
+                // iOS-parity bulk save (ScanQueueView.swift
+                // saveAllToCollection). Snapshot entries first, then
+                // loop: for each row, insert `quantity` user_card rows
+                // — matches the iOS pattern of one row per physical
+                // copy (DECISIONS.md user_cards is the row-per-copy
+                // table). Designation defaults to Personal; future
+                // iters can add a designation picker.
+                val snapshot = queueEntries
+                val totalCopies = snapshot.sumOf { it.quantity }
+                bulkSaveScope.launch {
+                    val auth = ScanModuleAccess.authManager.authState.first()
+                    val userId = (auth as? com.bobaplaybook.app.auth.AuthState.SignedIn)?.userId
+                    if (userId == null) {
+                        scanToastMessage = "Sign in to save $totalCopies card${if (totalCopies == 1) "" else "s"}"
+                        scanToastIsError = true
+                        return@launch
+                    }
+                    var firstError: String? = null
+                    for (entry in snapshot) {
+                        val cardNumber = entry.bobaId.substringBefore('-')
+                        repeat(entry.quantity.coerceIn(1, 99)) {
+                            try {
+                                ScanModuleAccess.collectionRepository.add(
+                                    cardBobaId = entry.bobaId,
+                                    cardNumber = cardNumber,
+                                    designation = com.bobaplaybook.core.domain.model.Designation.PERSONAL,
+                                    userId = userId,
+                                )
+                            } catch (t: Throwable) {
+                                if (firstError == null) firstError = t.message ?: t.javaClass.simpleName
+                            }
+                        }
+                    }
+                    if (firstError == null) {
+                        scanToastMessage =
+                            "Saved $totalCopies card${if (totalCopies == 1) "" else "s"} to Personal"
+                        scanToastIsError = false
+                        queueHolder.queue.clear()
+                        reviewSheetOpen = false
+                    } else {
+                        scanToastMessage = "Save failed: $firstError"
+                        scanToastIsError = true
+                    }
+                }
+            },
             onDismiss = { reviewSheetOpen = false },
         )
     }
@@ -455,6 +506,7 @@ private fun ScanReviewSheet(
     onRemove: (bobaId: String) -> Unit,
     onSetQuantity: (bobaId: String, quantity: Int) -> Unit,
     onClearAll: () -> Unit,
+    onSaveAll: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
@@ -491,7 +543,7 @@ private fun ScanReviewSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(modifier = Modifier.weight(1f)) {
                     items(
                         items = entries,
                         key = { entry -> entry.bobaId },
@@ -610,6 +662,34 @@ private fun ScanReviewSheet(
                         )
                         HorizontalDivider()
                     }
+                }
+                // iOS-parity bulk save (ScanQueueView.swift
+                // saveAllButton at line ~366). Full-width orange CTA
+                // pinned below the list. Disabled state isn't needed —
+                // the button only renders when entries.isNotEmpty(),
+                // so this only ever shows with ≥1 card to save.
+                val totalCopies = entries.sumOf { it.quantity }
+                Button(
+                    onClick = onSaveAll,
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = androidx.compose.ui.graphics.Color(0xFFFF4D00),
+                        contentColor = androidx.compose.ui.graphics.Color.White,
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, bottom = 8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Inventory2,
+                        contentDescription = null,
+                        modifier = Modifier.width(18.dp).height(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Save $totalCopies to Personal",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
                 }
             }
         }

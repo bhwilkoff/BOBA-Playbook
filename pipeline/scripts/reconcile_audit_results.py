@@ -71,6 +71,41 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+# Common Vision OCR digit↔letter confusions on stylized BoBA card
+# glyphs. Used by normalize_card_number to fuzzy-match cardNumbers
+# where the OCR returned a near-canonical form (e.g. "BLBF-Z" for
+# "BLBF-2", "R8F-13" for "RBF-13", "CHILL-S" for "CHILL-5"). Both
+# directions are mapped so normalization is symmetric.
+OCR_DIGIT_LETTER_HOMOGLYPHS = str.maketrans({
+    "O": "0", "o": "0",          # O ↔ 0
+    "I": "1", "l": "1", "i": "1",  # I, l, i ↔ 1
+    "Z": "2", "z": "2",          # Z ↔ 2  (BLBF-Z → BLBF-2)
+    "S": "5", "s": "5",          # S ↔ 5  (CHILL-S → CHILL-5)
+    "G": "6", "g": "6",          # G ↔ 6
+    "B": "8", "b": "8",          # B ↔ 8  (R8F-13 prefix is RBF; also CHILL-B → CHILL-8)
+    "T": "7",                    # T ↔ 7 (less common; e.g. "T-15" from "115")
+})
+
+
+def normalize_card_number(s: str | None) -> str:
+    """Fuzzy-normalize a cardNumber for comparison: uppercase, strip
+    punctuation, apply digit↔letter homoglyph map so common OCR
+    confusions (B↔8, S↔5, etc.) compare equal. Preserves the
+    PREFIX-NUMBER structure; only suffix digits are remapped.
+    """
+    if s is None:
+        return ""
+    raw = re.sub(r"[^A-Za-z0-9]", "", str(s)).upper()
+    if not raw:
+        return ""
+    # Split into prefix (letters) and suffix (anything after).
+    m = re.match(r"^([A-Z]+)(.*)$", raw)
+    if not m:
+        return raw.translate(OCR_DIGIT_LETTER_HOMOGLYPHS)
+    prefix, suffix = m.group(1), m.group(2)
+    return prefix + suffix.translate(OCR_DIGIT_LETTER_HOMOGLYPHS)
+
+
 def normalize_text(s: str | None) -> str:
     """Strip accents, lowercase, drop non-alphanumeric. Used to compare
     OCR'd hero names against catalog where Vision's homoglyph
@@ -137,6 +172,33 @@ def card_number_extractable(catalog_card_number) -> bool:
         return False
     s = str(catalog_card_number)
     return bool(re.match(r"^[A-Z]{2,}", s))  # require 2+ letter prefix
+
+
+def _card_number_status(ocr_value, ocr_conf: float, catalog_value) -> str:
+    """cardNumber-specific status that applies OCR-confusion fuzzy
+    matching (B↔8, S↔5, Z↔2, etc.) before declaring MISMATCH.
+
+    Crucially: if OCR returned a prefix-dash-suffix string whose
+    prefix doesn't match the catalog's prefix, that's irrelevant
+    noise from elsewhere on the card (trademark text like "BO
+    JACKSON" matched the relaxed extractor regex). Treat as
+    NULL_OCR rather than MISMATCH so it doesn't pollute the
+    UPDATES bucket."""
+    if not card_number_extractable(catalog_value):
+        return "NOT_EXTRACTABLE"
+    if ocr_value is None or ocr_value == "":
+        return "NULL_OCR"
+    if normalize_card_number(ocr_value) == normalize_card_number(catalog_value):
+        return "MATCH"
+    # OCR found something but no fuzzy-match. Reject as noise if the
+    # prefix doesn't match the catalog's prefix.
+    cat_pref_m = re.match(r"^([A-Z]+)", str(catalog_value))
+    ocr_pref_m = re.match(r"^([A-Z]+)", normalize_card_number(ocr_value))
+    if not (cat_pref_m and ocr_pref_m and cat_pref_m.group(1) == ocr_pref_m.group(1)):
+        return "NULL_OCR"
+    if ocr_conf < HIGH_CONF:
+        return "LOW_CONF"
+    return "MISMATCH"
 
 
 def power_status(ocr_int, ocr_conf: float, catalog_int) -> str:
@@ -221,11 +283,10 @@ def reconcile(catalog: list[dict], ocr_results: list[dict],
 
         ocr = row["ocr"]
         statuses = {
-            "cardNumber": field_status(
+            "cardNumber": _card_number_status(
                 ocr["cardNumber"].get("value"),
                 ocr["cardNumber"].get("confidence", 0.0),
                 card.get("cardNumber"),
-                ocr_extractable=card_number_extractable(card.get("cardNumber")),
             ),
             "name": field_status(
                 ocr["name"].get("value"),
@@ -304,9 +365,18 @@ def reconcile(catalog: list[dict], ocr_results: list[dict],
     }
 
 
-def build_patch(updates: list[dict]) -> dict:
+def build_patch(updates: list[dict], all_rows: list[dict] | None = None) -> dict:
     """Cowork-format patch: modify[] entries with old_bobaId + changes
-    + evidence. apply_handoff_batch.py understands this shape."""
+    + evidence. apply_handoff_batch.py understands this shape.
+
+    Also generates an `additions[]` section for printed-serial values
+    extracted from Inspired Ink card art — per Ben's directive that
+    "relying upon what is written on the card is a much better way to
+    go" (the IK denominator-element rule has exceptions, so the
+    printed serial is the authoritative source). The catalog gains a
+    new `printedSerial` field. Apply this section after the modify
+    section.
+    """
     modify = []
     for u in updates:
         changes = {}
@@ -324,13 +394,8 @@ def build_patch(updates: list[dict]) -> dict:
             elif field == "element":
                 changes["element"] = ocr_field.get("value")
             elif field == "treatment":
-                # Treatment isn't OCR'd — comes from prefix derivation
-                # in the statuses pass. We don't write changes for
-                # treatment automatically; flag in evidence so a human
-                # can decide whether the catalog or the prefix is right.
                 changes["treatment"] = u["catalog"].get("_derived_treatment")
             elif field == "serial":
-                # Serial isn't stored in catalog; record only as evidence.
                 continue
             evidence[field] = {
                 "ocr_value": ocr_field.get("value")
@@ -345,11 +410,44 @@ def build_patch(updates: list[dict]) -> dict:
                 "changes": changes,
                 "evidence": evidence,
             })
+
+    # Printed-serial additions — every IK card where OCR extracted a
+    # /N serial (e.g. "15/25"). Rule conflicts (printed denominator
+    # disagrees with the IK rule for catalog element) are surfaced as
+    # `rule_conflict: true` so humans can decide whether the catalog
+    # element is wrong or there's a real exception.
+    additions = []
+    rule_denom_for_element = {"HEX": 5, "GLOW": 10, "FIRE": 25, "ICE": 50}
+    for u in (all_rows or []):
+        if not u["catalog"].get("isInspiredInk"):
+            continue
+        serial = (u.get("ocr", {}).get("serial") or {}).get("value")
+        if not serial:
+            continue
+        serial_denom = (u.get("ocr", {}).get("serial") or {}).get("intValue")
+        element = u["catalog"].get("element")
+        expected_denom = rule_denom_for_element.get(element)
+        rule_conflict = bool(expected_denom and serial_denom and expected_denom != serial_denom)
+        additions.append({
+            "old_bobaId": u["bobaId"],
+            "additions": {"printedSerial": serial},
+            "evidence": {
+                "printedSerial": {
+                    "ocr_value": serial,
+                    "ocr_denominator": serial_denom,
+                    "catalog_element": element,
+                    "rule_expected_denominator": expected_denom,
+                    "rule_conflict": rule_conflict,
+                }
+            },
+        })
+
     return {
         "schema_version": 1,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source": "card_audit_pipeline",
         "modify": modify,
+        "additions": additions,
     }
 
 
@@ -459,17 +557,27 @@ def main() -> int:
         },
     }
 
-    # Emit outputs.
+    # Emit outputs. Patch includes both modify[] (catalog corrections)
+    # and additions[] (printed-serial captures for every IK card).
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2))
-    patch = build_patch(bundle["updates"])
+    all_rows = bundle["confirms"] + bundle["updates"] + bundle["review"]
+    patch = build_patch(bundle["updates"], all_rows=all_rows)
     (out_dir / "patch.json").write_text(json.dumps(patch, indent=2))
     review_html = build_review_html(bundle["review"], bundle["updates"])
     (out_dir / "review.html").write_text(review_html)
 
     print(f"[reconcile] CONFIRMS:    {summary['buckets']['confirms']}")
-    print(f"[reconcile] UPDATES:     {summary['buckets']['updates']}  → patch.json")
+    print(f"[reconcile] UPDATES:     {summary['buckets']['updates']}  → patch.json (modify[])")
     print(f"[reconcile] REVIEW:      {summary['buckets']['review']}  → review.html")
     print(f"[reconcile] NEEDS_IMAGE: {summary['buckets']['needs_image']}")
+    n_additions = len(patch.get("additions", []))
+    n_rule_conflicts = sum(
+        1 for a in patch.get("additions", [])
+        if a["evidence"]["printedSerial"].get("rule_conflict")
+    )
+    if n_additions:
+        print(f"[reconcile] PRINTED_SERIAL additions: {n_additions} "
+              f"({n_rule_conflicts} with IK rule conflict) → patch.json (additions[])")
     print()
     print("[reconcile] Per-field status counts:")
     for f, stats in summary["per_field_stats"].items():

@@ -1,0 +1,400 @@
+#!/usr/bin/env python3
+"""
+reconcile_audit_results.py — Phase 4 of CARD_AUDIT_PIPELINE.md
+
+Joins the OCR output from CardAuditCLI against cards.json, buckets
+every card into CONFIRMS / UPDATES / REVIEW / NEEDS_IMAGE, and emits:
+
+  - {out_dir}/patch.json     — Cowork-shaped patch with `modify[]`
+                                entries for UPDATES bucket
+  - {out_dir}/review.html    — Side-by-side human-review report for
+                                low-confidence + ambiguous cards
+  - {out_dir}/summary.json   — Per-bucket counts + per-field stats
+
+Buckets:
+  - CONFIRMS:    Every extracted field's high-conf OCR matches catalog.
+  - UPDATES:     At least one high-confidence OCR DISAGREES with catalog
+                  (catalog likely wrong; propose patch after human gate).
+  - REVIEW:      One or more fields low-confidence or ambiguous
+                  (OCR confidence below threshold, or OCR returned null
+                  while catalog has a value, etc.).
+  - NEEDS_IMAGE: Card has imageFile but OCR row missing — fetch failed
+                  or image unreadable.
+
+Confidence thresholds:
+  - HIGH:   conf >= 0.85
+  - MEDIUM: 0.50 <= conf < 0.85
+  - LOW:    conf < 0.50
+
+Usage:
+    python3 pipeline/scripts/reconcile_audit_results.py \
+        --catalog assets/data/cards.json \
+        --ocr     ~/.boba-card-audit/ocr_results.json \
+        --out     handoff-updates-2026-05-24/audit \
+        [--cdn-base https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev]
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+import unicodedata
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+CDN_BASE_DEFAULT = "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev"
+
+# Confidence floors.
+HIGH_CONF = 0.85
+MED_CONF = 0.50
+
+
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser()
+    p.add_argument("--catalog", required=True)
+    p.add_argument("--ocr", required=True)
+    p.add_argument("--out", required=True,
+                   help="Output directory (created if missing)")
+    p.add_argument("--cdn-base", default=CDN_BASE_DEFAULT,
+                   help="Override the R2 base URL for image links")
+    p.add_argument("-v", "--verbose", action="store_true")
+    return p.parse_args()
+
+
+def normalize_text(s: str | None) -> str:
+    """Strip accents, lowercase, drop non-alphanumeric. Used to compare
+    OCR'd hero names against catalog where Vision's homoglyph
+    behavior (Cyrillic О vs Latin O, etc.) creates spurious diffs."""
+    if not s:
+        return ""
+    # Unicode-normalize then strip combining marks (NFKD).
+    decomposed = unicodedata.normalize("NFKD", str(s))
+    ascii_only = "".join(c for c in decomposed if not unicodedata.combining(c))
+    # Map common Cyrillic → Latin lookalikes Vision returns.
+    # Strict-equivalent characters (visually identical glyphs).
+    homoglyphs = str.maketrans({
+        "А": "A", "В": "B", "С": "C", "Е": "E", "Н": "H", "К": "K",
+        "М": "M", "О": "O", "Р": "P", "Т": "T", "Х": "X",
+        "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "х": "x",
+    })
+    ascii_only = ascii_only.translate(homoglyphs)
+    return re.sub(r"[^A-Za-z0-9]", "", ascii_only).lower()
+
+
+def field_status(ocr_value, ocr_conf: float, catalog_value,
+                 *, ocr_extractable: bool = True) -> str:
+    """Return one of: MATCH / MISMATCH / NULL_OCR / LOW_CONF / OK_NULL
+    / NOT_EXTRACTABLE.
+
+    OK_NULL         = both OCR and catalog have no value — no action.
+    NOT_EXTRACTABLE = this catalog value's shape isn't expected to be
+                      printed on the card art (e.g. Base Set bare-
+                      digit cardNumbers like "1" or "47" — the number
+                      is set-position metadata, not artwork). Drops
+                      out of the REVIEW bucket so we don't drown the
+                      report in false positives.
+    """
+    if not ocr_extractable:
+        return "NOT_EXTRACTABLE"
+    if ocr_value is None or ocr_value == "":
+        if catalog_value is None or catalog_value == "":
+            return "OK_NULL"
+        return "NULL_OCR"  # catalog has value, OCR didn't find one
+    if ocr_conf < MED_CONF:
+        return "LOW_CONF"
+    # Both have values — compare.
+    if normalize_text(ocr_value) == normalize_text(catalog_value):
+        return "MATCH" if ocr_conf >= HIGH_CONF else "LOW_CONF"
+    return "MISMATCH" if ocr_conf >= HIGH_CONF else "LOW_CONF"
+
+
+# Bare-digit cardNumbers (1, 47, 115, …) are set-position metadata,
+# not necessarily printed on the card art. Prefix-dash cardNumbers
+# (ABF-100, BHBF-37) ARE printed and OCR-able. Tested empirically on
+# the 600-card Hero pilot — every bare-digit cardNumber's bottom-strip
+# OCR returned the trademark text instead of the digit.
+def card_number_extractable(catalog_card_number) -> bool:
+    if catalog_card_number is None:
+        return False
+    s = str(catalog_card_number)
+    return bool(re.match(r"^[A-Z]{2,}", s))  # require 2+ letter prefix
+
+
+def power_status(ocr_int, ocr_conf: float, catalog_int) -> str:
+    if ocr_int is None:
+        return "OK_NULL" if catalog_int is None else "NULL_OCR"
+    if ocr_conf < MED_CONF:
+        return "LOW_CONF"
+    if ocr_int == catalog_int:
+        return "MATCH" if ocr_conf >= HIGH_CONF else "LOW_CONF"
+    return "MISMATCH" if ocr_conf >= HIGH_CONF else "LOW_CONF"
+
+
+def bucket_for(statuses: dict[str, str]) -> str:
+    """Roll up per-field statuses into one of CONFIRMS / UPDATES / REVIEW.
+    NOT_EXTRACTABLE rows are treated as OK_NULL — they don't block CONFIRMS."""
+    if any(s == "MISMATCH" for s in statuses.values()):
+        return "UPDATES"
+    if any(s in {"LOW_CONF", "NULL_OCR"} for s in statuses.values()):
+        return "REVIEW"
+    return "CONFIRMS"
+
+
+def reconcile(catalog: list[dict], ocr_results: list[dict],
+              cdn_base: str) -> dict:
+    catalog_by_id = {c["bobaId"]: c for c in catalog if c.get("bobaId")}
+    ocr_by_id = {r["bobaId"]: r for r in ocr_results if r.get("bobaId")}
+
+    confirms, updates, review = [], [], []
+    needs_image = []
+    per_field_stats: dict[str, Counter] = {
+        f: Counter() for f in ("cardNumber", "name", "power", "serial")
+    }
+
+    for card in catalog:
+        bid = card.get("bobaId")
+        if not bid or not card.get("imageFile"):
+            continue
+        row = ocr_by_id.get(bid)
+        if row is None:
+            needs_image.append(bid)
+            continue
+
+        ocr = row["ocr"]
+        statuses = {
+            "cardNumber": field_status(
+                ocr["cardNumber"].get("value"),
+                ocr["cardNumber"].get("confidence", 0.0),
+                card.get("cardNumber"),
+                ocr_extractable=card_number_extractable(card.get("cardNumber")),
+            ),
+            "name": field_status(
+                ocr["name"].get("value"),
+                ocr["name"].get("confidence", 0.0),
+                card.get("name") or card.get("hero"),
+            ),
+            "power": power_status(
+                ocr["power"].get("intValue"),
+                ocr["power"].get("confidence", 0.0),
+                card.get("power"),
+            ),
+            "serial": field_status(
+                ocr["serial"].get("value"),
+                ocr["serial"].get("confidence", 0.0),
+                # Catalog doesn't store the printed serial — only the
+                # boolean isInspiredInk. Serial OCR is presence-only.
+                None,
+            ),
+        }
+        for f, s in statuses.items():
+            per_field_stats[f][s] += 1
+
+        bucket = bucket_for(statuses)
+        entry = {
+            "bobaId": bid,
+            "imageFile": card["imageFile"],
+            "cardType": card.get("cardType"),
+            "statuses": statuses,
+            "catalog": {
+                "cardNumber": card.get("cardNumber"),
+                "name": card.get("name") or card.get("hero"),
+                "power": card.get("power"),
+                "element": card.get("element"),
+                "treatment": card.get("treatment"),
+                "isInspiredInk": card.get("isInspiredInk"),
+            },
+            "ocr": {
+                "cardNumber": ocr["cardNumber"],
+                "name": ocr["name"],
+                "power": ocr["power"],
+                "serial": ocr["serial"],
+            },
+            "image_url": f"{cdn_base}/full/{card['imageFile']}",
+        }
+        if bucket == "CONFIRMS":
+            confirms.append(entry)
+        elif bucket == "UPDATES":
+            updates.append(entry)
+        else:
+            review.append(entry)
+
+    return {
+        "confirms": confirms,
+        "updates": updates,
+        "review": review,
+        "needs_image": needs_image,
+        "per_field_stats": per_field_stats,
+    }
+
+
+def build_patch(updates: list[dict]) -> dict:
+    """Cowork-format patch: modify[] entries with old_bobaId + changes
+    + evidence. apply_handoff_batch.py understands this shape."""
+    modify = []
+    for u in updates:
+        changes = {}
+        evidence = {}
+        for field, status in u["statuses"].items():
+            if status != "MISMATCH":
+                continue
+            if field == "cardNumber":
+                changes["cardNumber"] = u["ocr"]["cardNumber"]["value"]
+            elif field == "name":
+                changes["name"] = u["ocr"]["name"]["value"]
+            elif field == "power":
+                changes["power"] = u["ocr"]["power"]["intValue"]
+            elif field == "serial":
+                # Serial isn't stored in catalog; record only as evidence.
+                continue
+            evidence[field] = {
+                "ocr_value": u["ocr"][field].get("value")
+                             if field != "power"
+                             else u["ocr"][field].get("intValue"),
+                "ocr_confidence": u["ocr"][field].get("confidence"),
+                "catalog_value": u["catalog"].get(field),
+            }
+        if changes:
+            modify.append({
+                "old_bobaId": u["bobaId"],
+                "changes": changes,
+                "evidence": evidence,
+            })
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source": "card_audit_pipeline",
+        "modify": modify,
+    }
+
+
+def build_review_html(review: list[dict], updates: list[dict]) -> str:
+    """Side-by-side image + extracted vs catalog. Human walks the
+    list; opening a card's image in a browser tab is one click away."""
+    def row_html(e: dict, kind: str) -> str:
+        statuses_html = ""
+        for f, s in e["statuses"].items():
+            cat = e["catalog"].get(f) if f != "serial" else "—"
+            if f == "power":
+                ocr = e["ocr"][f].get("intValue")
+            else:
+                ocr = e["ocr"][f].get("value")
+            conf = e["ocr"][f].get("confidence", 0)
+            color = {"MATCH": "#4CAF50", "MISMATCH": "#FF4D00",
+                     "LOW_CONF": "#FFC107", "NULL_OCR": "#9E9E9E",
+                     "OK_NULL": "#9E9E9E"}.get(s, "#fff")
+            statuses_html += (
+                f"<tr><td>{f}</td><td>{cat!r}</td>"
+                f"<td>{ocr!r}</td>"
+                f"<td>{conf:.2f}</td>"
+                f"<td style='color:{color};font-weight:700'>{s}</td></tr>"
+            )
+        return f"""
+            <div class="card-row" data-kind="{kind}" data-boba="{e['bobaId']}">
+              <img src="{e['image_url']}" loading="lazy" />
+              <div class="meta">
+                <h3>{e['bobaId']}</h3>
+                <div class="cardtype">{e['cardType']}</div>
+                <table>
+                  <thead><tr><th>field</th><th>catalog</th>
+                  <th>ocr</th><th>conf</th><th>status</th></tr></thead>
+                  <tbody>{statuses_html}</tbody>
+                </table>
+              </div>
+            </div>"""
+    body = "\n".join(row_html(e, "UPDATES") for e in updates) + \
+           "\n".join(row_html(e, "REVIEW") for e in review)
+    return f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Card Audit Review</title>
+<style>
+  body {{ background: #080810; color: #fff;
+          font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+          padding: 24px; }}
+  h1 {{ font-size: 28px; }}
+  .legend {{ margin: 16px 0; opacity: 0.8; }}
+  .legend span {{ margin-right: 12px; padding: 2px 8px; border-radius: 4px; }}
+  .card-row {{ display: flex; gap: 16px; margin-bottom: 24px;
+              padding: 16px; background: #0D0D1A;
+              border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; }}
+  .card-row img {{ width: 200px; height: auto; align-self: flex-start;
+                  border-radius: 6px; }}
+  .meta {{ flex: 1; }}
+  .meta h3 {{ margin: 0 0 4px; font-size: 16px; font-family: monospace; }}
+  .cardtype {{ font-size: 12px; opacity: 0.6; margin-bottom: 8px; }}
+  table {{ width: 100%; font-size: 13px; border-collapse: collapse; }}
+  th, td {{ text-align: left; padding: 4px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05); }}
+  th {{ font-size: 11px; opacity: 0.5; text-transform: uppercase;
+        font-weight: normal; }}
+  td:nth-child(2), td:nth-child(3) {{ font-family: monospace; font-size: 12px; }}
+  [data-kind=UPDATES] {{ border-left: 4px solid #FF4D00; }}
+  [data-kind=REVIEW] {{ border-left: 4px solid #FFC107; }}
+</style>
+</head><body>
+<h1>Card Audit Review</h1>
+<p class="legend">
+  <span style="background:#FF4D00">UPDATES ({len(updates)})</span>
+  <span style="background:#FFC107;color:#000">REVIEW ({len(review)})</span>
+</p>
+<p>UPDATES are catalog rows where high-confidence OCR disagrees with
+the stored value — proposed patches that need human ratification before
+they hit cards.json. REVIEW rows are low-confidence or ambiguous cases
+where the audit can't decide.</p>
+{body}
+</body></html>"""
+
+
+def main() -> int:
+    args = parse_args()
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    with open(args.catalog) as f:
+        catalog = json.load(f)
+    with open(args.ocr) as f:
+        ocr_doc = json.load(f)
+    ocr_results = ocr_doc.get("results", [])
+
+    print(f"[reconcile] catalog={len(catalog)} cards, ocr_rows={len(ocr_results)}",
+          flush=True)
+    bundle = reconcile(catalog, ocr_results, args.cdn_base)
+
+    summary = {
+        "ran_at": datetime.now(timezone.utc).isoformat(),
+        "buckets": {
+            "confirms": len(bundle["confirms"]),
+            "updates": len(bundle["updates"]),
+            "review": len(bundle["review"]),
+            "needs_image": len(bundle["needs_image"]),
+        },
+        "per_field_stats": {
+            f: dict(c) for f, c in bundle["per_field_stats"].items()
+        },
+    }
+
+    # Emit outputs.
+    (out_dir / "summary.json").write_text(json.dumps(summary, indent=2))
+    patch = build_patch(bundle["updates"])
+    (out_dir / "patch.json").write_text(json.dumps(patch, indent=2))
+    review_html = build_review_html(bundle["review"], bundle["updates"])
+    (out_dir / "review.html").write_text(review_html)
+
+    print(f"[reconcile] CONFIRMS:    {summary['buckets']['confirms']}")
+    print(f"[reconcile] UPDATES:     {summary['buckets']['updates']}  → patch.json")
+    print(f"[reconcile] REVIEW:      {summary['buckets']['review']}  → review.html")
+    print(f"[reconcile] NEEDS_IMAGE: {summary['buckets']['needs_image']}")
+    print()
+    print("[reconcile] Per-field status counts:")
+    for f, stats in summary["per_field_stats"].items():
+        items = ", ".join(f"{k}={v}" for k, v in sorted(stats.items()))
+        print(f"  {f:<14} {items}")
+    print()
+    print(f"[reconcile] outputs → {out_dir}/")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

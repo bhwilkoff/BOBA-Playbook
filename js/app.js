@@ -1056,7 +1056,9 @@
         : null;
       if (!card) return;
       e.preventDefault();
-      const signedIn = !!(window.Auth?.getSession?.()?.user);
+      // Auth is a bare top-level const in auth.js; window.Auth is
+      // undefined (classic-script semantics). Use the bare name.
+      const signedIn = !!(typeof Auth !== 'undefined' && Auth.getSession?.()?.user);
       if (typeof window.bobaShowPopoverMenu !== 'function') return;
       const items = [];
       if (signedIn) {
@@ -2924,30 +2926,43 @@
   findOverflowBtn?.addEventListener('click', () => {
     if (typeof window.bobaShowPopoverMenu !== 'function') return;
     const n = filteredCards.length;
-    const signedIn = !!(window.Auth?.getSession?.()?.user);
+    // Auth is a top-level `const` in auth.js — classic-script semantics
+    // mean it's accessible as a bare name (Auth) from other scripts but
+    // NOT as window.Auth. Don't use window.Auth here; it's always
+    // undefined and signedIn ends up always false.
+    const signedIn = !!(typeof Auth !== 'undefined' && Auth.getSession?.()?.user);
     const items = [
       {
         label: 'Surprise me',
         sublabel: n > 0 ? 'Random card from your current filter' : 'No cards match the current filter',
         onSelect: () => { if (n > 0) fireSurpriseMe(); },
       },
+      // Quick Add stays discoverable for signed-out users — clicking
+      // opens the auth dialog so the user knows the feature exists +
+      // can sign in to use it (DESIGN.md §6.5 / WEB-DESIGN.md §8.3
+      // pattern: auth-required only at the action point).
+      {
+        label: signedIn
+          ? (quickAddMode ? 'Quick Add: On' : 'Quick Add: Off')
+          : 'Quick Add (sign in to use)',
+        sublabel: signedIn
+          ? (quickAddMode
+              ? 'Tapping a card adds it to your Collection'
+              : 'Tap to add cards straight to your Collection')
+          : 'Sign in to add cards to your Collection with a single tap',
+        onSelect: () => {
+          if (signedIn) setQuickAddMode(!quickAddMode);
+          else Auth?.open?.();
+        },
+      },
+      {
+        label: selectionMode ? 'Cancel selection' : 'Select cards',
+        sublabel: selectionMode
+          ? 'Exit multi-select mode'
+          : 'Tap multiple cards (or shift-click / drag) to act on them',
+        onSelect: () => { selectionMode ? exitSelectionMode() : enterSelectionMode(); },
+      },
     ];
-    if (signedIn) {
-      items.push({
-        label: quickAddMode ? 'Quick Add: On' : 'Quick Add: Off',
-        sublabel: quickAddMode
-          ? 'Tapping a card adds it to your Collection'
-          : 'Tap to add cards straight to your Collection',
-        onSelect: () => setQuickAddMode(!quickAddMode),
-      });
-    }
-    items.push({
-      label: selectionMode ? 'Cancel selection' : 'Select cards',
-      sublabel: selectionMode
-        ? 'Exit multi-select mode'
-        : 'Tap multiple cards (or shift-click / drag) to act on them',
-      onSelect: () => { selectionMode ? exitSelectionMode() : enterSelectionMode(); },
-    });
     window.bobaShowPopoverMenu({ anchor: findOverflowBtn, items });
   });
   // Tick 273 — keyboard shortcut. Lowercase `r` when no input is
@@ -2994,8 +3009,9 @@
     quickAddMode = !!on;
   }
 
-  /// Quick Add writes to Supabase, so it's hidden in the overflow
-  /// menu for signed-out users. The menu reads window.Auth.getSession
+  /// Quick Add writes to Supabase. The overflow-menu item shows for
+  /// all users; signed-out clicks open the auth dialog. The menu reads
+  /// Auth.getSession (bare name — Auth is a classic-script const, not
   /// at open-time; this hook just forces the flag back off on sign-out
   /// so a stale "on" doesn't survive across sessions.
   function updateQuickAddVisibility(isSignedIn) {

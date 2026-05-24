@@ -491,24 +491,16 @@ const Collection = (() => {
       });
     });
 
-    // Open detail on card item click (not on delete button)
-    view.querySelectorAll('[data-detail-num]').forEach(item => {
-      item.addEventListener('click', e => {
-        if (e.target.closest('[data-delete-id]')) return;
-        openCollectionDetail(item.dataset.detailNum);
-      });
-      item.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          openCollectionDetail(item.dataset.detailNum);
-        }
-      });
-    });
-
-    view.querySelectorAll('[data-delete-id]').forEach(btn => {
-      btn.addEventListener('click', async e => {
+    // Event delegation on the card list — survives pagination. Previously
+    // each card was bound individually at initial render, so the 60+
+    // cards appended by the IntersectionObserver paginator had no
+    // listener and were silently dead to clicks/keyboard.
+    const listEl2 = view.querySelector('#collection-card-list');
+    listEl2?.addEventListener('click', async (e) => {
+      const delBtn = e.target.closest('[data-delete-id]');
+      if (delBtn) {
         e.stopPropagation();
-        const id = btn.dataset.deleteId;
+        const id = delBtn.dataset.deleteId;
         if (!confirm('Remove this card from your collection?')) return;
         try {
           await API.collectionDelete(id);
@@ -518,7 +510,17 @@ const Collection = (() => {
         } catch (err) {
           alert('Could not remove card: ' + err.message);
         }
-      });
+        return;
+      }
+      const item = e.target.closest('[data-detail-num]');
+      if (item) openCollectionDetail(item.dataset.detailNum);
+    });
+    listEl2?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const item = e.target.closest('[data-detail-num]');
+      if (!item) return;
+      e.preventDefault();
+      openCollectionDetail(item.dataset.detailNum);
     });
   }
 
@@ -813,22 +815,71 @@ const Collection = (() => {
     // (Background + title paint moved into drawWall below so toggling
     // the overlay re-renders the whole canvas consistently.)
 
-    // Load every image in parallel. crossOrigin = 'anonymous' so the
-    // canvas stays untainted and toBlob / toDataURL work afterward.
+    // Image loader for the wall.
+    //
+    // Three lessons from the post-scroll empty-cell bug:
+    //
+    //   (a) crossOrigin='anonymous' fetches use a DIFFERENT browser
+    //       cache key than the no-crossOrigin <img> tags in the
+    //       Collection grid. Even though the grid just loaded these
+    //       URLs, the wall's CORS requests are all fresh fetches.
+    //       Switching to the THUMB URL keeps payload tiny (~10KB
+    //       vs ~80KB) so a burst is manageable even when the
+    //       browser's connection pool is already busy with lingering
+    //       lazy-loaded thumbs from a scrolled Collection grid. At
+    //       the 124-168px cell sizes the wall produces, the 200px
+    //       thumb is visually identical to the 1200px full anyway.
+    //
+    //   (b) Promise.all over 200 requests in one shot saturates the
+    //       HTTP/2 pool to R2; many requests time out / get cancelled
+    //       and silently render as blank cells. A small concurrency
+    //       limit (8) trades a few seconds of wait for actual success.
+    //
+    //   (c) Single retry on error catches transient cancellations
+    //       (R2/Cloudflare occasionally drops one in a burst). After
+    //       the second failure we resolve(null) and let drawWall
+    //       skip the cell, then surface the failure count to the user.
     let loaded = 0;
     const loadImage = (card) => new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        loaded++;
-        loadText.textContent = `Loaded ${loaded}/${resolved.length}…`;
-        resolve(img);
+      const tryLoad = (attempt) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          loaded++;
+          loadText.textContent = `Loaded ${loaded}/${resolved.length}…`;
+          resolve(img);
+        };
+        img.onerror = () => {
+          if (attempt === 0) {
+            // 400ms backoff, then retry once.
+            setTimeout(() => tryLoad(1), 400);
+          } else {
+            loaded++;
+            loadText.textContent = `Loaded ${loaded}/${resolved.length}…`;
+            resolve(null);
+          }
+        };
+        // Prefer the thumb (cache-warm, tiny). Fall back to the
+        // full only if the catalog lacks a thumb URL for this card.
+        img.src = API.cardThumbUrl(card) || API.cardFullUrl(card) || '';
       };
-      img.onerror = () => { loaded++; resolve(null); };
-      img.src = API.cardFullUrl(card) || '';
+      tryLoad(0);
     });
 
-    const images = await Promise.all(resolved.map(loadImage));
+    // Concurrency-limited loader. 8 workers pull from a shared index;
+    // results land at the right slot so draw order stays stable.
+    const WALL_CONCURRENCY = 8;
+    const images = new Array(resolved.length);
+    let nextIdx = 0;
+    const worker = async () => {
+      while (true) {
+        const idx = nextIdx++;
+        if (idx >= resolved.length) return;
+        images[idx] = await loadImage(resolved[idx]);
+      }
+    };
+    await Promise.all(Array.from({ length: WALL_CONCURRENCY }, worker));
+    const failedCount = images.reduce((n, img) => n + (img ? 0 : 1), 0);
 
     // Local render function — invoked initially and re-invoked when
     // the user toggles price overlay or changes price source.
@@ -930,6 +981,16 @@ const Collection = (() => {
     dlBtn.disabled = false;
     cpBtn.disabled = false;
     shBtn.disabled = false;
+
+    // Surface any image-load failures so the user understands why
+    // some cells are blank. Piggybacks the truncation-note slot so
+    // we don't add a new DOM element; messages are mutually exclusive
+    // (a wall is either truncated by the hard cap OR has some
+    // missing-image cells, not usually both).
+    if (failedCount > 0 && truncNote && truncNote.hidden) {
+      truncNote.textContent = `${failedCount} of ${resolved.length} card image${failedCount === 1 ? '' : 's'} failed to load. Close and re-open Wall to try again — this usually clears the next attempt.`;
+      truncNote.hidden = false;
+    }
 
     // Wire actions (clean any prior listeners by cloning).
     const reset = (btn) => {

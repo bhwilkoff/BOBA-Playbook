@@ -44,6 +44,7 @@ import unicodedata
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 CDN_BASE_DEFAULT = "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev"
 
@@ -347,7 +348,12 @@ def reconcile(catalog: list[dict], ocr_results: list[dict],
                 "power": ocr["power"],
                 "serial": ocr["serial"],
             },
-            "image_url": f"{cdn_base}/full/{card['imageFile']}",
+            # Percent-encode the imageFile so non-ASCII chars
+            # (Éric, Curaçao, Adrián, Martínez, etc.) become valid R2
+            # URLs. The fetcher script hits this same problem and
+            # skips those cards; the browser is stricter about URL
+            # encoding than the Python urllib.
+            "image_url": f"{cdn_base}/full/{quote(card['imageFile'], safe='._-')}",
         }
         if bucket == "CONFIRMS":
             confirms.append(entry)
@@ -431,6 +437,7 @@ def build_patch(updates: list[dict], all_rows: list[dict] | None = None) -> dict
         additions.append({
             "old_bobaId": u["bobaId"],
             "additions": {"printedSerial": serial},
+            "image_url": u.get("image_url"),  # so the review HTML can show the card
             "evidence": {
                 "printedSerial": {
                     "ocr_value": serial,
@@ -798,9 +805,12 @@ def build_review_html(review: list[dict], updates: list[dict],
     div.dataset.boba = e.old_bobaId;
     const ev = e.evidence.printedSerial;
     const val = e.additions.printedSerial;
-    const cardImageUrl = (PAYLOAD.updates.concat(PAYLOAD.review).find(r => r.bobaId === e.old_bobaId) || {}).image_url
-      || `https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/${e.old_bobaId.split('-')[0]}`;
-    // Best-effort image URL; user can also see it once additions are merged.
+    // Python embedded the image_url for every IK card alongside the
+    // serial extraction. Fall back to the catalog map only if missing
+    // (older patch.json schemas).
+    const cardImageUrl = e.image_url
+      || (PAYLOAD.updates.concat(PAYLOAD.review).find(r => r.bobaId === e.old_bobaId) || {}).image_url
+      || '';
     const conflict = ev.rule_conflict;
     const noteStyle = conflict ? 'color:#FFC107' : 'color:#888';
     const note = conflict

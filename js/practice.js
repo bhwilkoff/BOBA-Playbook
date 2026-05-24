@@ -1298,6 +1298,7 @@ function initDeckBuilder(allCards) {
     DB.clear();
     DB.format = 'playmaker';  // back to default (DB.clear() doesn't reset format)
     DB_savedId = null;
+    _writeDeckURL();
     const nameEl = $('db-deck-name');
     if (nameEl) nameEl.value = DB.deckName;
     // Manage Decks panel could be visible with the prior user's list —
@@ -1384,6 +1385,7 @@ function initDeckBuilder(allCards) {
     if (btn) { btn.disabled = true; }
     try {
       DB_savedId = await API.deckSave(DB_savedId, deckName, DB.format, cards);
+      _writeDeckURL();  // capture the newly-assigned id in the URL
       if (btn) { btn.style.color = '#4CAF50'; setTimeout(() => { btn.style.color = ''; }, 2000); }
       if (banner) {
         banner.textContent = `Saved "${deckName}".`;
@@ -1411,6 +1413,78 @@ function initDeckBuilder(allCards) {
 
   // Fetch + render the saved-decks list. Extracted from the Load
   // button's click handler so the Refresh button can call it
+  // Extracted load — reusable from both the Manage Decks Load button
+  // click handler AND the URL restore path (window.DeckBuilder
+  // .applyURLState below). DB_savedId update + URL write happens here
+  // so both entry points stay in lockstep.
+  async function _loadSavedDeckIntoEditor(deckId, deckName, deckFormat, opts = {}) {
+    if (!deckId) return;
+    try {
+      const rows = await API.deckLoad(deckId);
+      DB.clear();
+      DB.deckName = deckName || 'Deck';
+      DB.format   = deckFormat || DB.format;
+      const nameEl = $('db-deck-name');
+      if (nameEl) nameEl.value = DB.deckName;
+      document.querySelectorAll('#view-decks .db-format-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.format === DB.format);
+      });
+      const byBobaId = {};
+      for (const c of allCards || []) { if (c.bobaId) byBobaId[c.bobaId] = c; }
+      for (const row of rows) {
+        const card = byBobaId[row.boba_id];
+        if (!card) continue;
+        if (row.card_type === 'hero')            DB.heroes.push(card);
+        else if (row.card_type === 'play')       DB.plays.push(card);
+        else if (row.card_type === 'bonus_play') DB.bonusPlays.push(card);
+        else if (row.card_type === 'hot_dog')    DB.hotDogs.push(card);
+      }
+      DB_savedId = deckId;
+      if (allCards) dbRender(allCards);
+      const panel = $('db-saved-decks-panel');
+      if (panel) panel.hidden = true;
+      if (!opts.fromHistory) _writeDeckURL();
+    } catch (err) {
+      console.error('Deck load failed:', err);
+      if (!opts.fromHistory) alert('Could not load deck.');
+    }
+  }
+
+  function _writeDeckURL() {
+    if (typeof history === 'undefined') return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', 'decks');
+    if (DB_savedId) url.searchParams.set('deck', DB_savedId);
+    else url.searchParams.delete('deck');
+    try {
+      history.replaceState(
+        { ...(history.state || {}), view: 'decks' },
+        '',
+        url.pathname + url.search,
+      );
+    } catch (_) { /* noop */ }
+  }
+
+  // Expose to app.js popstate dispatcher + initial-load. ?view=decks
+  // &deck={id} restores the saved deck into the editor.
+  window.DeckBuilder = window.DeckBuilder || {};
+  window.DeckBuilder.applyURLState = async (params) => {
+    const deckId = params.get('deck');
+    if (!deckId) return;
+    if (DB_savedId === deckId) return;  // already loaded, no-op
+    // Need the deck's name + format for the editor header. Fetch the
+    // list (cheap; user's saved-deck count is bounded). If the deck
+    // isn't in the user's list (signed out / not their deck), no-op.
+    try {
+      const list = await API.deckList();
+      const deck = list.find(d => d.id === deckId);
+      if (!deck) return;
+      await _loadSavedDeckIntoEditor(deck.id, deck.name, deck.format, { fromHistory: true });
+    } catch (e) {
+      console.warn('Decks URL restore failed:', e);
+    }
+  };
+
   // independently without re-toggling the panel visibility.
   async function refreshSavedDecksList() {
     const list = $('db-saved-decks-list');
@@ -1542,37 +1616,11 @@ function initDeckBuilder(allCards) {
     }
 
     if (loadBtn) {
-      const deckId = loadBtn.dataset.deckId;
-      const deckName = loadBtn.dataset.deckName;
-      const deckFormat = loadBtn.dataset.deckFormat;
-      try {
-        const rows = await API.deckLoad(deckId);
-        DB.clear();
-        DB.deckName = deckName;
-        DB.format   = deckFormat;
-        const nameEl = $('db-deck-name');
-        if (nameEl) nameEl.value = deckName;
-        // Set format button
-        document.querySelectorAll('#view-decks .db-format-btn').forEach(b => {
-          b.classList.toggle('active', b.dataset.format === deckFormat);
-        });
-        const byBobaId = {};
-        for (const c of allCards) { if (c.bobaId) byBobaId[c.bobaId] = c; }
-        for (const row of rows) {
-          const card = byBobaId[row.boba_id];
-          if (!card) continue;
-          if (row.card_type === 'hero')       DB.heroes.push(card);
-          else if (row.card_type === 'play')  DB.plays.push(card);
-          else if (row.card_type === 'bonus_play') DB.bonusPlays.push(card);
-          else if (row.card_type === 'hot_dog')    DB.hotDogs.push(card);
-        }
-        DB_savedId = deckId;
-        dbRender(allCards);
-        $('db-saved-decks-panel').hidden = true;
-      } catch (err) {
-        console.error('Deck load failed:', err);
-        alert('Could not load deck.');
-      }
+      await _loadSavedDeckIntoEditor(
+        loadBtn.dataset.deckId,
+        loadBtn.dataset.deckName,
+        loadBtn.dataset.deckFormat,
+      );
     }
 
     if (delBtn) {
@@ -1581,7 +1629,7 @@ function initDeckBuilder(allCards) {
       try {
         await API.deckDelete(deckId);
         delBtn.closest('.db-saved-deck-row')?.remove();
-        if (DB_savedId === deckId) DB_savedId = null;
+        if (DB_savedId === deckId) { DB_savedId = null; _writeDeckURL(); }
         const list = $('db-saved-decks-list');
         if (list && !list.querySelector('.db-saved-deck-row')) {
           list.innerHTML = '<div class="db-saved-decks-empty">No saved decks yet.</div>';

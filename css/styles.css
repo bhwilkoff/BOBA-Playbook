@@ -1508,6 +1508,21 @@ body[data-find-density="l"] #view-search .card-grid { grid-template-columns: rep
   .format-legality-hint { display: none; }
 }
 
+/* Hide print-run + format-legality pills in Collection + Decks card
+   grids — Ben's feedback (iOS + Android also stopped passing these
+   in the same change). Pills stay on Find (browsing surface) + Card
+   Detail "Other Versions" (variant disambiguation). Scope is the
+   view container so the pills inside #cdetail-overlay's "Other
+   Versions" list (which is a descendant of #view-collection) stay
+   visible — that's `.version-print-run` / `.version-format-hint`,
+   different classes from the per-cell ones below. */
+#view-collection .print-run-cell-badge,
+#view-collection .format-legality-hint,
+#view-decks .print-run-cell-badge,
+#view-decks .format-legality-hint {
+  display: none;
+}
+
 /* Treatment ribbon colors */
 .tf-colosseum    .card-treatment-ribbon { background: linear-gradient(90deg,#5C1A00,#A0522D); color: #FFD5B0; }
 .tf-battlefoil   .card-treatment-ribbon { background: linear-gradient(90deg,#8B6914,#C9A227); color: #000; }

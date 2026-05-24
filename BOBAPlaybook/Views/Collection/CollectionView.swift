@@ -1400,7 +1400,13 @@ struct CollectionView: View {
         }()
 
         if let card = catalog {
-            BOBACardGridItem(card: card, columnCount: gridColumns)
+            // showCornerBadges: false — Ben's feedback: print-run + format-
+            // legality pills cluttered Collection cells and were often wrong
+            // (data lives downstream of `power` + `isInspiredInk` + `element`,
+            // all of which have known accuracy holes per COWORK.md §2). The
+            // pills remain on Find (browsing surface) + Card Detail Other
+            // Versions (variant disambiguation).
+            BOBACardGridItem(card: card, columnCount: gridColumns, showCornerBadges: false)
                 .overlay(alignment: .topTrailing) {
                     if allDesignations.count > 1 {
                         HStack(spacing: 2) {

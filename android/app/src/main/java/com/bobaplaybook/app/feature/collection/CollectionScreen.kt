@@ -788,12 +788,16 @@ private fun CollectionGrid(
             key = { it.userCard.id },
         ) { entry ->
             Box(modifier = Modifier.fillMaxWidth()) {
+                // printRunLabel + formatLegalityHint intentionally omitted —
+                // per Ben's feedback, the pills cluttered Collection cells
+                // and were often wrong (data feeding them has known holes:
+                // see COWORK.md §2 on power misalignment, no validation
+                // on isInspiredInk). The pills remain on Find + Card Detail
+                // Other Versions where variant disambiguation matters.
                 BOBACardCell(
                     imageFile = entry.card.imageFile,
                     isSealed = entry.card.isSealed,
                     contentDescription = entry.card.displayName,
-                    printRunLabel = entry.card.printRunLabel,
-                    formatLegalityHint = CardFormatEligibility.restrictedLegalAbbrev(entry.card),
                     modifier = Modifier
                         .cardSharedBounds(entry.card.bobaId)
                         .clickable { onCardClick(entry.card.bobaId) },

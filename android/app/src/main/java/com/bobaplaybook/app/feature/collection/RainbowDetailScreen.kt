@@ -273,12 +273,13 @@ fun RainbowDetailScreen(
 @Composable
 private fun RainbowTile(card: Card, owned: Boolean, onClick: () -> Unit) {
     Box(modifier = Modifier.fillMaxWidth()) {
+        // Pills omitted — same Collection-cleanup rationale as in
+        // CollectionScreen. The owned-checkmark below + card art carry
+        // the useful signal.
         BOBACardCell(
             imageFile = card.imageFile,
             isSealed = card.isSealed,
             contentDescription = card.displayName,
-            printRunLabel = card.printRunLabel,
-            formatLegalityHint = CardFormatEligibility.restrictedLegalAbbrev(card),
             modifier = Modifier.clickable(onClick = onClick),
         )
         if (!owned) {

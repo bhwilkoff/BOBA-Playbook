@@ -741,7 +741,11 @@ struct DecksView: View {
                     spacing: Design.Spacing.md
                 ) {
                     ForEach(Array(filtered.prefix(200).enumerated()), id: \.element.id) { idx, card in
-                        BOBACardGridItem(card: card, columnCount: gridColumns)
+                        // showCornerBadges: false — Decks browser cells stay clean;
+                        // the print-run + format-legality pills don't change a
+                        // deckbuilding decision and the data behind them has known
+                        // accuracy holes. Card Detail's stat grid still shows them.
+                        BOBACardGridItem(card: card, columnCount: gridColumns, showCornerBadges: false)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 poolNavigationPath.append(card)

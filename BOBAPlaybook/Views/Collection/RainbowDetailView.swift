@@ -298,12 +298,13 @@ struct RainbowDetailView: View {
                             .stroke(Design.Colors.textMuted.opacity(0.3), lineWidth: 1)
                     }
                 }
-                // Tick 477 — print-run + format-legality badges on Rainbow
-                // tiles. Uses .topLeading for print-run because topTrailing
-                // is occupied by the owned-checkmark below; shared
-                // cardThumbBadges helper handles the format-legality
-                // (bottom-leading) overlay.
-                .cardThumbBadges(for: card, printRunAlignment: .topLeading)
+                // Print-run + format-legality badges were here; removed per
+                // Ben's feedback that the pills cluttered the Rainbow grid
+                // and were often wrong (data feeding `printRunLabel` +
+                // `restrictedLegalAbbrev` has known accuracy holes — power
+                // misalignment in COWORK.md §2 + no isInspiredInk validation).
+                // The owned-checkmark below + the card art itself carry the
+                // useful signal.
                 .overlay(alignment: .topTrailing) {
                     if isOwned {
                         Image(systemName: "checkmark.seal.fill")

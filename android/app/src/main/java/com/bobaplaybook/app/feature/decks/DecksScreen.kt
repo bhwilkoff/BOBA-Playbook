@@ -616,12 +616,14 @@ private fun CardPoolGrid(
                         },
                     ),
             ) {
+                // Pills omitted in the deck-browser grid — they don't drive
+                // a deckbuilding decision and the data behind them has known
+                // accuracy holes. Card Detail's stat grid still surfaces
+                // the canonical info.
                 BOBACardCell(
                     imageFile = card.imageFile,
                     isSealed = card.isSealed,
                     contentDescription = card.displayName,
-                    printRunLabel = card.printRunLabel,
-                    formatLegalityHint = CardFormatEligibility.restrictedLegalAbbrev(card),
                 )
                 // Tick 161 — iOS DeckBuilderView parity. Cards already in
                 // the draft get a cyan border + checkmark badge so coaches

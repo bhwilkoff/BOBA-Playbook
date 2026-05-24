@@ -714,35 +714,46 @@
     const params = new URLSearchParams(window.location.search);
     const urlView = params.get('view') || 'search';
 
-    // Always restore filter state from URL on any navigation.
+    // Always restore Find filter state from URL — harmless on other
+    // views (the form fields aren't visible) and keeps the Find tab
+    // ready if the user navigates back to it.
     if (displayCards.length) {
       applyURLParams(params);
       applyFilters(true); // skipURLSync — URL is already the target
     }
 
-    if (params.has('card')) {
-      // Restore card modal — find by cardNumber + hero.
+    // Per-view restore. The card param is context-aware:
+    // ?view=search&card= opens the Find modal; ?view=collection&card=
+    // opens the Collection detail overlay.
+    if (urlView === 'search' && params.has('card')) {
       if (urlView !== currentView) currentView = urlView;
       const card = cardFromURLParams(params);
       if (card) openModal(card, -1, true);
-    } else {
-      // No card in URL — close modal if open and show the right view.
-      // Native <dialog>.open is the source of truth; .hidden is no
-      // longer set when using showModal/close.
-      const modalOpen = modalOverlay.open ?? !modalOverlay.hidden;
-      if (modalOpen) {
-        cleanupZoom();
-        if (typeof modalOverlay.close === 'function' && modalOverlay.open) {
-          modalOverlay.close();
-        } else {
-          modalOverlay.hidden = true;
-          document.body.style.overflow = '';
-        }
-        modalNavPrev.hidden = true;
-        modalNavNext.hidden = true;
-        currentModalIndex = -1;
+      return;
+    }
+
+    // Any other view — make sure the Find modal is closed before
+    // switching, then route to the per-view URL restore handler.
+    const modalOpen = modalOverlay.open ?? !modalOverlay.hidden;
+    if (modalOpen) {
+      cleanupZoom();
+      if (typeof modalOverlay.close === 'function' && modalOverlay.open) {
+        modalOverlay.close();
+      } else {
+        modalOverlay.hidden = true;
+        document.body.style.overflow = '';
       }
-      showView(urlView, true);
+      modalNavPrev.hidden = true;
+      modalNavNext.hidden = true;
+      currentModalIndex = -1;
+    }
+    showView(urlView, true);
+    if (urlView === 'collection') {
+      window.Collection?.applyURLState?.(params);
+    } else if (urlView === 'rules') {
+      window.Learn?.applyURLState?.(params);
+    } else if (urlView === 'decks') {
+      window.DeckBuilder?.applyURLState?.(params);
     }
   });
 
@@ -760,45 +771,80 @@
     // pill, at which point we lazy-load the YouTube feed.
     const learnModeBtns   = document.querySelectorAll('.learn-mode-btn');
     const learnModePanels = document.querySelectorAll('.learn-mode-panel');
-    learnModeBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const target = btn.dataset.mode;
-        learnModeBtns.forEach(b => {
-          b.classList.toggle('active', b.dataset.mode === target);
-          b.setAttribute('aria-selected', String(b.dataset.mode === target));
-        });
-        learnModePanels.forEach(p => {
-          p.hidden = p.id !== `learn-panel-${target}`;
-        });
-        if (target === 'watch' && window.Watch) {
-          window.Watch.show();
-        }
+    const _activateLearnMode = (target, opts = {}) => {
+      learnModeBtns.forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === target);
+        b.setAttribute('aria-selected', String(b.dataset.mode === target));
       });
+      learnModePanels.forEach(p => {
+        p.hidden = p.id !== `learn-panel-${target}`;
+      });
+      if (target === 'watch' && window.Watch) {
+        window.Watch.show();
+      }
+      if (!opts.fromHistory) _writeLearnURL();
+    };
+    learnModeBtns.forEach(btn => {
+      btn.addEventListener('click', () => _activateLearnMode(btn.dataset.mode));
     });
 
     // Top-level tab pills: Rules ↔ Strategy
     const tabs   = document.querySelectorAll('.play-tab');
     const panels = document.querySelectorAll('.play-panel');
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        const target = tab.dataset.tab;
-        tabs.forEach(t => {
-          t.classList.toggle('active', t.dataset.tab === target);
-          t.setAttribute('aria-selected', String(t.dataset.tab === target));
-        });
-        panels.forEach(p => {
-          p.hidden = p.id !== `play-panel-${target}`;
-        });
-        // Tick 193 — Discord backlog #8: hydrate the Upcoming Events
-        // list when the tab first activates. Cheap one-shot fetch of
-        // assets/data/events.json; renders inline.
-        if (target === 'tournament') {
-          hydrateTournamentEvents();
-          hydrateRecentBlogPosts();
-        }
+    const _activateLearnTab = (target, opts = {}) => {
+      tabs.forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === target);
+        t.setAttribute('aria-selected', String(t.dataset.tab === target));
       });
+      panels.forEach(p => {
+        p.hidden = p.id !== `play-panel-${target}`;
+      });
+      if (target === 'tournament') {
+        hydrateTournamentEvents();
+        hydrateRecentBlogPosts();
+      }
+      if (!opts.fromHistory) _writeLearnURL();
+    };
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => _activateLearnTab(tab.dataset.tab));
     });
+
+    // Expose Learn URL sync to the popstate dispatcher. Mode + tab
+    // survive refresh / share / back-forward.
+    window.Learn = window.Learn || {};
+    window.Learn.applyURLState = (params) => {
+      const mode = params.get('mode');
+      if (mode === 'read' || mode === 'watch') {
+        _activateLearnMode(mode, { fromHistory: true });
+      }
+      const tab = params.get('tab');
+      const validTabs = ['rules', 'strategy', 'browse', 'collect', 'glossary', 'tournament'];
+      if (tab && validTabs.includes(tab)) {
+        _activateLearnTab(tab, { fromHistory: true });
+      }
+    };
+
+    function _writeLearnURL() {
+      if (typeof history === 'undefined') return;
+      const url = new URL(window.location.href);
+      // The Learn view's internal id is 'rules' (legacy from when the
+      // section was named after its first sub-tab). The URL key matches
+      // the showView id so back/forward + deep links route correctly.
+      url.searchParams.set('view', 'rules');
+      const activeMode = document.querySelector('.learn-mode-btn.active')?.dataset.mode;
+      const activeTab  = document.querySelector('.play-tab.active')?.dataset.tab;
+      if (activeMode && activeMode !== 'read') url.searchParams.set('mode', activeMode);
+      else url.searchParams.delete('mode');
+      if (activeTab && activeTab !== 'rules') url.searchParams.set('tab', activeTab);
+      else url.searchParams.delete('tab');
+      try {
+        history.replaceState(
+          { ...(history.state || {}), view: 'rules' },
+          '',
+          url.pathname + url.search,
+        );
+      } catch (_) { /* noop */ }
+    }
 
     // Tick 238 — Recent BoBA news on Tournament tab. Daily-refreshed
     // feed; re-fetches on every tab activate (cache: 'no-cache' so a
@@ -5096,6 +5142,24 @@
       const handle = String(params.get('u') || '').toLowerCase();
       showView('public-collection', true);
       renderPublicCollection(handle);
+    }
+
+    // Per-view URL restore on initial load. Find's filter + ?card=
+    // path is handled above; Collection / Learn / Decks each expose
+    // an applyURLState handler that reads its own params (tab, q,
+    // sort, card, mode, deck) and updates the view to match. Mirrors
+    // the popstate dispatcher so deep-links and back/forward share
+    // one restore path.
+    const urlViewForRestore = params.get('view');
+    if (urlViewForRestore === 'collection') {
+      window.Collection?.applyURLState?.(params);
+    } else if (urlViewForRestore === 'rules') {
+      // Learn's read-mode panel + sub-tab init runs from initPlayView
+      // (called when the view first becomes visible). Defer the URL
+      // restore one tick so the buttons exist in the DOM.
+      setTimeout(() => window.Learn?.applyURLState?.(params), 0);
+    } else if (urlViewForRestore === 'decks') {
+      window.DeckBuilder?.applyURLState?.(params);
     }
   }
 

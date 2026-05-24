@@ -349,6 +349,7 @@ const Collection = (() => {
     view.querySelectorAll('.desig-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         _activeTab = tab.dataset.tab;
+        _writeURL();
         renderCollectionView();
       });
     });
@@ -380,6 +381,7 @@ const Collection = (() => {
         _collectionSearchTimer = setTimeout(() => {
           if (next === _collectionSearchText) return;
           _collectionSearchText = next;
+          _writeURL();
           // Mark this input as the focus target so the next render
           // restores focus. Doesn't actually change the ID; just a
           // marker the re-render can read.
@@ -404,6 +406,7 @@ const Collection = (() => {
         clearTimeout(_collectionSearchTimer);
         if (_collectionSearchText) {
           _collectionSearchText = '';
+          _writeURL();
           renderCollectionView();
           // After re-render, refocus the new input element by id.
           document.getElementById('collection-search')?.focus();
@@ -1513,6 +1516,7 @@ const Collection = (() => {
   function setCollectionSort(value) {
     _collectionSort = value;
     try { localStorage.setItem('bp_collectionSort_v1', value); } catch (_) { /* noop */ }
+    _writeURL();
     renderCollectionView();
   }
 
@@ -3034,7 +3038,7 @@ const Collection = (() => {
      COLLECTION CARD DETAIL OVERLAY
   ================================================================ */
 
-  function openCollectionDetail(cardNumber) {
+  function openCollectionDetail(cardNumber, opts = {}) {
     _detailNum   = String(cardNumber);
     _detailState = 'view';
     _editEntry   = null;
@@ -3043,13 +3047,29 @@ const Collection = (() => {
     overlay.hidden = false;
     document.body.style.overflow = 'hidden';
     overlay.addEventListener('click', _onDetailOverlayClick);
+    // Modal-as-route: pushState so the browser Back button closes
+    // the detail and the URL captures the open card. fromHistory=true
+    // when the open is itself driven by popstate / initial-load, in
+    // which case the URL is already correct.
+    if (!opts.fromHistory && typeof history !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', 'collection');
+      url.searchParams.set('card', _detailNum);
+      try {
+        history.pushState(
+          { view: 'collection', cardOpen: true },
+          '',
+          url.pathname + url.search,
+        );
+      } catch (_) { /* noop */ }
+    }
   }
 
   function _onDetailOverlayClick(e) {
     if (e.target === document.getElementById('cdetail-overlay')) closeCollectionDetail();
   }
 
-  function closeCollectionDetail() {
+  function closeCollectionDetail(opts = {}) {
     const overlay = document.getElementById('cdetail-overlay');
     overlay.hidden = true;
     overlay.removeEventListener('click', _onDetailOverlayClick);
@@ -3057,6 +3077,17 @@ const Collection = (() => {
     _detailNum   = null;
     _detailState = 'view';
     _editEntry   = null;
+    // If the open was tracked via pushState, prefer history.back() so
+    // the URL pops naturally + the action mirrors the Back button.
+    // Otherwise (programmatic close after delete / fromHistory close
+    // via popstate) just clean up the URL with replaceState.
+    if (opts.fromHistory) return;
+    if (typeof history === 'undefined') return;
+    if (history.state?.cardOpen) {
+      try { history.back(); } catch (_) { _writeURL(); }
+    } else {
+      _writeURL();
+    }
   }
 
   function renderCollectionDetail() {
@@ -3988,14 +4019,65 @@ const Collection = (() => {
     );
   }
 
+  /// Write the current Collection state (tab + search + sort + open
+  /// card) into the URL via replaceState. Called from every state-
+  /// mutation point so refresh / share-link / back-forward all carry
+  /// the actual view the user is looking at. Called frequently — uses
+  /// replaceState so we don't spam history entries; the only pushState
+  /// is from openCollectionDetail (modal-as-route convention).
+  function _writeURL() {
+    if (typeof history === 'undefined') return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', 'collection');
+    if (_activeTab && _activeTab !== 'personal') url.searchParams.set('tab', _activeTab);
+    else url.searchParams.delete('tab');
+    if (_collectionSearchText) url.searchParams.set('q', _collectionSearchText);
+    else url.searchParams.delete('q');
+    if (_collectionSort && _collectionSort !== 'added_desc') url.searchParams.set('sort', _collectionSort);
+    else url.searchParams.delete('sort');
+    if (_detailNum) url.searchParams.set('card', _detailNum);
+    else url.searchParams.delete('card');
+    try {
+      history.replaceState(
+        { ...(history.state || {}), view: 'collection' },
+        '',
+        url.pathname + url.search,
+      );
+    } catch (_) { /* noop — sandbox / Safari edge cases */ }
+  }
+
+  /// Read URL params and restore Collection state. Called by app.js's
+  /// popstate dispatcher when ?view=collection. Sets internal vars
+  /// first, re-renders, then opens the card detail if ?card= is set
+  /// (with fromHistory=true so the open path doesn't re-pushState).
+  function applyURLState(params) {
+    const tab = params.get('tab');
+    if (tab && DESIGNATIONS.some(d => d.key === tab)) _activeTab = tab;
+    else _activeTab = 'personal';
+    _collectionSearchText = (params.get('q') || '').toLowerCase();
+    const sort = params.get('sort');
+    if (sort) _collectionSort = sort;
+    renderCollectionView();
+    const card = params.get('card');
+    if (card) {
+      openCollectionDetail(card, { fromHistory: true });
+    } else if (_detailNum) {
+      // URL no longer has ?card= — close any open detail.
+      closeCollectionDetail({ fromHistory: true });
+    }
+  }
+
   return {
     init,
     load,
     openAddSheet,
     openCardsWallSheet,
     openDeckWallSheet,
+    openCollectionDetail,
+    closeCollectionDetail,
     quickAdd,
     entriesForCard,
+    applyURLState,
     setCardLookup:    fn => { _cardLookup    = fn; },
     setBobaIdLookup:  fn => { _bobaIdLookup  = fn; },
     setVariantLookup: fn => { _variantLookup = fn; },

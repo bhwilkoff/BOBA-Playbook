@@ -851,6 +851,15 @@ main {
 }
 .quick-add-icon { font-size: 0.78rem; }
 
+/* Find-toolbar three-dot overflow — icon-only pill. Houses discovery
+   actions (Surprise me) that don't earn primary toolbar real estate.
+   Square-ish padding so the SVG sits centered without text spacing. */
+.find-overflow-btn {
+  padding: 4px 8px;
+  margin-left: 0;
+}
+.find-overflow-btn svg { display: block; }
+
 /* Tick 328 — flash animation on the Surprise pill when the keyboard
    shortcut fires. Visual cue that the shortcut was the trigger
    (not the modal opening on its own). Honors reduced-motion. */
@@ -1270,14 +1279,6 @@ body[data-find-density="l"] #view-search .card-grid { grid-template-columns: rep
   -webkit-touch-callout: none;
 }
 .card-grid img { -webkit-user-drag: none; user-drag: none; }
-
-/* "Select" pill — cyan accent when active so it reads distinctly
-   from the orange Quick Add pill (different verbs, different states). */
-.multiselect-toggle.active {
-  background: rgba(0,245,255,0.15) !important;
-  border-color: rgba(0,245,255,0.5) !important;
-  color: var(--boba-cyan, #00F5FF) !important;
-}
 
 .marquee-rect {
   position: fixed;

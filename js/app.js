@@ -89,11 +89,11 @@
   const searchCount     = $('search-count');
   const elementFilters   = $('element-filters');
   const showcaseFilters  = $('showcase-filters');
-  const quickAddToggle   = $('quick-add-toggle');
 
   /// Whether the Find-view "Quick Add" toggle is active. When true,
   /// tapping a grid card adds it to the user's Collection instead of
-  /// opening the modal. Gated on auth at the pill visibility layer.
+  /// opening the modal. Surfaced in the Find overflow menu for
+  /// signed-in users only.
   let quickAddMode = false;
   const setFilter       = $('set-filter');
   const treatmentFilter = $('treatment-filter');
@@ -2842,10 +2842,9 @@
     requestAnimationFrame(() => fireSurpriseMe());
   });
 
-  // Quick Add — toggle click, and auth-change listener so the pill
-  // disappears on sign-out. Auth module dispatches 'auth-change' with
-  // detail.session set when signed in.
-  quickAddToggle?.addEventListener('click', () => setQuickAddMode(!quickAddMode));
+  // Quick Add toggle is wired through the Find overflow menu below.
+  // Auth-change listener still flips quickAddMode off on sign-out so a
+  // stale "on" doesn't leak across sessions.
 
   // Surprise Me — picks a random card from the current filtered pool
   // with a 30% bias toward Inspired Ink / Superfoil / Kanjifoil. iOS
@@ -2867,8 +2866,44 @@
     const index = filteredCards.indexOf(pick);
     openModal(pick, index);
   }
-  const surpriseMeBtn = $('surprise-me-btn');
-  surpriseMeBtn?.addEventListener('click', fireSurpriseMe);
+  // Find overflow menu — three-dot button in the results bar opens a
+  // popover with secondary Find actions: Surprise me (discovery),
+  // Quick Add toggle (signed-in only), Select cards (multi-select
+  // mode). Demoted from top-level pills per Ben — keeps the results
+  // bar calm and groups affordances the way iOS toolbar Menu and
+  // Android FindOverflowMenu do. Items are rebuilt on each open so
+  // labels reflect current state (Quick Add: On/Off, Select cards /
+  // Cancel selection).
+  const findOverflowBtn = $('find-overflow-btn');
+  findOverflowBtn?.addEventListener('click', () => {
+    if (typeof window.bobaShowPopoverMenu !== 'function') return;
+    const n = filteredCards.length;
+    const signedIn = !!(window.Auth?.getSession?.()?.user);
+    const items = [
+      {
+        label: 'Surprise me',
+        sublabel: n > 0 ? 'Random card from your current filter' : 'No cards match the current filter',
+        onSelect: () => { if (n > 0) fireSurpriseMe(); },
+      },
+    ];
+    if (signedIn) {
+      items.push({
+        label: quickAddMode ? 'Quick Add: On' : 'Quick Add: Off',
+        sublabel: quickAddMode
+          ? 'Tapping a card adds it to your Collection'
+          : 'Tap to add cards straight to your Collection',
+        onSelect: () => setQuickAddMode(!quickAddMode),
+      });
+    }
+    items.push({
+      label: selectionMode ? 'Cancel selection' : 'Select cards',
+      sublabel: selectionMode
+        ? 'Exit multi-select mode'
+        : 'Tap multiple cards (or shift-click / drag) to act on them',
+      onSelect: () => { selectionMode ? exitSelectionMode() : enterSelectionMode(); },
+    });
+    window.bobaShowPopoverMenu({ anchor: findOverflowBtn, items });
+  });
   // Tick 273 — keyboard shortcut. Lowercase `r` when no input is
   // focused, no <dialog> is open, and the Find view is active.
   // Matches the iPad keyboard parity from iOS v2.311 (Cmd+Shift+R).
@@ -2885,12 +2920,10 @@
     const findView = document.getElementById('view-search');
     if (!findView || findView.hidden) return;
     e.preventDefault();
-    // Tick 328 — brief flash on the pill so keyboard users see *which*
-    // affordance fired. Without this, the only visible feedback is the
-    // card-detail modal opening, which the user might not connect back
-    // to the Surprise pill.
-    surpriseMeBtn?.classList.add('surprise-flash');
-    setTimeout(() => surpriseMeBtn?.classList.remove('surprise-flash'), 360);
+    // Brief flash on the overflow button so keyboard users see which
+    // affordance fired (the menu is the visual home for Surprise).
+    findOverflowBtn?.classList.add('surprise-flash');
+    setTimeout(() => findOverflowBtn?.classList.remove('surprise-flash'), 360);
     fireSurpriseMe();
   });
   document.addEventListener('auth-change', ({ detail }) => {
@@ -2908,28 +2941,18 @@
      QUICK ADD (Find view)
   ================================================================ */
 
-  /// Flip the toggle label + styling. Pure cosmetics — the click
-  /// branch in buildCardElement reads quickAddMode directly.
-  /// Inline SVGs for both states so the icon stays a glyph (no emoji).
-  const QUICK_ADD_EYE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
-  const QUICK_ADD_PLUS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  /// State flag only — the visible affordance lives in the overflow
+  /// menu (rebuilt on each open, so it always reflects the current
+  /// value). buildCardElement reads quickAddMode directly.
   function setQuickAddMode(on) {
     quickAddMode = !!on;
-    if (!quickAddToggle) return;
-    quickAddToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
-    quickAddToggle.classList.toggle('active', on);
-    const label = quickAddToggle.querySelector('.quick-add-label');
-    const icon  = quickAddToggle.querySelector('.quick-add-icon');
-    if (label) label.textContent = on ? 'Quick Add' : 'Tap to View';
-    if (icon)  icon.innerHTML    = on ? QUICK_ADD_PLUS_SVG : QUICK_ADD_EYE_SVG;
   }
 
-  /// Only authenticated users get the pill — Quick Add writes to
-  /// Supabase, so there's nothing useful to do signed out. Bound to
-  /// the 'auth-change' event the Auth module dispatches.
+  /// Quick Add writes to Supabase, so it's hidden in the overflow
+  /// menu for signed-out users. The menu reads window.Auth.getSession
+  /// at open-time; this hook just forces the flag back off on sign-out
+  /// so a stale "on" doesn't survive across sessions.
   function updateQuickAddVisibility(isSignedIn) {
-    if (!quickAddToggle) return;
-    quickAddToggle.hidden = !isSignedIn;
     if (!isSignedIn) setQuickAddMode(false);
   }
 
@@ -3221,24 +3244,6 @@
       return opt ? ` · ${opt.textContent}` : '';
     })();
     searchCount.textContent = `${filteredCards.length.toLocaleString()} cards${sortLabel}`;
-    // Tick 298 — Surprise pill mirrors iOS v2.317 menu label: shows
-    // the pool size so users know what Surprise is drawing from.
-    // Tick 303 — aria-label now sentence-form for screen readers
-    // ("Surprise me — 12,345 cards") + aria-disabled for SR cue.
-    const surpriseBtn = document.getElementById('surprise-me-btn');
-    if (surpriseBtn) {
-      const n = filteredCards.length;
-      surpriseBtn.textContent = n > 0
-        ? `🎲 Surprise (${n.toLocaleString()})`
-        : '🎲 Surprise';
-      surpriseBtn.disabled = n === 0;
-      surpriseBtn.setAttribute(
-        'aria-label',
-        n > 0
-          ? `Surprise me — random card from ${n.toLocaleString()} matching ${n === 1 ? 'card' : 'cards'}`
-          : 'Surprise me — no cards match the current filter',
-      );
-    }
   }
 
   /* ================================================================
@@ -4596,16 +4601,9 @@
   let selectionMode     = false;
   let lastSelectedIndex = -1;
 
-  function syncSelectModeToggle() {
-    const t = document.getElementById('multiselect-toggle');
-    if (!t) return;
-    t.setAttribute('aria-pressed', selectionMode ? 'true' : 'false');
-    t.classList.toggle('active', selectionMode);
-  }
   function enterSelectionMode() {
     selectionMode = true;
     document.body.classList.add('selection-mode');
-    syncSelectModeToggle();
     syncSelectionToolbar();
   }
   function exitSelectionMode() {
@@ -4615,7 +4613,6 @@
     lastSelectedIndex = -1;
     document.querySelectorAll('.card-item--selected')
       .forEach(el => el.classList.remove('card-item--selected'));
-    syncSelectModeToggle();
     syncSelectionToolbar();
   }
   function toggleCardSelection(card, index) {
@@ -4746,24 +4743,13 @@
     const addDeck = document.getElementById('multiselect-add-deck');
     const wall    = document.getElementById('multiselect-wall');
     const clear   = document.getElementById('multiselect-clear');
-    const toggle  = document.getElementById('multiselect-toggle');
     addColl?.addEventListener('click', openDesignationMenu);
     addDeck?.addEventListener('click', openDeckPicker);
     wall?.addEventListener('click', openWallFromSelection);
     clear?.addEventListener('click', exitSelectionMode);
-    // Explicit "Select" pill — for users who don't discover the
-    // shift-click / drag-marquee / long-press gestures.
-    toggle?.addEventListener('click', () => {
-      if (selectionMode) {
-        exitSelectionMode();
-        toggle.setAttribute('aria-pressed', 'false');
-        toggle.classList.remove('active');
-      } else {
-        enterSelectionMode();
-        toggle.setAttribute('aria-pressed', 'true');
-        toggle.classList.add('active');
-      }
-    });
+    // The "Select cards" entry-point lives in the Find overflow menu
+    // (three-dot button) for users who don't discover the shift-click
+    // / drag-marquee / long-press gestures.
   }
   function getSelectedCardObjects() {
     // Resolve via the canonical bobaId map, NOT by filtering

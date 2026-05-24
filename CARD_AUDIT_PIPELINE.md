@@ -27,6 +27,25 @@ Authored 2026-05-24 in response to Ben's directive after the COWORK.md
 (`imageFile=null` in cards.json) are excluded from the audit; they're
 already in a separate sourcing queue.
 
+**Note on app rendering** — this audit produces catalog data only.
+The previous overlay pills on Find / Decks / Collection cells were
+removed (commit `a786b66`); the audit is NOT trying to recreate
+them. The data lives in `cards.json` for queries, search, and
+card-detail surfaces — not as overlays on grid thumbnails. Per Ben:
+"we are attempting to have the most exhaustive set of data for every
+single card based upon what is observable on the card."
+
+**New `printedSerial` field for Inspired Ink cards:** the audit
+captures the actual printed serial denominator ("/5", "/10", "/25",
+"/50", or "/1") from the card art. This is authoritative — the
+IK-rule that maps catalog `element` → expected denominator
+(DECISIONS.md #028) has whole-treatment-family exceptions
+empirically confirmed in the validation pilot (Silver Blast cards
+print `1/5` regardless of FIRE or ICE element; ~95% of audited IK
+cards conflict with the rule). The new field becomes the source of
+truth for print-run display anywhere the apps need it; the rule is
+only used as a fallback for cards we haven't audited yet.
+
 **Out of scope (deferred to v2):**
 - Special-variant CHANGE detection (e.g., "this version has Power
   Glove visible" vs base) — needs base-art designation + region diff

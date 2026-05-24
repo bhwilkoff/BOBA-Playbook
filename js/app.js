@@ -577,6 +577,13 @@
       name = 'search';
     }
 
+    // Update currentView SYNCHRONOUSLY before anything else so that
+    // buildSearchURL (called below for pushState) reads the new view
+    // name. Without this, the View Transition path defers applyView()
+    // — which is where currentView gets set — and the URL written by
+    // pushState reflects the PREVIOUS view (URL lags one step behind).
+    currentView = name;
+
     // View Transitions API (Baseline 2024) — wraps the DOM swap so
     // the browser cross-fades the old view into the new one. The
     // `view-transition-name` on grid cells + detail surfaces (set

@@ -404,7 +404,7 @@ private fun FindContent(
                         // existing FindActions bus; FindScreen's
                         // LaunchedEffect picks from the freshly-recomputed
                         // results.
-                        secondaryActionLabel = "🎲 Surprise me from all cards",
+                        secondaryActionLabel = "Surprise me from all cards",
                         onSecondaryAction = {
                             onEvent(FindEvent.ClearAllFilters)
                             viewModel.findActions.requestSurprise()
@@ -627,20 +627,13 @@ private fun FindOverflowMenu(
         // filtered) and pushes its detail. Real value for collectors
         // exploring 17k+ cards who don't know what to search for.
         DropdownMenuItem(
-            // Tick 299 — pool size in label (iOS v2.317 + web tick 298
-            // parity). Tells users what Surprise is drawing from before
-            // they fire it. NumberFormat / Locale.US matches the rest
-            // of the app's locale-formatting convention.
-            text = {
-                val label = if (surpriseCount > 0)
-                    "Surprise me 🎲 (${NumberFormat.getInstance(Locale.US).format(surpriseCount)})"
-                else "Surprise me 🎲"
-                Text(label)
-            },
+            // Bare label per Ben: Surprise Me is a discovery feature,
+            // not a primary tool. Count + emoji pushed it into "use
+            // every session" territory. Disabled state still hides it
+            // when the filter pool is empty.
+            text = { Text("Surprise me") },
             // Tick 281 — Star reads more "discovery / serendipity" than
-            // Bolt (which is BOBA's weapon-filter chip icon). Icons.Star
-            // is in the baseline icon set (already used in
-            // CardDetailScreen's owned-state).
+            // Bolt (which is BOBA's weapon-filter chip icon).
             leadingIcon = { Icon(Icons.Default.Star, contentDescription = null) },
             enabled = surpriseCount > 0,
             onClick = { onDismiss(); onSurpriseMe() },

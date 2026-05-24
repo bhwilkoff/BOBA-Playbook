@@ -419,21 +419,17 @@ struct SearchView: View {
                     }
                 }
                 Divider()
-                // Tick 267 — Surprise Me (Android tick 264 + 266 parity).
                 // Discovery affordance for the 17,974-card catalog.
                 // Biases 30% of picks toward Inspired Ink / Superfoil /
                 // Kanjifoil so the surprise actually surfaces something
-                // notable instead of yet-another-Battlefoil.
-                // Tick 297 — surface the pool size so the user knows
-                // how many cards Surprise Me is drawing from. With a
-                // tight filter it can be just a few; with no filter
-                // it's the whole 17,974-card catalog.
+                // notable instead of yet-another-Battlefoil. Label kept
+                // bare per Ben: the feature is meant to be stumbled
+                // upon, not used every session — count + emoji made it
+                // feel like a primary tool.
                 Button {
                     surpriseMe()
                 } label: {
-                    let n = store.filteredCards.count
-                    Label("Surprise me 🎲 (\(n.formatted()))",
-                          systemImage: "sparkles")
+                    Label("Surprise me", systemImage: "sparkles")
                 }
                 .disabled(store.filteredCards.isEmpty)
                 // Tick 332 — surface the keyboard shortcut on iPad

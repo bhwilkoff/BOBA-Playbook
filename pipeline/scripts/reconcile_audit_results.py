@@ -451,82 +451,668 @@ def build_patch(updates: list[dict], all_rows: list[dict] | None = None) -> dict
     }
 
 
-def build_review_html(review: list[dict], updates: list[dict]) -> str:
-    """Side-by-side image + extracted vs catalog. Human walks the
-    list; opening a card's image in a browser tab is one click away."""
-    def row_html(e: dict, kind: str) -> str:
-        statuses_html = ""
-        for f, s in e["statuses"].items():
-            cat = e["catalog"].get(f) if f != "serial" else "—"
-            ocr_field = e.get("ocr", {}).get(f) or {}
-            if f == "power":
-                ocr = ocr_field.get("intValue")
-            else:
-                ocr = ocr_field.get("value")
-            conf = ocr_field.get("confidence", 0)
-            color = {"MATCH": "#4CAF50", "MISMATCH": "#FF4D00",
-                     "LOW_CONF": "#FFC107", "NULL_OCR": "#9E9E9E",
-                     "OK_NULL": "#9E9E9E"}.get(s, "#fff")
-            statuses_html += (
-                f"<tr><td>{f}</td><td>{cat!r}</td>"
-                f"<td>{ocr!r}</td>"
-                f"<td>{conf:.2f}</td>"
-                f"<td style='color:{color};font-weight:700'>{s}</td></tr>"
-            )
-        return f"""
-            <div class="card-row" data-kind="{kind}" data-boba="{e['bobaId']}">
-              <img src="{e['image_url']}" loading="lazy" />
-              <div class="meta">
-                <h3>{e['bobaId']}</h3>
-                <div class="cardtype">{e['cardType']}</div>
-                <table>
-                  <thead><tr><th>field</th><th>catalog</th>
-                  <th>ocr</th><th>conf</th><th>status</th></tr></thead>
-                  <tbody>{statuses_html}</tbody>
-                </table>
-              </div>
-            </div>"""
-    body = "\n".join(row_html(e, "UPDATES") for e in updates) + \
-           "\n".join(row_html(e, "REVIEW") for e in review)
-    return f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8">
+def build_review_html(review: list[dict], updates: list[dict],
+                       additions: list[dict] | None = None) -> str:
+    """Interactive review tool — no server required. Three sections:
+
+      UPDATES — proposed catalog corrections. Per change: Approve /
+                Keep catalog / Edit-then-approve. Default = unapproved.
+      REVIEW  — low-conf cards. Per field: optional manual override.
+      ADDITIONS — new printedSerial values for IK cards. Per card:
+                Approve / Skip / Edit. Most should be auto-approved
+                since OCR found a value that wasn't in catalog before.
+
+    State persists to localStorage (per-bobaId-per-field decisions
+    survive page reloads). 'Export curated patch' button downloads
+    the filtered patch.json to apply via apply_handoff_batch.py."""
+
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "updates": updates,
+        "review": review,
+        "additions": additions or [],
+    }
+    payload_json = json.dumps(payload, ensure_ascii=False)
+    return r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
 <title>Card Audit Review</title>
 <style>
-  body {{ background: #080810; color: #fff;
-          font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-          padding: 24px; }}
-  h1 {{ font-size: 28px; }}
-  .legend {{ margin: 16px 0; opacity: 0.8; }}
-  .legend span {{ margin-right: 12px; padding: 2px 8px; border-radius: 4px; }}
-  .card-row {{ display: flex; gap: 16px; margin-bottom: 24px;
+  * { box-sizing: border-box; }
+  body { background: #080810; color: #fff;
+         font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+         margin: 0; padding: 0; }
+  header { position: sticky; top: 0; z-index: 10; background: rgba(13,13,26,0.95);
+           backdrop-filter: blur(8px); padding: 16px 24px;
+           border-bottom: 1px solid rgba(255,255,255,0.1); }
+  header h1 { margin: 0 0 8px; font-size: 22px; }
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+           font-size: 13px; }
+  .stats .chip { padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.06); }
+  .stats .chip strong { color: #00F5FF; }
+  .controls { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .controls button, .controls select, .controls input {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+    color: #fff; padding: 6px 14px; border-radius: 6px;
+    font-family: inherit; font-size: 13px; cursor: pointer;
+  }
+  .controls button:hover { background: rgba(255,255,255,0.12); }
+  .controls .primary { background: #FF4D00; border-color: #FF4D00; }
+  .controls .primary:hover { background: #ff6022; }
+  .controls input[type="search"] { width: 220px; }
+
+  main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .section { margin-bottom: 40px; }
+  .section h2 { font-size: 16px; opacity: 0.7; text-transform: uppercase;
+                letter-spacing: 0.08em; margin: 0 0 16px;
+                border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+
+  .card-row { display: flex; gap: 20px; margin-bottom: 20px;
               padding: 16px; background: #0D0D1A;
-              border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; }}
-  .card-row img {{ width: 200px; height: auto; align-self: flex-start;
-                  border-radius: 6px; }}
-  .meta {{ flex: 1; }}
-  .meta h3 {{ margin: 0 0 4px; font-size: 16px; font-family: monospace; }}
-  .cardtype {{ font-size: 12px; opacity: 0.6; margin-bottom: 8px; }}
-  table {{ width: 100%; font-size: 13px; border-collapse: collapse; }}
-  th, td {{ text-align: left; padding: 4px 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.05); }}
-  th {{ font-size: 11px; opacity: 0.5; text-transform: uppercase;
-        font-weight: normal; }}
-  td:nth-child(2), td:nth-child(3) {{ font-family: monospace; font-size: 12px; }}
-  [data-kind=UPDATES] {{ border-left: 4px solid #FF4D00; }}
-  [data-kind=REVIEW] {{ border-left: 4px solid #FFC107; }}
+              border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+              transition: opacity 0.2s, border-color 0.2s; }
+  .card-row.dismissed { opacity: 0.35; }
+  .card-row.has-approval { border-color: rgba(76,175,80,0.5); }
+  .card-row img { width: 180px; height: auto; align-self: flex-start;
+                  border-radius: 6px; background: #000; cursor: zoom-in; }
+  .meta { flex: 1; min-width: 0; }
+  .meta-head { display: flex; justify-content: space-between; align-items: baseline;
+               gap: 12px; margin-bottom: 8px; }
+  .meta h3 { margin: 0; font-size: 14px; font-family: ui-monospace, monospace;
+             color: #00F5FF; word-break: break-all; }
+  .cardtype { font-size: 11px; opacity: 0.5; padding: 2px 8px; border-radius: 4px;
+              background: rgba(255,255,255,0.05); white-space: nowrap; }
+
+  .field-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+  .field-table th { font-size: 10px; opacity: 0.4; text-transform: uppercase;
+                    text-align: left; padding: 4px 8px; font-weight: 500; }
+  .field-table td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.05);
+                    vertical-align: middle; }
+  .field-table .field-name { font-family: ui-monospace, monospace; opacity: 0.7;
+                              font-size: 12px; }
+  .field-table .val { font-family: ui-monospace, monospace; font-size: 12px;
+                       padding: 2px 6px; border-radius: 3px;
+                       background: rgba(255,255,255,0.04); }
+  .field-table .val.cat { color: #aab; }
+  .field-table .val.ocr { color: #00F5FF; }
+  .field-table .conf { font-size: 11px; opacity: 0.5; }
+  .field-table .status { font-size: 10px; font-weight: 700; padding: 2px 6px;
+                         border-radius: 3px; text-transform: uppercase; }
+  .status.MATCH    { color: #4CAF50; background: rgba(76,175,80,0.1); }
+  .status.MISMATCH { color: #FF4D00; background: rgba(255,77,0,0.12); }
+  .status.LOW_CONF { color: #FFC107; background: rgba(255,193,7,0.1); }
+  .status.NULL_OCR { color: #888;    background: rgba(255,255,255,0.04); }
+  .status.OK_NULL  { color: #888;    background: rgba(255,255,255,0.04); }
+  .status.NOT_EXTRACTABLE { color: #888; background: rgba(255,255,255,0.04); }
+
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .actions button {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+    color: #fff; padding: 3px 10px; border-radius: 4px;
+    font-family: inherit; font-size: 11px; cursor: pointer;
+  }
+  .actions button:hover { background: rgba(255,255,255,0.14); }
+  .actions button.active.approve { background: #4CAF50; border-color: #4CAF50; }
+  .actions button.active.reject  { background: #777;    border-color: #777; }
+  .actions input[type="text"], .actions input[type="number"] {
+    background: rgba(0,245,255,0.06); border: 1px solid rgba(0,245,255,0.3);
+    color: #00F5FF; font-family: ui-monospace, monospace; font-size: 12px;
+    padding: 3px 6px; border-radius: 4px; width: 100px;
+  }
+
+  /* Card-level approve-all toggle */
+  .row-foot { display: flex; gap: 8px; align-items: center; margin-top: 10px;
+              padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
+  .row-foot button { font-size: 11px; padding: 4px 10px; cursor: pointer;
+                     background: rgba(0,245,255,0.08); color: #00F5FF;
+                     border: 1px solid rgba(0,245,255,0.3); border-radius: 4px; }
+  .row-foot button:hover { background: rgba(0,245,255,0.16); }
+  .row-foot .dismiss { background: rgba(255,255,255,0.04); color: #888;
+                       border-color: rgba(255,255,255,0.1); margin-left: auto; }
+  .row-foot .progress { font-size: 11px; opacity: 0.6; }
+
+  .empty { padding: 40px; text-align: center; opacity: 0.5; font-style: italic; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+           background: #0D0D1A; border: 1px solid rgba(0,245,255,0.4);
+           padding: 10px 16px; border-radius: 6px; font-size: 13px;
+           color: #00F5FF; opacity: 0; transition: opacity 0.2s;
+           pointer-events: none; z-index: 100; }
+  .toast.show { opacity: 1; }
 </style>
 </head><body>
-<h1>Card Audit Review</h1>
-<p class="legend">
-  <span style="background:#FF4D00">UPDATES ({len(updates)})</span>
-  <span style="background:#FFC107;color:#000">REVIEW ({len(review)})</span>
-</p>
-<p>UPDATES are catalog rows where high-confidence OCR disagrees with
-the stored value — proposed patches that need human ratification before
-they hit cards.json. REVIEW rows are low-confidence or ambiguous cases
-where the audit can't decide.</p>
-{body}
-</body></html>"""
+<header>
+  <h1>Card Audit Review</h1>
+  <div class="stats" id="stats"></div>
+  <div class="controls">
+    <input type="search" id="search" placeholder="Filter (bobaId, hero, field…)" />
+    <select id="filter-bucket">
+      <option value="all">All buckets</option>
+      <option value="UPDATES">UPDATES only</option>
+      <option value="REVIEW">REVIEW only</option>
+      <option value="ADDITIONS">ADDITIONS only</option>
+    </select>
+    <select id="filter-field">
+      <option value="">All fields</option>
+      <option value="power">power</option>
+      <option value="name">name</option>
+      <option value="cardNumber">cardNumber</option>
+      <option value="element">element</option>
+      <option value="treatment">treatment</option>
+      <option value="printedSerial">printedSerial</option>
+    </select>
+    <select id="filter-status">
+      <option value="">All states</option>
+      <option value="pending">Pending decisions</option>
+      <option value="approved">Approved</option>
+      <option value="rejected">Rejected / kept catalog</option>
+    </select>
+    <button id="approve-visible-ocr">Approve all visible OCR values</button>
+    <button id="reject-visible">Keep catalog for all visible</button>
+    <button class="primary" id="export">Export curated patch.json</button>
+    <button id="reset" title="Clear all decisions stored in localStorage">Reset</button>
+  </div>
+</header>
+<main>
+  <section class="section" id="section-additions">
+    <h2 id="head-additions">PRINTED_SERIAL additions — new catalog field</h2>
+    <div id="list-additions"></div>
+  </section>
+  <section class="section" id="section-updates">
+    <h2 id="head-updates">UPDATES — catalog likely wrong</h2>
+    <div id="list-updates"></div>
+  </section>
+  <section class="section" id="section-review">
+    <h2 id="head-review">REVIEW — low confidence, manual override only</h2>
+    <div id="list-review"></div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script id="audit-payload" type="application/json">__PAYLOAD__</script>
+<script>
+(function() {
+  const PAYLOAD = JSON.parse(document.getElementById('audit-payload').textContent);
+  const LS_KEY = 'boba-audit-decisions-v1';
+  // Decisions shape: { "<bobaId>:<field>": { action: "approve"|"reject", value: "..." } }
+  // For UPDATES, default is no decision → not in exported patch.
+  // For ADDITIONS, default is approve (using OCR value).
+  let decisions = {};
+  try { decisions = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch (e) {}
+
+  const $ = id => document.getElementById(id);
+  const escapeHtml = s => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+  function decisionKey(boba, field) { return boba + ':' + field; }
+  function getDecision(boba, field) { return decisions[decisionKey(boba, field)]; }
+  function setDecision(boba, field, action, value) {
+    const k = decisionKey(boba, field);
+    if (action == null) {
+      delete decisions[k];
+    } else {
+      decisions[k] = { action, value };
+    }
+    persist();
+    updateStats();
+    updateRowState(boba);
+  }
+  function persist() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(decisions)); }
+    catch (e) { toast('Failed to save: ' + e.message); }
+  }
+  function toast(msg) {
+    const el = $('toast'); el.textContent = msg; el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  // For ADDITIONS, the default action is APPROVE — OCR found a value
+  // that wasn't in catalog before, so we want to add it unless the
+  // user explicitly rejects.
+  function effectiveAction(boba, field, defaultApprove) {
+    const d = getDecision(boba, field);
+    if (d) return d.action;
+    return defaultApprove ? 'approve' : null;
+  }
+  function effectiveValue(boba, field, ocrValue) {
+    const d = getDecision(boba, field);
+    if (d && d.value != null && d.value !== '') return d.value;
+    return ocrValue;
+  }
+
+  // ============ RENDER ============
+
+  function renderUpdates() {
+    const host = $('list-updates');
+    host.innerHTML = '';
+    if (!PAYLOAD.updates.length) {
+      host.innerHTML = '<div class="empty">No UPDATES — no catalog corrections proposed.</div>';
+      return;
+    }
+    PAYLOAD.updates.forEach(e => {
+      host.appendChild(buildUpdatesRow(e));
+    });
+  }
+
+  function buildUpdatesRow(e) {
+    const div = document.createElement('div');
+    div.className = 'card-row';
+    div.dataset.kind = 'UPDATES';
+    div.dataset.boba = e.bobaId;
+    let rowsHtml = '';
+    for (const [field, status] of Object.entries(e.statuses)) {
+      if (field === 'serial') continue;
+      const ocrField = (e.ocr && e.ocr[field]) || {};
+      const ocrVal = field === 'power' ? ocrField.intValue : ocrField.value;
+      const catVal = e.catalog[field];
+      const conf = ocrField.confidence;
+      const isProposed = (status === 'MISMATCH');
+      rowsHtml += renderFieldRow(e.bobaId, field, catVal, ocrVal, conf, status, isProposed, false);
+    }
+    const fieldNames = Object.keys(e.statuses).filter(f => e.statuses[f] === 'MISMATCH');
+    div.innerHTML = `
+      <img src="${escapeHtml(e.image_url)}" loading="lazy" alt="${escapeHtml(e.bobaId)}" />
+      <div class="meta">
+        <div class="meta-head">
+          <h3>${escapeHtml(e.bobaId)}</h3>
+          <span class="cardtype">${escapeHtml(e.cardType || '')}</span>
+        </div>
+        <table class="field-table">
+          <thead><tr><th>field</th><th>catalog</th><th>ocr (proposed)</th>
+            <th>conf</th><th>state</th><th>decision</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        <div class="row-foot">
+          <button data-act="approve-row">Approve all OCR for this card</button>
+          <button data-act="reject-row">Keep catalog for this card</button>
+          <button class="dismiss" data-act="dismiss">Skip (already reviewed)</button>
+        </div>
+      </div>`;
+    wireRow(div, e, fieldNames, false);
+    return div;
+  }
+
+  function renderReview() {
+    const host = $('list-review');
+    host.innerHTML = '';
+    if (!PAYLOAD.review.length) {
+      host.innerHTML = '<div class="empty">No REVIEW cards.</div>';
+      return;
+    }
+    PAYLOAD.review.forEach(e => host.appendChild(buildReviewRow(e)));
+  }
+
+  function buildReviewRow(e) {
+    const div = document.createElement('div');
+    div.className = 'card-row';
+    div.dataset.kind = 'REVIEW';
+    div.dataset.boba = e.bobaId;
+    let rowsHtml = '';
+    for (const [field, status] of Object.entries(e.statuses)) {
+      if (field === 'serial') continue;
+      const ocrField = (e.ocr && e.ocr[field]) || {};
+      const ocrVal = field === 'power' ? ocrField.intValue : ocrField.value;
+      const catVal = e.catalog[field];
+      const conf = ocrField.confidence;
+      // REVIEW cards have no proposed change by default; user can opt in.
+      const userCanEdit = (status === 'LOW_CONF' || status === 'NULL_OCR');
+      rowsHtml += renderFieldRow(e.bobaId, field, catVal, ocrVal, conf, status, false, userCanEdit);
+    }
+    div.innerHTML = `
+      <img src="${escapeHtml(e.image_url)}" loading="lazy" alt="${escapeHtml(e.bobaId)}" />
+      <div class="meta">
+        <div class="meta-head">
+          <h3>${escapeHtml(e.bobaId)}</h3>
+          <span class="cardtype">${escapeHtml(e.cardType || '')}</span>
+        </div>
+        <table class="field-table">
+          <thead><tr><th>field</th><th>catalog</th><th>ocr</th>
+            <th>conf</th><th>state</th><th>decision</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        <div class="row-foot">
+          <button class="dismiss" data-act="dismiss">Skip (no change)</button>
+        </div>
+      </div>`;
+    wireRow(div, e, [], true);
+    return div;
+  }
+
+  function renderAdditions() {
+    const host = $('list-additions');
+    host.innerHTML = '';
+    if (!PAYLOAD.additions.length) {
+      host.innerHTML = '<div class="empty">No printedSerial additions — no IK cards had a serial extracted.</div>';
+      return;
+    }
+    PAYLOAD.additions.forEach(e => host.appendChild(buildAdditionsRow(e)));
+  }
+
+  function buildAdditionsRow(e) {
+    const div = document.createElement('div');
+    div.className = 'card-row';
+    div.dataset.kind = 'ADDITIONS';
+    div.dataset.boba = e.old_bobaId;
+    const ev = e.evidence.printedSerial;
+    const val = e.additions.printedSerial;
+    const cardImageUrl = (PAYLOAD.updates.concat(PAYLOAD.review).find(r => r.bobaId === e.old_bobaId) || {}).image_url
+      || `https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev/full/${e.old_bobaId.split('-')[0]}`;
+    // Best-effort image URL; user can also see it once additions are merged.
+    const conflict = ev.rule_conflict;
+    const noteStyle = conflict ? 'color:#FFC107' : 'color:#888';
+    const note = conflict
+      ? `Catalog says element=${ev.catalog_element} (IK rule → /${ev.rule_expected_denominator}); printed = /${ev.ocr_denominator}.`
+      : `Matches IK rule (element=${ev.catalog_element} → /${ev.rule_expected_denominator}).`;
+    div.innerHTML = `
+      <img src="${escapeHtml(cardImageUrl)}" loading="lazy" alt="${escapeHtml(e.old_bobaId)}" />
+      <div class="meta">
+        <div class="meta-head">
+          <h3>${escapeHtml(e.old_bobaId)}</h3>
+          <span class="cardtype">IK · printedSerial</span>
+        </div>
+        <table class="field-table">
+          <thead><tr><th>field</th><th>catalog</th><th>ocr</th>
+            <th>conf</th><th>state</th><th>decision</th></tr></thead>
+          <tbody>${renderFieldRow(e.old_bobaId, 'printedSerial', '(none)', val, 1.0, 'MISMATCH', true, false, true)}</tbody>
+        </table>
+        <div style="font-size:12px; margin-top:8px; ${noteStyle}">${escapeHtml(note)}</div>
+      </div>`;
+    wireRow(div, { bobaId: e.old_bobaId }, ['printedSerial'], false, /*defaultApprove=*/true);
+    return div;
+  }
+
+  function renderFieldRow(boba, field, catVal, ocrVal, conf, status, isProposed, userCanEdit, defaultApprove) {
+    const confDisplay = (typeof conf === 'number') ? conf.toFixed(2) : '—';
+    const isEditable = isProposed || userCanEdit || defaultApprove;
+    const actCellId = `act-${boba.replace(/[^A-Za-z0-9]/g, '_')}-${field}`;
+    let actionsHtml = '';
+    if (isEditable) {
+      const inputVal = effectiveValue(boba, field, ocrVal == null ? '' : ocrVal);
+      const inputType = field === 'power' ? 'number' : 'text';
+      actionsHtml = `
+        <div class="actions" data-boba="${escapeHtml(boba)}" data-field="${field}">
+          <button data-act="approve" title="Use the value in the input below">Approve</button>
+          <button data-act="reject"  title="Keep catalog value, do not change">Keep catalog</button>
+          <input type="${inputType}" data-role="value" value="${escapeHtml(inputVal == null ? '' : inputVal)}" />
+        </div>`;
+    } else {
+      actionsHtml = '<span style="font-size:11px;opacity:0.4">—</span>';
+    }
+    return `
+      <tr id="${actCellId}" data-field="${field}">
+        <td class="field-name">${escapeHtml(field)}</td>
+        <td><span class="val cat">${escapeHtml(catVal == null ? '∅' : catVal)}</span></td>
+        <td><span class="val ocr">${escapeHtml(ocrVal == null ? '∅' : ocrVal)}</span></td>
+        <td class="conf">${confDisplay}</td>
+        <td><span class="status ${status}">${status}</span></td>
+        <td>${actionsHtml}</td>
+      </tr>`;
+  }
+
+  function wireRow(rowEl, entry, proposedFields, isReview, defaultApprove) {
+    rowEl.querySelectorAll('.actions').forEach(actEl => {
+      const boba = actEl.dataset.boba;
+      const field = actEl.dataset.field;
+      actEl.querySelector('[data-act="approve"]').addEventListener('click', () => {
+        const input = actEl.querySelector('[data-role="value"]');
+        setDecision(boba, field, 'approve', input.value);
+        updateActionState(actEl);
+      });
+      actEl.querySelector('[data-act="reject"]').addEventListener('click', () => {
+        setDecision(boba, field, 'reject');
+        updateActionState(actEl);
+      });
+      actEl.querySelector('[data-role="value"]').addEventListener('input', () => {
+        // If approval already set, update value live.
+        const d = getDecision(boba, field);
+        if (d && d.action === 'approve') {
+          setDecision(boba, field, 'approve', actEl.querySelector('[data-role="value"]').value);
+        }
+      });
+      updateActionState(actEl);
+    });
+    // Card-level buttons.
+    const approveRowBtn = rowEl.querySelector('[data-act="approve-row"]');
+    const rejectRowBtn  = rowEl.querySelector('[data-act="reject-row"]');
+    const dismissBtn    = rowEl.querySelector('[data-act="dismiss"]');
+    if (approveRowBtn) approveRowBtn.addEventListener('click', () => {
+      proposedFields.forEach(f => {
+        const actEl = rowEl.querySelector(`.actions[data-field="${f}"]`);
+        if (!actEl) return;
+        const input = actEl.querySelector('[data-role="value"]');
+        setDecision(entry.bobaId, f, 'approve', input.value);
+        updateActionState(actEl);
+      });
+    });
+    if (rejectRowBtn) rejectRowBtn.addEventListener('click', () => {
+      proposedFields.forEach(f => {
+        setDecision(entry.bobaId, f, 'reject');
+        const actEl = rowEl.querySelector(`.actions[data-field="${f}"]`);
+        if (actEl) updateActionState(actEl);
+      });
+    });
+    if (dismissBtn) dismissBtn.addEventListener('click', () => {
+      setDecision(entry.bobaId, '__dismiss__', 'reject');
+      rowEl.classList.add('dismissed');
+    });
+    // Initial state.
+    if (getDecision(entry.bobaId, '__dismiss__')) rowEl.classList.add('dismissed');
+    if (defaultApprove) {
+      // Mark default-approve fields visually
+      rowEl.querySelectorAll('.actions').forEach(updateActionState);
+    }
+    updateRowState(entry.bobaId);
+    // Click image → open full size in new tab.
+    rowEl.querySelector('img').addEventListener('click', e => {
+      window.open(e.target.src, '_blank');
+    });
+  }
+
+  function updateActionState(actEl) {
+    const boba = actEl.dataset.boba;
+    const field = actEl.dataset.field;
+    const d = getDecision(boba, field);
+    actEl.querySelector('[data-act="approve"]').classList.toggle('active', d?.action === 'approve');
+    actEl.querySelector('[data-act="approve"]').classList.toggle('approve', d?.action === 'approve');
+    actEl.querySelector('[data-act="reject"]').classList.toggle('active', d?.action === 'reject');
+    actEl.querySelector('[data-act="reject"]').classList.toggle('reject', d?.action === 'reject');
+  }
+
+  function updateRowState(boba) {
+    document.querySelectorAll(`.card-row[data-boba="${CSS.escape(boba)}"]`).forEach(row => {
+      const hasApproval = Object.keys(decisions).some(k =>
+        k.startsWith(boba + ':') && decisions[k]?.action === 'approve' && !k.endsWith(':__dismiss__'));
+      row.classList.toggle('has-approval', hasApproval);
+    });
+  }
+
+  function updateStats() {
+    const totalU = PAYLOAD.updates.length;
+    const totalR = PAYLOAD.review.length;
+    const totalA = PAYLOAD.additions.length;
+    let approvedCount = 0, rejectedCount = 0;
+    for (const k in decisions) {
+      if (k.endsWith(':__dismiss__')) continue;
+      if (decisions[k]?.action === 'approve') approvedCount++;
+      else if (decisions[k]?.action === 'reject') rejectedCount++;
+    }
+    // Additions default-approve: count un-rejected ones too.
+    const additionsAutoApprove = PAYLOAD.additions.filter(a => {
+      const d = getDecision(a.old_bobaId, 'printedSerial');
+      return !d || d.action !== 'reject';
+    }).length;
+    $('stats').innerHTML = `
+      <span class="chip">UPDATES <strong>${totalU}</strong> · REVIEW <strong>${totalR}</strong> · ADDITIONS <strong>${totalA}</strong></span>
+      <span class="chip">Explicitly approved: <strong>${approvedCount}</strong></span>
+      <span class="chip">Explicitly rejected: <strong>${rejectedCount}</strong></span>
+      <span class="chip">Patch will include: <strong>${approvedCount} modify + ${additionsAutoApprove} additions</strong></span>
+    `;
+  }
+
+  // ============ FILTERS ============
+  function applyFilters() {
+    const q = $('search').value.toLowerCase().trim();
+    const bucket = $('filter-bucket').value;
+    const field = $('filter-field').value;
+    const stateFilter = $('filter-status').value;
+    document.querySelectorAll('.card-row').forEach(row => {
+      const boba = row.dataset.boba.toLowerCase();
+      const kind = row.dataset.kind;
+      let visible = true;
+      if (bucket !== 'all' && kind !== bucket) visible = false;
+      if (visible && q) {
+        const text = (boba + ' ' + (row.textContent || '').toLowerCase());
+        if (!text.includes(q)) visible = false;
+      }
+      if (visible && field) {
+        const hasField = row.querySelector(`tr[data-field="${field}"]`);
+        if (!hasField) visible = false;
+      }
+      if (visible && stateFilter) {
+        const proposed = row.querySelectorAll('.actions');
+        let pending = false, approved = false, rejected = false;
+        proposed.forEach(a => {
+          const d = getDecision(a.dataset.boba, a.dataset.field);
+          if (!d) pending = true;
+          else if (d.action === 'approve') approved = true;
+          else if (d.action === 'reject') rejected = true;
+        });
+        if (stateFilter === 'pending'  && !pending)  visible = false;
+        if (stateFilter === 'approved' && !approved) visible = false;
+        if (stateFilter === 'rejected' && !rejected) visible = false;
+      }
+      row.style.display = visible ? '' : 'none';
+    });
+    // Section headers update with visible count.
+    ['updates','review','additions'].forEach(s => {
+      const rows = document.querySelectorAll(`#section-${s} .card-row`);
+      const visibleN = Array.from(rows).filter(r => r.style.display !== 'none').length;
+      const h = $('head-' + s);
+      const baseText = h.textContent.split(' (')[0];
+      h.textContent = `${baseText} (${visibleN} visible)`;
+    });
+  }
+
+  // ============ BULK ACTIONS ============
+  $('approve-visible-ocr').addEventListener('click', () => {
+    let n = 0;
+    document.querySelectorAll('.card-row').forEach(row => {
+      if (row.style.display === 'none') return;
+      row.querySelectorAll('.actions').forEach(actEl => {
+        const input = actEl.querySelector('[data-role="value"]');
+        setDecision(actEl.dataset.boba, actEl.dataset.field, 'approve', input.value);
+        updateActionState(actEl);
+        n++;
+      });
+    });
+    toast(`Approved ${n} field-changes`);
+  });
+  $('reject-visible').addEventListener('click', () => {
+    let n = 0;
+    document.querySelectorAll('.card-row').forEach(row => {
+      if (row.style.display === 'none') return;
+      row.querySelectorAll('.actions').forEach(actEl => {
+        setDecision(actEl.dataset.boba, actEl.dataset.field, 'reject');
+        updateActionState(actEl);
+        n++;
+      });
+    });
+    toast(`Rejected ${n} field-changes`);
+  });
+  $('reset').addEventListener('click', () => {
+    if (!confirm('Reset all decisions? This wipes your localStorage.')) return;
+    decisions = {};
+    localStorage.removeItem(LS_KEY);
+    document.querySelectorAll('.card-row').forEach(r => {
+      r.classList.remove('dismissed', 'has-approval');
+    });
+    document.querySelectorAll('.actions').forEach(updateActionState);
+    updateStats();
+    toast('All decisions reset');
+  });
+
+  // ============ EXPORT ============
+  $('export').addEventListener('click', () => {
+    const modify = [];
+    for (const u of PAYLOAD.updates) {
+      const changes = {};
+      const evidence = {};
+      for (const [field, status] of Object.entries(u.statuses)) {
+        const d = getDecision(u.bobaId, field);
+        if (!d || d.action !== 'approve') continue;
+        let v = d.value;
+        if (field === 'power') v = v === '' ? null : Number(v);
+        changes[field] = v;
+        evidence[field] = u.evidence?.[field] || u.ocr?.[field] || {};
+      }
+      // Also pick up overrides on fields that weren't originally MISMATCH (REVIEW rescues).
+      if (Object.keys(changes).length) {
+        modify.push({ old_bobaId: u.bobaId, changes, evidence });
+      }
+    }
+    // REVIEW rows where user manually approved an override.
+    for (const r of PAYLOAD.review) {
+      const changes = {};
+      const evidence = {};
+      for (const [field, status] of Object.entries(r.statuses)) {
+        const d = getDecision(r.bobaId, field);
+        if (!d || d.action !== 'approve') continue;
+        let v = d.value;
+        if (field === 'power') v = v === '' ? null : Number(v);
+        changes[field] = v;
+        evidence[field] = r.ocr?.[field] || {};
+      }
+      if (Object.keys(changes).length) {
+        modify.push({ old_bobaId: r.bobaId, changes, evidence });
+      }
+    }
+    // ADDITIONS — default-approve unless explicitly rejected.
+    const additions = [];
+    for (const a of PAYLOAD.additions) {
+      const d = getDecision(a.old_bobaId, 'printedSerial');
+      if (d && d.action === 'reject') continue;
+      const v = (d && d.value != null && d.value !== '') ? d.value : a.additions.printedSerial;
+      additions.push({
+        old_bobaId: a.old_bobaId,
+        additions: { printedSerial: v },
+        evidence: a.evidence,
+      });
+    }
+    const curated = {
+      schema_version: 1,
+      generated_at: new Date().toISOString(),
+      source: 'card_audit_pipeline_curated',
+      modify, additions,
+    };
+    const blob = new Blob([JSON.stringify(curated, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const date = new Date().toISOString().slice(0,10);
+    a.download = `curated-patch-${date}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast(`Exported ${modify.length} modify + ${additions.length} additions`);
+  });
+
+  // Wire filters.
+  ['search', 'filter-bucket', 'filter-field', 'filter-status'].forEach(id => {
+    $(id).addEventListener('input', applyFilters);
+    $(id).addEventListener('change', applyFilters);
+  });
+
+  // ============ INIT ============
+  renderAdditions();
+  renderUpdates();
+  renderReview();
+  updateStats();
+  applyFilters();
+})();
+</script>
+</body></html>""".replace("__PAYLOAD__", payload_json.replace("</", "<\\/"))
 
 
 def main() -> int:
@@ -563,7 +1149,8 @@ def main() -> int:
     all_rows = bundle["confirms"] + bundle["updates"] + bundle["review"]
     patch = build_patch(bundle["updates"], all_rows=all_rows)
     (out_dir / "patch.json").write_text(json.dumps(patch, indent=2))
-    review_html = build_review_html(bundle["review"], bundle["updates"])
+    review_html = build_review_html(bundle["review"], bundle["updates"],
+                                     additions=patch.get("additions"))
     (out_dir / "review.html").write_text(review_html)
 
     print(f"[reconcile] CONFIRMS:    {summary['buckets']['confirms']}")

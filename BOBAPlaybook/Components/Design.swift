@@ -779,6 +779,15 @@ struct BOBACardCell: View {
     /// 200px WebP. BOBACardGridItem passes .full when the column
     /// count is dense enough that the thumb pixelates (1- or 2-across).
     var size: CardImageView.ImageSize = .thumb
+    /// Whether to render the print-run + format-legality corner badges
+    /// on top of the card art. Default true preserves browsing-surface
+    /// behavior (Find grid); Collection + Decks grids pass false per
+    /// Ben's feedback that the badges clutter cells where the user
+    /// already knows / has chosen the cards. Variant-disambiguation
+    /// surfaces (Card Detail's Other Versions, Collection Detail's
+    /// variation tiles) call `.cardThumbBadges()` explicitly and
+    /// don't go through this flag.
+    var showCornerBadges: Bool = true
 
     /// 5:7 portrait card aspect — matches every BoBA card. Constant
     /// so the small-multiples guarantee holds across surfaces.
@@ -795,8 +804,8 @@ struct BOBACardCell: View {
                 RoundedRectangle(cornerRadius: Self.cornerRadius)
                     .strokeBorder(borderColor, lineWidth: 1)
             )
-            .overlay(alignment: .topTrailing) { printRunBadge }
-            .overlay(alignment: .bottomLeading) { formatLegalityHintBadge }
+            .overlay(alignment: .topTrailing) { if showCornerBadges { printRunBadge } }
+            .overlay(alignment: .bottomLeading) { if showCornerBadges { formatLegalityHintBadge } }
             .elementGlow(card.isSealed ? "NONE" : card.element)
     }
 
@@ -911,6 +920,9 @@ extension View {
 struct BOBACardGridItem: View {
     let card: Card
     var columnCount: Int = 2
+    /// Passed through to BOBACardCell — see its docstring. Collection
+    /// + Decks grid call sites pass false; Find keeps the default true.
+    var showCornerBadges: Bool = true
 
     /// 1- through 4-across cells render large enough that the 200px
     /// thumb pixelates noticeably — pull the ≤1200px full WebP at
@@ -928,7 +940,7 @@ struct BOBACardGridItem: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            BOBACardCell(card: card, size: imageSize)
+            BOBACardCell(card: card, size: imageSize, showCornerBadges: showCornerBadges)
             caption
         }
     }

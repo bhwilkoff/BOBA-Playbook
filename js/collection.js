@@ -769,18 +769,12 @@ const Collection = (() => {
     loadText.textContent = truncated
       ? `Loading first ${HARD_CAP} of ${originalCount} cards…`
       : `Loading ${resolved.length} card${resolved.length === 1 ? '' : 's'}…`;
-    // Show the truncation note in the dialog footer so the user
-    // knows what they're seeing.
+    // Truncation note is composed AFTER the image load completes —
+    // see the block right before the wire-actions section. Both
+    // truncation (HARD_CAP slice) and exclusion (per-card failures)
+    // need to land in this slot, so we batch the message there.
     const truncNote = document.getElementById('wall-truncation-note');
-    if (truncNote) {
-      if (truncated) {
-        truncNote.textContent = `Showing the first ${HARD_CAP} of ${originalCount} cards — Safari/Chrome canvas limits cap the render. Narrow the scope (e.g. filter to one designation) for a wall of every card.`;
-        truncNote.hidden = false;
-      } else {
-        truncNote.hidden = true;
-        truncNote.textContent = '';
-      }
-    }
+    if (truncNote) { truncNote.hidden = true; truncNote.textContent = ''; }
     // Footer-note copy is context-specific.
     const footerNote = document.getElementById('wall-footer-note');
     if (footerNote) {
@@ -797,49 +791,41 @@ const Collection = (() => {
       footerNote.textContent = copy;
     }
 
-    // Off-screen render plan. Square canvas, grid of card thumbs
-    // computed from total count. 5:7 aspect per card. 1080×1080
-    // output is a clean Instagram / Discord-share size.
-    const cols = Math.min(Math.max(Math.ceil(Math.sqrt(resolved.length * 1.4)), 3), 8);
-    const rows = Math.ceil(resolved.length / cols);
+    // Constants used by both the loader (for the loading text) and
+    // the grid math (after we know the final card count).
     const PAD = 16;
     const TITLE_H = titleInput.value.trim() ? 80 : 0;
     const cellAspect = 5 / 7;
-    // Width drives cell sizing — leave PAD margins + small gutters.
-    const cellW = Math.floor((canvas.width - PAD * 2 - (cols - 1) * 8) / cols);
-    const cellH = Math.floor(cellW / cellAspect);
-    // Resize canvas height to fit content exactly.
-    canvas.height = TITLE_H + PAD + rows * cellH + (rows - 1) * 8 + PAD;
-    const ctx = canvas.getContext('2d');
-
-    // (Background + title paint moved into drawWall below so toggling
-    // the overlay re-renders the whole canvas consistently.)
 
     // Image loader for the wall.
     //
-    // Three lessons from the post-scroll empty-cell bug:
+    // Background on the post-scroll empty-cell bug:
+    //   - crossOrigin='anonymous' fetches use a DIFFERENT browser cache
+    //     key than the no-crossOrigin <img> tags in the Collection
+    //     grid. Even though the grid just loaded these URLs, the
+    //     wall's CORS requests are all fresh fetches.
+    //   - Firing them all in parallel saturates the HTTP/2 pool to R2,
+    //     especially when scrolling the grid has left thumb requests
+    //     in flight. Cancellations / timeouts silently rendered as
+    //     blank cells.
     //
-    //   (a) crossOrigin='anonymous' fetches use a DIFFERENT browser
-    //       cache key than the no-crossOrigin <img> tags in the
-    //       Collection grid. Even though the grid just loaded these
-    //       URLs, the wall's CORS requests are all fresh fetches.
-    //       Switching to the THUMB URL keeps payload tiny (~10KB
-    //       vs ~80KB) so a burst is manageable even when the
-    //       browser's connection pool is already busy with lingering
-    //       lazy-loaded thumbs from a scrolled Collection grid. At
-    //       the 124-168px cell sizes the wall produces, the 200px
-    //       thumb is visually identical to the 1200px full anyway.
+    // Three mitigations:
+    //   (a) Use the THUMB URL — 10× smaller payload (~10KB vs ~80KB),
+    //       same CDN edge cache as the grid. At the 124-168px wall
+    //       cell sizes, visually identical to the full.
+    //   (b) Concurrency-limited loader (4 workers) so the burst is
+    //       gentle on the connection pool.
+    //   (c) Up to three retries per image, exponential backoff
+    //       (200ms → 600ms → 1500ms). Most transient cancellations
+    //       succeed on the second attempt.
     //
-    //   (b) Promise.all over 200 requests in one shot saturates the
-    //       HTTP/2 pool to R2; many requests time out / get cancelled
-    //       and silently render as blank cells. A small concurrency
-    //       limit (8) trades a few seconds of wait for actual success.
-    //
-    //   (c) Single retry on error catches transient cancellations
-    //       (R2/Cloudflare occasionally drops one in a burst). After
-    //       the second failure we resolve(null) and let drawWall
-    //       skip the cell, then surface the failure count to the user.
+    // AND — crucially — cards that STILL fail after all retries are
+    // DROPPED from the wall entirely. They're not rendered as empty
+    // cells; the grid is recomputed from the actual successful count
+    // so the user only ever sees real card art. The excluded count
+    // is surfaced in the truncation-note slot.
     let loaded = 0;
+    const RETRY_DELAYS_MS = [200, 600, 1500];
     const loadImage = (card) => new Promise((resolve) => {
       const tryLoad = (attempt) => {
         const img = new Image();
@@ -850,36 +836,60 @@ const Collection = (() => {
           resolve(img);
         };
         img.onerror = () => {
-          if (attempt === 0) {
-            // 400ms backoff, then retry once.
-            setTimeout(() => tryLoad(1), 400);
+          if (attempt < RETRY_DELAYS_MS.length) {
+            setTimeout(() => tryLoad(attempt + 1), RETRY_DELAYS_MS[attempt]);
           } else {
             loaded++;
             loadText.textContent = `Loaded ${loaded}/${resolved.length}…`;
             resolve(null);
           }
         };
-        // Prefer the thumb (cache-warm, tiny). Fall back to the
-        // full only if the catalog lacks a thumb URL for this card.
+        // Prefer the thumb (cache-warm, tiny). Fall back to full only
+        // if the catalog lacks a thumb URL for this card.
         img.src = API.cardThumbUrl(card) || API.cardFullUrl(card) || '';
       };
       tryLoad(0);
     });
 
-    // Concurrency-limited loader. 8 workers pull from a shared index;
-    // results land at the right slot so draw order stays stable.
-    const WALL_CONCURRENCY = 8;
-    const images = new Array(resolved.length);
+    // Concurrency-limited loader. 4 workers pull from a shared index;
+    // raw results land at their original slot before we filter.
+    const WALL_CONCURRENCY = 4;
+    const rawImages = new Array(resolved.length);
     let nextIdx = 0;
     const worker = async () => {
       while (true) {
         const idx = nextIdx++;
         if (idx >= resolved.length) return;
-        images[idx] = await loadImage(resolved[idx]);
+        rawImages[idx] = await loadImage(resolved[idx]);
       }
     };
     await Promise.all(Array.from({ length: WALL_CONCURRENCY }, worker));
-    const failedCount = images.reduce((n, img) => n + (img ? 0 : 1), 0);
+
+    // Drop failed loads from the wall entirely. Better UX than
+    // empty cells — the user only ever sees real card art. The
+    // grid math below uses the filtered count so cells are sized
+    // correctly for what actually rendered.
+    const excludedCount = rawImages.reduce((n, img) => n + (img ? 0 : 1), 0);
+    const pairs = resolved
+      .map((card, i) => ({ card, img: rawImages[i] }))
+      .filter(p => p.img != null);
+    resolved = pairs.map(p => p.card);
+    const images = pairs.map(p => p.img);
+
+    if (resolved.length === 0) {
+      loadText.textContent = 'Could not load any card images. Try again in a moment.';
+      return;
+    }
+
+    // Now that we know how many cards actually rendered, compute
+    // grid dimensions + size the canvas. Square canvas, 5:7 cells,
+    // 1080px wide (clean Instagram / Discord-share size).
+    const cols = Math.min(Math.max(Math.ceil(Math.sqrt(resolved.length * 1.4)), 3), 8);
+    const rows = Math.ceil(resolved.length / cols);
+    const cellW = Math.floor((canvas.width - PAD * 2 - (cols - 1) * 8) / cols);
+    const cellH = Math.floor(cellW / cellAspect);
+    canvas.height = TITLE_H + PAD + rows * cellH + (rows - 1) * 8 + PAD;
+    const ctx = canvas.getContext('2d');
 
     // Local render function — invoked initially and re-invoked when
     // the user toggles price overlay or changes price source.
@@ -982,14 +992,25 @@ const Collection = (() => {
     cpBtn.disabled = false;
     shBtn.disabled = false;
 
-    // Surface any image-load failures so the user understands why
-    // some cells are blank. Piggybacks the truncation-note slot so
-    // we don't add a new DOM element; messages are mutually exclusive
-    // (a wall is either truncated by the hard cap OR has some
-    // missing-image cells, not usually both).
-    if (failedCount > 0 && truncNote && truncNote.hidden) {
-      truncNote.textContent = `${failedCount} of ${resolved.length} card image${failedCount === 1 ? '' : 's'} failed to load. Close and re-open Wall to try again — this usually clears the next attempt.`;
-      truncNote.hidden = false;
+    // Compose the truncation-note message. Two reasons cards may be
+    // missing from the wall: the HARD_CAP slice, and per-card image-
+    // load failures that the loader filtered out (see above). Both
+    // can apply to the same wall, so compose rather than overwrite.
+    if (truncNote) {
+      const parts = [];
+      if (truncated) {
+        parts.push(`Showing the first ${HARD_CAP} of ${originalCount} cards — Safari/Chrome canvas limits cap the render. Narrow the scope (e.g. filter to one designation) for a wall of every card.`);
+      }
+      if (excludedCount > 0) {
+        parts.push(`${excludedCount} card image${excludedCount === 1 ? '' : 's'} couldn't be loaded and ${excludedCount === 1 ? 'was' : 'were'} skipped. Close and re-open Wall to try those again.`);
+      }
+      if (parts.length > 0) {
+        truncNote.textContent = parts.join(' ');
+        truncNote.hidden = false;
+      } else {
+        truncNote.hidden = true;
+        truncNote.textContent = '';
+      }
     }
 
     // Wire actions (clean any prior listeners by cloning).

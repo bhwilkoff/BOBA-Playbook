@@ -213,20 +213,27 @@ enum CardRegion {
         // v1 (0.55, 0.85, 0.45, 0.15) — caught newspaper-article body
         //   text on Blue Headlines Battlefoil cards alongside the
         //   ICE pill, drowning the canonical-element snap.
-        // v2 (0.70, 0.88, 0.30, 0.12) — tightens to the corner-pill
-        //   region. Skips body text on text-heavy treatments while
-        //   still catching the canonical-element pill on plain cards.
-        case (.element,     "Hero"):   return (0.70, 0.88, 0.30, 0.12)
+        // v2 (0.70, 0.88, 0.30, 0.12) — still caught BHBF body text.
+        // v3 (0.78, 0.90, 0.22, 0.10) — tight on the actual pill
+        //   coordinates (measured from BHBF-1 visual inspection:
+        //   pill at x≈0.84, y≈0.91). Paired with crop-then-3x-
+        //   upscale fallback in extractElement (Pass D) for cards
+        //   where the pill text is below Vision's 1x resolution.
+        case (.element,     "Hero"):   return (0.78, 0.90, 0.22, 0.10)
         // ── Play ───────────────────────────────────────────────
         case (.power,       "Play"):   return (0.55, 0.00, 0.45, 0.20)  // DBS / cost
         case (.cardNumber,  "Play"):   return (0.00, 0.88, 0.55, 0.12)
-        // Play name lives at the very top-LEFT, not top-center. The
-        // previous x=0.10 origin clipped the first letter on every
-        // Play in the validation pilot ("COPYCAT" → "OPYCAT",
-        // "MY IDOL" → "IY IDOL"). Width drops to 0.50 because the
-        // top-right corner of a Play has a "?" mystery icon + card
-        // position counter that pollutes a wider crop.
-        case (.name,        "Play"):   return (0.00, 0.00, 0.50, 0.18)
+        // Play name lives at the very top-LEFT, not top-center.
+        //  v1 (0.10, 0.00, 0.80, 0.18) — clipped leading letter on
+        //    every Play ("COPYCAT" → "OPYCAT").
+        //  v2 (0.00, 0.00, 0.50, 0.18) — fixed leading-letter but too
+        //    narrow for long names; "Hot Dog Stock Exchange" became
+        //    "HOT DOG STOCK EXCI", "Competitive Disadvantage" became
+        //    "COMPETITIVE DISAD".
+        //  v3 (0.00, 0.00, 0.75, 0.18) — wider catches the full name
+        //    on long-name Plays; subtitle blocklist still filters out
+        //    "FIRST EDITION" + the cost number on the top-right.
+        case (.name,        "Play"):   return (0.00, 0.00, 0.75, 0.18)
         case (.serial,      "Play"):   return (0.00, 0.00, 0.00, 0.00)  // n/a
         case (.treatment,   "Play"):   return (0.00, 0.92, 1.00, 0.08)
         // ── HotDog ─────────────────────────────────────────────
@@ -235,8 +242,8 @@ enum CardRegion {
         case (.name,        "HotDog"): return (0.10, 0.00, 0.80, 0.18)
         case (.serial,      "HotDog"): return (0.00, 0.00, 0.00, 0.00)
         case (.treatment,   "HotDog"): return (0.00, 0.92, 1.00, 0.08)
-        case (.element,     "HotDog"): return (0.70, 0.88, 0.30, 0.12)
-        case (.element,     "Play"):   return (0.70, 0.88, 0.30, 0.12)
+        case (.element,     "HotDog"): return (0.78, 0.90, 0.22, 0.10)
+        case (.element,     "Play"):   return (0.78, 0.90, 0.22, 0.10)
         // ── Default fallback (also Sealed if it slips through) ─
         default:                       return (0.00, 0.00, 1.00, 1.00)
         }
@@ -287,6 +294,23 @@ func upscaled(_ cgImage: CGImage, factor: Int) -> CGImage {
     return ciContext.createCGImage(ci, from: ci.extent) ?? cgImage
 }
 
+/// Crop image to the normalized ROI (image-space, origin TOP-LEFT)
+/// then upscale the crop by `factor`. Cheaper than upscaling the
+/// whole image — used by element + serial extractors that want
+/// extreme zoom on a tiny pill without OOMing Vision.
+func croppedAndUpscaled(_ cgImage: CGImage, roi: ImageROI, factor: Int) -> CGImage {
+    let w = CGFloat(cgImage.width)
+    let h = CGFloat(cgImage.height)
+    let cropRect = CGRect(
+        x: roi.x * w,
+        y: roi.y * h,
+        width: roi.w * w,
+        height: roi.h * h
+    )
+    guard let cropped = cgImage.cropping(to: cropRect) else { return cgImage }
+    return upscaled(cropped, factor: factor)
+}
+
 /// Run a Vision text-recognition pass with custom vocab + ROI.
 /// Returns observations sorted by confidence descending.
 func runOCR(
@@ -318,13 +342,18 @@ struct FieldResult: Codable {
 }
 
 let PLAUSIBLE_POWERS: [String] = stride(from: 55, through: 250, by: 5).map { String($0) }
-// Prefix-dash-number form (ABF-100, BHBF-37, CHILL-50). Pilot run showed
-// the previous single-letter prefix tolerance produced false positives
-// where Vision misread bare-digit cards like "115" as "T-15". Require
-// prefix length ≥ 2 to drop those. Bare-number cardNumbers (1, 47, 100)
-// aren't printed on Base Set art and are left to the catalog as
-// authoritative — no OCR attempt for them.
-let CARD_NUMBER_REGEX = #/([A-Z]{2,6})-?([A-Z]?\d{1,4})(?:[-/](\d{1,4}))?/#
+// Prefix-dash-number form (ABF-100, BHBF-37, CHILL-50). The suffix
+// allows letters as well as digits because Vision routinely returns
+// OCR-confused versions on stylized prints — "BLBF-Z" for "BLBF-2",
+// "R8F-13" for "RBF-13", "CHILL-S" for "CHILL-5", "CHILL-B" for
+// "CHILL-13". Reconciliation's normalize_card_number applies digit-
+// letter homoglyph mapping before comparing against catalog, so these
+// near-matches MATCH instead of leaking to NULL_OCR.
+//
+// Bare-number cardNumbers (1, 47, 100) aren't printed on Base Set
+// art and are left to the catalog as authoritative — no OCR attempt
+// for them (prefix length ≥ 2 required).
+let CARD_NUMBER_REGEX = #/([A-Z]{2,6})-?([A-Z0-9]{1,4})(?:[-/]([A-Z0-9]{1,4}))?/#
 let SERIAL_REGEX = #/(\d{1,3})\s*/\s*(\d{1,3})/#
 
 /// Extract printed power (top-right large digit). Three-pass + voting.
@@ -414,14 +443,19 @@ func extractPower(originalImage: CGImage, enhancedImage: CGImage, cardType: Stri
 }
 
 /// Extract printed cardNumber (e.g. "ABF-248"). Bottom-left region.
+/// When `expectedPrefix` is supplied (from the imageFile name — the
+/// audit pipeline always has it), the extractor REQUIRES that the
+/// OCR'd prefix match it. Without this gate Vision's relaxed regex
+/// happily matches trademark text like "BO JACKSON" → "JACKSO-N" as
+/// a prefix-dash-suffix pattern and pollutes the audit with hundreds
+/// of spurious cardNumber values.
 func extractCardNumber(originalImage: CGImage, cardType: String, expectedPrefix: String? = nil) -> FieldResult {
     let roi = visionROI(from: CardRegion.cardNumber.roi(for: cardType))
-    // Bias vocab with the expected prefix if we have one (from the
-    // imageFile name); helps Vision pick canonical glyphs over noise.
     let vocab = expectedPrefix.map { [$0] } ?? []
     let observations = runOCR(image: originalImage, roi: roi, customWords: vocab)
     var all: [String] = []
     var best: (String, Float)? = nil
+    let wantPrefix = expectedPrefix?.uppercased()
     for obs in observations {
         for cand in obs.topCandidates(3) {
             let raw = cand.string
@@ -432,6 +466,16 @@ func extractCardNumber(originalImage: CGImage, cardType: String, expectedPrefix:
             if let m = raw.firstMatch(of: CARD_NUMBER_REGEX) {
                 let prefix = String(m.output.1)
                 let body = String(m.output.2)
+                // PREFIX GATE — require exact prefix match against the
+                // imageFile-derived expected prefix. Length-only matching
+                // accepted unrelated same-length tokens ("DEBU" for
+                // expected "BLBF"). Exact-match catches the main fuzzy-
+                // suffix cases ("BLBF-Z" for "BLBF-2"). A few rare OCR
+                // prefix mis-reads ("R8F" for "RBF") fall through to
+                // NULL_OCR — acceptable since they'd still hit the
+                // human review queue at honest LOW_CONF rather than
+                // injecting a fake "I matched something" signal.
+                if let want = wantPrefix, prefix != want { continue }
                 let combined = "\(prefix)-\(body)"
                 let score = cand.confidence
                 if best == nil || score > best!.1 {
@@ -685,8 +729,26 @@ func extractElement(originalImage: CGImage, enhancedImage: CGImage, cardType: St
     let passC = pickElement(runOCR(image: enhancedImage, roi: roi,
                                    customWords: CANONICAL_ELEMENTS),
                             collecting: &all)
+    // PASS D — pill-only crop-then-4x upscale. The standard element
+    // region (0.78, 0.90, 0.22, 0.10) catches both the pill AND
+    // surrounding artwork; on BHBF (Blue Headlines Battlefoil) the
+    // surrounding artwork is newspaper-article body text that Vision
+    // happily reads ("ICIAL.", "SPEAKING") and out-competes the
+    // small ICE pill for OCR attention. This pass uses a TIGHTER
+    // region (0.80, 0.91, 0.13, 0.06) that's just the pill itself,
+    // upscaled 4x. Standalone test showed Vision then returns
+    // "*** ICE" (the snowflake icon as ***, then the canonical
+    // element), which the snap-to-canonical filter catches.
+    let pillROI: ImageROI = (0.80, 0.91, 0.13, 0.06)
+    let pillCrop4x = croppedAndUpscaled(originalImage, roi: pillROI, factor: 4)
+    let passD = pickElement(runOCR(image: pillCrop4x,
+                                   // ROI inside the already-cropped image is the full frame.
+                                   roi: nil,
+                                   customWords: CANONICAL_ELEMENTS,
+                                   minimumTextHeight: 0.05),
+                            collecting: &all)
     var votes: [String: (count: Int, score: Float)] = [:]
-    for pass in [passA, passB, passC] {
+    for pass in [passA, passB, passC, passD] {
         guard let p = pass else { continue }
         var e = votes[p.0] ?? (0, 0)
         e.count += 1

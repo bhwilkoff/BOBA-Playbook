@@ -12,11 +12,11 @@
 name: pipeline · stage B · recognize
 
 on:
-  # Daily 04:00 UTC — runs 30 min after the last Stage A cron
-  # (Radish 03:30) so it picks up the freshly-queued candidates from
-  # all three sources (BV 02:30, eBay 03:00, Radish 03:30). Stage C
-  # auto-chains. Public repo means macOS runner minutes are free; the
-  # cost is ~30 min/day of compute well under any limit.
+  # Daily 04:00 UTC — runs 30 min after the eBay Stage A cron so it
+  # picks up the freshly-queued candidates from both remaining Stage A
+  # sources (BV 02:30, eBay 03:00). Stage C auto-chains. Public repo
+  # means macOS runner minutes are free; the cost is ~30 min/day of
+  # compute well under any limit.
   schedule:
     - cron: '0 4 * * *'
 

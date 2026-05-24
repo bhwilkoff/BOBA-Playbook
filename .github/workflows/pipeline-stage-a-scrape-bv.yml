@@ -19,7 +19,7 @@ on:
         default: '500'
   schedule:
     # Daily at 02:30 UTC — runs first since BV has the highest yield;
-    # eBay (03:00) and Radish (03:30) follow to cover gaps.
+    # eBay (03:00) follows to cover gaps.
     - cron: '30 2 * * *'
 
 permissions:

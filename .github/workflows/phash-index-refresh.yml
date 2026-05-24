@@ -7,9 +7,9 @@ name: pHash index weekly refresh
 # prunes any whose card was removed from cards.json. Opens a PR when
 # the file changes; no-op (exits ~10s) when the catalog hasn't grown.
 #
-# Schedule: Tuesdays at 14:00 UTC (08:00 MT) — one day after Mondays
-# Radish refresh so any new cards Radish surfaced have already been
-# baked into cards.json.
+# Schedule: Tuesdays at 14:00 UTC (08:00 MT) — gives the prior day's
+# BV / eBay backfill runs time to land any newly-sourced art in
+# cards.json before the phash index regenerates against it.
 
 on:
   schedule:

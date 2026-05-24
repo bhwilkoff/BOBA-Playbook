@@ -179,8 +179,17 @@ enum CardRegion {
     func roi(for cardType: String) -> ImageROI {
         switch (self, cardType) {
         // ── Hero ───────────────────────────────────────────────
-        // top-right power glyph (matches audit_card_powers.swift)
-        case (.power,       "Hero"):   return (0.55, 0.00, 0.45, 0.30)
+        // Top-right power glyph. Iteration history:
+        //  v1 (0.55, 0.00, 0.45, 0.30) — original. Dropped leading "1"
+        //   on 3-digit powers (ABF-31-Pudge 180 → 80).
+        //  v2 (0.45, 0.00, 0.55, 0.40) — too tall. Caught jersey
+        //   numbers (141-Wattage 115 → 90 from his uniform).
+        //  v3 (0.50, 0.00, 0.50, 0.30) — sweet spot empirically. Wide
+        //   enough for leading "1"; short enough that body / jersey
+        //   numbers stay below the crop. Pairs with the 2x upscale
+        //   pass in extractPower to recover thin-stroke leading
+        //   digits on stylized backgrounds.
+        case (.power,       "Hero"):   return (0.50, 0.00, 0.50, 0.30)
         case (.cardNumber,  "Hero"):   return (0.00, 0.85, 0.55, 0.15)
         case (.name,        "Hero"):   return (0.05, 0.00, 0.55, 0.20)
         case (.serial,      "Hero"):   return (0.15, 0.55, 0.70, 0.30)
@@ -216,6 +225,21 @@ func preprocessed(_ cgImage: CGImage) -> CGImage {
         .applyingFilter("CIUnsharpMask",   parameters: [
             "inputRadius":    Float(2.0),
             "inputIntensity": Float(0.6),
+        ])
+    return ciContext.createCGImage(ci, from: ci.extent) ?? cgImage
+}
+
+/// Lanczos upscale by an integer factor. Standalone test confirmed
+/// 2x upscale recovers the leading "1" Vision dropped on ABF-31-Pudge
+/// (catalog 180, original-size OCR returned only "80"). Same upscale
+/// also eliminates garbled digit-with-dashes candidates that mislead
+/// the scoring on 142-Spider (catalog 115, original OCR returned a
+/// spurious "13-0-0-3" alongside the correct "115").
+func upscaled(_ cgImage: CGImage, factor: Int) -> CGImage {
+    let ci = CIImage(cgImage: cgImage)
+        .applyingFilter("CILanczosScaleTransform", parameters: [
+            "inputScale":       Float(factor),
+            "inputAspectRatio": Float(1.0),
         ])
     return ciContext.createCGImage(ci, from: ci.extent) ?? cgImage
 }
@@ -260,36 +284,90 @@ let PLAUSIBLE_POWERS: [String] = stride(from: 55, through: 250, by: 5).map { Str
 let CARD_NUMBER_REGEX = #/([A-Z]{2,6})-?([A-Z]?\d{1,4})(?:[-/](\d{1,4}))?/#
 let SERIAL_REGEX = #/(\d{1,3})\s*/\s*(\d{1,3})/#
 
-/// Extract printed power (top-right large digit).
+/// Extract printed power (top-right large digit). Three-pass + voting.
+///
+/// Pass A — original image, ROI cropped, .accurate
+/// Pass B — 2x Lanczos upscale, ROI cropped, .accurate
+///   Pilot test confirmed 2x upscale recovers cards where Vision drops
+///   a leading "1" on stylized power glyphs (e.g. ABF-31-Pudge "180"
+///   → "80" without upscale).
+/// Pass C — enhanced (gamma+contrast+unsharp) original, ROI cropped,
+///   .accurate. Only consulted if A+B disagree.
+///
+/// Scoring: pure-digit candidates ("115") win heavily over candidates
+/// where digits had to be extracted around non-digit noise
+/// ("13-0-0-3" → 130). Without this preference, garbled candidates
+/// tied at the same Vision confidence as clean ones and last-write-wins
+/// produced false-positive mismatches on the pilot.
+///
+/// HIGH-CONFIDENCE returns: ≥2 passes agree on the same integer. Else
+/// the result is downgraded (confidence × 0.6) so reconciliation routes
+/// it to REVIEW instead of UPDATES.
 func extractPower(originalImage: CGImage, enhancedImage: CGImage, cardType: String) -> FieldResult {
     let roi = visionROI(from: CardRegion.power.roi(for: cardType))
-    var observations: [VNRecognizedTextObservation] = []
-    observations += runOCR(image: originalImage, roi: roi, customWords: PLAUSIBLE_POWERS)
-    if observations.isEmpty {
-        observations += runOCR(image: enhancedImage, roi: roi, customWords: PLAUSIBLE_POWERS)
-        observations += runOCR(image: enhancedImage, roi: roi, customWords: PLAUSIBLE_POWERS, level: .fast)
-    }
-    var all: [String] = []
-    var best: (Int, Float)? = nil
-    for obs in observations {
-        for cand in obs.topCandidates(3) {
-            let raw = cand.string.trimmingCharacters(in: .whitespacesAndNewlines)
-            all.append(raw)
-            // Pull leading or trailing digit run from the candidate.
-            for digits in [leadingDigits(raw), trailingDigits(raw)] {
-                guard digits.count >= 2, digits.count <= 3,
-                      let val = Int(digits), val >= 55, val <= 250 else { continue }
-                let canonical: Float = (val % 5 == 0) ? 1.0 : 0.7
-                let score = cand.confidence * canonical
-                if best == nil || score > best!.1 { best = (val, score) }
-                break
+    let upscaledImage = upscaled(originalImage, factor: 2)
+
+    func bestFrom(_ observations: [VNRecognizedTextObservation], collecting: inout [String]) -> (Int, Float)? {
+        var best: (val: Int, score: Float)? = nil
+        for obs in observations {
+            for cand in obs.topCandidates(3) {
+                let raw = cand.string.trimmingCharacters(in: .whitespacesAndNewlines)
+                collecting.append(raw)
+                // PURE-DIGIT candidates score 1.5x — they're clean
+                // glyph reads, not digits-rescued-from-noise.
+                let digitsOnly = raw.allSatisfy { $0.isNumber } && raw.count >= 2 && raw.count <= 3
+                let cleanBonus: Float = digitsOnly ? 1.5 : 1.0
+                for digits in [leadingDigits(raw), trailingDigits(raw)] {
+                    guard digits.count >= 2, digits.count <= 3,
+                          let val = Int(digits), val >= 55, val <= 250 else { continue }
+                    let canonical: Float = (val % 5 == 0) ? 1.0 : 0.5
+                    let score = cand.confidence * canonical * cleanBonus
+                    if best == nil || score > best!.score { best = (val, score) }
+                    break
+                }
             }
         }
+        return best
     }
-    if let b = best {
-        return FieldResult(value: "\(b.0)", intValue: b.0, confidence: b.1, candidates: all)
+
+    var allCands: [String] = []
+    let passA = bestFrom(runOCR(image: originalImage, roi: roi,
+                                customWords: PLAUSIBLE_POWERS),
+                         collecting: &allCands)
+    let passB = bestFrom(runOCR(image: upscaledImage, roi: roi,
+                                customWords: PLAUSIBLE_POWERS),
+                         collecting: &allCands)
+    let passC = bestFrom(runOCR(image: enhancedImage, roi: roi,
+                                customWords: PLAUSIBLE_POWERS),
+                         collecting: &allCands)
+
+    // Voting: tally agreements per integer value across passes.
+    var votes: [Int: (count: Int, bestScore: Float)] = [:]
+    for pass in [passA, passB, passC] {
+        guard let p = pass else { continue }
+        var entry = votes[p.0] ?? (0, 0)
+        entry.count += 1
+        entry.bestScore = max(entry.bestScore, p.1)
+        votes[p.0] = entry
     }
-    return FieldResult(value: nil, intValue: nil, confidence: 0, candidates: all)
+
+    // Winner: most votes, ties broken by best score.
+    let winner = votes.max { a, b in
+        if a.value.count != b.value.count { return a.value.count < b.value.count }
+        return a.value.bestScore < b.value.bestScore
+    }
+
+    guard let w = winner else {
+        return FieldResult(value: nil, intValue: nil, confidence: 0, candidates: allCands)
+    }
+    let agreeCount = w.value.count
+    // ≥2 passes agree → trust full score. Single-pass survivor →
+    // downgrade so reconciliation flags it for human review.
+    let confidence = agreeCount >= 2
+        ? min(1.0, w.value.bestScore / 1.5)
+        : min(0.6, w.value.bestScore / 1.5 * 0.6)
+    return FieldResult(value: "\(w.key)", intValue: w.key,
+                       confidence: confidence, candidates: allCands)
 }
 
 /// Extract printed cardNumber (e.g. "ABF-248"). Bottom-left region.

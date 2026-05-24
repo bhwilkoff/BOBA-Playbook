@@ -51,6 +51,13 @@ CDN_BASE_DEFAULT = "https://pub-d2cb69f3a56c44a6b98f5e3975bc44c2.r2.dev"
 HIGH_CONF = 0.85
 MED_CONF = 0.50
 
+# Minimum fraction of cards in a prefix bucket that must share one
+# treatment for that prefix → treatment derivation to be "trusted".
+# 0.95 keeps deterministic prefixes (ABF→Alpha Battlefoil at 100%,
+# CHILL→Chillin' Battlefoil at 100%) while excluding ambiguous ones
+# (BL → 17%-dominant Blue Blast, BLC → 33%-dominant Grape).
+PREFIX_TREATMENT_THRESHOLD = 0.95
+
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
@@ -96,6 +103,14 @@ def field_status(ocr_value, ocr_conf: float, catalog_value,
                       is set-position metadata, not artwork). Drops
                       out of the REVIEW bucket so we don't drown the
                       report in false positives.
+
+    Key policy: **agreement between OCR and catalog returns MATCH
+    regardless of OCR confidence.** The match itself is the
+    validation — low-confidence OCR that happens to land on the
+    catalog value (after multi-pass voting + region scoring) is
+    still corroboration. Only DISAGREEMENT needs high confidence to
+    bucket as MISMATCH (since a confident-disagreement is what
+    becomes a UPDATES patch); low-confidence disagreement is REVIEW.
     """
     if not ocr_extractable:
         return "NOT_EXTRACTABLE"
@@ -103,12 +118,13 @@ def field_status(ocr_value, ocr_conf: float, catalog_value,
         if catalog_value is None or catalog_value == "":
             return "OK_NULL"
         return "NULL_OCR"  # catalog has value, OCR didn't find one
-    if ocr_conf < MED_CONF:
-        return "LOW_CONF"
-    # Both have values — compare.
     if normalize_text(ocr_value) == normalize_text(catalog_value):
-        return "MATCH" if ocr_conf >= HIGH_CONF else "LOW_CONF"
-    return "MISMATCH" if ocr_conf >= HIGH_CONF else "LOW_CONF"
+        return "MATCH"
+    # Disagreement: only flag as MISMATCH if OCR is confident enough
+    # that the catalog is probably the one that's wrong.
+    if ocr_conf < HIGH_CONF:
+        return "LOW_CONF"
+    return "MISMATCH"
 
 
 # Bare-digit cardNumbers (1, 47, 115, …) are set-position metadata,
@@ -126,11 +142,11 @@ def card_number_extractable(catalog_card_number) -> bool:
 def power_status(ocr_int, ocr_conf: float, catalog_int) -> str:
     if ocr_int is None:
         return "OK_NULL" if catalog_int is None else "NULL_OCR"
-    if ocr_conf < MED_CONF:
-        return "LOW_CONF"
     if ocr_int == catalog_int:
-        return "MATCH" if ocr_conf >= HIGH_CONF else "LOW_CONF"
-    return "MISMATCH" if ocr_conf >= HIGH_CONF else "LOW_CONF"
+        return "MATCH"  # agreement = corroboration; conf doesn't matter
+    if ocr_conf < HIGH_CONF:
+        return "LOW_CONF"
+    return "MISMATCH"
 
 
 def bucket_for(statuses: dict[str, str]) -> str:
@@ -143,15 +159,55 @@ def bucket_for(statuses: dict[str, str]) -> str:
     return "CONFIRMS"
 
 
+def build_prefix_treatment_map(catalog: list[dict]) -> dict[str, str]:
+    """Survey catalog for prefix → dominant-treatment. Returns only
+    prefixes where the dominant treatment covers ≥ PREFIX_TREATMENT_
+    THRESHOLD of cards (so we don't propose UPDATES on prefixes where
+    treatment genuinely varies, like BL → both Blue Blast + others)."""
+    counts: dict[str, Counter] = {}
+    for c in catalog:
+        if c.get("cardType") != "Hero":
+            continue
+        cn = c.get("cardNumber", "") or ""
+        tr = c.get("treatment")
+        if not cn or not tr:
+            continue
+        m = re.match(r"^([A-Z]+)-", cn)
+        if not m:
+            continue
+        counts.setdefault(m.group(1), Counter())[tr] += 1
+    out: dict[str, str] = {}
+    for prefix, ctr in counts.items():
+        total = sum(ctr.values())
+        top, top_n = ctr.most_common(1)[0]
+        if top_n / total >= PREFIX_TREATMENT_THRESHOLD:
+            out[prefix] = top
+    return out
+
+
+def derive_treatment(card_number: str | None,
+                     prefix_map: dict[str, str]) -> str | None:
+    """Return the prefix-derived treatment for this card, or None if
+    the prefix isn't in the trusted map. Used to flag catalogs whose
+    treatment field disagrees with what the cardNumber prefix says."""
+    if not card_number:
+        return None
+    m = re.match(r"^([A-Z]+)-", str(card_number))
+    if not m:
+        return None
+    return prefix_map.get(m.group(1))
+
+
 def reconcile(catalog: list[dict], ocr_results: list[dict],
               cdn_base: str) -> dict:
     catalog_by_id = {c["bobaId"]: c for c in catalog if c.get("bobaId")}
     ocr_by_id = {r["bobaId"]: r for r in ocr_results if r.get("bobaId")}
+    prefix_treatment_map = build_prefix_treatment_map(catalog)
 
     confirms, updates, review = [], [], []
     needs_image = []
     per_field_stats: dict[str, Counter] = {
-        f: Counter() for f in ("cardNumber", "name", "power", "serial")
+        f: Counter() for f in ("cardNumber", "name", "power", "serial", "element", "treatment")
     }
 
     for card in catalog:
@@ -180,13 +236,31 @@ def reconcile(catalog: list[dict], ocr_results: list[dict],
                 ocr["power"].get("intValue"),
                 ocr["power"].get("confidence", 0.0),
                 card.get("power"),
+            ) if card.get("cardType") == "Hero" else "NOT_EXTRACTABLE",
+            # Serial is INFORMATIONAL — catalog doesn't store the
+            # printed serial number, only the isInspiredInk boolean.
+            # The OCR'd serial gets surfaced in the audit row for
+            # human reference (e.g. verifying that IK denominators
+            # follow the Hex /5, Glow /10, Fire /25, Ice /50 rule per
+            # DECISIONS.md #028), but doesn't drive a match/mismatch
+            # status. Cross-check happens in the HTML review report.
+            "serial": "NOT_EXTRACTABLE",
+            "element": field_status(
+                (ocr.get("element") or {}).get("value"),
+                (ocr.get("element") or {}).get("confidence", 0.0),
+                card.get("element"),
             ),
-            "serial": field_status(
-                ocr["serial"].get("value"),
-                ocr["serial"].get("confidence", 0.0),
-                # Catalog doesn't store the printed serial — only the
-                # boolean isInspiredInk. Serial OCR is presence-only.
-                None,
+            # Treatment is derived from cardNumber prefix (which IS
+            # printed on the card art), not OCR'd separately. Confidence
+            # is implicitly 1.0 for trusted prefixes (≥95% catalog-
+            # consistent) and NOT_EXTRACTABLE for ambiguous ones (BL,
+            # BLC, SK where the prefix maps to multiple treatments).
+            "treatment": field_status(
+                derive_treatment(card.get("cardNumber"), prefix_treatment_map),
+                1.0,
+                card.get("treatment"),
+                ocr_extractable=derive_treatment(
+                    card.get("cardNumber"), prefix_treatment_map) is not None,
             ),
         }
         for f, s in statuses.items():
@@ -240,20 +314,29 @@ def build_patch(updates: list[dict]) -> dict:
         for field, status in u["statuses"].items():
             if status != "MISMATCH":
                 continue
+            ocr_field = u.get("ocr", {}).get(field) or {}
             if field == "cardNumber":
-                changes["cardNumber"] = u["ocr"]["cardNumber"]["value"]
+                changes["cardNumber"] = ocr_field.get("value")
             elif field == "name":
-                changes["name"] = u["ocr"]["name"]["value"]
+                changes["name"] = ocr_field.get("value")
             elif field == "power":
-                changes["power"] = u["ocr"]["power"]["intValue"]
+                changes["power"] = ocr_field.get("intValue")
+            elif field == "element":
+                changes["element"] = ocr_field.get("value")
+            elif field == "treatment":
+                # Treatment isn't OCR'd — comes from prefix derivation
+                # in the statuses pass. We don't write changes for
+                # treatment automatically; flag in evidence so a human
+                # can decide whether the catalog or the prefix is right.
+                changes["treatment"] = u["catalog"].get("_derived_treatment")
             elif field == "serial":
                 # Serial isn't stored in catalog; record only as evidence.
                 continue
             evidence[field] = {
-                "ocr_value": u["ocr"][field].get("value")
-                             if field != "power"
-                             else u["ocr"][field].get("intValue"),
-                "ocr_confidence": u["ocr"][field].get("confidence"),
+                "ocr_value": ocr_field.get("value")
+                             if field not in {"power"}
+                             else ocr_field.get("intValue"),
+                "ocr_confidence": ocr_field.get("confidence"),
                 "catalog_value": u["catalog"].get(field),
             }
         if changes:
@@ -277,11 +360,12 @@ def build_review_html(review: list[dict], updates: list[dict]) -> str:
         statuses_html = ""
         for f, s in e["statuses"].items():
             cat = e["catalog"].get(f) if f != "serial" else "—"
+            ocr_field = e.get("ocr", {}).get(f) or {}
             if f == "power":
-                ocr = e["ocr"][f].get("intValue")
+                ocr = ocr_field.get("intValue")
             else:
-                ocr = e["ocr"][f].get("value")
-            conf = e["ocr"][f].get("confidence", 0)
+                ocr = ocr_field.get("value")
+            conf = ocr_field.get("confidence", 0)
             color = {"MATCH": "#4CAF50", "MISMATCH": "#FF4D00",
                      "LOW_CONF": "#FFC107", "NULL_OCR": "#9E9E9E",
                      "OK_NULL": "#9E9E9E"}.get(s, "#fff")

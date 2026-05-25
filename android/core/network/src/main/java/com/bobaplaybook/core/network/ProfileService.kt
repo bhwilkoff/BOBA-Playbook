@@ -40,11 +40,20 @@ class ProfileService @Inject constructor(
 
     /**
      * One-shot fetch of every user_profiles field that drives the
-     * Profile sheet. Direct PostgREST select; RLS scopes to own-row.
+     * Profile sheet. Filters by the current user_id explicitly —
+     * "RLS scopes to own-row" is NOT enough because the
+     * "admins read all profiles" PERMISSIVE policy lets the admin
+     * role read every row in the table. With no explicit filter and
+     * `limit(1)`, an admin sees an arbitrary OTHER user's profile
+     * (Ben hit this on 2026-05-25 — his admin account showed
+     * `bsullivan322`'s username instead of his own `bhwilkoff`).
+     *
      * Mirrors iOS SupabaseClient.swift fetchProfile() shape.
      */
     suspend fun fetchUserProfile(): UserProfile? =
         runCatching {
+            val userId = supabase.auth.currentUserOrNull()?.id
+                ?: return@runCatching null
             val rows = supabase.postgrest.from("user_profiles")
                 .select(io.github.jan.supabase.postgrest.query.Columns.list(
                     "username", "public_collection_enabled", "notifications_enabled",
@@ -52,6 +61,7 @@ class ProfileService @Inject constructor(
                     "avatar_url", "requested_role", "requested_role_at",
                     "role",
                 )) {
+                    filter { eq("user_id", userId) }
                     limit(1)
                 }
                 .decodeList<UserProfileRow>()

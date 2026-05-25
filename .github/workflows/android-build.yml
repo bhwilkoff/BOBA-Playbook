@@ -110,7 +110,20 @@ jobs:
           UPLOAD_KEY_ALIAS:         boba-upload
           MAPS_API_KEY:             ${{ secrets.MAPS_API_KEY }}
         run: ./gradlew :app:bundleRelease --no-daemon
+      # Always upload the signed AAB as a CI artifact — even when the
+      # Play Console API upload (below) fails for the known "API
+      # access UI missing" issue (memory: reference_play_console_api_
+      # access_missing). Ben downloads from this artifact + uploads
+      # manually to Play Console.
+      - name: Upload signed AAB artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
       - name: Upload to Play Store (Internal Testing)
+        continue-on-error: true   # Play Console API access often blocked
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}

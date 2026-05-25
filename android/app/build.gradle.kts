@@ -45,8 +45,10 @@ android {
         targetSdk = libs.versions.target.sdk.get().toInt()
         // versionCode + versionName auto-managed by CI / Play Console release flow
         // (See ANDROID-DEV.md §13.2). Bumped locally only for sideload smoke-tests.
-        versionCode = 1
-        versionName = "0.1.0"
+        // 2026-05-25: bumped to 2 / 0.1.1 for first Play Console closed-testing
+        // upload after the bobaId v3 migration + Collection-empty bug fixes.
+        versionCode = 2
+        versionName = "0.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }

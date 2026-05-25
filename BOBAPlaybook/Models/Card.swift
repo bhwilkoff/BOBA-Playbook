@@ -240,19 +240,24 @@ extension Card {
 
 extension Card {
     /// Canonical card identifier matching `scripts/boba_id.py`'s
-    /// 4-field v2 formula:
-    ///   `cardNumber-(hero or name)-(treatment or "")-(variation or "")`
+    /// 5-field v3 formula:
+    ///   `cardNumber-(hero or name)-(treatment or "")-(variation or "")-(element or "")`
+    /// The 5th field is the card's WEAPON (catalog stores it under the
+    /// legacy field name `element` per DECISIONS.md #027). Added
+    /// 2026-05-25 to disambiguate FIRE-weapon vs GLOW-weapon variant
+    /// siblings that share otherwise-identical (cardNumber, hero,
+    /// treatment, variation). Without weapon in the bobaId, the
+    /// catalog needed to use distinct cardNumbers as a workaround for
+    /// those pairs.
     /// Sealed products use `name` when `hero` is empty. Trailing
     /// dashes are intentional and stable. CLAUDE.md "One ID per
-    /// Card" — this is the primary key for the catalog. Verified
-    /// 17,739 unique values across the bundle (zero collisions).
+    /// Card" — this is the primary key for the catalog.
     ///
     /// Computed at runtime rather than decoded — the formula is
     /// deterministic so the value matches the `bobaId` stored in
-    /// the JSON bundles. Older bundles that pre-date the field
-    /// still resolve to the same id.
+    /// the JSON bundles.
     var bobaId: String {
         let identifier = hero.isEmpty ? name : hero
-        return "\(cardNumber)-\(identifier)-\(treatment ?? "")-\(variation ?? "")"
+        return "\(cardNumber)-\(identifier)-\(treatment ?? "")-\(variation ?? "")-\(element)"
     }
 }

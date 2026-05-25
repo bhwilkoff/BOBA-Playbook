@@ -107,17 +107,26 @@ data class Card(
     @SerialName("isInspiredInk") val isInspiredInk: Boolean = false,
 ) {
     /**
-     * Canonical card identifier — matches `scripts/boba_id.py` v2 formula
-     * and iOS `Card.bobaId`. CLAUDE.md "One ID per Card" — this is the
-     * primary key.
+     * Canonical card identifier — matches `scripts/boba_id.py` v3
+     * formula and iOS `Card.bobaId`. CLAUDE.md "One ID per Card" — this
+     * is the primary key.
      *
-     * Sealed products fall back to `name` when `hero` is empty. Trailing
-     * dashes are intentional and stable.
+     * 5-field formula:
+     *   cardNumber-(hero|name)-treatment-variation-element
+     *
+     * The 5th field is the card's WEAPON (catalog stores it under the
+     * legacy field name `element` per DECISIONS.md #027). Added
+     * 2026-05-25 to disambiguate FIRE-weapon vs GLOW-weapon variant
+     * siblings that share otherwise-identical (cardNumber, hero,
+     * treatment, variation).
+     *
+     * Sealed products fall back to `name` when `hero` is empty.
+     * Trailing dashes are intentional and stable.
      */
     val bobaId: String
         get() = bobaIdField ?: run {
             val identifier = hero.ifEmpty { name }
-            "$cardNumber-$identifier-${treatment.orEmpty()}-${variation.orEmpty()}"
+            "$cardNumber-$identifier-${treatment.orEmpty()}-${variation.orEmpty()}-$element"
         }
 
     /** True for sealed-product entries (no hero, has a name like "Booster Box"). */

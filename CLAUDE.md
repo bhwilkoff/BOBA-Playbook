@@ -13,14 +13,22 @@ exactly one canonical image (`imageFile`). No two cards share either.
 All scripts, tools, lookups, corrections, and UIs disambiguate by
 `bobaId` whenever possible — it is the primary key for the card catalog.
 
-**`bobaId` formula** (v2, 4-field, lives in `scripts/boba_id.py` — do
+**`bobaId` formula** (v3, 5-field, lives in `scripts/boba_id.py` — do
 not redefine inline anywhere):
 ```python
-bobaId = f"{cardNumber}-{hero or name}-{treatment or ''}-{variation or ''}"
+bobaId = f"{cardNumber}-{hero or name}-{treatment or ''}-{variation or ''}-{element or ''}"
 ```
 Sealed Products fall back to `name` when `hero` is absent. Trailing
-dashes are intentional and stable. Verified 17,739 unique bobaIds
-across 17,739 cards (zero collisions).
+dashes are intentional and stable. The 5th field is the card's
+**weapon** (catalog field name `element` for legacy reasons per
+DECISIONS.md #027; the BoBA-canonical term in any prose is Weapon).
+Added 2026-05-25 — see DECISIONS.md #057 — after the audit pipeline
+found many cards exist as FIRE-weapon vs GLOW-weapon variant
+siblings with otherwise-identical (cardNumber, hero, treatment,
+variation). The 4-field formula collided on those pairs, forcing
+the catalog to use distinct cardNumbers as a workaround. v3 removes
+that workaround. Verified 17,974 unique bobaIds across 17,974 cards
+(zero collisions).
 
 `bobaId` is stored as a real field in every JSON bundle (master
 `unified-cards/data/cards.json` plus the 6 downstream bundles in

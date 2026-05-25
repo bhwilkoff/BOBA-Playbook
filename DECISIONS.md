@@ -504,3 +504,72 @@ Email from Scot + Rob (Radish Price Guide owner / lead developer) on 2026-05-23 
 **Why this matters principle-wise:** preserving the ability to operate independently of any single third party is the load-bearing concern. The removal cost was bounded (~3 weeks per walk-away §8.4), and the replacement plan deepens BOBA's own moat (community comps + our own comparability model) rather than swapping one external dependency for another. CLAUDE.md "Why We Build": tools that make users more capable, not more dependent.
 
 **How to apply:** any PR adding a Radish reference (data fetch, URL construction beyond the homepage fallback, alias table, lookup logic, source pill, partner language) is rejected. The only Radish-related code permitted: the `Card.radishUrl` field's per-card link destination + the homepage fallback string. Worker, scrapers, alias tables — all permanently gone.
+
+## 057 — bobaId formula v3 adds weapon as 5th field
+*2026-05-25*
+
+Extended the bobaId formula from 4 fields to 5 by appending the card's
+WEAPON (catalog field `element` per DECISIONS.md #027 — the BoBA-canonical
+term in any human-readable prose is Weapon):
+
+```python
+# v2 (2026-04-09):
+bobaId = f"{cardNumber}-{hero or name}-{treatment or ''}-{variation or ''}"
+
+# v3 (2026-05-25):
+bobaId = f"{cardNumber}-{hero or name}-{treatment or ''}-{variation or ''}-{element or ''}"
+```
+
+**Why**: The card-art audit pipeline (CARD_AUDIT_PIPELINE.md) surfaced
+that many cards exist as FIRE-weapon + GLOW-weapon variant siblings
+sharing otherwise-identical (cardNumber, hero, treatment, variation).
+On the v2 formula those collided on bobaId. The catalog had been
+working around the collision by assigning distinct cardNumbers to the
+weapon variants — e.g. `GLBF-43 = GLOW Grandma's Linoleum Battlefoil
+BoJax Founding Hero Alpha Update` AND `GLBF-85 = FIRE Grandma's
+Linoleum Battlefoil BoJax Founding Hero Alpha Update`, even though
+both physical cards may share other field values. The workaround
+broke when the audit's OCR read the printed cardNumber on the FIRE
+variant as the lower number (matching the GLOW variant's catalog
+cardNumber) — Ben approved 101 cardNumber changes to merge them
+which would have produced true bobaId duplicates.
+
+**The right schema fix**: include weapon in the bobaId so the same
+physical printed cardNumber can be retained for both weapon variants
+without collision.
+
+**Migration shape**: deterministic mapping from old (4-field) bobaIds
+to new (5-field) bobaIds for every catalog card (17,974 entries).
+Applied in lockstep across:
+
+- 3 canonical formula sources: `scripts/boba_id.py`,
+  `BOBAPlaybook/Models/Card.swift`, `android/core/.../Card.kt`
+- 5 catalog bundles: `assets/data/cards.json` (master) +
+  `assets/data/cards-head.json`, `BOBAPlaybook/display-cards.json`,
+  `BOBAPlaybook/cards-head.json`, `android/app/.../cards.json`
+- Supabase tables: `user_cards.boba_id`, `card_corrections.boba_id`,
+  `card_image_overrides.boba_id`, `show_cards.boba_id`,
+  `deck_cards.boba_id`, plus pipeline tables
+- iOS feature-prints index (`feature-prints.bin`): rebuilds
+  automatically on next pipeline run; keys are opaque strings
+  per `scripts/build_feature_print_index.swift`
+
+**What was NOT changed**: R2 image filenames (`imageFile` field per
+card is a separate stored string, not derived from the formula at
+lookup time — old image keys stay valid). Pipeline-internal staging
+identifiers in `pipeline_image_candidates.target_boba_id` that use a
+distinct underscore-separated `Auto` suffix format were left alone;
+those are workflow tokens, not user-facing bobaIds.
+
+**How to apply**: any future code reading or writing a bobaId must
+use the 5-field formula. The canonical sources (boba_id.py +
+Card.swift + Card.kt) all share the same shape — never redefine the
+formula inline anywhere. If a new pipeline script imports
+`from boba_id import boba_id`, it automatically picks up the v3
+formula.
+
+**Future expansion**: if a 6th disambiguator becomes necessary
+(today's catalog already verified zero v3 collisions across 17,974
+cards), repeat this migration shape: new field at the end of the
+formula, deterministic catalog → mapping table → Supabase UPDATEs
+via PostgREST bulk insert + SQL UPDATE.

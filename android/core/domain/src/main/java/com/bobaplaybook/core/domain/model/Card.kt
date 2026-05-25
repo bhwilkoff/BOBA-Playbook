@@ -85,6 +85,14 @@ data class Card(
     /** The real-world athlete this card's hero is inspired by. */
     val athleteInspiration: String? = null,
 
+    /**
+     * Per-card searchable aliases — e.g. `["Skeeball"]` on Skeee cards
+     * so users typing the printed-on-card name (which differs from the
+     * catalog hero) still find them. Merged into the haystack at
+     * search time by CardSearch.
+     */
+    val searchAliases: List<String>? = null,
+
     // Play-only fields
     val persistent: List<PersistentEffectSpec> = emptyList(),
     val abilityText: String? = null,

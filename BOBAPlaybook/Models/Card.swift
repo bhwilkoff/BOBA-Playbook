@@ -34,6 +34,11 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
     let dbs: Int?                     // Deck Balancing System score (Plays only, nil for Heroes/HotDogs/Sealed)
     let dbsTier: String?              // "Low" | "Medium" | "High" | "Very High" (Plays only)
     let athleteInspiration: String?
+    /// Per-card searchable aliases — e.g. ["Skeeball"] on Skeee cards
+    /// so users typing the printed-on-card name (which differs from
+    /// the catalog hero name) still find the card. Word-split and
+    /// merged into the haystack at match time by CardSearch.
+    let searchAliases: [String]?
     let isInspiredInk: Bool
     /// True when the hero's inspiration athlete was in their rookie season
     /// at print time. Non-Hero rows decode as false.
@@ -176,6 +181,7 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
         dbs                = try c.decodeIfPresent(Int.self,       forKey: .dbs)
         dbsTier            = try c.decodeIfPresent(String.self,    forKey: .dbsTier)
         athleteInspiration = try c.decodeIfPresent(String.self,    forKey: .athleteInspiration)
+        searchAliases      = try c.decodeIfPresent([String].self,  forKey: .searchAliases)
         isInspiredInk      = try c.decodeIfPresent(Bool.self,      forKey: .isInspiredInk) ?? false
         rookieInspired     = try c.decodeIfPresent(Bool.self,      forKey: .rookieInspired) ?? false
         let file           = try c.decodeIfPresent(String.self,    forKey: .imageFile)

@@ -18,14 +18,15 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
+import com.bobaplaybook.core.ui.components.BOBAWordmark
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -49,14 +50,19 @@ fun LearnScreen(
     onCategoryClick: (categoryId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    // Root-tab convention: CenterAlignedTopAppBar with BOBAWordmark
+    // (DESIGN.md §6.9 + matches Find / Decks / Collection / Purchase
+    // root bars on Android). Was previously LargeTopAppBar "Learn BoBA";
+    // Ben flagged the missing wordmark 2026-05-25 — root tabs must
+    // share chrome for visual consistency across the bottom nav.
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val categories = remember { LearnCategoryId.entries.toList() }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeTopAppBar(
-                title = { Text("Learn BoBA") },
+            CenterAlignedTopAppBar(
+                title = { BOBAWordmark() },
                 scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,

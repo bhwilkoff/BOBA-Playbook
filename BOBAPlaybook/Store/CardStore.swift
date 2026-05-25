@@ -644,6 +644,12 @@ nonisolated enum CardSearch {
         if let t = card.treatment          { w.append(contentsOf: wordSplit(t)) }
         if let s = card.subSet             { w.append(contentsOf: wordSplit(s)) }
         if let v = card.variation          { w.append(contentsOf: wordSplit(v)) }
+        // Per-card search aliases — e.g. ["Skeeball"] on Skeee cards
+        // so users typing what's printed on the card (which differs
+        // from the catalog hero) still find it.
+        if let aliases = card.searchAliases {
+            for a in aliases { w.append(contentsOf: wordSplit(a)) }
+        }
         return w
     }
 

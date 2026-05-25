@@ -34,6 +34,10 @@ object CardSearch {
         card.treatment?.let { words += wordSplit(it) }
         card.subSet?.let { words += wordSplit(it) }
         card.variation?.let { words += wordSplit(it) }
+        // Per-card search aliases — e.g. ["Skeeball"] on Skeee cards
+        // so users typing the printed-on-card name (which differs from
+        // the catalog hero) still find the card.
+        card.searchAliases?.forEach { words += wordSplit(it) }
         return words
     }
 

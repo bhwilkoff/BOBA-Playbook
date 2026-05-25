@@ -94,6 +94,21 @@ def main() -> int:
                 bundle_keys.append("printRun")
                 bundle_keys_set.add("printRun")
 
+        # NEW FIELD: searchAliases — per-card alternate-name aliases for
+        # search (e.g. ["Skeeball"] on Skeee cards so users typing the
+        # printed-on-card name still find them). Add to every bundle
+        # except Android's stripped subset (Android already drops the
+        # related searchTokens field).
+        if any(c.get("searchAliases") for c in master):
+            if "searchAliases" not in bundle_keys_set and b["label"] != "Android":
+                bundle_keys.append("searchAliases")
+                bundle_keys_set.add("searchAliases")
+            # Android still gets it — Android-side haystackWords reads it
+            # at search time (Android doesn't use a prebuilt index).
+            if "searchAliases" not in bundle_keys_set and b["label"] == "Android":
+                bundle_keys.append("searchAliases")
+                bundle_keys_set.add("searchAliases")
+
         # OLD FIELD: printedSerial. Drop from any bundle that has it.
         if "printedSerial" in bundle_keys_set:
             bundle_keys = [k for k in bundle_keys if k != "printedSerial"]

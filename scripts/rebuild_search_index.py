@@ -56,6 +56,18 @@ def main():
         for tok in (c.get("searchTokens") or []):
             if tok:
                 token_index[str(tok).lower()].append(bid)
+        # Per-card search aliases — word-split each alias and add every
+        # resulting token to the index. e.g. ["Skeeball", "Skee-Ball"]
+        # → tokens "skeeball", "skee", "ball" all added (the prefix
+        # match in CardSearch handles partial typing).
+        for alias in (c.get("searchAliases") or []):
+            if not alias:
+                continue
+            # Match CardSearch.wordSplit: lowercase + split on non-alnum.
+            import re
+            for tok in re.split(r"[^a-z0-9]+", str(alias).lower()):
+                if tok:
+                    token_index[tok].append(bid)
         # Facet indexes — drive the filter dropdowns.
         if c.get("element"):    by_element[c["element"]].append(bid)
         if c.get("set"):        by_set[c["set"]].append(bid)

@@ -123,11 +123,16 @@ struct CardDetailView: View {
     }
 
     // Shareable web URL — opens card modal on the web app.
+    // element is included to disambiguate weapon-variant pairs that
+    // share cardNumber+hero+treatment after the bobaId v3 migration
+    // (DECISIONS.md #057). Web cardFromURLParams + the iOS / Android
+    // inbound handlers all consume the element param when present.
     private var cardShareURL: URL? {
         var components = URLComponents(string: "https://bobaplaybook.com/")!
         var items = [URLQueryItem(name: "card", value: card.cardNumber)]
         if !card.hero.isEmpty { items.append(URLQueryItem(name: "hero", value: card.hero)) }
         if let treatment = card.treatment { items.append(URLQueryItem(name: "treatment", value: treatment)) }
+        if !card.element.isEmpty { items.append(URLQueryItem(name: "element", value: card.element)) }
         components.queryItems = items
         return components.url
     }

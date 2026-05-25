@@ -25,7 +25,17 @@ import kotlinx.coroutines.withContext
 object CardShareHelper {
 
     suspend fun share(context: Context, card: Card) {
-        val deepLink = "https://bobaplaybook.com/card/${card.bobaId}"
+        // Query-param share URL is canonical across iOS / web / Android
+        // since bobaId v3 (DECISIONS.md #057). The web SPA understands
+        // ?card=...&hero=...&treatment=...&element=... directly;
+        // element disambiguates FIRE/GLOW weapon-variant pairs that
+        // share cardNumber+hero+treatment.
+        val deepLink = android.net.Uri.parse("https://bobaplaybook.com/").buildUpon().apply {
+            appendQueryParameter("card", card.cardNumber)
+            if (card.hero.isNotEmpty())       appendQueryParameter("hero", card.hero)
+            card.treatment?.takeIf { it.isNotEmpty() }?.let { appendQueryParameter("treatment", it) }
+            if (card.element.isNotEmpty())    appendQueryParameter("element", card.element)
+        }.build().toString()
         val text = "${card.displayName} (${card.cardNumber}) on BOBA Playbook\n$deepLink"
 
         val imageUri = runCatching { fetchAndCacheImage(context, card) }.getOrNull()

@@ -61,19 +61,26 @@ struct CardRoute: Hashable, Codable {
     let cardNumber: String
     let treatment: String?
     let hero: String?
+    // element is captured for URL deep-links so we can disambiguate
+    // weapon-variant pairs (e.g. GLBF-43 BoJax FIRE vs GLOW) that
+    // share cardNumber + hero + treatment after the bobaId v3
+    // migration (DECISIONS.md #057).
+    let element: String?
 
-    init(bobaId: String? = nil, cardNumber: String, treatment: String? = nil, hero: String? = nil) {
+    init(bobaId: String? = nil, cardNumber: String, treatment: String? = nil, hero: String? = nil, element: String? = nil) {
         self.bobaId = bobaId
         self.cardNumber = cardNumber
         self.treatment = treatment
         self.hero = hero
+        self.element = element
     }
 
     init(card: Card) {
         self.init(bobaId: card.id,
                   cardNumber: card.cardNumber,
                   treatment: card.treatment,
-                  hero: card.hero)
+                  hero: card.hero,
+                  element: card.element)
     }
 }
 

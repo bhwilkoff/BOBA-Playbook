@@ -551,7 +551,7 @@ fun ScanScreen(
                         // any cardNumber containing a dash (e.g.
                         // "BHBF-37" → it returned "BHBF" instead of
                         // "BHBF-37"). bobaId format is
-                        // `{cardNumber}-{hero}-{treatment}-{variation}`
+                        // `{cardNumber}-{hero}-{treatment}-{variation}-{element}` (v3)
                         // and reverse-parsing is ambiguous since
                         // cardNumbers can themselves contain dashes.
                         // The Card object holds the canonical string.

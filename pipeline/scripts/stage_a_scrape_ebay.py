@@ -101,11 +101,17 @@ def load_missing_art(repo_root: Path) -> list[dict]:
 
 
 def boba_id_for(card: dict) -> str:
+    # v3 5-field formula (DECISIONS.md #057). Element is the 5th field
+    # and disambiguates FIRE/GLOW weapon-variant pairs. Must match the
+    # stored bobaId field used as target_boba_id in the
+    # pipeline_image_candidates table — pre-v3 (4-field) IDs silently
+    # missed catalog rows post-migration.
     cn = (card.get("cardNumber") or "").strip()
     hero = (card.get("hero") or card.get("name") or "").strip()
     treat = (card.get("treatment") or "").strip()
     var = (card.get("variation") or "").strip()
-    return f"{cn}-{hero}-{treat}-{var}"
+    elem = (card.get("element") or "").strip()
+    return f"{cn}-{hero}-{treat}-{var}-{elem}"
 
 
 def filter_to_actionable(cards: list[dict], supabase: Client,

@@ -146,7 +146,7 @@ class CollectionRepository @Inject constructor(
             // ViewModel), not by parsing the bobaId. Base-Set
             // cardNumbers are bare digits ("1", "87"); treatment
             // cardNumbers have one internal hyphen ("BF-217", "RAD-1").
-            // bobaId is `{cardNumber}-{hero}-{treatment}-{variation}`
+            // bobaId is `{cardNumber}-{hero}-{treatment}-{variation}-{element}` (v3)
             // — the hero/treatment/variation themselves can contain
             // dashes, so reverse-parsing the bobaId for cardNumber
             // is ambiguous. The ViewModel has the Card object in scope

@@ -43,6 +43,7 @@ MASTER = REPO / "assets/data/cards.json"
 TARGETS = [
     REPO / "assets/data/categories.json",
     REPO / "assets/data/search-index.json",
+    REPO / "assets/data/template-decks.json",   # Web template decks — missed in the initial v3 sweep (audit 2026-05-25)
     REPO / "android/app/src/main/assets/data/categories.json",
     REPO / "android/app/src/main/assets/TemplateDeck.json",
     REPO / "BOBAPlaybook/TemplateDeck.json",

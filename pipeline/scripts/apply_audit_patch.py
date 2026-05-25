@@ -164,7 +164,24 @@ def apply_modifies(cards: list[dict], modifies: list[dict]) -> dict:
 
         # Apply remaining (safe) field changes.
         for k, v in changes.items():
-            card[k] = v
+            # printedSerial decisions sometimes leak into modify[] from
+            # earlier-version exports (the two-pass exporter pre-fix
+            # would route additions-card printedSerial approves here).
+            # Coerce to integer printRun + drop the legacy string field
+            # so the catalog stays consistent with the additions path.
+            if k == "printedSerial":
+                if isinstance(v, str) and "/" in v:
+                    try:
+                        card["printRun"] = int(v.split("/")[-1].strip())
+                    except ValueError:
+                        card["printRun"] = v
+                elif isinstance(v, int):
+                    card["printRun"] = v
+                else:
+                    card["printRun"] = v
+                card.pop("printedSerial", None)
+            else:
+                card[k] = v
             fields_applied += 1
 
         # If the surviving changes still include name/cardNumber, regen bobaId.

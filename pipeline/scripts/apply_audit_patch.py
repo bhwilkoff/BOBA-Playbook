@@ -63,14 +63,16 @@ def parse_args() -> argparse.Namespace:
 
 
 def build_boba_id(card: dict) -> str:
-    """4-field bobaId — must match scripts/boba_id.py + the project
+    """5-field bobaId — must match scripts/boba_id.py + the project
     mantra. cardNumber, hero (or name for sealed), treatment,
-    variation. Trailing dashes intentional and stable."""
+    variation, weapon (catalog field `element`). Trailing dashes
+    intentional and stable. v3 added weapon 2026-05-25."""
     card_number = card.get("cardNumber") or ""
     hero = card.get("hero") or card.get("name") or ""
     treatment = card.get("treatment") or ""
     variation = card.get("variation") or ""
-    return f"{card_number}-{hero}-{treatment}-{variation}"
+    weapon = card.get("element") or ""
+    return f"{card_number}-{hero}-{treatment}-{variation}-{weapon}"
 
 
 def apply_modifies(cards: list[dict], modifies: list[dict]) -> dict:

@@ -1,7 +1,7 @@
 [
   {
     "cardNumber": "1",
-    "bobaId": "1-LeBoss-Base Set-First Edition",
+    "bobaId": "1-LeBoss-Base Set-First Edition-FIRE",
     "bvId": 4124,
     "name": "LeBoss",
     "hero": "LeBoss",
@@ -29,7 +29,7 @@
   },
   {
     "cardNumber": "1",
-    "bobaId": "1-Showtime-Base Set-First Edition",
+    "bobaId": "1-Showtime-Base Set-First Edition-FIRE",
     "bvId": 5874,
     "name": "Showtime",
     "hero": "Showtime",
@@ -57,7 +57,7 @@
   },
   {
     "cardNumber": "1",
-    "bobaId": "1-Maverick-Base Set-First Edition",
+    "bobaId": "1-Maverick-Base Set-First Edition-FIRE",
     "bvId": 14439,
     "name": "Maverick",
     "hero": "Maverick",
@@ -85,7 +85,7 @@
   },
   {
     "cardNumber": "2",
-    "bobaId": "2-Merlomes-Base Set-First Edition",
+    "bobaId": "2-Merlomes-Base Set-First Edition-FIRE",
     "bvId": 4679,
     "name": "Merlomes",
     "hero": "Merlomes",
@@ -113,7 +113,7 @@
   },
   {
     "cardNumber": "2",
-    "bobaId": "2-Showtime-Base Set-First Edition",
+    "bobaId": "2-Showtime-Base Set-First Edition-ICE",
     "bvId": 5875,
     "name": "Showtime",
     "hero": "Showtime",
@@ -141,7 +141,7 @@
   },
   {
     "cardNumber": "2",
-    "bobaId": "2-Gaveler-Base Set-2026 Edition",
+    "bobaId": "2-Gaveler-Base Set-2026 Edition-FIRE",
     "bvId": 12265,
     "name": "Gaveler",
     "hero": "Gaveler",
@@ -169,7 +169,7 @@
   },
   {
     "cardNumber": "3",
-    "bobaId": "3-Chosen-Base Set-First Edition",
+    "bobaId": "3-Chosen-Base Set-First Edition-FIRE",
     "bvId": 1825,
     "name": "Chosen",
     "hero": "Chosen",
@@ -197,7 +197,7 @@
   },
   {
     "cardNumber": "3",
-    "bobaId": "3-Showtime-Base Set-First Edition",
+    "bobaId": "3-Showtime-Base Set-First Edition-STEEL",
     "bvId": 5876,
     "name": "Showtime",
     "hero": "Showtime",
@@ -225,7 +225,7 @@
   },
   {
     "cardNumber": "3",
-    "bobaId": "3-Victory-Base Set-2026 Edition",
+    "bobaId": "3-Victory-Base Set-2026 Edition-FIRE",
     "bvId": 17171,
     "name": "Victory",
     "hero": "Victory",
@@ -253,7 +253,7 @@
   },
   {
     "cardNumber": "4",
-    "bobaId": "4-Midas-Base Set-First Edition",
+    "bobaId": "4-Midas-Base Set-First Edition-FIRE",
     "bvId": 4822,
     "name": "Midas",
     "hero": "Midas",
@@ -281,7 +281,7 @@
   },
   {
     "cardNumber": "4",
-    "bobaId": "4-Matata-Base Set-First Edition",
+    "bobaId": "4-Matata-Base Set-First Edition-FIRE",
     "bvId": 4551,
     "name": "Matata",
     "hero": "Matata",
@@ -309,7 +309,7 @@
   },
   {
     "cardNumber": "4",
-    "bobaId": "4-Dijon-Base Set-First Edition",
+    "bobaId": "4-Dijon-Base Set-First Edition-FIRE",
     "bvId": 11061,
     "name": "Dijon",
     "hero": "Dijon",
@@ -337,7 +337,7 @@
   },
   {
     "cardNumber": "5",
-    "bobaId": "5-Bison-Base Set-First Edition",
+    "bobaId": "5-Bison-Base Set-First Edition-FIRE",
     "bvId": 728,
     "name": "Bison",
     "hero": "Bison",
@@ -365,7 +365,7 @@
   },
   {
     "cardNumber": "5",
-    "bobaId": "5-Matata-Base Set-First Edition",
+    "bobaId": "5-Matata-Base Set-First Edition-ICE",
     "bvId": 4552,
     "name": "Matata",
     "hero": "Matata",
@@ -393,7 +393,7 @@
   },
   {
     "cardNumber": "5",
-    "bobaId": "5-Crosbow-Base Set-First Edition",
+    "bobaId": "5-Crosbow-Base Set-First Edition-FIRE",
     "bvId": 10509,
     "name": "Crosbow",
     "hero": "Crosbow",
@@ -421,7 +421,7 @@
   },
   {
     "cardNumber": "6",
-    "bobaId": "6-Wargod-Base Set-First Edition",
+    "bobaId": "6-Wargod-Base Set-First Edition-FIRE",
     "bvId": 7417,
     "name": "Wargod",
     "hero": "Wargod",
@@ -449,7 +449,7 @@
   },
   {
     "cardNumber": "6",
-    "bobaId": "6-Matata-Base Set-First Edition",
+    "bobaId": "6-Matata-Base Set-First Edition-STEEL",
     "bvId": 4553,
     "name": "Matata",
     "hero": "Matata",
@@ -477,7 +477,7 @@
   },
   {
     "cardNumber": "6",
-    "bobaId": "6-Warden-Base Set-First Edition",
+    "bobaId": "6-Warden-Base Set-First Edition-FIRE",
     "bvId": 17394,
     "name": "Warden",
     "hero": "Warden",
@@ -505,7 +505,7 @@
   },
   {
     "cardNumber": "7",
-    "bobaId": "7-Donny Buckets-Base Set-First Edition",
+    "bobaId": "7-Donny Buckets-Base Set-First Edition-FIRE",
     "bvId": 2407,
     "name": "Donny Buckets",
     "hero": "Donny Buckets",
@@ -533,7 +533,7 @@
   },
   {
     "cardNumber": "7",
-    "bobaId": "7-Gaveler-Base Set-First Edition",
+    "bobaId": "7-Gaveler-Base Set-First Edition-FIRE",
     "bvId": 2929,
     "name": "Gaveler",
     "hero": "Gaveler",
@@ -561,7 +561,7 @@
   },
   {
     "cardNumber": "7",
-    "bobaId": "7-PB Buckets-Base Set-First Edition",
+    "bobaId": "7-PB Buckets-Base Set-First Edition-FIRE",
     "bvId": 15035,
     "name": "PB Buckets",
     "hero": "PB Buckets",
@@ -589,7 +589,7 @@
   },
   {
     "cardNumber": "8",
-    "bobaId": "8-Warp-Base Set-First Edition",
+    "bobaId": "8-Warp-Base Set-First Edition-FIRE",
     "bvId": 7466,
     "name": "Warp",
     "hero": "Warp",
@@ -617,7 +617,7 @@
   },
   {
     "cardNumber": "8",
-    "bobaId": "8-Gaveler-Base Set-First Edition",
+    "bobaId": "8-Gaveler-Base Set-First Edition-ICE",
     "bvId": 2930,
     "name": "Gaveler",
     "hero": "Gaveler",
@@ -645,7 +645,7 @@
   },
   {
     "cardNumber": "8",
-    "bobaId": "8-Skuba-Base Set-First Edition",
+    "bobaId": "8-Skuba-Base Set-First Edition-FIRE",
     "bvId": 16267,
     "name": "Skuba",
     "hero": "Skuba",
@@ -673,7 +673,7 @@
   },
   {
     "cardNumber": "9",
-    "bobaId": "9-Harpoon-Base Set-First Edition",
+    "bobaId": "9-Harpoon-Base Set-First Edition-FIRE",
     "bvId": 3261,
     "name": "Harpoon",
     "hero": "Harpoon",
@@ -701,7 +701,7 @@
   },
   {
     "cardNumber": "9",
-    "bobaId": "9-Gaveler-Base Set-First Edition",
+    "bobaId": "9-Gaveler-Base Set-First Edition-STEEL",
     "bvId": 2931,
     "name": "Gaveler",
     "hero": "Gaveler",
@@ -729,7 +729,7 @@
   },
   {
     "cardNumber": "9",
-    "bobaId": "9-Haliburst-Base Set-First Edition",
+    "bobaId": "9-Haliburst-Base Set-First Edition-FIRE",
     "bvId": 12899,
     "name": "Haliburst",
     "hero": "Haliburst",
@@ -757,7 +757,7 @@
   },
   {
     "cardNumber": "10",
-    "bobaId": "10-Mustang-Base Set-First Edition",
+    "bobaId": "10-Mustang-Base Set-First Edition-FIRE",
     "bvId": 4965,
     "name": "Mustang",
     "hero": "Mustang",
@@ -785,7 +785,7 @@
   },
   {
     "cardNumber": "10",
-    "bobaId": "10-Burrocious-Base Set-First Edition",
+    "bobaId": "10-Burrocious-Base Set-First Edition-FIRE",
     "bvId": 1340,
     "name": "Burrocious",
     "hero": "Burrocious",
@@ -813,7 +813,7 @@
   },
   {
     "cardNumber": "10",
-    "bobaId": "10-Dart-Board-Base Set-First Edition",
+    "bobaId": "10-Dart-Board-Base Set-First Edition-FIRE",
     "bvId": 16041,
     "name": "Dart-Board",
     "hero": "Dart-Board",
@@ -841,7 +841,7 @@
   },
   {
     "cardNumber": "11",
-    "bobaId": "11-Jaybird-Base Set-First Edition",
+    "bobaId": "11-Jaybird-Base Set-First Edition-FIRE",
     "bvId": 3644,
     "name": "Jaybird",
     "hero": "Jaybird",
@@ -869,7 +869,7 @@
   },
   {
     "cardNumber": "11",
-    "bobaId": "11-Burrocious-Base Set-First Edition",
+    "bobaId": "11-Burrocious-Base Set-First Edition-ICE",
     "bvId": 1341,
     "name": "Burrocious",
     "hero": "Burrocious",
@@ -897,7 +897,7 @@
   },
   {
     "cardNumber": "11",
-    "bobaId": "11-Dumper-Base Set-First Edition",
+    "bobaId": "11-Dumper-Base Set-First Edition-FIRE",
     "bvId": 11298,
     "name": "Dumper",
     "hero": "Dumper",
@@ -925,7 +925,7 @@
   },
   {
     "cardNumber": "12",
-    "bobaId": "12-J-Jetts-Base Set-First Edition",
+    "bobaId": "12-J-Jetts-Base Set-First Edition-FIRE",
     "bvId": 3765,
     "name": "J-Jetts",
     "hero": "J-Jetts",
@@ -953,7 +953,7 @@
   },
   {
     "cardNumber": "12",
-    "bobaId": "12-Burrocious-Base Set-First Edition",
+    "bobaId": "12-Burrocious-Base Set-First Edition-STEEL",
     "bvId": 1342,
     "name": "Burrocious",
     "hero": "Burrocious",
@@ -981,7 +981,7 @@
   },
   {
     "cardNumber": "12",
-    "bobaId": "12-Switchblade-Base Set-First Edition",
+    "bobaId": "12-Switchblade-Base Set-First Edition-FIRE",
     "bvId": 16504,
     "name": "Switchblade",
     "hero": "Switchblade",
@@ -1009,7 +1009,7 @@
   },
   {
     "cardNumber": "13",
-    "bobaId": "13-Merri-Go-Round-Base Set-First Edition",
+    "bobaId": "13-Merri-Go-Round-Base Set-First Edition-FIRE",
     "bvId": 4729,
     "name": "Merri-Go-Round",
     "hero": "Merri-Go-Round",
@@ -1037,7 +1037,7 @@
   },
   {
     "cardNumber": "13",
-    "bobaId": "13-Victory-Base Set-First Edition",
+    "bobaId": "13-Victory-Base Set-First Edition-FIRE",
     "bvId": 7339,
     "name": "Victory",
     "hero": "Victory",
@@ -1065,7 +1065,7 @@
   },
   {
     "cardNumber": "13",
-    "bobaId": "13-Cupid-Base Set-2026 Edition",
+    "bobaId": "13-Cupid-Base Set-2026 Edition-FIRE",
     "bvId": 10662,
     "name": "Cupid",
     "hero": "Cupid",
@@ -1093,7 +1093,7 @@
   },
   {
     "cardNumber": "14",
-    "bobaId": "14-Shystep-Base Set-First Edition",
+    "bobaId": "14-Shystep-Base Set-First Edition-FIRE",
     "bvId": 5961,
     "name": "Shystep",
     "hero": "Shystep",
@@ -1121,7 +1121,7 @@
   },
   {
     "cardNumber": "14",
-    "bobaId": "14-Victory-Base Set-First Edition",
+    "bobaId": "14-Victory-Base Set-First Edition-ICE",
     "bvId": 7340,
     "name": "Victory",
     "hero": "Victory",
@@ -1149,7 +1149,7 @@
   },
   {
     "cardNumber": "14",
-    "bobaId": "14-Air Ace-Base Set-First Edition",
+    "bobaId": "14-Air Ace-Base Set-First Edition-FIRE",
     "bvId": 7904,
     "name": "Air Ace",
     "hero": "Air Ace",
@@ -1177,7 +1177,7 @@
   },
   {
     "cardNumber": "15",
-    "bobaId": "15-Ram-Base Set-First Edition",
+    "bobaId": "15-Ram-Base Set-First Edition-FIRE",
     "bvId": 5473,
     "name": "Ram",
     "hero": "Ram",
@@ -1205,7 +1205,7 @@
   },
   {
     "cardNumber": "15",
-    "bobaId": "15-Victory-Base Set-First Edition",
+    "bobaId": "15-Victory-Base Set-First Edition-STEEL",
     "bvId": 7341,
     "name": "Victory",
     "hero": "Victory",
@@ -1233,7 +1233,7 @@
   },
   {
     "cardNumber": "15",
-    "bobaId": "15-Maxed Out-Base Set-First Edition",
+    "bobaId": "15-Maxed Out-Base Set-First Edition-FIRE",
     "bvId": 14589,
     "name": "Maxed Out",
     "hero": "Maxed Out",
@@ -1261,7 +1261,7 @@
   },
   {
     "cardNumber": "16",
-    "bobaId": "16-Freakshow-Base Set-First Edition",
+    "bobaId": "16-Freakshow-Base Set-First Edition-FIRE",
     "bvId": 2787,
     "name": "Freakshow",
     "hero": "Freakshow",
@@ -1289,7 +1289,7 @@
   },
   {
     "cardNumber": "16",
-    "bobaId": "16-Shrouded-Base Set-First Edition",
+    "bobaId": "16-Shrouded-Base Set-First Edition-FIRE",
     "bvId": 5923,
     "name": "Shrouded",
     "hero": "Shrouded",
@@ -1317,7 +1317,7 @@
   },
   {
     "cardNumber": "16",
-    "bobaId": "16-King Tuck-Base Set-First Edition",
+    "bobaId": "16-King Tuck-Base Set-First Edition-FIRE",
     "bvId": 14040,
     "name": "King Tuck",
     "hero": "King Tuck",
@@ -1345,7 +1345,7 @@
   },
   {
     "cardNumber": "17",
-    "bobaId": "17-Lightningrod-Base Set-First Edition",
+    "bobaId": "17-Lightningrod-Base Set-First Edition-FIRE",
     "bvId": 4294,
     "name": "Lightningrod",
     "hero": "Lightningrod",
@@ -1373,7 +1373,7 @@
   },
   {
     "cardNumber": "17",
-    "bobaId": "17-Shrouded-Base Set-First Edition",
+    "bobaId": "17-Shrouded-Base Set-First Edition-ICE",
     "bvId": 5924,
     "name": "Shrouded",
     "hero": "Shrouded",
@@ -1401,7 +1401,7 @@
   },
   {
     "cardNumber": "17",
-    "bobaId": "17-Macho-Base Set-First Edition",
+    "bobaId": "17-Macho-Base Set-First Edition-FIRE",
     "bvId": 14205,
     "name": "Macho",
     "hero": "Macho",
@@ -1429,7 +1429,7 @@
   },
   {
     "cardNumber": "18",
-    "bobaId": "18-Bayou-Base Set-First Edition",
+    "bobaId": "18-Bayou-Base Set-First Edition-FIRE",
     "bvId": 572,
     "name": "Bayou",
     "hero": "Bayou",
@@ -1457,7 +1457,7 @@
   },
   {
     "cardNumber": "18",
-    "bobaId": "18-Shrouded-Base Set-First Edition",
+    "bobaId": "18-Shrouded-Base Set-First Edition-STEEL",
     "bvId": 5925,
     "name": "Shrouded",
     "hero": "Shrouded",
@@ -1485,7 +1485,7 @@
   },
   {
     "cardNumber": "18",
-    "bobaId": "18-Gladiator-Base Set-First Edition",
+    "bobaId": "18-Gladiator-Base Set-First Edition-FIRE",
     "bvId": 12499,
     "name": "Gladiator",
     "hero": "Gladiator",
@@ -1513,7 +1513,7 @@
   },
   {
     "cardNumber": "19",
-    "bobaId": "19-McArmyKnife-Base Set-First Edition",
+    "bobaId": "19-McArmyKnife-Base Set-First Edition-FIRE",
     "bvId": 4596,
     "name": "McArmyKnife",
     "hero": "McArmyKnife",
@@ -1541,7 +1541,7 @@
   },
   {
     "cardNumber": "19",
-    "bobaId": "19-Taze'em-Base Set-First Edition",
+    "bobaId": "19-Taze'em-Base Set-First Edition-FIRE",
     "bvId": 6691,
     "name": "Taze'em",
     "hero": "Taze'em",
@@ -1569,7 +1569,7 @@
   },
   {
     "cardNumber": "19",
-    "bobaId": "19-BrockNess-Base Set-First Edition",
+    "bobaId": "19-BrockNess-Base Set-First Edition-FIRE",
     "bvId": 4596,
     "name": "BrockNess",
     "hero": "BrockNess",
@@ -1597,7 +1597,7 @@
   },
   {
     "cardNumber": "20",
-    "bobaId": "20-Tigre-Base Set-First Edition",
+    "bobaId": "20-Tigre-Base Set-First Edition-FIRE",
     "bvId": 6923,
     "name": "Tigre",
     "hero": "Tigre",
@@ -1625,7 +1625,7 @@
   },
   {
     "cardNumber": "20",
-    "bobaId": "20-Taze'em-Base Set-First Edition",
+    "bobaId": "20-Taze'em-Base Set-First Edition-ICE",
     "bvId": 6692,
     "name": "Taze'em",
     "hero": "Taze'em",
@@ -1653,7 +1653,7 @@
   },
   {
     "cardNumber": "20",
-    "bobaId": "20-Fungi-Base Set-2026 Edition",
+    "bobaId": "20-Fungi-Base Set-2026 Edition-FIRE",
     "bvId": 11904,
     "name": "Fungi",
     "hero": "Fungi",
@@ -1681,7 +1681,7 @@
   },
   {
     "cardNumber": "21",
-    "bobaId": "21-Cheetah-Base Set-First Edition",
+    "bobaId": "21-Cheetah-Base Set-First Edition-FIRE",
     "bvId": 1658,
     "name": "Cheetah",
     "hero": "Cheetah",
@@ -1709,7 +1709,7 @@
   },
   {
     "cardNumber": "21",
-    "bobaId": "21-Taze'em-Base Set-First Edition",
+    "bobaId": "21-Taze'em-Base Set-First Edition-STEEL",
     "bvId": 6693,
     "name": "Taze'em",
     "hero": "Taze'em",
@@ -1737,7 +1737,7 @@
   },
   {
     "cardNumber": "21",
-    "bobaId": "21-Wattage-Base Set-First Edition",
+    "bobaId": "21-Wattage-Base Set-First Edition-FIRE",
     "bvId": 17476,
     "name": "Wattage",
     "hero": "Wattage",
@@ -1765,7 +1765,7 @@
   },
   {
     "cardNumber": "22",
-    "bobaId": "22-Spider-Base Set-First Edition",
+    "bobaId": "22-Spider-Base Set-First Edition-FIRE",
     "bvId": 6206,
     "name": "Spider",
     "hero": "Spider",
@@ -1793,7 +1793,7 @@
   },
   {
     "cardNumber": "22",
-    "bobaId": "22-Caliber-Base Set-First Edition",
+    "bobaId": "22-Caliber-Base Set-First Edition-FIRE",
     "bvId": 1418,
     "name": "Caliber",
     "hero": "Caliber",
@@ -1821,7 +1821,7 @@
   },
   {
     "cardNumber": "22",
-    "bobaId": "22-Gunner-Base Set-First Edition",
+    "bobaId": "22-Gunner-Base Set-First Edition-FIRE",
     "bvId": 12817,
     "name": "Gunner",
     "hero": "Gunner",
@@ -1849,7 +1849,7 @@
   },
   {
     "cardNumber": "23",
-    "bobaId": "23-Crews-Missle-Base Set-First Edition",
+    "bobaId": "23-Crews-Missle-Base Set-First Edition-FIRE",
     "bvId": 2065,
     "name": "Crews-Missle",
     "hero": "Crews-Missle",
@@ -1877,7 +1877,7 @@
   },
   {
     "cardNumber": "23",
-    "bobaId": "23-Caliber-Base Set-First Edition",
+    "bobaId": "23-Caliber-Base Set-First Edition-ICE",
     "bvId": 1419,
     "name": "Caliber",
     "hero": "Caliber",
@@ -1905,7 +1905,7 @@
   },
   {
     "cardNumber": "23",
-    "bobaId": "23-Marksman-Base Set-First Edition",
+    "bobaId": "23-Marksman-Base Set-First Edition-FIRE",
     "bvId": 14356,
     "name": "Marksman",
     "hero": "Marksman",
@@ -1933,7 +1933,7 @@
   },
   {
     "cardNumber": "24",
-    "bobaId": "24-Unibrow-Base Set-First Edition",
+    "bobaId": "24-Unibrow-Base Set-First Edition-FIRE",
     "bvId": 7254,
     "name": "Unibrow",
     "hero": "Unibrow",
@@ -1961,7 +1961,7 @@
   },
   {
     "cardNumber": "24",
-    "bobaId": "24-Caliber-Base Set-First Edition",
+    "bobaId": "24-Caliber-Base Set-First Edition-STEEL",
     "bvId": 1420,
     "name": "Caliber",
     "hero": "Caliber",
@@ -1989,7 +1989,7 @@
   },
   {
     "cardNumber": "24",
-    "bobaId": "24-D-Harp-Base Set-First Edition",
+    "bobaId": "24-D-Harp-Base Set-First Edition-FIRE",
     "bvId": 10744,
     "name": "D-Harp",
     "hero": "D-Harp",
@@ -2017,7 +2017,7 @@
   },
   {
     "cardNumber": "25",
-    "bobaId": "25-Exterminaber-Base Set-First Edition",
+    "bobaId": "25-Exterminaber-Base Set-First Edition-FIRE",
     "bvId": 2631,
     "name": "Exterminaber",
     "hero": "Exterminaber",
@@ -2045,7 +2045,7 @@
   },
   {
     "cardNumber": "25",
-    "bobaId": "25-C.C.-Base Set-First Edition",
+    "bobaId": "25-C.C.-Base Set-First Edition-FIRE",
     "bvId": 1575,
     "name": "C.C.",
     "hero": "C.C.",
@@ -2073,7 +2073,7 @@
   },
   {
     "cardNumber": "25",
-    "bobaId": "25-Jeanetic-Base Set-First Edition",
+    "bobaId": "25-Jeanetic-Base Set-First Edition-FIRE",
     "bvId": 13664,
     "name": "Jeanetic",
     "hero": "Jeanetic",
@@ -2101,7 +2101,7 @@
   },
   {
     "cardNumber": "26",
-    "bobaId": "26-Bomber-Base Set-First Edition",
+    "bobaId": "26-Bomber-Base Set-First Edition-FIRE",
     "bvId": 946,
     "name": "Bomber",
     "hero": "Bomber",
@@ -2129,7 +2129,7 @@
   },
   {
     "cardNumber": "26",
-    "bobaId": "26-C.C.-Base Set-First Edition",
+    "bobaId": "26-C.C.-Base Set-First Edition-ICE",
     "bvId": 1576,
     "name": "C.C.",
     "hero": "C.C.",
@@ -2157,7 +2157,7 @@
   },
   {
     "cardNumber": "26",
-    "bobaId": "26-Doublecheck-Base Set-2026 Edition",
+    "bobaId": "26-Doublecheck-Base Set-2026 Edition-FIRE",
     "bvId": 11145,
     "name": "Doublecheck",
     "hero": "Doublecheck",
@@ -2185,7 +2185,7 @@
   },
   {
     "cardNumber": "27",
-    "bobaId": "27-Juice-Base Set-First Edition",
+    "bobaId": "27-Juice-Base Set-First Edition-FIRE",
     "bvId": 3853,
     "name": "Juice",
     "hero": "Juice",
@@ -2213,7 +2213,7 @@
   },
   {
     "cardNumber": "27",
-    "bobaId": "27-C.C.-Base Set-First Edition",
+    "bobaId": "27-C.C.-Base Set-First Edition-STEEL",
     "bvId": 1577,
     "name": "C.C.",
     "hero": "C.C.",
@@ -2241,7 +2241,7 @@
   },
   {
     "cardNumber": "27",
-    "bobaId": "27-Caliber-Base Set-2026 Edition",
+    "bobaId": "27-Caliber-Base Set-2026 Edition-FIRE",
     "bvId": 1577,
     "name": "Caliber",
     "hero": "Caliber",
@@ -2269,7 +2269,7 @@
   },
   {
     "cardNumber": "28",
-    "bobaId": "28-Attak-Base Set-First Edition",
+    "bobaId": "28-Attak-Base Set-First Edition-FIRE",
     "bvId": 291,
     "name": "Attak",
     "hero": "Attak",
@@ -2297,7 +2297,7 @@
   },
   {
     "cardNumber": "28",
-    "bobaId": "28-Doublecheck-Base Set-First Edition",
+    "bobaId": "28-Doublecheck-Base Set-First Edition-FIRE",
     "bvId": 2459,
     "name": "Doublecheck",
     "hero": "Doublecheck",
@@ -2325,7 +2325,7 @@
   },
   {
     "cardNumber": "28",
-    "bobaId": "28-Escape Artist-Base Set-First Edition",
+    "bobaId": "28-Escape Artist-Base Set-First Edition-FIRE",
     "bvId": 11590,
     "name": "Escape Artist",
     "hero": "Escape Artist",
@@ -2353,7 +2353,7 @@
   },
   {
     "cardNumber": "29",
-    "bobaId": "29-ChetMate-Base Set-First Edition",
+    "bobaId": "29-ChetMate-Base Set-First Edition-FIRE",
     "bvId": 1707,
     "name": "ChetMate",
     "hero": "ChetMate",
@@ -2381,7 +2381,7 @@
   },
   {
     "cardNumber": "29",
-    "bobaId": "29-Doublecheck-Base Set-First Edition",
+    "bobaId": "29-Doublecheck-Base Set-First Edition-ICE",
     "bvId": 2460,
     "name": "Doublecheck",
     "hero": "Doublecheck",
@@ -2409,7 +2409,7 @@
   },
   {
     "cardNumber": "29",
-    "bobaId": "29-J-Cam-Base Set-First Edition",
+    "bobaId": "29-J-Cam-Base Set-First Edition-FIRE",
     "bvId": 13277,
     "name": "J-Cam",
     "hero": "J-Cam",
@@ -2437,7 +2437,7 @@
   },
   {
     "cardNumber": "30",
-    "bobaId": "30-Phoenix-Base Set-First Edition",
+    "bobaId": "30-Phoenix-Base Set-First Edition-FIRE",
     "bvId": 5259,
     "name": "Phoenix",
     "hero": "Phoenix",
@@ -2465,7 +2465,7 @@
   },
   {
     "cardNumber": "30",
-    "bobaId": "30-Doublecheck-Base Set-First Edition",
+    "bobaId": "30-Doublecheck-Base Set-First Edition-STEEL",
     "bvId": 2461,
     "name": "Doublecheck",
     "hero": "Doublecheck",
@@ -2493,7 +2493,7 @@
   },
   {
     "cardNumber": "30",
-    "bobaId": "30-Generator-Base Set-First Edition",
+    "bobaId": "30-Generator-Base Set-First Edition-FIRE",
     "bvId": 12347,
     "name": "Generator",
     "hero": "Generator",
@@ -2521,7 +2521,7 @@
   },
   {
     "cardNumber": "31",
-    "bobaId": "31-Lieutenant-Base Set-First Edition",
+    "bobaId": "31-Lieutenant-Base Set-First Edition-FIRE",
     "bvId": 4248,
     "name": "Lieutenant",
     "hero": "Lieutenant",
@@ -2549,7 +2549,7 @@
   },
   {
     "cardNumber": "31",
-    "bobaId": "31-Cobra-Base Set-First Edition",
+    "bobaId": "31-Cobra-Base Set-First Edition-FIRE",
     "bvId": 1938,
     "name": "Cobra",
     "hero": "Cobra",
@@ -2577,7 +2577,7 @@
   },
   {
     "cardNumber": "31",
-    "bobaId": "31-Tattoo-Base Set-2026 Edition",
+    "bobaId": "31-Tattoo-Base Set-2026 Edition-FIRE",
     "bvId": 16586,
     "name": "Tattoo",
     "hero": "Tattoo",
@@ -2605,7 +2605,7 @@
   },
   {
     "cardNumber": "32",
-    "bobaId": "32-Snowbear-Base Set-First Edition",
+    "bobaId": "32-Snowbear-Base Set-First Edition-FIRE",
     "bvId": 6160,
     "name": "Snowbear",
     "hero": "Snowbear",
@@ -2633,7 +2633,7 @@
   },
   {
     "cardNumber": "32",
-    "bobaId": "32-Cobra-Base Set-First Edition",
+    "bobaId": "32-Cobra-Base Set-First Edition-ICE",
     "bvId": 1939,
     "name": "Cobra",
     "hero": "Cobra",
@@ -2661,7 +2661,7 @@
   },
   {
     "cardNumber": "32",
-    "bobaId": "32-Brawn-Base Set-First Edition",
+    "bobaId": "32-Brawn-Base Set-First Edition-FIRE",
     "bvId": 1939,
     "name": "Brawn",
     "hero": "Brawn",
@@ -2689,7 +2689,7 @@
   },
   {
     "cardNumber": "33",
-    "bobaId": "33-Boltage-Base Set-First Edition",
+    "bobaId": "33-Boltage-Base Set-First Edition-FIRE",
     "bvId": 887,
     "name": "Boltage",
     "hero": "Boltage",
@@ -2717,7 +2717,7 @@
   },
   {
     "cardNumber": "33",
-    "bobaId": "33-Cobra-Base Set-First Edition",
+    "bobaId": "33-Cobra-Base Set-First Edition-STEEL",
     "bvId": 1940,
     "name": "Cobra",
     "hero": "Cobra",
@@ -2745,7 +2745,7 @@
   },
   {
     "cardNumber": "33",
-    "bobaId": "33-Cicada-Base Set-First Edition",
+    "bobaId": "33-Cicada-Base Set-First Edition-FIRE",
     "bvId": 10274,
     "name": "Cicada",
     "hero": "Cicada",
@@ -2773,7 +2773,7 @@
   },
   {
     "cardNumber": "34",
-    "bobaId": "34-Librarian-Base Set-First Edition",
+    "bobaId": "34-Librarian-Base Set-First Edition-FIRE",
     "bvId": 4202,
     "name": "Librarian",
     "hero": "Librarian",
@@ -2801,7 +2801,7 @@
   },
   {
     "cardNumber": "34",
-    "bobaId": "34-Cruze-Control-Base Set-First Edition",
+    "bobaId": "34-Cruze-Control-Base Set-First Edition-FIRE",
     "bvId": 2144,
     "name": "Cruze-Control",
     "hero": "Cruze-Control",
@@ -2829,7 +2829,7 @@
   },
   {
     "cardNumber": "34",
-    "bobaId": "34-Courthouse-Base Set-First Edition",
+    "bobaId": "34-Courthouse-Base Set-First Edition-FIRE",
     "bvId": 10357,
     "name": "Courthouse",
     "hero": "Courthouse",
@@ -2857,7 +2857,7 @@
   },
   {
     "cardNumber": "35",
-    "bobaId": "35-Aeronaut-Base Set-First Edition",
+    "bobaId": "35-Aeronaut-Base Set-First Edition-FIRE",
     "bvId": 64,
     "name": "Aeronaut",
     "hero": "Aeronaut",
@@ -2885,7 +2885,7 @@
   },
   {
     "cardNumber": "35",
-    "bobaId": "35-Cruze-Control-Base Set-First Edition",
+    "bobaId": "35-Cruze-Control-Base Set-First Edition-ICE",
     "bvId": 2145,
     "name": "Cruze-Control",
     "hero": "Cruze-Control",
@@ -2913,7 +2913,7 @@
   },
   {
     "cardNumber": "35",
-    "bobaId": "35-Bandelero-Base Set-2026 Edition",
+    "bobaId": "35-Bandelero-Base Set-2026 Edition-FIRE",
     "bvId": 8617,
     "name": "Bandelero",
     "hero": "Bandelero",
@@ -2941,7 +2941,7 @@
   },
   {
     "cardNumber": "36",
-    "bobaId": "36-Sabotage-Base Set-First Edition",
+    "bobaId": "36-Sabotage-Base Set-First Edition-FIRE",
     "bvId": 5676,
     "name": "Sabotage",
     "hero": "Sabotage",
@@ -2969,7 +2969,7 @@
   },
   {
     "cardNumber": "36",
-    "bobaId": "36-Cruze-Control-Base Set-First Edition",
+    "bobaId": "36-Cruze-Control-Base Set-First Edition-STEEL",
     "bvId": 2146,
     "name": "Cruze-Control",
     "hero": "Cruze-Control",
@@ -2997,7 +2997,7 @@
   },
   {
     "cardNumber": "36",
-    "bobaId": "36-Kettle-Bell-Base Set-First Edition",
+    "bobaId": "36-Kettle-Bell-Base Set-First Edition-FIRE",
     "bvId": 13817,
     "name": "Kettle-Bell",
     "hero": "Kettle-Bell",
@@ -3025,7 +3025,7 @@
   },
   {
     "cardNumber": "37",
-    "bobaId": "37-Mic'd Up-Base Set-First Edition",
+    "bobaId": "37-Mic'd Up-Base Set-First Edition-FIRE",
     "bvId": 4776,
     "name": "Mic'd Up",
     "hero": "Mic'd Up",
@@ -3053,7 +3053,7 @@
   },
   {
     "cardNumber": "37",
-    "bobaId": "37-Processor-Base Set-First Edition",
+    "bobaId": "37-Processor-Base Set-First Edition-FIRE",
     "bvId": 5378,
     "name": "Processor",
     "hero": "Processor",
@@ -3081,7 +3081,7 @@
   },
   {
     "cardNumber": "37",
-    "bobaId": "37-JacHammer-Base Set-First Edition",
+    "bobaId": "37-JacHammer-Base Set-First Edition-FIRE",
     "bvId": 13499,
     "name": "JacHammer",
     "hero": "JacHammer",
@@ -3109,7 +3109,7 @@
   },
   {
     "cardNumber": "38",
-    "bobaId": "38-Jambox-Base Set-First Edition",
+    "bobaId": "38-Jambox-Base Set-First Edition-FIRE",
     "bvId": 3561,
     "name": "Jambox",
     "hero": "Jambox",
@@ -3137,7 +3137,7 @@
   },
   {
     "cardNumber": "38",
-    "bobaId": "38-Processor-Base Set-First Edition",
+    "bobaId": "38-Processor-Base Set-First Edition-ICE",
     "bvId": 5379,
     "name": "Processor",
     "hero": "Processor",
@@ -3165,7 +3165,7 @@
   },
   {
     "cardNumber": "38",
-    "bobaId": "38-BaldWing-Base Set-First Edition",
+    "bobaId": "38-BaldWing-Base Set-First Edition-FIRE",
     "bvId": 8535,
     "name": "BaldWing",
     "hero": "BaldWing",
@@ -3193,7 +3193,7 @@
   },
   {
     "cardNumber": "39",
-    "bobaId": "39-Simon Says-Base Set-First Edition",
+    "bobaId": "39-Simon Says-Base Set-First Edition-FIRE",
     "bvId": 6010,
     "name": "Simon Says",
     "hero": "Simon Says",
@@ -3221,7 +3221,7 @@
   },
   {
     "cardNumber": "39",
-    "bobaId": "39-Processor-Base Set-First Edition",
+    "bobaId": "39-Processor-Base Set-First Edition-STEEL",
     "bvId": 5380,
     "name": "Processor",
     "hero": "Processor",
@@ -3249,7 +3249,7 @@
   },
   {
     "cardNumber": "39",
-    "bobaId": "39-Rook-Base Set-First Edition",
+    "bobaId": "39-Rook-Base Set-First Edition-FIRE",
     "bvId": 15887,
     "name": "Rook",
     "hero": "Rook",
@@ -3277,7 +3277,7 @@
   },
   {
     "cardNumber": "40",
-    "bobaId": "40-Mr. Irrelevant-Base Set-First Edition",
+    "bobaId": "40-Mr. Irrelevant-Base Set-First Edition-FIRE",
     "bvId": 4879,
     "name": "Mr. Irrelevant",
     "hero": "Mr. Irrelevant",
@@ -3305,7 +3305,7 @@
   },
   {
     "cardNumber": "40",
-    "bobaId": "40-Burner-Base Set-First Edition",
+    "bobaId": "40-Burner-Base Set-First Edition-FIRE",
     "bvId": 1296,
     "name": "Burner",
     "hero": "Burner",
@@ -3333,7 +3333,7 @@
   },
   {
     "cardNumber": "40",
-    "bobaId": "40-Camera-Base Set-First Edition",
+    "bobaId": "40-Camera-Base Set-First Edition-FIRE",
     "bvId": 1296,
     "name": "Camera",
     "hero": "Camera",
@@ -3361,7 +3361,7 @@
   },
   {
     "cardNumber": "41",
-    "bobaId": "41-Pantera-Base Set-First Edition",
+    "bobaId": "41-Pantera-Base Set-First Edition-FIRE",
     "bvId": 5126,
     "name": "Pantera",
     "hero": "Pantera",
@@ -3389,7 +3389,7 @@
   },
   {
     "cardNumber": "41",
-    "bobaId": "41-Burner-Base Set-First Edition",
+    "bobaId": "41-Burner-Base Set-First Edition-ICE",
     "bvId": 1297,
     "name": "Burner",
     "hero": "Burner",
@@ -3417,7 +3417,7 @@
   },
   {
     "cardNumber": "41",
-    "bobaId": "41-Homestead-Base Set-First Edition",
+    "bobaId": "41-Homestead-Base Set-First Edition-FIRE",
     "bvId": 13192,
     "name": "Homestead",
     "hero": "Homestead",
@@ -3445,7 +3445,7 @@
   },
   {
     "cardNumber": "42",
-    "bobaId": "42-Rockstar-Base Set-First Edition",
+    "bobaId": "42-Rockstar-Base Set-First Edition-FIRE",
     "bvId": 5586,
     "name": "Rockstar",
     "hero": "Rockstar",
@@ -3473,7 +3473,7 @@
   },
   {
     "cardNumber": "42",
-    "bobaId": "42-Burner-Base Set-First Edition",
+    "bobaId": "42-Burner-Base Set-First Edition-STEEL",
     "bvId": 1298,
     "name": "Burner",
     "hero": "Burner",
@@ -3501,7 +3501,7 @@
   },
   {
     "cardNumber": "42",
-    "bobaId": "42-Scary-Base Set-First Edition",
+    "bobaId": "42-Scary-Base Set-First Edition-FIRE",
     "bvId": 10827,
     "name": "Scary",
     "hero": "Scary",
@@ -3529,7 +3529,7 @@
   },
   {
     "cardNumber": "43",
-    "bobaId": "43-Big-Z-Base Set-First Edition",
+    "bobaId": "43-Big-Z-Base Set-First Edition-FIRE",
     "bvId": 630,
     "name": "Big-Z",
     "hero": "Big-Z",
@@ -3557,7 +3557,7 @@
   },
   {
     "cardNumber": "43",
-    "bobaId": "43-Cowboy-Base Set-First Edition",
+    "bobaId": "43-Cowboy-Base Set-First Edition-FIRE",
     "bvId": 2028,
     "name": "Cowboy",
     "hero": "Cowboy",
@@ -3585,7 +3585,7 @@
   },
   {
     "cardNumber": "43",
-    "bobaId": "43-Canine-Base Set-First Edition",
+    "bobaId": "43-Canine-Base Set-First Edition-FIRE",
     "bvId": 630,
     "name": "Canine",
     "hero": "Canine",
@@ -3613,7 +3613,7 @@
   },
   {
     "cardNumber": "44",
-    "bobaId": "44-Clutch-Base Set-First Edition",
+    "bobaId": "44-Clutch-Base Set-First Edition-FIRE",
     "bvId": 1892,
     "name": "Clutch",
     "hero": "Clutch",
@@ -3641,7 +3641,7 @@
   },
   {
     "cardNumber": "44",
-    "bobaId": "44-Cowboy-Base Set-First Edition",
+    "bobaId": "44-Cowboy-Base Set-First Edition-ICE",
     "bvId": 2029,
     "name": "Cowboy",
     "hero": "Cowboy",
@@ -3669,7 +3669,7 @@
   },
   {
     "cardNumber": "44",
-    "bobaId": "44-Superbaby-Base Set-2026 Edition",
+    "bobaId": "44-Superbaby-Base Set-2026 Edition-FIRE",
     "bvId": 16421,
     "name": "Superbaby",
     "hero": "Superbaby",
@@ -3697,7 +3697,7 @@
   },
   {
     "cardNumber": "45",
-    "bobaId": "45-PukaDot-Base Set-First Edition",
+    "bobaId": "45-PukaDot-Base Set-First Edition-FIRE",
     "bvId": 5416,
     "name": "PukaDot",
     "hero": "PukaDot",
@@ -3725,7 +3725,7 @@
   },
   {
     "cardNumber": "45",
-    "bobaId": "45-Cowboy-Base Set-First Edition",
+    "bobaId": "45-Cowboy-Base Set-First Edition-STEEL",
     "bvId": 2030,
     "name": "Cowboy",
     "hero": "Cowboy",
@@ -3753,7 +3753,7 @@
   },
   {
     "cardNumber": "45",
-    "bobaId": "45-Javalanche-Base Set-2026 Edition",
+    "bobaId": "45-Javalanche-Base Set-2026 Edition-FIRE",
     "bvId": 13582,
     "name": "Javalanche",
     "hero": "Javalanche",
@@ -3781,7 +3781,7 @@
   },
   {
     "cardNumber": "46",
-    "bobaId": "46-Sprinkler-Base Set-First Edition",
+    "bobaId": "46-Sprinkler-Base Set-First Edition-FIRE",
     "bvId": 6252,
     "name": "Sprinkler",
     "hero": "Sprinkler",
@@ -3809,7 +3809,7 @@
   },
   {
     "cardNumber": "46",
-    "bobaId": "46-Yeti-Base Set-First Edition",
+    "bobaId": "46-Yeti-Base Set-First Edition-FIRE",
     "bvId": 7740,
     "name": "Yeti",
     "hero": "Yeti",
@@ -3837,7 +3837,7 @@
   },
   {
     "cardNumber": "46",
-    "bobaId": "46-Wild Bill-Base Set-First Edition",
+    "bobaId": "46-Wild Bill-Base Set-First Edition-FIRE",
     "bvId": 17558,
     "name": "Wild Bill",
     "hero": "Wild Bill",
@@ -3865,7 +3865,7 @@
   },
   {
     "cardNumber": "47",
-    "bobaId": "47-Foxhole-Base Set-First Edition",
+    "bobaId": "47-Foxhole-Base Set-First Edition-FIRE",
     "bvId": 2737,
     "name": "Foxhole",
     "hero": "Foxhole",
@@ -3893,7 +3893,7 @@
   },
   {
     "cardNumber": "47",
-    "bobaId": "47-Yeti-Base Set-First Edition",
+    "bobaId": "47-Yeti-Base Set-First Edition-ICE",
     "bvId": 7741,
     "name": "Yeti",
     "hero": "Yeti",
@@ -3921,7 +3921,7 @@
   },
   {
     "cardNumber": "47",
-    "bobaId": "47-Thorn-Base Set-First Edition",
+    "bobaId": "47-Thorn-Base Set-First Edition-FIRE",
     "bvId": 16808,
     "name": "Thorn",
     "hero": "Thorn",
@@ -3949,7 +3949,7 @@
   },
   {
     "cardNumber": "48",
-    "bobaId": "48-Thomstone-Base Set-First Edition",
+    "bobaId": "48-Thomstone-Base Set-First Edition-FIRE",
     "bvId": 6810,
     "name": "Thomstone",
     "hero": "Thomstone",
@@ -3977,7 +3977,7 @@
   },
   {
     "cardNumber": "48",
-    "bobaId": "48-Yeti-Base Set-First Edition",
+    "bobaId": "48-Yeti-Base Set-First Edition-STEEL",
     "bvId": 7742,
     "name": "Yeti",
     "hero": "Yeti",
@@ -4005,7 +4005,7 @@
   },
   {
     "cardNumber": "48",
-    "bobaId": "48-Chiller-Base Set-First Edition",
+    "bobaId": "48-Chiller-Base Set-First Edition-FIRE",
     "bvId": 6810,
     "name": "Chiller",
     "hero": "Chiller",
@@ -4033,7 +4033,7 @@
   },
   {
     "cardNumber": "49",
-    "bobaId": "49-Botto-Base Set-First Edition",
+    "bobaId": "49-Botto-Base Set-First Edition-FIRE",
     "bvId": 1103,
     "name": "Botto",
     "hero": "Botto",
@@ -4061,7 +4061,7 @@
   },
   {
     "cardNumber": "49",
-    "bobaId": "49-Tattoo-Base Set-First Edition",
+    "bobaId": "49-Tattoo-Base Set-First Edition-FIRE",
     "bvId": 6654,
     "name": "Tattoo",
     "hero": "Tattoo",
@@ -4089,7 +4089,7 @@
   },
   {
     "cardNumber": "49",
-    "bobaId": "49-Zephyr-Base Set-First Edition",
+    "bobaId": "49-Zephyr-Base Set-First Edition-FIRE",
     "bvId": 17644,
     "name": "Zephyr",
     "hero": "Zephyr",
@@ -4117,7 +4117,7 @@
   },
   {
     "cardNumber": "50",
-    "bobaId": "50-Lawman-Base Set-First Edition",
+    "bobaId": "50-Lawman-Base Set-First Edition-FIRE",
     "bvId": 4076,
     "name": "Lawman",
     "hero": "Lawman",
@@ -4145,7 +4145,7 @@
   },
   {
     "cardNumber": "50",
-    "bobaId": "50-Tattoo-Base Set-First Edition",
+    "bobaId": "50-Tattoo-Base Set-First Edition-ICE",
     "bvId": 6655,
     "name": "Tattoo",
     "hero": "Tattoo",
@@ -4173,7 +4173,7 @@
   },
   {
     "cardNumber": "50",
-    "bobaId": "50-Lumber-Base Set-First Edition",
+    "bobaId": "50-Lumber-Base Set-First Edition-FIRE",
     "bvId": 14123,
     "name": "Lumber",
     "hero": "Lumber",
@@ -4201,7 +4201,7 @@
   },
   {
     "cardNumber": "51",
-    "bobaId": "51-Barnacle-Base Set-First Edition",
+    "bobaId": "51-Barnacle-Base Set-First Edition-FIRE",
     "bvId": 447,
     "name": "Barnacle",
     "hero": "Barnacle",
@@ -4229,7 +4229,7 @@
   },
   {
     "cardNumber": "51",
-    "bobaId": "51-Tattoo-Base Set-First Edition",
+    "bobaId": "51-Tattoo-Base Set-First Edition-STEEL",
     "bvId": 6656,
     "name": "Tattoo",
     "hero": "Tattoo",
@@ -4257,7 +4257,7 @@
   },
   {
     "cardNumber": "51",
-    "bobaId": "51-Golden Bullet-Base Set-First Edition",
+    "bobaId": "51-Golden Bullet-Base Set-First Edition-FIRE",
     "bvId": 12664,
     "name": "Golden Bullet",
     "hero": "Golden Bullet",
@@ -4285,7 +4285,7 @@
   },
   {
     "cardNumber": "52",
-    "bobaId": "52-Laviathan-Base Set-First Edition",
+    "bobaId": "52-Laviathan-Base Set-First Edition-FIRE",
     "bvId": 4030,
     "name": "Laviathan",
     "hero": "Laviathan",
@@ -4313,7 +4313,7 @@
   },
   {
     "cardNumber": "52",
-    "bobaId": "52-Superbaby-Base Set-First Edition",
+    "bobaId": "52-Superbaby-Base Set-First Edition-FIRE",
     "bvId": 6510,
     "name": "Superbaby",
     "hero": "Superbaby",
@@ -4341,7 +4341,7 @@
   },
   {
     "cardNumber": "52",
-    "bobaId": "52-Ozzmosis-Base Set-First Edition",
+    "bobaId": "52-Ozzmosis-Base Set-First Edition-FIRE",
     "bvId": 14953,
     "name": "Ozzmosis",
     "hero": "Ozzmosis",
@@ -4369,7 +4369,7 @@
   },
   {
     "cardNumber": "53",
-    "bobaId": "53-Breeze-Base Set-First Edition",
+    "bobaId": "53-Breeze-Base Set-First Edition-FIRE",
     "bvId": 1201,
     "name": "Breeze",
     "hero": "Breeze",
@@ -4397,7 +4397,7 @@
   },
   {
     "cardNumber": "53",
-    "bobaId": "53-Superbaby-Base Set-First Edition",
+    "bobaId": "53-Superbaby-Base Set-First Edition-ICE",
     "bvId": 6511,
     "name": "Superbaby",
     "hero": "Superbaby",
@@ -4425,7 +4425,7 @@
   },
   {
     "cardNumber": "53",
-    "bobaId": "53-DeKap-Base Set-First Edition",
+    "bobaId": "53-DeKap-Base Set-First Edition-FIRE",
     "bvId": 10909,
     "name": "DeKap",
     "hero": "DeKap",
@@ -4453,7 +4453,7 @@
   },
   {
     "cardNumber": "54",
-    "bobaId": "54-Gravedigger-Base Set-First Edition",
+    "bobaId": "54-Gravedigger-Base Set-First Edition-FIRE",
     "bvId": 3058,
     "name": "Gravedigger",
     "hero": "Gravedigger",
@@ -4481,7 +4481,7 @@
   },
   {
     "cardNumber": "54",
-    "bobaId": "54-Superbaby-Base Set-First Edition",
+    "bobaId": "54-Superbaby-Base Set-First Edition-STEEL",
     "bvId": 6512,
     "name": "Superbaby",
     "hero": "Superbaby",
@@ -4509,7 +4509,7 @@
   },
   {
     "cardNumber": "54",
-    "bobaId": "54-Bell-Camp-Base Set-First Edition",
+    "bobaId": "54-Bell-Camp-Base Set-First Edition-FIRE",
     "bvId": 8782,
     "name": "Bell-Camp",
     "hero": "Bell-Camp",
@@ -4537,7 +4537,7 @@
   },
   {
     "cardNumber": "55",
-    "bobaId": "55-D-Hop-Base Set-First Edition",
+    "bobaId": "55-D-Hop-Base Set-First Edition-FIRE",
     "bvId": 2309,
     "name": "D-Hop",
     "hero": "D-Hop",
@@ -4565,7 +4565,7 @@
   },
   {
     "cardNumber": "55",
-    "bobaId": "55-Jeesaw-Base Set-First Edition",
+    "bobaId": "55-Jeesaw-Base Set-First Edition-FIRE",
     "bvId": 3691,
     "name": "Jeesaw",
     "hero": "Jeesaw",
@@ -4593,7 +4593,7 @@
   },
   {
     "cardNumber": "55",
-    "bobaId": "55-Bangford-Base Set-First Edition",
+    "bobaId": "55-Bangford-Base Set-First Edition-FIRE",
     "bvId": 8699,
     "name": "Bangford",
     "hero": "Bangford",
@@ -4621,7 +4621,7 @@
   },
   {
     "cardNumber": "56",
-    "bobaId": "56-Alien-Base Set-First Edition",
+    "bobaId": "56-Alien-Base Set-First Edition-FIRE",
     "bvId": 174,
     "name": "Alien",
     "hero": "Alien",
@@ -4649,7 +4649,7 @@
   },
   {
     "cardNumber": "56",
-    "bobaId": "56-Jeesaw-Base Set-First Edition",
+    "bobaId": "56-Jeesaw-Base Set-First Edition-ICE",
     "bvId": 3692,
     "name": "Jeesaw",
     "hero": "Jeesaw",
@@ -4677,7 +4677,7 @@
   },
   {
     "cardNumber": "56",
-    "bobaId": "56-Forcefield-Base Set-First Edition",
+    "bobaId": "56-Forcefield-Base Set-First Edition-FIRE",
     "bvId": 11751,
     "name": "Forcefield",
     "hero": "Forcefield",
@@ -4705,7 +4705,7 @@
   },
   {
     "cardNumber": "57",
-    "bobaId": "57-Portalize-Base Set-First Edition",
+    "bobaId": "57-Portalize-Base Set-First Edition-FIRE",
     "bvId": 5324,
     "name": "Portalize",
     "hero": "Portalize",
@@ -4733,7 +4733,7 @@
   },
   {
     "cardNumber": "57",
-    "bobaId": "57-Jeesaw-Base Set-First Edition",
+    "bobaId": "57-Jeesaw-Base Set-First Edition-STEEL",
     "bvId": 3693,
     "name": "Jeesaw",
     "hero": "Jeesaw",
@@ -4761,7 +4761,7 @@
   },
   {
     "cardNumber": "57",
-    "bobaId": "57-Amoeba-Base Set-First Edition",
+    "bobaId": "57-Amoeba-Base Set-First Edition-FIRE",
     "bvId": 8194,
     "name": "Amoeba",
     "hero": "Amoeba",
@@ -4789,7 +4789,7 @@
   },
   {
     "cardNumber": "58",
-    "bobaId": "58-Torque-Base Set-First Edition",
+    "bobaId": "58-Torque-Base Set-First Edition-FIRE",
     "bvId": 7119,
     "name": "Torque",
     "hero": "Torque",
@@ -4817,7 +4817,7 @@
   },
   {
     "cardNumber": "58",
-    "bobaId": "58-Tongue-Twister-Base Set-First Edition",
+    "bobaId": "58-Tongue-Twister-Base Set-First Edition-FIRE",
     "bvId": 7080,
     "name": "Tongue-Twister",
     "hero": "Tongue-Twister",
@@ -4845,7 +4845,7 @@
   },
   {
     "cardNumber": "58",
-    "bobaId": "58-Action-Base Set-2026 Edition",
+    "bobaId": "58-Action-Base Set-2026 Edition-FIRE",
     "bvId": 7822,
     "name": "Action",
     "hero": "Action",
@@ -4873,7 +4873,7 @@
   },
   {
     "cardNumber": "59",
-    "bobaId": "59-Risarcher-Base Set-First Edition",
+    "bobaId": "59-Risarcher-Base Set-First Edition-FIRE",
     "bvId": 5532,
     "name": "Risarcher",
     "hero": "Risarcher",
@@ -4901,7 +4901,7 @@
   },
   {
     "cardNumber": "59",
-    "bobaId": "59-Tongue-Twister-Base Set-First Edition",
+    "bobaId": "59-Tongue-Twister-Base Set-First Edition-ICE",
     "bvId": 7081,
     "name": "Tongue-Twister",
     "hero": "Tongue-Twister",
@@ -4929,7 +4929,7 @@
   },
   {
     "cardNumber": "59",
-    "bobaId": "59-Go-Cart-Base Set-First Edition",
+    "bobaId": "59-Go-Cart-Base Set-First Edition-FIRE",
     "bvId": 12582,
     "name": "Go-Cart",
     "hero": "Go-Cart",
@@ -4957,7 +4957,7 @@
   },
   {
     "cardNumber": "60",
-    "bobaId": "60-Sarrtillery-Base Set-First Edition",
+    "bobaId": "60-Sarrtillery-Base Set-First Edition-FIRE",
     "bvId": 5734,
     "name": "Sarrtillery",
     "hero": "Sarrtillery",
@@ -4985,7 +4985,7 @@
   },
   {
     "cardNumber": "60",
-    "bobaId": "60-Tongue-Twister-Base Set-First Edition",
+    "bobaId": "60-Tongue-Twister-Base Set-First Edition-STEEL",
     "bvId": 7082,
     "name": "Tongue-Twister",
     "hero": "Tongue-Twister",
@@ -5013,7 +5013,7 @@
   },
   {
     "cardNumber": "60",
-    "bobaId": "60-Castler-Base Set-First Edition",
+    "bobaId": "60-Castler-Base Set-First Edition-FIRE",
     "bvId": 5734,
     "name": "Castler",
     "hero": "Castler",
@@ -5041,7 +5041,7 @@
   },
   {
     "cardNumber": "61",
-    "bobaId": "61-LeBoss-Base Set-First Edition",
+    "bobaId": "61-LeBoss-Base Set-First Edition-ICE",
     "bvId": 4125,
     "name": "LeBoss",
     "hero": "LeBoss",
@@ -5069,7 +5069,7 @@
   },
   {
     "cardNumber": "61",
-    "bobaId": "61-Halo-Base Set-First Edition",
+    "bobaId": "61-Halo-Base Set-First Edition-FIRE",
     "bvId": 3184,
     "name": "Halo",
     "hero": "Halo",
@@ -5097,7 +5097,7 @@
   },
   {
     "cardNumber": "61",
-    "bobaId": "61-Maverick-Base Set-First Edition",
+    "bobaId": "61-Maverick-Base Set-First Edition-ICE",
     "bvId": 14440,
     "name": "Maverick",
     "hero": "Maverick",
@@ -5125,7 +5125,7 @@
   },
   {
     "cardNumber": "62",
-    "bobaId": "62-Merlomes-Base Set-First Edition",
+    "bobaId": "62-Merlomes-Base Set-First Edition-ICE",
     "bvId": 4680,
     "name": "Merlomes",
     "hero": "Merlomes",
@@ -5153,7 +5153,7 @@
   },
   {
     "cardNumber": "62",
-    "bobaId": "62-Halo-Base Set-First Edition",
+    "bobaId": "62-Halo-Base Set-First Edition-ICE",
     "bvId": 3185,
     "name": "Halo",
     "hero": "Halo",
@@ -5181,7 +5181,7 @@
   },
   {
     "cardNumber": "62",
-    "bobaId": "62-Gaveler-Base Set-2026 Edition",
+    "bobaId": "62-Gaveler-Base Set-2026 Edition-ICE",
     "bvId": 12266,
     "name": "Gaveler",
     "hero": "Gaveler",
@@ -5209,7 +5209,7 @@
   },
   {
     "cardNumber": "63",
-    "bobaId": "63-Chosen-Base Set-First Edition",
+    "bobaId": "63-Chosen-Base Set-First Edition-ICE",
     "bvId": 1826,
     "name": "Chosen",
     "hero": "Chosen",
@@ -5237,7 +5237,7 @@
   },
   {
     "cardNumber": "63",
-    "bobaId": "63-Halo-Base Set-First Edition",
+    "bobaId": "63-Halo-Base Set-First Edition-STEEL",
     "bvId": 3186,
     "name": "Halo",
     "hero": "Halo",
@@ -5265,7 +5265,7 @@
   },
   {
     "cardNumber": "63",
-    "bobaId": "63-Victory-Base Set-2026 Edition",
+    "bobaId": "63-Victory-Base Set-2026 Edition-ICE",
     "bvId": 17172,
     "name": "Victory",
     "hero": "Victory",
@@ -5293,7 +5293,7 @@
   },
   {
     "cardNumber": "64",
-    "bobaId": "64-Midas-Base Set-First Edition",
+    "bobaId": "64-Midas-Base Set-First Edition-ICE",
     "bvId": 4823,
     "name": "Midas",
     "hero": "Midas",
@@ -5321,7 +5321,7 @@
   },
   {
     "cardNumber": "64",
-    "bobaId": "64-Eagle-Eye-Base Set-First Edition",
+    "bobaId": "64-Eagle-Eye-Base Set-First Edition-FIRE",
     "bvId": 2546,
     "name": "Eagle-Eye",
     "hero": "Eagle-Eye",
@@ -5349,7 +5349,7 @@
   },
   {
     "cardNumber": "64",
-    "bobaId": "64-Dijon-Base Set-First Edition",
+    "bobaId": "64-Dijon-Base Set-First Edition-ICE",
     "bvId": 11062,
     "name": "Dijon",
     "hero": "Dijon",
@@ -5377,7 +5377,7 @@
   },
   {
     "cardNumber": "65",
-    "bobaId": "65-Bison-Base Set-First Edition",
+    "bobaId": "65-Bison-Base Set-First Edition-ICE",
     "bvId": 729,
     "name": "Bison",
     "hero": "Bison",
@@ -5405,7 +5405,7 @@
   },
   {
     "cardNumber": "65",
-    "bobaId": "65-Eagle-Eye-Base Set-First Edition",
+    "bobaId": "65-Eagle-Eye-Base Set-First Edition-ICE",
     "bvId": 2547,
     "name": "Eagle-Eye",
     "hero": "Eagle-Eye",
@@ -5433,7 +5433,7 @@
   },
   {
     "cardNumber": "65",
-    "bobaId": "65-Crosbow-Base Set-First Edition",
+    "bobaId": "65-Crosbow-Base Set-First Edition-ICE",
     "bvId": 10510,
     "name": "Crosbow",
     "hero": "Crosbow",
@@ -5461,7 +5461,7 @@
   },
   {
     "cardNumber": "66",
-    "bobaId": "66-Wargod-Base Set-First Edition",
+    "bobaId": "66-Wargod-Base Set-First Edition-ICE",
     "bvId": 7418,
     "name": "Wargod",
     "hero": "Wargod",
@@ -5489,7 +5489,7 @@
   },
   {
     "cardNumber": "66",
-    "bobaId": "66-Eagle-Eye-Base Set-First Edition",
+    "bobaId": "66-Eagle-Eye-Base Set-First Edition-STEEL",
     "bvId": 2548,
     "name": "Eagle-Eye",
     "hero": "Eagle-Eye",
@@ -5517,7 +5517,7 @@
   },
   {
     "cardNumber": "66",
-    "bobaId": "66-Warden-Base Set-First Edition",
+    "bobaId": "66-Warden-Base Set-First Edition-ICE",
     "bvId": 17395,
     "name": "Warden",
     "hero": "Warden",
@@ -5545,7 +5545,7 @@
   },
   {
     "cardNumber": "67",
-    "bobaId": "67-Donny Buckets-Base Set-First Edition",
+    "bobaId": "67-Donny Buckets-Base Set-First Edition-ICE",
     "bvId": 2408,
     "name": "Donny Buckets",
     "hero": "Donny Buckets",
@@ -5573,7 +5573,7 @@
   },
   {
     "cardNumber": "67",
-    "bobaId": "67-Turntable-Base Set-First Edition",
+    "bobaId": "67-Turntable-Base Set-First Edition-FIRE",
     "bvId": 7211,
     "name": "Turntable",
     "hero": "Turntable",
@@ -5601,7 +5601,7 @@
   },
   {
     "cardNumber": "67",
-    "bobaId": "67-PB Buckets-Base Set-First Edition",
+    "bobaId": "67-PB Buckets-Base Set-First Edition-ICE",
     "bvId": 15036,
     "name": "PB Buckets",
     "hero": "PB Buckets",
@@ -5629,7 +5629,7 @@
   },
   {
     "cardNumber": "68",
-    "bobaId": "68-Warp-Base Set-First Edition",
+    "bobaId": "68-Warp-Base Set-First Edition-ICE",
     "bvId": 7467,
     "name": "Warp",
     "hero": "Warp",
@@ -5657,7 +5657,7 @@
   },
   {
     "cardNumber": "68",
-    "bobaId": "68-Turntable-Base Set-First Edition",
+    "bobaId": "68-Turntable-Base Set-First Edition-ICE",
     "bvId": 7212,
     "name": "Turntable",
     "hero": "Turntable",
@@ -5685,7 +5685,7 @@
   },
   {
     "cardNumber": "68",
-    "bobaId": "68-Skuba-Base Set-First Edition",
+    "bobaId": "68-Skuba-Base Set-First Edition-ICE",
     "bvId": 16268,
     "name": "Skuba",
     "hero": "Skuba",
@@ -5713,7 +5713,7 @@
   },
   {
     "cardNumber": "69",
-    "bobaId": "69-Harpoon-Base Set-First Edition",
+    "bobaId": "69-Harpoon-Base Set-First Edition-ICE",
     "bvId": 3262,
     "name": "Harpoon",
     "hero": "Harpoon",
@@ -5741,7 +5741,7 @@
   },
   {
     "cardNumber": "69",
-    "bobaId": "69-Turntable-Base Set-First Edition",
+    "bobaId": "69-Turntable-Base Set-First Edition-STEEL",
     "bvId": 7213,
     "name": "Turntable",
     "hero": "Turntable",
@@ -5769,7 +5769,7 @@
   },
   {
     "cardNumber": "69",
-    "bobaId": "69-Haliburst-Base Set-First Edition",
+    "bobaId": "69-Haliburst-Base Set-First Edition-ICE",
     "bvId": 12900,
     "name": "Haliburst",
     "hero": "Haliburst",
@@ -5797,7 +5797,7 @@
   },
   {
     "cardNumber": "70",
-    "bobaId": "70-Mustang-Base Set-First Edition",
+    "bobaId": "70-Mustang-Base Set-First Edition-ICE",
     "bvId": 4966,
     "name": "Mustang",
     "hero": "Mustang",
@@ -5825,7 +5825,7 @@
   },
   {
     "cardNumber": "70",
-    "bobaId": "70-Bandelero-Base Set-First Edition",
+    "bobaId": "70-Bandelero-Base Set-First Edition-FIRE",
     "bvId": 409,
     "name": "Bandelero",
     "hero": "Bandelero",
@@ -5853,7 +5853,7 @@
   },
   {
     "cardNumber": "70",
-    "bobaId": "70-Dart-Board-Base Set-First Edition",
+    "bobaId": "70-Dart-Board-Base Set-First Edition-ICE",
     "bvId": 16042,
     "name": "Dart-Board",
     "hero": "Dart-Board",
@@ -5881,7 +5881,7 @@
   },
   {
     "cardNumber": "71",
-    "bobaId": "71-Jaybird-Base Set-First Edition",
+    "bobaId": "71-Jaybird-Base Set-First Edition-ICE",
     "bvId": 3645,
     "name": "Jaybird",
     "hero": "Jaybird",
@@ -5909,7 +5909,7 @@
   },
   {
     "cardNumber": "71",
-    "bobaId": "71-Bandelero-Base Set-First Edition",
+    "bobaId": "71-Bandelero-Base Set-First Edition-ICE",
     "bvId": 410,
     "name": "Bandelero",
     "hero": "Bandelero",
@@ -5937,7 +5937,7 @@
   },
   {
     "cardNumber": "71",
-    "bobaId": "71-Dumper-Base Set-First Edition",
+    "bobaId": "71-Dumper-Base Set-First Edition-ICE",
     "bvId": 11299,
     "name": "Dumper",
     "hero": "Dumper",
@@ -5965,7 +5965,7 @@
   },
   {
     "cardNumber": "72",
-    "bobaId": "72-J-Jetts-Base Set-First Edition",
+    "bobaId": "72-J-Jetts-Base Set-First Edition-ICE",
     "bvId": 3766,
     "name": "J-Jetts",
     "hero": "J-Jetts",
@@ -5993,7 +5993,7 @@
   },
   {
     "cardNumber": "72",
-    "bobaId": "72-Bandelero-Base Set-First Edition",
+    "bobaId": "72-Bandelero-Base Set-First Edition-STEEL",
     "bvId": 411,
     "name": "Bandelero",
     "hero": "Bandelero",
@@ -6021,7 +6021,7 @@
   },
   {
     "cardNumber": "72",
-    "bobaId": "72-Switchblade-Base Set-First Edition",
+    "bobaId": "72-Switchblade-Base Set-First Edition-ICE",
     "bvId": 16505,
     "name": "Switchblade",
     "hero": "Switchblade",
@@ -6049,7 +6049,7 @@
   },
   {
     "cardNumber": "73",
-    "bobaId": "73-Merri-Go-Round-Base Set-First Edition",
+    "bobaId": "73-Merri-Go-Round-Base Set-First Edition-ICE",
     "bvId": 4730,
     "name": "Merri-Go-Round",
     "hero": "Merri-Go-Round",
@@ -6077,7 +6077,7 @@
   },
   {
     "cardNumber": "73",
-    "bobaId": "73-Marverati-Base Set-First Edition",
+    "bobaId": "73-Marverati-Base Set-First Edition-FIRE",
     "bvId": 4513,
     "name": "Marverati",
     "hero": "Marverati",
@@ -6105,7 +6105,7 @@
   },
   {
     "cardNumber": "73",
-    "bobaId": "73-Cupid-Base Set-2026 Edition",
+    "bobaId": "73-Cupid-Base Set-2026 Edition-ICE",
     "bvId": 10663,
     "name": "Cupid",
     "hero": "Cupid",
@@ -6133,7 +6133,7 @@
   },
   {
     "cardNumber": "74",
-    "bobaId": "74-Shystep-Base Set-First Edition",
+    "bobaId": "74-Shystep-Base Set-First Edition-ICE",
     "bvId": 5962,
     "name": "Shystep",
     "hero": "Shystep",
@@ -6161,7 +6161,7 @@
   },
   {
     "cardNumber": "74",
-    "bobaId": "74-Marverati-Base Set-First Edition",
+    "bobaId": "74-Marverati-Base Set-First Edition-ICE",
     "bvId": 4514,
     "name": "Marverati",
     "hero": "Marverati",
@@ -6189,7 +6189,7 @@
   },
   {
     "cardNumber": "74",
-    "bobaId": "74-Air Ace-Base Set-First Edition",
+    "bobaId": "74-Air Ace-Base Set-First Edition-ICE",
     "bvId": 7905,
     "name": "Air Ace",
     "hero": "Air Ace",
@@ -6217,7 +6217,7 @@
   },
   {
     "cardNumber": "75",
-    "bobaId": "75-Ram-Base Set-First Edition",
+    "bobaId": "75-Ram-Base Set-First Edition-ICE",
     "bvId": 5474,
     "name": "Ram",
     "hero": "Ram",
@@ -6245,7 +6245,7 @@
   },
   {
     "cardNumber": "75",
-    "bobaId": "75-Marverati-Base Set-First Edition",
+    "bobaId": "75-Marverati-Base Set-First Edition-STEEL",
     "bvId": 4515,
     "name": "Marverati",
     "hero": "Marverati",
@@ -6273,7 +6273,7 @@
   },
   {
     "cardNumber": "75",
-    "bobaId": "75-Maxed Out-Base Set-First Edition",
+    "bobaId": "75-Maxed Out-Base Set-First Edition-ICE",
     "bvId": 14590,
     "name": "Maxed Out",
     "hero": "Maxed Out",
@@ -6301,7 +6301,7 @@
   },
   {
     "cardNumber": "76",
-    "bobaId": "76-Freakshow-Base Set-First Edition",
+    "bobaId": "76-Freakshow-Base Set-First Edition-ICE",
     "bvId": 2788,
     "name": "Freakshow",
     "hero": "Freakshow",
@@ -6329,7 +6329,7 @@
   },
   {
     "cardNumber": "76",
-    "bobaId": "76-Action-Base Set-First Edition",
+    "bobaId": "76-Action-Base Set-First Edition-FIRE",
     "bvId": 23,
     "name": "Action",
     "hero": "Action",
@@ -6357,7 +6357,7 @@
   },
   {
     "cardNumber": "76",
-    "bobaId": "76-King Tuck-Base Set-First Edition",
+    "bobaId": "76-King Tuck-Base Set-First Edition-ICE",
     "bvId": 14041,
     "name": "King Tuck",
     "hero": "King Tuck",
@@ -6385,7 +6385,7 @@
   },
   {
     "cardNumber": "77",
-    "bobaId": "77-Lightningrod-Base Set-First Edition",
+    "bobaId": "77-Lightningrod-Base Set-First Edition-ICE",
     "bvId": 4295,
     "name": "Lightningrod",
     "hero": "Lightningrod",
@@ -6413,7 +6413,7 @@
   },
   {
     "cardNumber": "77",
-    "bobaId": "77-Action-Base Set-First Edition",
+    "bobaId": "77-Action-Base Set-First Edition-ICE",
     "bvId": 24,
     "name": "Action",
     "hero": "Action",
@@ -6441,7 +6441,7 @@
   },
   {
     "cardNumber": "77",
-    "bobaId": "77-Macho-Base Set-First Edition",
+    "bobaId": "77-Macho-Base Set-First Edition-ICE",
     "bvId": 14206,
     "name": "Macho",
     "hero": "Macho",
@@ -6469,7 +6469,7 @@
   },
   {
     "cardNumber": "78",
-    "bobaId": "78-Bayou-Base Set-First Edition",
+    "bobaId": "78-Bayou-Base Set-First Edition-ICE",
     "bvId": 573,
     "name": "Bayou",
     "hero": "Bayou",
@@ -6497,7 +6497,7 @@
   },
   {
     "cardNumber": "78",
-    "bobaId": "78-Action-Base Set-First Edition",
+    "bobaId": "78-Action-Base Set-First Edition-STEEL",
     "bvId": 25,
     "name": "Action",
     "hero": "Action",
@@ -6525,7 +6525,7 @@
   },
   {
     "cardNumber": "78",
-    "bobaId": "78-Gladiator-Base Set-First Edition",
+    "bobaId": "78-Gladiator-Base Set-First Edition-ICE",
     "bvId": 12500,
     "name": "Gladiator",
     "hero": "Gladiator",
@@ -6553,7 +6553,7 @@
   },
   {
     "cardNumber": "79",
-    "bobaId": "79-McArmyKnife-Base Set-First Edition",
+    "bobaId": "79-McArmyKnife-Base Set-First Edition-ICE",
     "bvId": 4597,
     "name": "McArmyKnife",
     "hero": "McArmyKnife",
@@ -6581,7 +6581,7 @@
   },
   {
     "cardNumber": "79",
-    "bobaId": "79-Vampire-Base Set-First Edition",
+    "bobaId": "79-Vampire-Base Set-First Edition-FIRE",
     "bvId": 7302,
     "name": "Vampire",
     "hero": "Vampire",
@@ -6609,7 +6609,7 @@
   },
   {
     "cardNumber": "79",
-    "bobaId": "79-BrockNess-Base Set-First Edition",
+    "bobaId": "79-BrockNess-Base Set-First Edition-ICE",
     "bvId": 4597,
     "name": "BrockNess",
     "hero": "BrockNess",
@@ -6637,7 +6637,7 @@
   },
   {
     "cardNumber": "80",
-    "bobaId": "80-Tigre-Base Set-First Edition",
+    "bobaId": "80-Tigre-Base Set-First Edition-ICE",
     "bvId": 6924,
     "name": "Tigre",
     "hero": "Tigre",
@@ -6665,7 +6665,7 @@
   },
   {
     "cardNumber": "80",
-    "bobaId": "80-Vampire-Base Set-First Edition",
+    "bobaId": "80-Vampire-Base Set-First Edition-ICE",
     "bvId": 7303,
     "name": "Vampire",
     "hero": "Vampire",
@@ -6693,7 +6693,7 @@
   },
   {
     "cardNumber": "80",
-    "bobaId": "80-Fungi-Base Set-2026 Edition",
+    "bobaId": "80-Fungi-Base Set-2026 Edition-ICE",
     "bvId": 11905,
     "name": "Fungi",
     "hero": "Fungi",
@@ -6721,7 +6721,7 @@
   },
   {
     "cardNumber": "81",
-    "bobaId": "81-Cheetah-Base Set-First Edition",
+    "bobaId": "81-Cheetah-Base Set-First Edition-ICE",
     "bvId": 1659,
     "name": "Cheetah",
     "hero": "Cheetah",
@@ -6749,7 +6749,7 @@
   },
   {
     "cardNumber": "81",
-    "bobaId": "81-Vampire-Base Set-First Edition",
+    "bobaId": "81-Vampire-Base Set-First Edition-STEEL",
     "bvId": 7304,
     "name": "Vampire",
     "hero": "Vampire",
@@ -6777,7 +6777,7 @@
   },
   {
     "cardNumber": "81",
-    "bobaId": "81-Wattage-Base Set-First Edition",
+    "bobaId": "81-Wattage-Base Set-First Edition-ICE",
     "bvId": 17477,
     "name": "Wattage",
     "hero": "Wattage",
@@ -6805,7 +6805,7 @@
   },
   {
     "cardNumber": "82",
-    "bobaId": "82-Spider-Base Set-First Edition",
+    "bobaId": "82-Spider-Base Set-First Edition-ICE",
     "bvId": 6207,
     "name": "Spider",
     "hero": "Spider",
@@ -6833,7 +6833,7 @@
   },
   {
     "cardNumber": "82",
-    "bobaId": "82-Jeeves-Base Set-First Edition",
+    "bobaId": "82-Jeeves-Base Set-First Edition-FIRE",
     "bvId": 3728,
     "name": "Jeeves",
     "hero": "Jeeves",
@@ -6861,7 +6861,7 @@
   },
   {
     "cardNumber": "82",
-    "bobaId": "82-Gunner-Base Set-First Edition",
+    "bobaId": "82-Gunner-Base Set-First Edition-ICE",
     "bvId": 12818,
     "name": "Gunner",
     "hero": "Gunner",
@@ -6889,7 +6889,7 @@
   },
   {
     "cardNumber": "83",
-    "bobaId": "83-Crews-Missle-Base Set-First Edition",
+    "bobaId": "83-Crews-Missle-Base Set-First Edition-ICE",
     "bvId": 2066,
     "name": "Crews-Missle",
     "hero": "Crews-Missle",
@@ -6917,7 +6917,7 @@
   },
   {
     "cardNumber": "83",
-    "bobaId": "83-Jeeves-Base Set-First Edition",
+    "bobaId": "83-Jeeves-Base Set-First Edition-ICE",
     "bvId": 3729,
     "name": "Jeeves",
     "hero": "Jeeves",
@@ -6945,7 +6945,7 @@
   },
   {
     "cardNumber": "83",
-    "bobaId": "83-Marksman-Base Set-First Edition",
+    "bobaId": "83-Marksman-Base Set-First Edition-ICE",
     "bvId": 14357,
     "name": "Marksman",
     "hero": "Marksman",
@@ -6973,7 +6973,7 @@
   },
   {
     "cardNumber": "84",
-    "bobaId": "84-Unibrow-Base Set-First Edition",
+    "bobaId": "84-Unibrow-Base Set-First Edition-ICE",
     "bvId": 7255,
     "name": "Unibrow",
     "hero": "Unibrow",
@@ -7001,7 +7001,7 @@
   },
   {
     "cardNumber": "84",
-    "bobaId": "84-Jeeves-Base Set-First Edition",
+    "bobaId": "84-Jeeves-Base Set-First Edition-STEEL",
     "bvId": 3730,
     "name": "Jeeves",
     "hero": "Jeeves",
@@ -7029,7 +7029,7 @@
   },
   {
     "cardNumber": "84",
-    "bobaId": "84-D-Harp-Base Set-First Edition",
+    "bobaId": "84-D-Harp-Base Set-First Edition-ICE",
     "bvId": 10745,
     "name": "D-Harp",
     "hero": "D-Harp",
@@ -7057,7 +7057,7 @@
   },
   {
     "cardNumber": "85",
-    "bobaId": "85-Exterminaber-Base Set-First Edition",
+    "bobaId": "85-Exterminaber-Base Set-First Edition-ICE",
     "bvId": 2632,
     "name": "Exterminaber",
     "hero": "Exterminaber",
@@ -7085,7 +7085,7 @@
   },
   {
     "cardNumber": "85",
-    "bobaId": "85-Carroller-Base Set-First Edition",
+    "bobaId": "85-Carroller-Base Set-First Edition-FIRE",
     "bvId": 1498,
     "name": "Carroller",
     "hero": "Carroller",
@@ -7113,7 +7113,7 @@
   },
   {
     "cardNumber": "85",
-    "bobaId": "85-Jeanetic-Base Set-First Edition",
+    "bobaId": "85-Jeanetic-Base Set-First Edition-ICE",
     "bvId": 13665,
     "name": "Jeanetic",
     "hero": "Jeanetic",
@@ -7141,7 +7141,7 @@
   },
   {
     "cardNumber": "86",
-    "bobaId": "86-Bomber-Base Set-First Edition",
+    "bobaId": "86-Bomber-Base Set-First Edition-ICE",
     "bvId": 947,
     "name": "Bomber",
     "hero": "Bomber",
@@ -7169,7 +7169,7 @@
   },
   {
     "cardNumber": "86",
-    "bobaId": "86-Carroller-Base Set-First Edition",
+    "bobaId": "86-Carroller-Base Set-First Edition-ICE",
     "bvId": 947,
     "name": "Carroller",
     "hero": "Carroller",
@@ -7197,7 +7197,7 @@
   },
   {
     "cardNumber": "86",
-    "bobaId": "86-Doublecheck-Base Set-2026 Edition",
+    "bobaId": "86-Doublecheck-Base Set-2026 Edition-ICE",
     "bvId": 11146,
     "name": "Doublecheck",
     "hero": "Doublecheck",
@@ -7225,7 +7225,7 @@
   },
   {
     "cardNumber": "87",
-    "bobaId": "87-Juice-Base Set-First Edition",
+    "bobaId": "87-Juice-Base Set-First Edition-ICE",
     "bvId": 3854,
     "name": "Juice",
     "hero": "Juice",
@@ -7253,7 +7253,7 @@
   },
   {
     "cardNumber": "87",
-    "bobaId": "87-Carroller-Base Set-First Edition",
+    "bobaId": "87-Carroller-Base Set-First Edition-STEEL",
     "bvId": 1500,
     "name": "Carroller",
     "hero": "Carroller",
@@ -7281,7 +7281,7 @@
   },
   {
     "cardNumber": "87",
-    "bobaId": "87-Caliber-Base Set-2026 Edition",
+    "bobaId": "87-Caliber-Base Set-2026 Edition-ICE",
     "bvId": 1500,
     "name": "Caliber",
     "hero": "Caliber",
@@ -7309,7 +7309,7 @@
   },
   {
     "cardNumber": "88",
-    "bobaId": "88-Attak-Base Set-First Edition",
+    "bobaId": "88-Attak-Base Set-First Edition-ICE",
     "bvId": 292,
     "name": "Attak",
     "hero": "Attak",
@@ -7337,7 +7337,7 @@
   },
   {
     "cardNumber": "88",
-    "bobaId": "88-Draco-Base Set-First Edition",
+    "bobaId": "88-Draco-Base Set-First Edition-FIRE",
     "bvId": 2501,
     "name": "Draco",
     "hero": "Draco",
@@ -7365,7 +7365,7 @@
   },
   {
     "cardNumber": "88",
-    "bobaId": "88-Escape Artist-Base Set-First Edition",
+    "bobaId": "88-Escape Artist-Base Set-First Edition-ICE",
     "bvId": 11591,
     "name": "Escape Artist",
     "hero": "Escape Artist",
@@ -7393,7 +7393,7 @@
   },
   {
     "cardNumber": "89",
-    "bobaId": "89-ChetMate-Base Set-First Edition",
+    "bobaId": "89-ChetMate-Base Set-First Edition-ICE",
     "bvId": 1708,
     "name": "ChetMate",
     "hero": "ChetMate",
@@ -7421,7 +7421,7 @@
   },
   {
     "cardNumber": "89",
-    "bobaId": "89-Draco-Base Set-First Edition",
+    "bobaId": "89-Draco-Base Set-First Edition-ICE",
     "bvId": 2502,
     "name": "Draco",
     "hero": "Draco",
@@ -7449,7 +7449,7 @@
   },
   {
     "cardNumber": "89",
-    "bobaId": "89-J-Cam-Base Set-First Edition",
+    "bobaId": "89-J-Cam-Base Set-First Edition-ICE",
     "bvId": 13278,
     "name": "J-Cam",
     "hero": "J-Cam",
@@ -7477,7 +7477,7 @@
   },
   {
     "cardNumber": "90",
-    "bobaId": "90-Phoenix-Base Set-First Edition",
+    "bobaId": "90-Phoenix-Base Set-First Edition-ICE",
     "bvId": 5260,
     "name": "Phoenix",
     "hero": "Phoenix",
@@ -7505,7 +7505,7 @@
   },
   {
     "cardNumber": "90",
-    "bobaId": "90-Draco-Base Set-First Edition",
+    "bobaId": "90-Draco-Base Set-First Edition-STEEL",
     "bvId": 2503,
     "name": "Draco",
     "hero": "Draco",
@@ -7533,7 +7533,7 @@
   },
   {
     "cardNumber": "90",
-    "bobaId": "90-Generator-Base Set-First Edition",
+    "bobaId": "90-Generator-Base Set-First Edition-ICE",
     "bvId": 12348,
     "name": "Generator",
     "hero": "Generator",
@@ -7561,7 +7561,7 @@
   },
   {
     "cardNumber": "91",
-    "bobaId": "91-Lieutenant-Base Set-First Edition",
+    "bobaId": "91-Lieutenant-Base Set-First Edition-ICE",
     "bvId": 4249,
     "name": "Lieutenant",
     "hero": "Lieutenant",
@@ -7589,7 +7589,7 @@
   },
   {
     "cardNumber": "91",
-    "bobaId": "91-Cha-Ching-Base Set-First Edition",
+    "bobaId": "91-Cha-Ching-Base Set-First Edition-FIRE",
     "bvId": 1614,
     "name": "Cha-Ching",
     "hero": "Cha-Ching",
@@ -7617,7 +7617,7 @@
   },
   {
     "cardNumber": "91",
-    "bobaId": "91-Tattoo-Base Set-2026 Edition",
+    "bobaId": "91-Tattoo-Base Set-2026 Edition-ICE",
     "bvId": 16587,
     "name": "Tattoo",
     "hero": "Tattoo",
@@ -7645,7 +7645,7 @@
   },
   {
     "cardNumber": "92",
-    "bobaId": "92-Snowbear-Base Set-First Edition",
+    "bobaId": "92-Snowbear-Base Set-First Edition-ICE",
     "bvId": 6161,
     "name": "Snowbear",
     "hero": "Snowbear",
@@ -7673,7 +7673,7 @@
   },
   {
     "cardNumber": "92",
-    "bobaId": "92-Cha-Ching-Base Set-First Edition",
+    "bobaId": "92-Cha-Ching-Base Set-First Edition-ICE",
     "bvId": 1615,
     "name": "Cha-Ching",
     "hero": "Cha-Ching",
@@ -7701,7 +7701,7 @@
   },
   {
     "cardNumber": "92",
-    "bobaId": "92-Brawn-Base Set-First Edition",
+    "bobaId": "92-Brawn-Base Set-First Edition-ICE",
     "bvId": 1615,
     "name": "Brawn",
     "hero": "Brawn",
@@ -7729,7 +7729,7 @@
   },
   {
     "cardNumber": "93",
-    "bobaId": "93-Boltage-Base Set-First Edition",
+    "bobaId": "93-Boltage-Base Set-First Edition-ICE",
     "bvId": 888,
     "name": "Boltage",
     "hero": "Boltage",
@@ -7757,7 +7757,7 @@
   },
   {
     "cardNumber": "93",
-    "bobaId": "93-Cha-Ching-Base Set-First Edition",
+    "bobaId": "93-Cha-Ching-Base Set-First Edition-STEEL",
     "bvId": 1616,
     "name": "Cha-Ching",
     "hero": "Cha-Ching",
@@ -7785,7 +7785,7 @@
   },
   {
     "cardNumber": "93",
-    "bobaId": "93-Cicada-Base Set-First Edition",
+    "bobaId": "93-Cicada-Base Set-First Edition-ICE",
     "bvId": 10275,
     "name": "Cicada",
     "hero": "Cicada",
@@ -7813,7 +7813,7 @@
   },
   {
     "cardNumber": "94",
-    "bobaId": "94-Librarian-Base Set-First Edition",
+    "bobaId": "94-Librarian-Base Set-First Edition-ICE",
     "bvId": 4203,
     "name": "Librarian",
     "hero": "Librarian",
@@ -7841,7 +7841,7 @@
   },
   {
     "cardNumber": "94",
-    "bobaId": "94-Time-Base Set-First Edition",
+    "bobaId": "94-Time-Base Set-First Edition-FIRE",
     "bvId": 7008,
     "name": "Time",
     "hero": "Time",
@@ -7869,7 +7869,7 @@
   },
   {
     "cardNumber": "94",
-    "bobaId": "94-Courthouse-Base Set-First Edition",
+    "bobaId": "94-Courthouse-Base Set-First Edition-ICE",
     "bvId": 10358,
     "name": "Courthouse",
     "hero": "Courthouse",
@@ -7897,7 +7897,7 @@
   },
   {
     "cardNumber": "95",
-    "bobaId": "95-Aeronaut-Base Set-First Edition",
+    "bobaId": "95-Aeronaut-Base Set-First Edition-ICE",
     "bvId": 65,
     "name": "Aeronaut",
     "hero": "Aeronaut",
@@ -7925,7 +7925,7 @@
   },
   {
     "cardNumber": "95",
-    "bobaId": "95-Time-Base Set-First Edition",
+    "bobaId": "95-Time-Base Set-First Edition-ICE",
     "bvId": 7009,
     "name": "Time",
     "hero": "Time",
@@ -7953,7 +7953,7 @@
   },
   {
     "cardNumber": "95",
-    "bobaId": "95-Bandelero-Base Set-2026 Edition",
+    "bobaId": "95-Bandelero-Base Set-2026 Edition-ICE",
     "bvId": 8618,
     "name": "Bandelero",
     "hero": "Bandelero",
@@ -7981,7 +7981,7 @@
   },
   {
     "cardNumber": "96",
-    "bobaId": "96-Sabotage-Base Set-First Edition",
+    "bobaId": "96-Sabotage-Base Set-First Edition-ICE",
     "bvId": 5677,
     "name": "Sabotage",
     "hero": "Sabotage",
@@ -8009,7 +8009,7 @@
   },
   {
     "cardNumber": "96",
-    "bobaId": "96-Time-Base Set-First Edition",
+    "bobaId": "96-Time-Base Set-First Edition-STEEL",
     "bvId": 7010,
     "name": "Time",
     "hero": "Time",
@@ -8037,7 +8037,7 @@
   },
   {
     "cardNumber": "96",
-    "bobaId": "96-Kettle-Bell-Base Set-First Edition",
+    "bobaId": "96-Kettle-Bell-Base Set-First Edition-ICE",
     "bvId": 13818,
     "name": "Kettle-Bell",
     "hero": "Kettle-Bell",
@@ -8065,7 +8065,7 @@
   },
   {
     "cardNumber": "97",
-    "bobaId": "97-Mic'd Up-Base Set-First Edition",
+    "bobaId": "97-Mic'd Up-Base Set-First Edition-ICE",
     "bvId": 4777,
     "name": "Mic'd Up",
     "hero": "Mic'd Up",
@@ -8093,7 +8093,7 @@
   },
   {
     "cardNumber": "97",
-    "bobaId": "97-Fungi-Base Set-First Edition",
+    "bobaId": "97-Fungi-Base Set-First Edition-FIRE",
     "bvId": 2882,
     "name": "Fungi",
     "hero": "Fungi",
@@ -8121,7 +8121,7 @@
   },
   {
     "cardNumber": "97",
-    "bobaId": "97-JacHammer-Base Set-First Edition",
+    "bobaId": "97-JacHammer-Base Set-First Edition-ICE",
     "bvId": 13500,
     "name": "JacHammer",
     "hero": "JacHammer",
@@ -8149,7 +8149,7 @@
   },
   {
     "cardNumber": "98",
-    "bobaId": "98-Jambox-Base Set-First Edition",
+    "bobaId": "98-Jambox-Base Set-First Edition-ICE",
     "bvId": 3562,
     "name": "Jambox",
     "hero": "Jambox",
@@ -8177,7 +8177,7 @@
   },
   {
     "cardNumber": "98",
-    "bobaId": "98-Fungi-Base Set-First Edition",
+    "bobaId": "98-Fungi-Base Set-First Edition-ICE",
     "bvId": 2883,
     "name": "Fungi",
     "hero": "Fungi",
@@ -8205,7 +8205,7 @@
   },
   {
     "cardNumber": "98",
-    "bobaId": "98-BaldWing-Base Set-First Edition",
+    "bobaId": "98-BaldWing-Base Set-First Edition-ICE",
     "bvId": 8536,
     "name": "BaldWing",
     "hero": "BaldWing",
@@ -8233,7 +8233,7 @@
   },
   {
     "cardNumber": "99",
-    "bobaId": "99-Simon Says-Base Set-First Edition",
+    "bobaId": "99-Simon Says-Base Set-First Edition-ICE",
     "bvId": 6011,
     "name": "Simon Says",
     "hero": "Simon Says",
@@ -8261,7 +8261,7 @@
   },
   {
     "cardNumber": "99",
-    "bobaId": "99-Fungi-Base Set-First Edition",
+    "bobaId": "99-Fungi-Base Set-First Edition-STEEL",
     "bvId": 2884,
     "name": "Fungi",
     "hero": "Fungi",
@@ -8289,7 +8289,7 @@
   },
   {
     "cardNumber": "99",
-    "bobaId": "99-Rook-Base Set-First Edition",
+    "bobaId": "99-Rook-Base Set-First Edition-ICE",
     "bvId": 15888,
     "name": "Rook",
     "hero": "Rook",
@@ -8317,7 +8317,7 @@
   },
   {
     "cardNumber": "100",
-    "bobaId": "100-Mr. Irrelevant-Base Set-First Edition",
+    "bobaId": "100-Mr. Irrelevant-Base Set-First Edition-ICE",
     "bvId": 4880,
     "name": "Mr. Irrelevant",
     "hero": "Mr. Irrelevant",
@@ -8345,7 +8345,7 @@
   },
   {
     "cardNumber": "100",
-    "bobaId": "100-Wildbeard-Base Set-First Edition",
+    "bobaId": "100-Wildbeard-Base Set-First Edition-FIRE",
     "bvId": 7519,
     "name": "Wildbeard",
     "hero": "Wildbeard",
@@ -8373,7 +8373,7 @@
   },
   {
     "cardNumber": "100",
-    "bobaId": "100-Camera-Base Set-First Edition",
+    "bobaId": "100-Camera-Base Set-First Edition-ICE",
     "bvId": 4880,
     "name": "Camera",
     "hero": "Camera",
@@ -8401,7 +8401,7 @@
   },
   {
     "cardNumber": "101",
-    "bobaId": "101-Pantera-Base Set-First Edition",
+    "bobaId": "101-Pantera-Base Set-First Edition-ICE",
     "bvId": 5127,
     "name": "Pantera",
     "hero": "Pantera",
@@ -8429,7 +8429,7 @@
   },
   {
     "cardNumber": "101",
-    "bobaId": "101-Wildbeard-Base Set-First Edition",
+    "bobaId": "101-Wildbeard-Base Set-First Edition-ICE",
     "bvId": 7520,
     "name": "Wildbeard",
     "hero": "Wildbeard",
@@ -8457,7 +8457,7 @@
   },
   {
     "cardNumber": "101",
-    "bobaId": "101-Homestead-Base Set-First Edition",
+    "bobaId": "101-Homestead-Base Set-First Edition-ICE",
     "bvId": 13193,
     "name": "Homestead",
     "hero": "Homestead",
@@ -8485,7 +8485,7 @@
   },
   {
     "cardNumber": "102",
-    "bobaId": "102-Rockstar-Base Set-First Edition",
+    "bobaId": "102-Rockstar-Base Set-First Edition-ICE",
     "bvId": 5587,
     "name": "Rockstar",
     "hero": "Rockstar",
@@ -8513,7 +8513,7 @@
   },
   {
     "cardNumber": "102",
-    "bobaId": "102-Wildbeard-Base Set-First Edition",
+    "bobaId": "102-Wildbeard-Base Set-First Edition-STEEL",
     "bvId": 7521,
     "name": "Wildbeard",
     "hero": "Wildbeard",
@@ -8541,7 +8541,7 @@
   },
   {
     "cardNumber": "102",
-    "bobaId": "102-Scary-Base Set-First Edition",
+    "bobaId": "102-Scary-Base Set-First Edition-ICE",
     "bvId": 10828,
     "name": "Scary",
     "hero": "Scary",
@@ -8569,7 +8569,7 @@
   },
   {
     "cardNumber": "103",
-    "bobaId": "103-Big-Z-Base Set-First Edition",
+    "bobaId": "103-Big-Z-Base Set-First Edition-ICE",
     "bvId": 631,
     "name": "Big-Z",
     "hero": "Big-Z",
@@ -8597,7 +8597,7 @@
   },
   {
     "cardNumber": "103",
-    "bobaId": "103-Shepherd-Base Set-First Edition",
+    "bobaId": "103-Shepherd-Base Set-First Edition-FIRE",
     "bvId": 5830,
     "name": "Shepherd",
     "hero": "Shepherd",
@@ -8625,7 +8625,7 @@
   },
   {
     "cardNumber": "103",
-    "bobaId": "103-Canine-Base Set-First Edition",
+    "bobaId": "103-Canine-Base Set-First Edition-ICE",
     "bvId": 631,
     "name": "Canine",
     "hero": "Canine",
@@ -8653,7 +8653,7 @@
   },
   {
     "cardNumber": "104",
-    "bobaId": "104-Clutch-Base Set-First Edition",
+    "bobaId": "104-Clutch-Base Set-First Edition-ICE",
     "bvId": 1893,
     "name": "Clutch",
     "hero": "Clutch",
@@ -8681,7 +8681,7 @@
   },
   {
     "cardNumber": "104",
-    "bobaId": "104-Shepherd-Base Set-First Edition",
+    "bobaId": "104-Shepherd-Base Set-First Edition-ICE",
     "bvId": 5831,
     "name": "Shepherd",
     "hero": "Shepherd",
@@ -8709,7 +8709,7 @@
   },
   {
     "cardNumber": "104",
-    "bobaId": "104-Superbaby-Base Set-2026 Edition",
+    "bobaId": "104-Superbaby-Base Set-2026 Edition-ICE",
     "bvId": 16422,
     "name": "Superbaby",
     "hero": "Superbaby",
@@ -8737,7 +8737,7 @@
   },
   {
     "cardNumber": "105",
-    "bobaId": "105-PukaDot-Base Set-First Edition",
+    "bobaId": "105-PukaDot-Base Set-First Edition-ICE",
     "bvId": 5417,
     "name": "PukaDot",
     "hero": "PukaDot",
@@ -8765,7 +8765,7 @@
   },
   {
     "cardNumber": "105",
-    "bobaId": "105-Shepherd-Base Set-First Edition",
+    "bobaId": "105-Shepherd-Base Set-First Edition-STEEL",
     "bvId": 5832,
     "name": "Shepherd",
     "hero": "Shepherd",
@@ -8793,7 +8793,7 @@
   },
   {
     "cardNumber": "105",
-    "bobaId": "105-Javalanche-Base Set-2026 Edition",
+    "bobaId": "105-Javalanche-Base Set-2026 Edition-ICE",
     "bvId": 13583,
     "name": "Javalanche",
     "hero": "Javalanche",
@@ -8821,7 +8821,7 @@
   },
   {
     "cardNumber": "106",
-    "bobaId": "106-Sprinkler-Base Set-First Edition",
+    "bobaId": "106-Sprinkler-Base Set-First Edition-ICE",
     "bvId": 6253,
     "name": "Sprinkler",
     "hero": "Sprinkler",
@@ -8849,7 +8849,7 @@
   },
   {
     "cardNumber": "106",
-    "bobaId": "106-Ollie-Base Set-First Edition",
+    "bobaId": "106-Ollie-Base Set-First Edition-FIRE",
     "bvId": 5035,
     "name": "Ollie",
     "hero": "Ollie",
@@ -8877,7 +8877,7 @@
   },
   {
     "cardNumber": "106",
-    "bobaId": "106-Wild Bill-Base Set-First Edition",
+    "bobaId": "106-Wild Bill-Base Set-First Edition-ICE",
     "bvId": 17559,
     "name": "Wild Bill",
     "hero": "Wild Bill",
@@ -8905,7 +8905,7 @@
   },
   {
     "cardNumber": "107",
-    "bobaId": "107-Foxhole-Base Set-First Edition",
+    "bobaId": "107-Foxhole-Base Set-First Edition-ICE",
     "bvId": 2738,
     "name": "Foxhole",
     "hero": "Foxhole",
@@ -8933,7 +8933,7 @@
   },
   {
     "cardNumber": "107",
-    "bobaId": "107-Ollie-Base Set-First Edition",
+    "bobaId": "107-Ollie-Base Set-First Edition-ICE",
     "bvId": 5036,
     "name": "Ollie",
     "hero": "Ollie",
@@ -8961,7 +8961,7 @@
   },
   {
     "cardNumber": "107",
-    "bobaId": "107-Thorn-Base Set-First Edition",
+    "bobaId": "107-Thorn-Base Set-First Edition-ICE",
     "bvId": 16809,
     "name": "Thorn",
     "hero": "Thorn",
@@ -8989,7 +8989,7 @@
   },
   {
     "cardNumber": "108",
-    "bobaId": "108-Thomstone-Base Set-First Edition",
+    "bobaId": "108-Thomstone-Base Set-First Edition-ICE",
     "bvId": 6811,
     "name": "Thomstone",
     "hero": "Thomstone",
@@ -9017,7 +9017,7 @@
   },
   {
     "cardNumber": "108",
-    "bobaId": "108-Ollie-Base Set-First Edition",
+    "bobaId": "108-Ollie-Base Set-First Edition-STEEL",
     "bvId": 5037,
     "name": "Ollie",
     "hero": "Ollie",
@@ -9045,7 +9045,7 @@
   },
   {
     "cardNumber": "108",
-    "bobaId": "108-Chiller-Base Set-First Edition",
+    "bobaId": "108-Chiller-Base Set-First Edition-STEEL",
     "bvId": 5037,
     "name": "Chiller",
     "hero": "Chiller",
@@ -9073,7 +9073,7 @@
   },
   {
     "cardNumber": "109",
-    "bobaId": "109-Botto-Base Set-First Edition",
+    "bobaId": "109-Botto-Base Set-First Edition-ICE",
     "bvId": 1104,
     "name": "Botto",
     "hero": "Botto",
@@ -9101,7 +9101,7 @@
   },
   {
     "cardNumber": "109",
-    "bobaId": "109-Tank-Base Set-First Edition",
+    "bobaId": "109-Tank-Base Set-First Edition-FIRE",
     "bvId": 6587,
     "name": "Tank",
     "hero": "Tank",
@@ -9129,7 +9129,7 @@
   },
   {
     "cardNumber": "109",
-    "bobaId": "109-Zephyr-Base Set-First Edition",
+    "bobaId": "109-Zephyr-Base Set-First Edition-ICE",
     "bvId": 17645,
     "name": "Zephyr",
     "hero": "Zephyr",
@@ -9157,7 +9157,7 @@
   },
   {
     "cardNumber": "110",
-    "bobaId": "110-Lawman-Base Set-First Edition",
+    "bobaId": "110-Lawman-Base Set-First Edition-ICE",
     "bvId": 4077,
     "name": "Lawman",
     "hero": "Lawman",
@@ -9185,7 +9185,7 @@
   },
   {
     "cardNumber": "110",
-    "bobaId": "110-Tank-Base Set-First Edition",
+    "bobaId": "110-Tank-Base Set-First Edition-ICE",
     "bvId": 6588,
     "name": "Tank",
     "hero": "Tank",
@@ -9213,7 +9213,7 @@
   },
   {
     "cardNumber": "110",
-    "bobaId": "110-Lumber-Base Set-First Edition",
+    "bobaId": "110-Lumber-Base Set-First Edition-ICE",
     "bvId": 14124,
     "name": "Lumber",
     "hero": "Lumber",
@@ -9241,7 +9241,7 @@
   },
   {
     "cardNumber": "111",
-    "bobaId": "111-Barnacle-Base Set-First Edition",
+    "bobaId": "111-Barnacle-Base Set-First Edition-ICE",
     "bvId": 448,
     "name": "Barnacle",
     "hero": "Barnacle",
@@ -9269,7 +9269,7 @@
   },
   {
     "cardNumber": "111",
-    "bobaId": "111-Tank-Base Set-First Edition",
+    "bobaId": "111-Tank-Base Set-First Edition-STEEL",
     "bvId": 6589,
     "name": "Tank",
     "hero": "Tank",
@@ -9297,7 +9297,7 @@
   },
   {
     "cardNumber": "111",
-    "bobaId": "111-Golden Bullet-Base Set-First Edition",
+    "bobaId": "111-Golden Bullet-Base Set-First Edition-ICE",
     "bvId": 12665,
     "name": "Golden Bullet",
     "hero": "Golden Bullet",
@@ -9325,7 +9325,7 @@
   },
   {
     "cardNumber": "112",
-    "bobaId": "112-Laviathan-Base Set-First Edition",
+    "bobaId": "112-Laviathan-Base Set-First Edition-ICE",
     "bvId": 4031,
     "name": "Laviathan",
     "hero": "Laviathan",
@@ -9353,7 +9353,7 @@
   },
   {
     "cardNumber": "112",
-    "bobaId": "112-Grin-Base Set-First Edition",
+    "bobaId": "112-Grin-Base Set-First Edition-FIRE",
     "bvId": 3143,
     "name": "Grin",
     "hero": "Grin",
@@ -9381,7 +9381,7 @@
   },
   {
     "cardNumber": "112",
-    "bobaId": "112-Ozzmosis-Base Set-First Edition",
+    "bobaId": "112-Ozzmosis-Base Set-First Edition-ICE",
     "bvId": 14954,
     "name": "Ozzmosis",
     "hero": "Ozzmosis",
@@ -9409,7 +9409,7 @@
   },
   {
     "cardNumber": "113",
-    "bobaId": "113-Breeze-Base Set-First Edition",
+    "bobaId": "113-Breeze-Base Set-First Edition-ICE",
     "bvId": 1202,
     "name": "Breeze",
     "hero": "Breeze",
@@ -9437,7 +9437,7 @@
   },
   {
     "cardNumber": "113",
-    "bobaId": "113-Grin-Base Set-First Edition",
+    "bobaId": "113-Grin-Base Set-First Edition-ICE",
     "bvId": 3144,
     "name": "Grin",
     "hero": "Grin",
@@ -9465,7 +9465,7 @@
   },
   {
     "cardNumber": "113",
-    "bobaId": "113-DeKap-Base Set-First Edition",
+    "bobaId": "113-DeKap-Base Set-First Edition-ICE",
     "bvId": 10910,
     "name": "DeKap",
     "hero": "DeKap",
@@ -9493,7 +9493,7 @@
   },
   {
     "cardNumber": "114",
-    "bobaId": "114-Gravedigger-Base Set-First Edition",
+    "bobaId": "114-Gravedigger-Base Set-First Edition-ICE",
     "bvId": 3059,
     "name": "Gravedigger",
     "hero": "Gravedigger",
@@ -9521,7 +9521,7 @@
   },
   {
     "cardNumber": "114",
-    "bobaId": "114-Grin-Base Set-First Edition",
+    "bobaId": "114-Grin-Base Set-First Edition-STEEL",
     "bvId": 3145,
     "name": "Grin",
     "hero": "Grin",
@@ -9549,7 +9549,7 @@
   },
   {
     "cardNumber": "114",
-    "bobaId": "114-Bell-Camp-Base Set-First Edition",
+    "bobaId": "114-Bell-Camp-Base Set-First Edition-ICE",
     "bvId": 8783,
     "name": "Bell-Camp",
     "hero": "Bell-Camp",
@@ -9577,7 +9577,7 @@
   },
   {
     "cardNumber": "115",
-    "bobaId": "115-D-Hop-Base Set-First Edition",
+    "bobaId": "115-D-Hop-Base Set-First Edition-ICE",
     "bvId": 2310,
     "name": "D-Hop",
     "hero": "D-Hop",
@@ -9605,7 +9605,7 @@
   },
   {
     "cardNumber": "115",
-    "bobaId": "115-Bammer-Base Set-First Edition",
+    "bobaId": "115-Bammer-Base Set-First Edition-FIRE",
     "bvId": 372,
     "name": "Bammer",
     "hero": "Bammer",
@@ -9633,7 +9633,7 @@
   },
   {
     "cardNumber": "115",
-    "bobaId": "115-Bangford-Base Set-First Edition",
+    "bobaId": "115-Bangford-Base Set-First Edition-ICE",
     "bvId": 8700,
     "name": "Bangford",
     "hero": "Bangford",
@@ -9661,7 +9661,7 @@
   },
   {
     "cardNumber": "116",
-    "bobaId": "116-Alien-Base Set-First Edition",
+    "bobaId": "116-Alien-Base Set-First Edition-ICE",
     "bvId": 175,
     "name": "Alien",
     "hero": "Alien",
@@ -9689,7 +9689,7 @@
   },
   {
     "cardNumber": "116",
-    "bobaId": "116-Bammer-Base Set-First Edition",
+    "bobaId": "116-Bammer-Base Set-First Edition-ICE",
     "bvId": 373,
     "name": "Bammer",
     "hero": "Bammer",
@@ -9717,7 +9717,7 @@
   },
   {
     "cardNumber": "116",
-    "bobaId": "116-Forcefield-Base Set-First Edition",
+    "bobaId": "116-Forcefield-Base Set-First Edition-ICE",
     "bvId": 11752,
     "name": "Forcefield",
     "hero": "Forcefield",
@@ -9745,7 +9745,7 @@
   },
   {
     "cardNumber": "117",
-    "bobaId": "117-Portalize-Base Set-First Edition",
+    "bobaId": "117-Portalize-Base Set-First Edition-ICE",
     "bvId": 5325,
     "name": "Portalize",
     "hero": "Portalize",
@@ -9773,7 +9773,7 @@
   },
   {
     "cardNumber": "117",
-    "bobaId": "117-Bammer-Base Set-First Edition",
+    "bobaId": "117-Bammer-Base Set-First Edition-STEEL",
     "bvId": 374,
     "name": "Bammer",
     "hero": "Bammer",
@@ -9801,7 +9801,7 @@
   },
   {
     "cardNumber": "117",
-    "bobaId": "117-Amoeba-Base Set-First Edition",
+    "bobaId": "117-Amoeba-Base Set-First Edition-ICE",
     "bvId": 8195,
     "name": "Amoeba",
     "hero": "Amoeba",
@@ -9829,7 +9829,7 @@
   },
   {
     "cardNumber": "118",
-    "bobaId": "118-Torque-Base Set-First Edition",
+    "bobaId": "118-Torque-Base Set-First Edition-ICE",
     "bvId": 7120,
     "name": "Torque",
     "hero": "Torque",
@@ -9857,7 +9857,7 @@
   },
   {
     "cardNumber": "118",
-    "bobaId": "118-Barreler-Base Set-First Edition",
+    "bobaId": "118-Barreler-Base Set-First Edition-FIRE",
     "bvId": 493,
     "name": "Barreler",
     "hero": "Barreler",
@@ -9885,7 +9885,7 @@
   },
   {
     "cardNumber": "118",
-    "bobaId": "118-Action-Base Set-2026 Edition",
+    "bobaId": "118-Action-Base Set-2026 Edition-ICE",
     "bvId": 7823,
     "name": "Action",
     "hero": "Action",
@@ -9913,7 +9913,7 @@
   },
   {
     "cardNumber": "119",
-    "bobaId": "119-Risarcher-Base Set-First Edition",
+    "bobaId": "119-Risarcher-Base Set-First Edition-ICE",
     "bvId": 5533,
     "name": "Risarcher",
     "hero": "Risarcher",
@@ -9941,7 +9941,7 @@
   },
   {
     "cardNumber": "119",
-    "bobaId": "119-Barreler-Base Set-First Edition",
+    "bobaId": "119-Barreler-Base Set-First Edition-ICE",
     "bvId": 494,
     "name": "Barreler",
     "hero": "Barreler",
@@ -9969,7 +9969,7 @@
   },
   {
     "cardNumber": "119",
-    "bobaId": "119-Go-Cart-Base Set-First Edition",
+    "bobaId": "119-Go-Cart-Base Set-First Edition-ICE",
     "bvId": 12583,
     "name": "Go-Cart",
     "hero": "Go-Cart",
@@ -9997,7 +9997,7 @@
   },
   {
     "cardNumber": "120",
-    "bobaId": "120-Sarrtillery-Base Set-First Edition",
+    "bobaId": "120-Sarrtillery-Base Set-First Edition-ICE",
     "bvId": 5735,
     "name": "Sarrtillery",
     "hero": "Sarrtillery",
@@ -10025,7 +10025,7 @@
   },
   {
     "cardNumber": "120",
-    "bobaId": "120-Barreler-Base Set-First Edition",
+    "bobaId": "120-Barreler-Base Set-First Edition-STEEL",
     "bvId": 495,
     "name": "Barreler",
     "hero": "Barreler",
@@ -10053,7 +10053,7 @@
   },
   {
     "cardNumber": "120",
-    "bobaId": "120-Castler-Base Set-First Edition",
+    "bobaId": "120-Castler-Base Set-First Edition-ICE",
     "bvId": 495,
     "name": "Castler",
     "hero": "Castler",
@@ -10081,7 +10081,7 @@
   },
   {
     "cardNumber": "121",
-    "bobaId": "121-LeBoss-Base Set-First Edition",
+    "bobaId": "121-LeBoss-Base Set-First Edition-STEEL",
     "bvId": 4126,
     "name": "LeBoss",
     "hero": "LeBoss",
@@ -10109,7 +10109,7 @@
   },
   {
     "cardNumber": "121",
-    "bobaId": "121-Cupid-Base Set-First Edition",
+    "bobaId": "121-Cupid-Base Set-First Edition-FIRE",
     "bvId": 2184,
     "name": "Cupid",
     "hero": "Cupid",
@@ -10137,7 +10137,7 @@
   },
   {
     "cardNumber": "121",
-    "bobaId": "121-Maverick-Base Set-First Edition",
+    "bobaId": "121-Maverick-Base Set-First Edition-STEEL",
     "bvId": 14441,
     "name": "Maverick",
     "hero": "Maverick",
@@ -10165,7 +10165,7 @@
   },
   {
     "cardNumber": "122",
-    "bobaId": "122-Merlomes-Base Set-First Edition",
+    "bobaId": "122-Merlomes-Base Set-First Edition-STEEL",
     "bvId": 4681,
     "name": "Merlomes",
     "hero": "Merlomes",
@@ -10193,7 +10193,7 @@
   },
   {
     "cardNumber": "122",
-    "bobaId": "122-Cupid-Base Set-First Edition",
+    "bobaId": "122-Cupid-Base Set-First Edition-ICE",
     "bvId": 2185,
     "name": "Cupid",
     "hero": "Cupid",
@@ -10221,7 +10221,7 @@
   },
   {
     "cardNumber": "122",
-    "bobaId": "122-Gaveler-Base Set-2026 Edition",
+    "bobaId": "122-Gaveler-Base Set-2026 Edition-STEEL",
     "bvId": 12267,
     "name": "Gaveler",
     "hero": "Gaveler",
@@ -10249,7 +10249,7 @@
   },
   {
     "cardNumber": "123",
-    "bobaId": "123-Chosen-Base Set-First Edition",
+    "bobaId": "123-Chosen-Base Set-First Edition-STEEL",
     "bvId": 1827,
     "name": "Chosen",
     "hero": "Chosen",
@@ -10277,7 +10277,7 @@
   },
   {
     "cardNumber": "123",
-    "bobaId": "123-Cupid-Base Set-First Edition",
+    "bobaId": "123-Cupid-Base Set-First Edition-STEEL",
     "bvId": 2186,
     "name": "Cupid",
     "hero": "Cupid",
@@ -10305,7 +10305,7 @@
   },
   {
     "cardNumber": "123",
-    "bobaId": "123-Victory-Base Set-2026 Edition",
+    "bobaId": "123-Victory-Base Set-2026 Edition-STEEL",
     "bvId": 17173,
     "name": "Victory",
     "hero": "Victory",
@@ -10333,7 +10333,7 @@
   },
   {
     "cardNumber": "124",
-    "bobaId": "124-Midas-Base Set-First Edition",
+    "bobaId": "124-Midas-Base Set-First Edition-STEEL",
     "bvId": 4824,
     "name": "Midas",
     "hero": "Midas",
@@ -10361,7 +10361,7 @@
   },
   {
     "cardNumber": "124",
-    "bobaId": "124-Javalanche-Base Set-First Edition",
+    "bobaId": "124-Javalanche-Base Set-First Edition-FIRE",
     "bvId": 3607,
     "name": "Javalanche",
     "hero": "Javalanche",
@@ -10389,7 +10389,7 @@
   },
   {
     "cardNumber": "124",
-    "bobaId": "124-Dijon-Base Set-First Edition",
+    "bobaId": "124-Dijon-Base Set-First Edition-STEEL",
     "bvId": 11063,
     "name": "Dijon",
     "hero": "Dijon",
@@ -10417,7 +10417,7 @@
   },
   {
     "cardNumber": "125",
-    "bobaId": "125-Bison-Base Set-First Edition",
+    "bobaId": "125-Bison-Base Set-First Edition-STEEL",
     "bvId": 730,
     "name": "Bison",
     "hero": "Bison",
@@ -10445,7 +10445,7 @@
   },
   {
     "cardNumber": "125",
-    "bobaId": "125-Javalanche-Base Set-First Edition",
+    "bobaId": "125-Javalanche-Base Set-First Edition-ICE",
     "bvId": 3608,
     "name": "Javalanche",
     "hero": "Javalanche",
@@ -10473,7 +10473,7 @@
   },
   {
     "cardNumber": "125",
-    "bobaId": "125-Crosbow-Base Set-First Edition",
+    "bobaId": "125-Crosbow-Base Set-First Edition-STEEL",
     "bvId": 10511,
     "name": "Crosbow",
     "hero": "Crosbow",
@@ -10501,7 +10501,7 @@
   },
   {
     "cardNumber": "126",
-    "bobaId": "126-Wargod-Base Set-First Edition",
+    "bobaId": "126-Wargod-Base Set-First Edition-STEEL",
     "bvId": 7419,
     "name": "Wargod",
     "hero": "Wargod",
@@ -10529,7 +10529,7 @@
   },
   {
     "cardNumber": "126",
-    "bobaId": "126-Javalanche-Base Set-First Edition",
+    "bobaId": "126-Javalanche-Base Set-First Edition-STEEL",
     "bvId": 3609,
     "name": "Javalanche",
     "hero": "Javalanche",
@@ -10557,7 +10557,7 @@
   },
   {
     "cardNumber": "126",
-    "bobaId": "126-Warden-Base Set-First Edition",
+    "bobaId": "126-Warden-Base Set-First Edition-STEEL",
     "bvId": 17396,
     "name": "Warden",
     "hero": "Warden",
@@ -10585,7 +10585,7 @@
   },
   {
     "cardNumber": "127",
-    "bobaId": "127-Donny Buckets-Base Set-First Edition",
+    "bobaId": "127-Donny Buckets-Base Set-First Edition-STEEL",
     "bvId": 2409,
     "name": "Donny Buckets",
     "hero": "Donny Buckets",
@@ -10613,7 +10613,7 @@
   },
   {
     "cardNumber": "127",
-    "bobaId": "127-Bionic-Base Set-First Edition",
+    "bobaId": "127-Bionic-Base Set-First Edition-FIRE",
     "bvId": 691,
     "name": "Bionic",
     "hero": "Bionic",
@@ -10641,7 +10641,7 @@
   },
   {
     "cardNumber": "127",
-    "bobaId": "127-PB Buckets-Base Set-First Edition",
+    "bobaId": "127-PB Buckets-Base Set-First Edition-STEEL",
     "bvId": 15037,
     "name": "PB Buckets",
     "hero": "PB Buckets",
@@ -10669,7 +10669,7 @@
   },
   {
     "cardNumber": "128",
-    "bobaId": "128-Warp-Base Set-First Edition",
+    "bobaId": "128-Warp-Base Set-First Edition-STEEL",
     "bvId": 7468,
     "name": "Warp",
     "hero": "Warp",
@@ -10697,7 +10697,7 @@
   },
   {
     "cardNumber": "128",
-    "bobaId": "128-Bionic-Base Set-First Edition",
+    "bobaId": "128-Bionic-Base Set-First Edition-ICE",
     "bvId": 692,
     "name": "Bionic",
     "hero": "Bionic",
@@ -10725,7 +10725,7 @@
   },
   {
     "cardNumber": "128",
-    "bobaId": "128-Skuba-Base Set-First Edition",
+    "bobaId": "128-Skuba-Base Set-First Edition-STEEL",
     "bvId": 16269,
     "name": "Skuba",
     "hero": "Skuba",
@@ -10753,7 +10753,7 @@
   },
   {
     "cardNumber": "129",
-    "bobaId": "129-Harpoon-Base Set-First Edition",
+    "bobaId": "129-Harpoon-Base Set-First Edition-STEEL",
     "bvId": 3263,
     "name": "Harpoon",
     "hero": "Harpoon",
@@ -10781,7 +10781,7 @@
   },
   {
     "cardNumber": "129",
-    "bobaId": "129-Bionic-Base Set-First Edition",
+    "bobaId": "129-Bionic-Base Set-First Edition-STEEL",
     "bvId": 693,
     "name": "Bionic",
     "hero": "Bionic",
@@ -10809,7 +10809,7 @@
   },
   {
     "cardNumber": "129",
-    "bobaId": "129-Haliburst-Base Set-First Edition",
+    "bobaId": "129-Haliburst-Base Set-First Edition-STEEL",
     "bvId": 12901,
     "name": "Haliburst",
     "hero": "Haliburst",
@@ -10837,7 +10837,7 @@
   },
   {
     "cardNumber": "130",
-    "bobaId": "130-Mustang-Base Set-First Edition",
+    "bobaId": "130-Mustang-Base Set-First Edition-STEEL",
     "bvId": 4967,
     "name": "Mustang",
     "hero": "Mustang",
@@ -10865,7 +10865,7 @@
   },
   {
     "cardNumber": "130",
-    "bobaId": "130-Stitcher-Base Set-First Edition",
+    "bobaId": "130-Stitcher-Base Set-First Edition-FIRE",
     "bvId": 6467,
     "name": "Stitcher",
     "hero": "Stitcher",
@@ -10893,7 +10893,7 @@
   },
   {
     "cardNumber": "130",
-    "bobaId": "130-Dart-Board-Base Set-First Edition",
+    "bobaId": "130-Dart-Board-Base Set-First Edition-STEEL",
     "bvId": 16043,
     "name": "Dart-Board",
     "hero": "Dart-Board",
@@ -10921,7 +10921,7 @@
   },
   {
     "cardNumber": "131",
-    "bobaId": "131-Jaybird-Base Set-First Edition",
+    "bobaId": "131-Jaybird-Base Set-First Edition-STEEL",
     "bvId": 3646,
     "name": "Jaybird",
     "hero": "Jaybird",
@@ -10949,7 +10949,7 @@
   },
   {
     "cardNumber": "131",
-    "bobaId": "131-Stitcher-Base Set-First Edition",
+    "bobaId": "131-Stitcher-Base Set-First Edition-ICE",
     "bvId": 6468,
     "name": "Stitcher",
     "hero": "Stitcher",
@@ -10977,7 +10977,7 @@
   },
   {
     "cardNumber": "131",
-    "bobaId": "131-Dumper-Base Set-First Edition",
+    "bobaId": "131-Dumper-Base Set-First Edition-STEEL",
     "bvId": 11300,
     "name": "Dumper",
     "hero": "Dumper",
@@ -11005,7 +11005,7 @@
   },
   {
     "cardNumber": "132",
-    "bobaId": "132-J-Jetts-Base Set-First Edition",
+    "bobaId": "132-J-Jetts-Base Set-First Edition-STEEL",
     "bvId": 3767,
     "name": "J-Jetts",
     "hero": "J-Jetts",
@@ -11033,7 +11033,7 @@
   },
   {
     "cardNumber": "132",
-    "bobaId": "132-Stitcher-Base Set-First Edition",
+    "bobaId": "132-Stitcher-Base Set-First Edition-STEEL",
     "bvId": 6469,
     "name": "Stitcher",
     "hero": "Stitcher",
@@ -11061,7 +11061,7 @@
   },
   {
     "cardNumber": "132",
-    "bobaId": "132-Switchblade-Base Set-First Edition",
+    "bobaId": "132-Switchblade-Base Set-First Edition-STEEL",
     "bvId": 16506,
     "name": "Switchblade",
     "hero": "Switchblade",
@@ -11089,7 +11089,7 @@
   },
   {
     "cardNumber": "133",
-    "bobaId": "133-Merri-Go-Round-Base Set-First Edition",
+    "bobaId": "133-Merri-Go-Round-Base Set-First Edition-STEEL",
     "bvId": 4731,
     "name": "Merri-Go-Round",
     "hero": "Merri-Go-Round",
@@ -11117,7 +11117,7 @@
   },
   {
     "cardNumber": "133",
-    "bobaId": "133-Triple Threat-Base Set-First Edition",
+    "bobaId": "133-Triple Threat-Base Set-First Edition-FIRE",
     "bvId": 4731,
     "name": "Triple Threat",
     "hero": "Triple Threat",
@@ -11145,7 +11145,7 @@
   },
   {
     "cardNumber": "133",
-    "bobaId": "133-Cupid-Base Set-2026 Edition",
+    "bobaId": "133-Cupid-Base Set-2026 Edition-STEEL",
     "bvId": 10664,
     "name": "Cupid",
     "hero": "Cupid",
@@ -11173,7 +11173,7 @@
   },
   {
     "cardNumber": "134",
-    "bobaId": "134-Shystep-Base Set-First Edition",
+    "bobaId": "134-Shystep-Base Set-First Edition-STEEL",
     "bvId": 5963,
     "name": "Shystep",
     "hero": "Shystep",
@@ -11201,7 +11201,7 @@
   },
   {
     "cardNumber": "134",
-    "bobaId": "134-Triple Threat-Base Set-First Edition",
+    "bobaId": "134-Triple Threat-Base Set-First Edition-ICE",
     "bvId": 5963,
     "name": "Triple Threat",
     "hero": "Triple Threat",
@@ -11229,7 +11229,7 @@
   },
   {
     "cardNumber": "134",
-    "bobaId": "134-Air Ace-Base Set-First Edition",
+    "bobaId": "134-Air Ace-Base Set-First Edition-STEEL",
     "bvId": 7906,
     "name": "Air Ace",
     "hero": "Air Ace",
@@ -11257,7 +11257,7 @@
   },
   {
     "cardNumber": "135",
-    "bobaId": "135-Ram-Base Set-First Edition",
+    "bobaId": "135-Ram-Base Set-First Edition-STEEL",
     "bvId": 5475,
     "name": "Ram",
     "hero": "Ram",
@@ -11285,7 +11285,7 @@
   },
   {
     "cardNumber": "135",
-    "bobaId": "135-Triple Threat-Base Set-First Edition",
+    "bobaId": "135-Triple Threat-Base Set-First Edition-STEEL",
     "bvId": 5475,
     "name": "Triple Threat",
     "hero": "Triple Threat",
@@ -11313,7 +11313,7 @@
   },
   {
     "cardNumber": "135",
-    "bobaId": "135-Maxed Out-Base Set-First Edition",
+    "bobaId": "135-Maxed Out-Base Set-First Edition-STEEL",
     "bvId": 14591,
     "name": "Maxed Out",
     "hero": "Maxed Out",
@@ -11341,7 +11341,7 @@
   },
   {
     "cardNumber": "136",
-    "bobaId": "136-Freakshow-Base Set-First Edition",
+    "bobaId": "136-Freakshow-Base Set-First Edition-STEEL",
     "bvId": 2789,
     "name": "Freakshow",
     "hero": "Freakshow",
@@ -11369,7 +11369,7 @@
   },
   {
     "cardNumber": "136",
-    "bobaId": "136-King Tuck-Base Set-First Edition",
+    "bobaId": "136-King Tuck-Base Set-First Edition-STEEL",
     "bvId": 14042,
     "name": "King Tuck",
     "hero": "King Tuck",
@@ -11397,7 +11397,7 @@
   },
   {
     "cardNumber": "137",
-    "bobaId": "137-Lightningrod-Base Set-First Edition",
+    "bobaId": "137-Lightningrod-Base Set-First Edition-STEEL",
     "bvId": 4296,
     "name": "Lightningrod",
     "hero": "Lightningrod",
@@ -11425,7 +11425,7 @@
   },
   {
     "cardNumber": "137",
-    "bobaId": "137-Macho-Base Set-First Edition",
+    "bobaId": "137-Macho-Base Set-First Edition-STEEL",
     "bvId": 14207,
     "name": "Macho",
     "hero": "Macho",
@@ -11453,7 +11453,7 @@
   },
   {
     "cardNumber": "138",
-    "bobaId": "138-Bayou-Base Set-First Edition",
+    "bobaId": "138-Bayou-Base Set-First Edition-STEEL",
     "bvId": 574,
     "name": "Bayou",
     "hero": "Bayou",
@@ -11481,7 +11481,7 @@
   },
   {
     "cardNumber": "138",
-    "bobaId": "138-Gladiator-Base Set-First Edition",
+    "bobaId": "138-Gladiator-Base Set-First Edition-STEEL",
     "bvId": 12501,
     "name": "Gladiator",
     "hero": "Gladiator",
@@ -11509,7 +11509,7 @@
   },
   {
     "cardNumber": "139",
-    "bobaId": "139-McArmyKnife-Base Set-First Edition",
+    "bobaId": "139-McArmyKnife-Base Set-First Edition-STEEL",
     "bvId": 4598,
     "name": "McArmyKnife",
     "hero": "McArmyKnife",
@@ -11537,7 +11537,7 @@
   },
   {
     "cardNumber": "139",
-    "bobaId": "139-BrockNess-Base Set-First Edition",
+    "bobaId": "139-BrockNess-Base Set-First Edition-STEEL",
     "bvId": 4598,
     "name": "BrockNess",
     "hero": "BrockNess",
@@ -11565,7 +11565,7 @@
   },
   {
     "cardNumber": "140",
-    "bobaId": "140-Tigre-Base Set-First Edition",
+    "bobaId": "140-Tigre-Base Set-First Edition-STEEL",
     "bvId": 6925,
     "name": "Tigre",
     "hero": "Tigre",
@@ -11593,7 +11593,7 @@
   },
   {
     "cardNumber": "140",
-    "bobaId": "140-Fungi-Base Set-2026 Edition",
+    "bobaId": "140-Fungi-Base Set-2026 Edition-STEEL",
     "bvId": 11906,
     "name": "Fungi",
     "hero": "Fungi",
@@ -11621,7 +11621,7 @@
   },
   {
     "cardNumber": "141",
-    "bobaId": "141-Cheetah-Base Set-First Edition",
+    "bobaId": "141-Cheetah-Base Set-First Edition-STEEL",
     "bvId": 1660,
     "name": "Cheetah",
     "hero": "Cheetah",
@@ -11649,7 +11649,7 @@
   },
   {
     "cardNumber": "141",
-    "bobaId": "141-Wattage-Base Set-First Edition",
+    "bobaId": "141-Wattage-Base Set-First Edition-STEEL",
     "bvId": 17478,
     "name": "Wattage",
     "hero": "Wattage",
@@ -11677,7 +11677,7 @@
   },
   {
     "cardNumber": "142",
-    "bobaId": "142-Spider-Base Set-First Edition",
+    "bobaId": "142-Spider-Base Set-First Edition-STEEL",
     "bvId": 6208,
     "name": "Spider",
     "hero": "Spider",
@@ -11705,7 +11705,7 @@
   },
   {
     "cardNumber": "142",
-    "bobaId": "142-Gunner-Base Set-First Edition",
+    "bobaId": "142-Gunner-Base Set-First Edition-STEEL",
     "bvId": 12819,
     "name": "Gunner",
     "hero": "Gunner",
@@ -11733,7 +11733,7 @@
   },
   {
     "cardNumber": "143",
-    "bobaId": "143-Crews-Missle-Base Set-First Edition",
+    "bobaId": "143-Crews-Missle-Base Set-First Edition-STEEL",
     "bvId": 2067,
     "name": "Crews-Missle",
     "hero": "Crews-Missle",
@@ -11761,7 +11761,7 @@
   },
   {
     "cardNumber": "143",
-    "bobaId": "143-Marksman-Base Set-First Edition",
+    "bobaId": "143-Marksman-Base Set-First Edition-STEEL",
     "bvId": 14358,
     "name": "Marksman",
     "hero": "Marksman",
@@ -11789,7 +11789,7 @@
   },
   {
     "cardNumber": "144",
-    "bobaId": "144-Unibrow-Base Set-First Edition",
+    "bobaId": "144-Unibrow-Base Set-First Edition-STEEL",
     "bvId": 7256,
     "name": "Unibrow",
     "hero": "Unibrow",
@@ -11817,7 +11817,7 @@
   },
   {
     "cardNumber": "144",
-    "bobaId": "144-D-Harp-Base Set-First Edition",
+    "bobaId": "144-D-Harp-Base Set-First Edition-STEEL",
     "bvId": 10746,
     "name": "D-Harp",
     "hero": "D-Harp",
@@ -11845,7 +11845,7 @@
   },
   {
     "cardNumber": "145",
-    "bobaId": "145-Exterminaber-Base Set-First Edition",
+    "bobaId": "145-Exterminaber-Base Set-First Edition-STEEL",
     "bvId": 2633,
     "name": "Exterminaber",
     "hero": "Exterminaber",
@@ -11873,7 +11873,7 @@
   },
   {
     "cardNumber": "145",
-    "bobaId": "145-Jeanetic-Base Set-First Edition",
+    "bobaId": "145-Jeanetic-Base Set-First Edition-STEEL",
     "bvId": 13666,
     "name": "Jeanetic",
     "hero": "Jeanetic",
@@ -11901,7 +11901,7 @@
   },
   {
     "cardNumber": "146",
-    "bobaId": "146-Bomber-Base Set-First Edition",
+    "bobaId": "146-Bomber-Base Set-First Edition-STEEL",
     "bvId": 948,
     "name": "Bomber",
     "hero": "Bomber",
@@ -11929,7 +11929,7 @@
   },
   {
     "cardNumber": "146",
-    "bobaId": "146-Doublecheck-Base Set-2026 Edition",
+    "bobaId": "146-Doublecheck-Base Set-2026 Edition-STEEL",
     "bvId": 11147,
     "name": "Doublecheck",
     "hero": "Doublecheck",
@@ -11957,7 +11957,7 @@
   },
   {
     "cardNumber": "147",
-    "bobaId": "147-Juice-Base Set-First Edition",
+    "bobaId": "147-Juice-Base Set-First Edition-STEEL",
     "bvId": 3855,
     "name": "Juice",
     "hero": "Juice",
@@ -11985,7 +11985,7 @@
   },
   {
     "cardNumber": "147",
-    "bobaId": "147-Caliber-Base Set-2026 Edition",
+    "bobaId": "147-Caliber-Base Set-2026 Edition-STEEL",
     "bvId": 3855,
     "name": "Caliber",
     "hero": "Caliber",
@@ -12013,7 +12013,7 @@
   },
   {
     "cardNumber": "148",
-    "bobaId": "148-Attak-Base Set-First Edition",
+    "bobaId": "148-Attak-Base Set-First Edition-STEEL",
     "bvId": 293,
     "name": "Attak",
     "hero": "Attak",
@@ -12041,7 +12041,7 @@
   },
   {
     "cardNumber": "148",
-    "bobaId": "148-Escape Artist-Base Set-First Edition",
+    "bobaId": "148-Escape Artist-Base Set-First Edition-STEEL",
     "bvId": 11592,
     "name": "Escape Artist",
     "hero": "Escape Artist",
@@ -12069,7 +12069,7 @@
   },
   {
     "cardNumber": "149",
-    "bobaId": "149-ChetMate-Base Set-First Edition",
+    "bobaId": "149-ChetMate-Base Set-First Edition-STEEL",
     "bvId": 1709,
     "name": "ChetMate",
     "hero": "ChetMate",
@@ -12097,7 +12097,7 @@
   },
   {
     "cardNumber": "149",
-    "bobaId": "149-J-Cam-Base Set-First Edition",
+    "bobaId": "149-J-Cam-Base Set-First Edition-STEEL",
     "bvId": 13279,
     "name": "J-Cam",
     "hero": "J-Cam",
@@ -12125,7 +12125,7 @@
   },
   {
     "cardNumber": "150",
-    "bobaId": "150-Phoenix-Base Set-First Edition",
+    "bobaId": "150-Phoenix-Base Set-First Edition-STEEL",
     "bvId": 5261,
     "name": "Phoenix",
     "hero": "Phoenix",
@@ -12153,7 +12153,7 @@
   },
   {
     "cardNumber": "150",
-    "bobaId": "150-Generator-Base Set-First Edition",
+    "bobaId": "150-Generator-Base Set-First Edition-STEEL",
     "bvId": 12349,
     "name": "Generator",
     "hero": "Generator",
@@ -12181,7 +12181,7 @@
   },
   {
     "cardNumber": "151",
-    "bobaId": "151-Lieutenant-Base Set-First Edition",
+    "bobaId": "151-Lieutenant-Base Set-First Edition-STEEL",
     "bvId": 4250,
     "name": "Lieutenant",
     "hero": "Lieutenant",
@@ -12209,7 +12209,7 @@
   },
   {
     "cardNumber": "151",
-    "bobaId": "151-Tattoo-Base Set-2026 Edition",
+    "bobaId": "151-Tattoo-Base Set-2026 Edition-STEEL",
     "bvId": 16588,
     "name": "Tattoo",
     "hero": "Tattoo",
@@ -12237,7 +12237,7 @@
   },
   {
     "cardNumber": "152",
-    "bobaId": "152-Snowbear-Base Set-First Edition",
+    "bobaId": "152-Snowbear-Base Set-First Edition-STEEL",
     "bvId": 6162,
     "name": "Snowbear",
     "hero": "Snowbear",
@@ -12265,7 +12265,7 @@
   },
   {
     "cardNumber": "152",
-    "bobaId": "152-Brawn-Base Set-First Edition",
+    "bobaId": "152-Brawn-Base Set-First Edition-STEEL",
     "bvId": 6162,
     "name": "Brawn",
     "hero": "Brawn",
@@ -12293,7 +12293,7 @@
   },
   {
     "cardNumber": "153",
-    "bobaId": "153-Boltage-Base Set-First Edition",
+    "bobaId": "153-Boltage-Base Set-First Edition-STEEL",
     "bvId": 889,
     "name": "Boltage",
     "hero": "Boltage",
@@ -12321,7 +12321,7 @@
   },
   {
     "cardNumber": "153",
-    "bobaId": "153-Cicada-Base Set-First Edition",
+    "bobaId": "153-Cicada-Base Set-First Edition-STEEL",
     "bvId": 10276,
     "name": "Cicada",
     "hero": "Cicada",
@@ -12349,7 +12349,7 @@
   },
   {
     "cardNumber": "154",
-    "bobaId": "154-Librarian-Base Set-First Edition",
+    "bobaId": "154-Librarian-Base Set-First Edition-STEEL",
     "bvId": 4204,
     "name": "Librarian",
     "hero": "Librarian",
@@ -12377,7 +12377,7 @@
   },
   {
     "cardNumber": "154",
-    "bobaId": "154-Courthouse-Base Set-First Edition",
+    "bobaId": "154-Courthouse-Base Set-First Edition-STEEL",
     "bvId": 10359,
     "name": "Courthouse",
     "hero": "Courthouse",
@@ -12405,7 +12405,7 @@
   },
   {
     "cardNumber": "155",
-    "bobaId": "155-Aeronaut-Base Set-First Edition",
+    "bobaId": "155-Aeronaut-Base Set-First Edition-STEEL",
     "bvId": 66,
     "name": "Aeronaut",
     "hero": "Aeronaut",
@@ -12433,7 +12433,7 @@
   },
   {
     "cardNumber": "155",
-    "bobaId": "155-Bandelero-Base Set-2026 Edition",
+    "bobaId": "155-Bandelero-Base Set-2026 Edition-STEEL",
     "bvId": 8619,
     "name": "Bandelero",
     "hero": "Bandelero",
@@ -12461,7 +12461,7 @@
   },
   {
     "cardNumber": "156",
-    "bobaId": "156-Sabotage-Base Set-First Edition",
+    "bobaId": "156-Sabotage-Base Set-First Edition-STEEL",
     "bvId": 5678,
     "name": "Sabotage",
     "hero": "Sabotage",
@@ -12489,7 +12489,7 @@
   },
   {
     "cardNumber": "156",
-    "bobaId": "156-Kettle-Bell-Base Set-First Edition",
+    "bobaId": "156-Kettle-Bell-Base Set-First Edition-STEEL",
     "bvId": 13819,
     "name": "Kettle-Bell",
     "hero": "Kettle-Bell",
@@ -12517,7 +12517,7 @@
   },
   {
     "cardNumber": "157",
-    "bobaId": "157-Mic'd Up-Base Set-First Edition",
+    "bobaId": "157-Mic'd Up-Base Set-First Edition-STEEL",
     "bvId": 4778,
     "name": "Mic'd Up",
     "hero": "Mic'd Up",
@@ -12545,7 +12545,7 @@
   },
   {
     "cardNumber": "157",
-    "bobaId": "157-JacHammer-Base Set-First Edition",
+    "bobaId": "157-JacHammer-Base Set-First Edition-STEEL",
     "bvId": 13501,
     "name": "JacHammer",
     "hero": "JacHammer",
@@ -12573,7 +12573,7 @@
   },
   {
     "cardNumber": "158",
-    "bobaId": "158-Jambox-Base Set-First Edition",
+    "bobaId": "158-Jambox-Base Set-First Edition-STEEL",
     "bvId": 3563,
     "name": "Jambox",
     "hero": "Jambox",
@@ -12601,7 +12601,7 @@
   },
   {
     "cardNumber": "158",
-    "bobaId": "158-BaldWing-Base Set-First Edition",
+    "bobaId": "158-BaldWing-Base Set-First Edition-STEEL",
     "bvId": 8537,
     "name": "BaldWing",
     "hero": "BaldWing",
@@ -12629,7 +12629,7 @@
   },
   {
     "cardNumber": "159",
-    "bobaId": "159-Simon Says-Base Set-First Edition",
+    "bobaId": "159-Simon Says-Base Set-First Edition-STEEL",
     "bvId": 6012,
     "name": "Simon Says",
     "hero": "Simon Says",
@@ -12657,7 +12657,7 @@
   },
   {
     "cardNumber": "159",
-    "bobaId": "159-Rook-Base Set-First Edition",
+    "bobaId": "159-Rook-Base Set-First Edition-STEEL",
     "bvId": 15889,
     "name": "Rook",
     "hero": "Rook",
@@ -12685,7 +12685,7 @@
   },
   {
     "cardNumber": "160",
-    "bobaId": "160-Mr. Irrelevant-Base Set-First Edition",
+    "bobaId": "160-Mr. Irrelevant-Base Set-First Edition-STEEL",
     "bvId": 4881,
     "name": "Mr. Irrelevant",
     "hero": "Mr. Irrelevant",
@@ -12713,7 +12713,7 @@
   },
   {
     "cardNumber": "160",
-    "bobaId": "160-Camera-Base Set-First Edition",
+    "bobaId": "160-Camera-Base Set-First Edition-STEEL",
     "bvId": 4881,
     "name": "Camera",
     "hero": "Camera",
@@ -12741,7 +12741,7 @@
   },
   {
     "cardNumber": "161",
-    "bobaId": "161-Pantera-Base Set-First Edition",
+    "bobaId": "161-Pantera-Base Set-First Edition-STEEL",
     "bvId": 5128,
     "name": "Pantera",
     "hero": "Pantera",
@@ -12769,7 +12769,7 @@
   },
   {
     "cardNumber": "161",
-    "bobaId": "161-Homestead-Base Set-First Edition",
+    "bobaId": "161-Homestead-Base Set-First Edition-STEEL",
     "bvId": 13194,
     "name": "Homestead",
     "hero": "Homestead",
@@ -12797,7 +12797,7 @@
   },
   {
     "cardNumber": "162",
-    "bobaId": "162-Rockstar-Base Set-First Edition",
+    "bobaId": "162-Rockstar-Base Set-First Edition-STEEL",
     "bvId": 5588,
     "name": "Rockstar",
     "hero": "Rockstar",
@@ -12825,7 +12825,7 @@
   },
   {
     "cardNumber": "162",
-    "bobaId": "162-Scary-Base Set-First Edition",
+    "bobaId": "162-Scary-Base Set-First Edition-STEEL",
     "bvId": 10829,
     "name": "Scary",
     "hero": "Scary",
@@ -12853,7 +12853,7 @@
   },
   {
     "cardNumber": "163",
-    "bobaId": "163-Big-Z-Base Set-First Edition",
+    "bobaId": "163-Big-Z-Base Set-First Edition-STEEL",
     "bvId": 632,
     "name": "Big-Z",
     "hero": "Big-Z",
@@ -12881,7 +12881,7 @@
   },
   {
     "cardNumber": "163",
-    "bobaId": "163-Canine-Base Set-First Edition",
+    "bobaId": "163-Canine-Base Set-First Edition-STEEL",
     "bvId": 632,
     "name": "Canine",
     "hero": "Canine",
@@ -12909,7 +12909,7 @@
   },
   {
     "cardNumber": "164",
-    "bobaId": "164-Clutch-Base Set-First Edition",
+    "bobaId": "164-Clutch-Base Set-First Edition-STEEL",
     "bvId": 1894,
     "name": "Clutch",
     "hero": "Clutch",
@@ -12937,7 +12937,7 @@
   },
   {
     "cardNumber": "164",
-    "bobaId": "164-Superbaby-Base Set-2026 Edition",
+    "bobaId": "164-Superbaby-Base Set-2026 Edition-STEEL",
     "bvId": 16423,
     "name": "Superbaby",
     "hero": "Superbaby",
@@ -12965,7 +12965,7 @@
   },
   {
     "cardNumber": "165",
-    "bobaId": "165-PukaDot-Base Set-First Edition",
+    "bobaId": "165-PukaDot-Base Set-First Edition-STEEL",
     "bvId": 5418,
     "name": "PukaDot",
     "hero": "PukaDot",
@@ -12993,7 +12993,7 @@
   },
   {
     "cardNumber": "165",
-    "bobaId": "165-Javalanche-Base Set-2026 Edition",
+    "bobaId": "165-Javalanche-Base Set-2026 Edition-STEEL",
     "bvId": 13584,
     "name": "Javalanche",
     "hero": "Javalanche",
@@ -13021,7 +13021,7 @@
   },
   {
     "cardNumber": "166",
-    "bobaId": "166-Sprinkler-Base Set-First Edition",
+    "bobaId": "166-Sprinkler-Base Set-First Edition-STEEL",
     "bvId": 6254,
     "name": "Sprinkler",
     "hero": "Sprinkler",
@@ -13049,7 +13049,7 @@
   },
   {
     "cardNumber": "166",
-    "bobaId": "166-Wild Bill-Base Set-First Edition",
+    "bobaId": "166-Wild Bill-Base Set-First Edition-STEEL",
     "bvId": 17560,
     "name": "Wild Bill",
     "hero": "Wild Bill",
@@ -13077,7 +13077,7 @@
   },
   {
     "cardNumber": "167",
-    "bobaId": "167-Foxhole-Base Set-First Edition",
+    "bobaId": "167-Foxhole-Base Set-First Edition-STEEL",
     "bvId": 2739,
     "name": "Foxhole",
     "hero": "Foxhole",
@@ -13105,7 +13105,7 @@
   },
   {
     "cardNumber": "167",
-    "bobaId": "167-Thorn-Base Set-First Edition",
+    "bobaId": "167-Thorn-Base Set-First Edition-STEEL",
     "bvId": 16810,
     "name": "Thorn",
     "hero": "Thorn",
@@ -13133,7 +13133,7 @@
   },
   {
     "cardNumber": "168",
-    "bobaId": "168-Thomstone-Base Set-First Edition",
+    "bobaId": "168-Thomstone-Base Set-First Edition-STEEL",
     "bvId": 6812,
     "name": "Thomstone",
     "hero": "Thomstone",
@@ -13161,7 +13161,7 @@
   },
   {
     "cardNumber": "168",
-    "bobaId": "168-Chiller-Base Set-First Edition",
+    "bobaId": "168-Chiller-Base Set-First Edition-STEEL",
     "bvId": 6812,
     "name": "Chiller",
     "hero": "Chiller",
@@ -13189,7 +13189,7 @@
   },
   {
     "cardNumber": "169",
-    "bobaId": "169-Botto-Base Set-First Edition",
+    "bobaId": "169-Botto-Base Set-First Edition-STEEL",
     "bvId": 1105,
     "name": "Botto",
     "hero": "Botto",
@@ -13217,7 +13217,7 @@
   },
   {
     "cardNumber": "169",
-    "bobaId": "169-Zephyr-Base Set-First Edition",
+    "bobaId": "169-Zephyr-Base Set-First Edition-STEEL",
     "bvId": 17646,
     "name": "Zephyr",
     "hero": "Zephyr",
@@ -13245,7 +13245,7 @@
   },
   {
     "cardNumber": "170",
-    "bobaId": "170-Lawman-Base Set-First Edition",
+    "bobaId": "170-Lawman-Base Set-First Edition-STEEL",
     "bvId": 4078,
     "name": "Lawman",
     "hero": "Lawman",
@@ -13273,7 +13273,7 @@
   },
   {
     "cardNumber": "170",
-    "bobaId": "170-Lumber-Base Set-First Edition",
+    "bobaId": "170-Lumber-Base Set-First Edition-STEEL",
     "bvId": 14125,
     "name": "Lumber",
     "hero": "Lumber",
@@ -13301,7 +13301,7 @@
   },
   {
     "cardNumber": "171",
-    "bobaId": "171-Barnacle-Base Set-First Edition",
+    "bobaId": "171-Barnacle-Base Set-First Edition-STEEL",
     "bvId": 449,
     "name": "Barnacle",
     "hero": "Barnacle",
@@ -13329,7 +13329,7 @@
   },
   {
     "cardNumber": "171",
-    "bobaId": "171-Golden Bullet-Base Set-First Edition",
+    "bobaId": "171-Golden Bullet-Base Set-First Edition-STEEL",
     "bvId": 12666,
     "name": "Golden Bullet",
     "hero": "Golden Bullet",
@@ -13357,7 +13357,7 @@
   },
   {
     "cardNumber": "172",
-    "bobaId": "172-Laviathan-Base Set-First Edition",
+    "bobaId": "172-Laviathan-Base Set-First Edition-STEEL",
     "bvId": 4032,
     "name": "Laviathan",
     "hero": "Laviathan",
@@ -13385,7 +13385,7 @@
   },
   {
     "cardNumber": "172",
-    "bobaId": "172-Ozzmosis-Base Set-First Edition",
+    "bobaId": "172-Ozzmosis-Base Set-First Edition-STEEL",
     "bvId": 14955,
     "name": "Ozzmosis",
     "hero": "Ozzmosis",
@@ -13413,7 +13413,7 @@
   },
   {
     "cardNumber": "173",
-    "bobaId": "173-Breeze-Base Set-First Edition",
+    "bobaId": "173-Breeze-Base Set-First Edition-STEEL",
     "bvId": 1203,
     "name": "Breeze",
     "hero": "Breeze",
@@ -13441,7 +13441,7 @@
   },
   {
     "cardNumber": "173",
-    "bobaId": "173-DeKap-Base Set-First Edition",
+    "bobaId": "173-DeKap-Base Set-First Edition-STEEL",
     "bvId": 10911,
     "name": "DeKap",
     "hero": "DeKap",
@@ -13469,7 +13469,7 @@
   },
   {
     "cardNumber": "174",
-    "bobaId": "174-Gravedigger-Base Set-First Edition",
+    "bobaId": "174-Gravedigger-Base Set-First Edition-STEEL",
     "bvId": 3060,
     "name": "Gravedigger",
     "hero": "Gravedigger",
@@ -13497,7 +13497,7 @@
   },
   {
     "cardNumber": "174",
-    "bobaId": "174-Bell-Camp-Base Set-First Edition",
+    "bobaId": "174-Bell-Camp-Base Set-First Edition-STEEL",
     "bvId": 8784,
     "name": "Bell-Camp",
     "hero": "Bell-Camp",
@@ -13525,7 +13525,7 @@
   },
   {
     "cardNumber": "175",
-    "bobaId": "175-D-Hop-Base Set-First Edition",
+    "bobaId": "175-D-Hop-Base Set-First Edition-STEEL",
     "bvId": 2311,
     "name": "D-Hop",
     "hero": "D-Hop",
@@ -13553,7 +13553,7 @@
   },
   {
     "cardNumber": "175",
-    "bobaId": "175-Bangford-Base Set-First Edition",
+    "bobaId": "175-Bangford-Base Set-First Edition-STEEL",
     "bvId": 8701,
     "name": "Bangford",
     "hero": "Bangford",
@@ -13581,7 +13581,7 @@
   },
   {
     "cardNumber": "176",
-    "bobaId": "176-Alien-Base Set-First Edition",
+    "bobaId": "176-Alien-Base Set-First Edition-STEEL",
     "bvId": 176,
     "name": "Alien",
     "hero": "Alien",
@@ -13609,7 +13609,7 @@
   },
   {
     "cardNumber": "176",
-    "bobaId": "176-Forcefield-Base Set-First Edition",
+    "bobaId": "176-Forcefield-Base Set-First Edition-STEEL",
     "bvId": 11753,
     "name": "Forcefield",
     "hero": "Forcefield",
@@ -13637,7 +13637,7 @@
   },
   {
     "cardNumber": "177",
-    "bobaId": "177-Portalize-Base Set-First Edition",
+    "bobaId": "177-Portalize-Base Set-First Edition-STEEL",
     "bvId": 5326,
     "name": "Portalize",
     "hero": "Portalize",
@@ -13665,7 +13665,7 @@
   },
   {
     "cardNumber": "177",
-    "bobaId": "177-Amoeba-Base Set-First Edition",
+    "bobaId": "177-Amoeba-Base Set-First Edition-STEEL",
     "bvId": 8196,
     "name": "Amoeba",
     "hero": "Amoeba",
@@ -13693,7 +13693,7 @@
   },
   {
     "cardNumber": "178",
-    "bobaId": "178-Torque-Base Set-First Edition",
+    "bobaId": "178-Torque-Base Set-First Edition-STEEL",
     "bvId": 7121,
     "name": "Torque",
     "hero": "Torque",
@@ -13721,7 +13721,7 @@
   },
   {
     "cardNumber": "178",
-    "bobaId": "178-Action-Base Set-2026 Edition",
+    "bobaId": "178-Action-Base Set-2026 Edition-STEEL",
     "bvId": 7824,
     "name": "Action",
     "hero": "Action",
@@ -13749,7 +13749,7 @@
   },
   {
     "cardNumber": "179",
-    "bobaId": "179-Risarcher-Base Set-First Edition",
+    "bobaId": "179-Risarcher-Base Set-First Edition-STEEL",
     "bvId": 5534,
     "name": "Risarcher",
     "hero": "Risarcher",
@@ -13777,7 +13777,7 @@
   },
   {
     "cardNumber": "179",
-    "bobaId": "179-Go-Cart-Base Set-First Edition",
+    "bobaId": "179-Go-Cart-Base Set-First Edition-STEEL",
     "bvId": 12584,
     "name": "Go-Cart",
     "hero": "Go-Cart",
@@ -13805,7 +13805,7 @@
   },
   {
     "cardNumber": "180",
-    "bobaId": "180-Sarrtillery-Base Set-First Edition",
+    "bobaId": "180-Sarrtillery-Base Set-First Edition-STEEL",
     "bvId": 5736,
     "name": "Sarrtillery",
     "hero": "Sarrtillery",
@@ -13833,7 +13833,7 @@
   },
   {
     "cardNumber": "180",
-    "bobaId": "180-Castler-Base Set-First Edition",
+    "bobaId": "180-Castler-Base Set-First Edition-STEEL",
     "bvId": 5736,
     "name": "Castler",
     "hero": "Castler",
@@ -13861,7 +13861,7 @@
   },
   {
     "cardNumber": "181",
-    "bobaId": "181-Maverick-Base Set-First Edition",
+    "bobaId": "181-Maverick-Base Set-First Edition-BRAWL",
     "bvId": 14442,
     "name": "Maverick",
     "hero": "Maverick",
@@ -13889,7 +13889,7 @@
   },
   {
     "cardNumber": "182",
-    "bobaId": "182-Gaveler-Base Set-2026 Edition",
+    "bobaId": "182-Gaveler-Base Set-2026 Edition-BRAWL",
     "bvId": 12268,
     "name": "Gaveler",
     "hero": "Gaveler",
@@ -13917,7 +13917,7 @@
   },
   {
     "cardNumber": "183",
-    "bobaId": "183-Victory-Base Set-2026 Edition",
+    "bobaId": "183-Victory-Base Set-2026 Edition-BRAWL",
     "bvId": 17174,
     "name": "Victory",
     "hero": "Victory",
@@ -13945,7 +13945,7 @@
   },
   {
     "cardNumber": "184",
-    "bobaId": "184-Dijon-Base Set-First Edition",
+    "bobaId": "184-Dijon-Base Set-First Edition-BRAWL",
     "bvId": 11064,
     "name": "Dijon",
     "hero": "Dijon",
@@ -13973,7 +13973,7 @@
   },
   {
     "cardNumber": "185",
-    "bobaId": "185-Crosbow-Base Set-First Edition",
+    "bobaId": "185-Crosbow-Base Set-First Edition-BRAWL",
     "bvId": 10512,
     "name": "Crosbow",
     "hero": "Crosbow",
@@ -14001,7 +14001,7 @@
   },
   {
     "cardNumber": "186",
-    "bobaId": "186-Warden-Base Set-First Edition",
+    "bobaId": "186-Warden-Base Set-First Edition-BRAWL",
     "bvId": 17397,
     "name": "Warden",
     "hero": "Warden",
@@ -14029,7 +14029,7 @@
   },
   {
     "cardNumber": "187",
-    "bobaId": "187-PB Buckets-Base Set-First Edition",
+    "bobaId": "187-PB Buckets-Base Set-First Edition-BRAWL",
     "bvId": 15038,
     "name": "PB Buckets",
     "hero": "PB Buckets",
@@ -14057,7 +14057,7 @@
   },
   {
     "cardNumber": "188",
-    "bobaId": "188-Skuba-Base Set-First Edition",
+    "bobaId": "188-Skuba-Base Set-First Edition-BRAWL",
     "bvId": 16270,
     "name": "Skuba",
     "hero": "Skuba",
@@ -14085,7 +14085,7 @@
   },
   {
     "cardNumber": "189",
-    "bobaId": "189-Haliburst-Base Set-First Edition",
+    "bobaId": "189-Haliburst-Base Set-First Edition-BRAWL",
     "bvId": 12902,
     "name": "Haliburst",
     "hero": "Haliburst",
@@ -14113,7 +14113,7 @@
   },
   {
     "cardNumber": "190",
-    "bobaId": "190-Dart-Board-Base Set-First Edition",
+    "bobaId": "190-Dart-Board-Base Set-First Edition-BRAWL",
     "bvId": 16044,
     "name": "Dart-Board",
     "hero": "Dart-Board",
@@ -14141,7 +14141,7 @@
   },
   {
     "cardNumber": "191",
-    "bobaId": "191-Dumper-Base Set-First Edition",
+    "bobaId": "191-Dumper-Base Set-First Edition-BRAWL",
     "bvId": 11301,
     "name": "Dumper",
     "hero": "Dumper",

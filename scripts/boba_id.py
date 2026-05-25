@@ -11,19 +11,29 @@ exact implementation) so the two sides never drift.
 
 Formula
 -------
-    bobaId = "{cardNumber}-{hero||name}-{treatment??''}-{variation??''}"
+    bobaId = "{cardNumber}-{hero||name}-{treatment??''}-{variation??''}-{element??''}"
 
 Notes
 -----
 * `cardNumber` is required.
 * `hero` is preferred; falls back to `name` for non-Hero cards (Plays,
   Hot Dogs, Sealed Products — all of which lack a hero field).
-* `treatment` and `variation` may be null; empty strings are used in the
-  ID so trailing dashes are intentional and stable.
-* As of 2026-04-09 the 4-field formula produces 17,739 unique IDs across
-  17,739 cards (0 collisions). The earlier 3-field formula had 3
+* `treatment`, `variation`, and `element` may be null; empty strings are
+  used in the ID so trailing dashes are intentional and stable.
+* The 5th field is the card's WEAPON (catalog field name `element` for
+  legacy reasons — DECISIONS.md #027 — but the BoBA-canonical term is
+  Weapon). Added 2026-05-25 after the audit pipeline revealed many
+  Grandma's Linoleum Battlefoil cards exist as FIRE-weapon +
+  GLOW-weapon siblings with otherwise-identical (hero, treatment,
+  variation). The 4-field formula collided on those pairs, forcing the
+  catalog to use distinct cardNumbers as a workaround (GLBF-43=GLOW,
+  GLBF-85=FIRE). With weapon in the formula, the same printed
+  cardNumber can be retained for both weapon variants.
+* As of 2026-04-09 the 4-field formula produced 17,739 unique IDs
+  across 17,739 cards (0 collisions). The 3-field formula had 3
   collisions on First Edition vs 2026 Edition variants — hence the
-  addition of `variation`.
+  addition of `variation`. The 5-field formula is forward-compatible
+  for new weapon-only variants in future sets.
 
 Usage
 -----
@@ -36,7 +46,7 @@ from typing import Dict, List, Tuple
 
 __all__ = ["boba_id", "build_boba_index", "FORMULA"]
 
-FORMULA = "{cardNumber}-{hero||name}-{treatment??''}-{variation??''}"
+FORMULA = "{cardNumber}-{hero||name}-{treatment??''}-{variation??''}-{element??''}"
 
 
 def boba_id(card: dict) -> str:
@@ -45,7 +55,8 @@ def boba_id(card: dict) -> str:
     hero  = str(card.get("hero") or card.get("name") or "").strip()
     treat = str(card.get("treatment") or "").strip()
     var   = str(card.get("variation") or "").strip()
-    return f"{cn}-{hero}-{treat}-{var}"
+    elem  = str(card.get("element") or "").strip()
+    return f"{cn}-{hero}-{treat}-{var}-{elem}"
 
 
 def build_boba_index(cards: List[dict]) -> Dict[str, Tuple[int, dict]]:

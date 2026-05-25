@@ -55,6 +55,16 @@ BUNDLES = [
         "head_limit": None,
         "subset_by_bobaId": True,  # Android omits some cards; preserve
     },
+    {
+        # Android phase-1 fast-load bundle (first 506 cards). Was
+        # missing from this list pre-2026-05-25 and silently drifted
+        # off — caused Ben's "Collection shows no cards on Android"
+        # report when its bobaIds went stale relative to Supabase.
+        "path": REPO / "android" / "app" / "src" / "main" / "assets" / "data" / "cards-head.json",
+        "label": "Android-head",
+        "head_limit": 506,
+        "subset_by_bobaId": False,
+    },
 ]
 
 

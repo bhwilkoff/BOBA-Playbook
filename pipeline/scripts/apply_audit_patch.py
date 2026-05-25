@@ -74,67 +74,93 @@ def build_boba_id(card: dict) -> str:
 
 
 def apply_modifies(cards: list[dict], modifies: list[dict]) -> dict:
-    """Apply modify[] entries. Returns a summary dict with counts +
-    a list of collisions for cardNumber/name changes."""
+    """Apply modify[] entries field-by-field. Collisions on cardNumber
+    or name (where the new bobaId would clash with an existing row)
+    skip JUST THAT FIELD, not the whole card — safe sibling fields
+    like element/power still apply. Previous behavior was to skip
+    the entire card on collision, which threw away ~600 approved
+    field-changes on the GLBF duplicate-row cluster."""
     by_boba = {c.get("bobaId"): c for c in cards if c.get("bobaId")}
-    applied = 0
-    collisions = []
+    cards_modified = 0
+    fields_applied = 0
+    field_collisions = []   # per-field skipped due to bobaId collision
     skipped_unknown = []
     name_cardnumber_changes = []
     for m in modifies:
         target = m.get("old_bobaId")
-        changes = m.get("changes") or {}
+        changes = dict(m.get("changes") or {})
         if not target or not changes:
             continue
         card = by_boba.get(target)
         if card is None:
             skipped_unknown.append(target)
             continue
-        # cardNumber / name changes regenerate bobaId — check for
-        # collisions first. If the new bobaId already exists as a
-        # different row, refuse to apply.
-        if "cardNumber" in changes or "name" in changes:
+
+        # Identify bobaId-affecting fields and decide which to drop.
+        affecting = {k: v for k, v in changes.items() if k in ("cardNumber", "name")}
+        if affecting:
             hypothetical = dict(card)
-            hypothetical.update(changes)
+            hypothetical.update(affecting)
             new_bid = build_boba_id(hypothetical)
             if new_bid != target and new_bid in by_boba:
-                collisions.append({
-                    "from_bobaId": target,
-                    "to_bobaId": new_bid,
-                    "changes": changes,
-                    "collision_with": by_boba[new_bid].get("bobaId"),
-                })
-                continue
-            name_cardnumber_changes.append({
-                "from": target, "to": new_bid, "changes": changes,
-            })
-        # Apply the change.
+                # Drop the affecting fields so we still apply the rest.
+                for k in list(affecting.keys()):
+                    field_collisions.append({
+                        "from_bobaId": target,
+                        "field": k,
+                        "proposed_value": changes[k],
+                        "would_be_bobaId": new_bid,
+                        "collision_with": by_boba[new_bid].get("bobaId"),
+                    })
+                    changes.pop(k, None)
+                affecting = {}
+
+        if not changes:
+            # Every field was a collision — nothing to apply for this card.
+            continue
+
+        # Apply remaining (safe) field changes.
         for k, v in changes.items():
             card[k] = v
-        # Regen bobaId + hero/name link if needed.
+            fields_applied += 1
+
+        # If the surviving changes still include name/cardNumber, regen bobaId.
         if "cardNumber" in changes or "name" in changes:
-            # If name changed, hero should follow for non-sealed cards.
             if "name" in changes and not card.get("isSealed") and card.get("hero"):
                 card["hero"] = changes["name"]
             old_bid = card.get("bobaId")
             new_bid = build_boba_id(card)
             card["bobaId"] = new_bid
-            # Re-key the map so further modifies in this batch find it.
             by_boba.pop(old_bid, None)
             by_boba[new_bid] = card
-        applied += 1
+            name_cardnumber_changes.append({
+                "from": old_bid, "to": new_bid, "changes": changes,
+            })
+        cards_modified += 1
+
     return {
-        "applied": applied,
+        "cards_modified": cards_modified,
+        "fields_applied": fields_applied,
         "skipped_unknown": skipped_unknown,
-        "collisions": collisions,
+        "field_collisions": field_collisions,
         "bobaid_regen_count": len(name_cardnumber_changes),
     }
 
 
 def apply_additions(cards: list[dict], additions: list[dict]) -> dict:
     """Apply additions[] entries — pure field-add operations. Used by
-    the audit pipeline for the new `printedSerial` field on Inspired
-    Ink cards. Idempotent: re-running just rewrites the same value."""
+    the audit pipeline for the new `printRun` field on Inspired Ink
+    cards. Idempotent: re-running just rewrites the same value.
+
+    NOTE on printedSerial → printRun: the audit pipeline initially
+    captured the full serial string ("15/25") but Ben pointed out the
+    numerator (15) is just an artifact of whichever copy was
+    photographed on eBay — the per-card information is the
+    DENOMINATOR (the print run: 5, 10, 25, 50). So when an
+    addition says `printedSerial: "15/25"`, we strip to integer 25
+    and store under `printRun`. The old `printedSerial` is also
+    dropped from any card that has it (idempotent migration)."""
+    import re
     by_boba = {c.get("bobaId"): c for c in cards if c.get("bobaId")}
     applied = 0
     skipped_unknown = []
@@ -148,9 +174,52 @@ def apply_additions(cards: list[dict], additions: list[dict]) -> dict:
             skipped_unknown.append(target)
             continue
         for k, v in adds.items():
-            card[k] = v
+            # printedSerial migration: strip numerator, keep denominator.
+            if k == "printedSerial":
+                if isinstance(v, str) and "/" in v:
+                    parts = v.split("/")
+                    try:
+                        denom = int(parts[-1].strip())
+                        card["printRun"] = denom
+                    except ValueError:
+                        # Couldn't parse — store raw fallback.
+                        card["printRun"] = v
+                elif isinstance(v, int):
+                    card["printRun"] = v
+                else:
+                    card["printRun"] = v
+                # Migrate away from old field name on this card.
+                card.pop("printedSerial", None)
+            else:
+                card[k] = v
         applied += 1
     return {"applied": applied, "skipped_unknown": skipped_unknown}
+
+
+def migrate_printed_serial_to_print_run(cards: list[dict]) -> int:
+    """One-shot migration: any card that already has the old
+    `printedSerial` string field gets converted to integer `printRun`
+    (denominator only). Called automatically by main so re-runs are
+    self-healing for cards.json that may have been written with the
+    old field name during earlier audit iterations."""
+    import re
+    migrated = 0
+    for c in cards:
+        if "printedSerial" not in c:
+            continue
+        v = c["printedSerial"]
+        if isinstance(v, str) and "/" in v:
+            try:
+                c["printRun"] = int(v.split("/")[-1].strip())
+            except ValueError:
+                c["printRun"] = v
+        elif isinstance(v, int):
+            c["printRun"] = v
+        else:
+            c["printRun"] = v
+        del c["printedSerial"]
+        migrated += 1
+    return migrated
 
 
 def apply_bad_images(cards: list[dict], bobaids: list[str]) -> dict:
@@ -201,6 +270,15 @@ def main() -> int:
         cards = json.load(f)
     print(f"[apply] catalog loaded: {len(cards)} cards", flush=True)
 
+    # Self-healing migration: prior audit applies stored the full
+    # "15/25" string under `printedSerial`. The denominator alone is
+    # the per-card datum (numerator is just the photographed copy's
+    # serial). Convert to integer `printRun`.
+    migrated = migrate_printed_serial_to_print_run(cards)
+    if migrated:
+        print(f"[apply] migrated {migrated} printedSerial → printRun (integer denominator)",
+              flush=True)
+
     summary = {"modifies": None, "additions": None, "bad_images": None}
 
     if args.patch:
@@ -223,21 +301,23 @@ def main() -> int:
     print()
     if summary["modifies"]:
         m = summary["modifies"]
-        print(f"[modify]    applied={m['applied']}, "
-              f"collisions={len(m['collisions'])}, "
+        print(f"[modify]    cards_modified={m['cards_modified']}, "
+              f"fields_applied={m['fields_applied']}, "
+              f"field_collisions={len(m['field_collisions'])}, "
               f"unknown_bobaIds={len(m['skipped_unknown'])}, "
               f"bobaId_regenerated={m['bobaid_regen_count']}")
-        if m["collisions"]:
-            print(f"\n[modify] COLLISIONS — these were SKIPPED. The target "
-                  f"bobaId already exists as a different row in catalog. "
-                  f"Manual review needed:")
-            for c in m["collisions"][:20]:
+        if m["field_collisions"]:
+            print(f"\n[modify] {len(m['field_collisions'])} field-level "
+                  f"collisions skipped (the target bobaId would clash with an "
+                  f"existing row — that field's value stays catalog; other "
+                  f"fields on the same card still applied). Sample:")
+            for c in m["field_collisions"][:10]:
                 print(f"  {c['from_bobaId']}")
-                print(f"    proposed change: {c['changes']}")
-                print(f"    new bobaId would be: {c['to_bobaId']}")
+                print(f"    {c['field']} → {c['proposed_value']!r} "
+                      f"would make bobaId={c['would_be_bobaId']}")
                 print(f"    collides with existing: {c['collision_with']}")
-            if len(m["collisions"]) > 20:
-                print(f"  … and {len(m['collisions']) - 20} more")
+            if len(m["field_collisions"]) > 10:
+                print(f"  … and {len(m['field_collisions']) - 10} more")
         if m["skipped_unknown"]:
             print(f"\n[modify] UNKNOWN bobaIds (catalog doesn't have these):")
             for bid in m["skipped_unknown"][:10]:

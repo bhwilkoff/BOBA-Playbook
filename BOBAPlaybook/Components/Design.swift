@@ -40,6 +40,8 @@ enum Design {
             case "GLOW":  return Color(hex: "FFD700")
             case "GUM":   return Color(hex: "FF69B4")
             case "SUPER": return Color(hex: "FF00FF")
+            case "ALT":   return Color(hex: "B084CC")
+            case "CYBER": return Color(hex: "39FF14")
             default:      return Color(hex: "666680")
             }
         }

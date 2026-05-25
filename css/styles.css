@@ -102,7 +102,8 @@
   --el-GUM:    #FF69B4; --el-GUM-glow:   rgba(255,105,180,0.35);
   --el-SUPER:  #FF00FF; --el-SUPER-glow: rgba(255,0,255,0.35);
   --el-NONE:   #555578; --el-NONE-glow:  rgba(85,85,120,0.2);
-  --el-ALT:    #AABBDD;
+  --el-ALT:    #B084CC; --el-ALT-glow:   rgba(176,132,204,0.35);
+  --el-CYBER:  #39FF14; --el-CYBER-glow: rgba(57,255,20,0.35);
 
   /* Typography — 3-font system */
   --font-arena:   'Bebas Neue', 'Russo One', system-ui, sans-serif; /* wordmark BOBA only */
@@ -2027,6 +2028,8 @@ dialog.modal-overlay[open] {
 .modal-layout[data-element="GLOW"]  { --modal-el-color: #FFD700; --modal-el-shadow: rgba(255,215,0,0.5); }
 .modal-layout[data-element="GUM"]   { --modal-el-color: #FF77C0; --modal-el-shadow: rgba(255,105,180,0.5); }
 .modal-layout[data-element="SUPER"] { --modal-el-color: #FF55FF; --modal-el-shadow: rgba(255,0,255,0.5); }
+.modal-layout[data-element="ALT"]   { --modal-el-color: #C49BDD; --modal-el-shadow: rgba(176,132,204,0.5); }
+.modal-layout[data-element="CYBER"] { --modal-el-color: #66FF44; --modal-el-shadow: rgba(57,255,20,0.5); }
 
 /* ---- Stats grid ---- */
 .modal-stats {

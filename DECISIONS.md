@@ -43,8 +43,12 @@ Card images live on R2 (`boba-card-images`). Zero egress fees and Cloudflare edg
 `cards.json` (17,739 cards) committed to `assets/data/` and served from GitHub Pages. No database for catalog browsing. To update for new sets: re-run `reconcile_all.py`, copy outputs to `assets/data/`, commit.
 
 ## 010 — Element Color System
-*2026-04-03*
-Each element maps to a canonical UI color: FIRE #FF4D00, ICE #00BFFF, HEX #8B00FF, STEEL #8A9BB0, BRAWL #C0392B, GLOW #FFD700, GUM #FF69B4, SUPER #FF00FF, NONE #666680. Elements in cards.json are always UPPERCASE.
+*2026-04-03 · amended 2026-05-25*
+Each element maps to a canonical UI color: FIRE #FF4D00, ICE #00BFFF, HEX #8B00FF, STEEL #8A9BB0, BRAWL #C0392B, GLOW #FFD700, GUM #FF69B4, SUPER #FF00FF, ALT #B084CC, CYBER #39FF14, NONE #666680. Elements in cards.json are always UPPERCASE.
+
+ALT and CYBER added 2026-05-25 after the bobaId v3 audit (#057) surfaced 48 ALT cards and 28 CYBER cards in the catalog. They aren't gameplay weapons in the traditional sense — ALT is the weapon-slot value used on parallels (Billy Cameo Alt Arts, Sidekicks, Inspired Ink Battlefoils, Rookie Power Up, etc.) and CYBER is the cyberpunk-themed "2025 Cyber Promo" set — but both render in the weapon spot on the printed card, so they need first-class color tokens to display correctly. CYBER's neon green matches the chartreuse palette of the actual promo art; ALT's lavender is chosen to stay distinct from the existing purple-family weapons (HEX violet, SUPER magenta, GUM pink) since ALT spans many treatments and has no single visual signature.
+
+Codified across `BOBAPlaybook/Components/Design.swift::element(_:)`, `android/core/ui/.../theme/Color.kt::BobaElements`, and `css/styles.css` `:root --el-*` + `modal-layout[data-element=]` overrides.
 
 ## 011 — No Card Images in Git
 *2026-04-03*

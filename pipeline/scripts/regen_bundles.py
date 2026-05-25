@@ -38,6 +38,19 @@ BUNDLES = [
         "subset_by_bobaId": False,
     },
     {
+        # SLIM catalog (drops radishUrl + rookieInspired + searchTokens —
+        # ~5 MB smaller than master). The Android Gradle preBuild step
+        # (`scripts/sync_shared_assets.sh`) copies THIS file over the
+        # Android cards.json bundle on every build, so if it goes stale
+        # every Android APK ships an outdated catalog. Was missing from
+        # this list pre-2026-05-25 → caused Ben's empty Collection bug
+        # (17,915 v2-shape bobaIds vs Supabase's v3 bobaIds).
+        "path": REPO / "assets" / "data" / "cards-slim.json",
+        "label": "slim",
+        "head_limit": None,
+        "subset_by_bobaId": False,
+    },
+    {
         "path": REPO / "BOBAPlaybook" / "display-cards.json",
         "label": "iOS-display",
         "head_limit": None,

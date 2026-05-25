@@ -49,6 +49,7 @@ MASTER = REPO / "assets/data/cards.json"
 BUNDLES = [
     REPO / "assets/data/cards.json",
     REPO / "assets/data/cards-head.json",
+    REPO / "assets/data/cards-slim.json",  # Gradle preBuild copies this into Android — must be v3-fresh
     REPO / "BOBAPlaybook/display-cards.json",
     REPO / "BOBAPlaybook/cards-head.json",
     REPO / "android/app/src/main/assets/data/cards.json",

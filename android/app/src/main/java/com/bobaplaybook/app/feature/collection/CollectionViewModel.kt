@@ -64,21 +64,19 @@ class CollectionViewModel @Inject constructor(
         collectionRepository.hasRefreshedOnce,
     ) { owned, catalog, auth, hasRefreshedOnce ->
         val catalogByBobaId = catalog.associateBy { it.bobaId }
-        // Fallback index: cardNumber → first Card with that number. The
-        // user_cards table has BOTH `card_number` (legacy) and `boba_id`
-        // (newer). Rows added before the bobaId migration may have
-        // `boba_id = null`, in which case toDomain() falls back to
-        // cardNumber as the join key. Lookup-by-bobaId would miss
-        // those; lookup-by-cardNumber recovers them. iOS does the
-        // same dual-key lookup (CollectionView.swift). Without this
-        // fallback, legacy rows silently disappear from the Collection
-        // tab — which is the "no cards pulling in" bug.
-        val catalogByCardNumber = catalog.groupBy { it.cardNumber }
-            .mapValues { (_, cards) -> cards.first() }
+        // bobaId is the CANONICAL key — CLAUDE.md "One ID per Card".
+        // There must NEVER be a cardNumber fallback in this join (per Ben
+        // 2026-05-25): a cardNumber alone is ambiguous across weapon
+        // variants (e.g. GLBF-43 has both FIRE + GLOW variants in v3),
+        // so falling back to cardNumber would silently route the user
+        // to the WRONG card. If the bobaId lookup misses, the right
+        // behavior is to drop the row + log loudly so the upstream
+        // data mismatch can be fixed (stale catalog bundle or a
+        // user_cards row pointing at a no-longer-existing bobaId).
         val joined = owned.mapNotNull { uc ->
-            val card = catalogByBobaId[uc.cardBobaId]
-                ?: catalogByCardNumber[uc.cardBobaId]
-            card?.let { CollectionEntry(card = it, userCard = uc) }
+            catalogByBobaId[uc.cardBobaId]?.let {
+                CollectionEntry(card = it, userCard = uc)
+            }
         }
         if (owned.isNotEmpty() && joined.size < owned.size) {
             android.util.Log.w(
@@ -86,8 +84,7 @@ class CollectionViewModel @Inject constructor(
                 "Dropped ${owned.size - joined.size}/${owned.size} owned rows in catalog join " +
                 "(catalog has ${catalog.size} cards). Sample missing keys: " +
                 owned.mapNotNull { uc ->
-                    if (catalogByBobaId[uc.cardBobaId] == null &&
-                        catalogByCardNumber[uc.cardBobaId] == null) uc.cardBobaId else null
+                    if (catalogByBobaId[uc.cardBobaId] == null) uc.cardBobaId else null
                 }.take(5).joinToString(),
             )
         }

@@ -143,8 +143,10 @@ final class CollectionStore {
         }
 
         for uc in sorted {
+            // bobaId is the canonical key (CLAUDE.md "One ID per Card").
+            // No cardNumber fallback — cardNumber is ambiguous across
+            // weapon variants and would route to the wrong card.
             let catalog = uc.bobaId.flatMap { cardStore.cardsById[$0] }
-                ?? cardStore.cardsByCardNumber[uc.cardNumber]
 
             let prefix = catalog.map { Self.exportSetPrefixMap[$0.set].map { "\($0) - " } ?? "" } ?? ""
             let cardNumCell = "\(prefix)\(uc.cardNumber)"

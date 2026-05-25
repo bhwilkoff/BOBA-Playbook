@@ -52,6 +52,7 @@ BUNDLES = [
     REPO / "BOBAPlaybook/display-cards.json",
     REPO / "BOBAPlaybook/cards-head.json",
     REPO / "android/app/src/main/assets/data/cards.json",
+    REPO / "android/app/src/main/assets/data/cards-head.json",
 ]
 DERIVED = [
     REPO / "assets/data/categories.json",

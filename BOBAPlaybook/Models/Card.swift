@@ -174,7 +174,15 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
         variation          = try c.decodeIfPresent(String.self,    forKey: .variation)
         treatment          = try c.decodeIfPresent(String.self,    forKey: .treatment)
         release            = try c.decodeIfPresent(String.self,    forKey: .release) ?? ""
-        element            = try c.decodeIfPresent(String.self,    forKey: .element)   ?? "NONE"
+        // Default to empty string (NOT "NONE") for null element so the
+        // v3 bobaId formula matches the canonical Python/Android source:
+        // Python uses `card.get("element") or ""` → empty; Android uses
+        // `val element: String = ""`. Sealed products in the catalog
+        // store empty element; iOS defaulting to "NONE" caused the
+        // computed bobaId to end in "-NONE" while stored ended in "-",
+        // producing a Card.id mismatch that hid sealed-product art +
+        // metadata in Collection / Find.
+        element            = try c.decodeIfPresent(String.self,    forKey: .element)   ?? ""
         power              = try c.decodeIfPresent(Int.self,       forKey: .power)
         // playCost is an Int for Play cards (0–6 Hot Dogs) but sealed products
         // incorrectly store their MSRP price here as a Double. Decode flexibly.

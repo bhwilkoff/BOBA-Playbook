@@ -116,41 +116,34 @@ final class CardStore {
     /// keystroke from Collection search (500 owned cards × 17k catalog
     /// scan × per-keystroke recompute = ~8.5M comparisons / character).
     private(set) var cardsById: [String: Card] = [:]
-    /// Secondary lookup keyed by cardNumber. Some legacy collection
-    /// rows store cardNumber where bobaId would now go; this index
-    /// preserves the fallback the old code did via a second `.first { $0.cardNumber == id }`.
-    private(set) var cardsByCardNumber: [String: Card] = [:]
 
     /// Tick 352 — catalog-order index by bobaId. Used by the
     /// `.recentlyAdded` sort (catalog order is chronological — new sets
     /// append). O(1) lookup vs O(n) `displayCards.firstIndex(of:)`.
     private(set) var catalogOrderById: [String: Int] = [:]
 
-    /// Rebuild the two id → Card lookup tables. O(n) over displayCards;
-    /// runs only on data-load or image-override application, NOT per
-    /// keystroke.
+    /// Rebuild the bobaId → Card lookup table. O(n) over displayCards;
+    /// runs only on data-load or image-override application.
     func rebuildIdIndexes() {
         var byId: [String: Card] = [:]
-        var byNum: [String: Card] = [:]
         var orderById: [String: Int] = [:]
         byId.reserveCapacity(displayCards.count)
-        byNum.reserveCapacity(displayCards.count)
         orderById.reserveCapacity(displayCards.count)
         for (i, c) in displayCards.enumerated() {
             byId[c.id] = c
-            if byNum[c.cardNumber] == nil { byNum[c.cardNumber] = c }
             orderById[c.id] = i
         }
         cardsById = byId
-        cardsByCardNumber = byNum
         catalogOrderById = orderById
     }
 
-    /// Resolve a Card by either bobaId or cardNumber. O(1) — replaces
-    /// the old `displayCards.first { $0.id == id } ?? displayCards.first
-    /// { $0.cardNumber == id }` pattern at every hot call site.
+    /// Resolve a Card by bobaId. No cardNumber fallback — per Ben
+    /// 2026-05-25 + CLAUDE.md "One ID per Card": bobaId is the
+    /// canonical key. cardNumber alone is ambiguous across weapon
+    /// variants (e.g. GLBF-43 FIRE + GLOW share the cardNumber)
+    /// so a fallback would silently route to the wrong card.
     func resolveCard(byId id: String) -> Card? {
-        cardsById[id] ?? cardsByCardNumber[id]
+        cardsById[id]
     }
     private(set) var isLoading = true           // false once head cards are ready
     private(set) var isLoadingMore = false      // true while full catalog loads in background

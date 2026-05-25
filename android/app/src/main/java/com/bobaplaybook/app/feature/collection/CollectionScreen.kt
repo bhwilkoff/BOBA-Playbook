@@ -527,6 +527,26 @@ fun CollectionScreen(
                         onAction = { collectionQuery = "" },
                     )
                 } else {
+                    // Diagnostic: if Supabase returned owned rows but the
+                    // catalog join dropped them all, surface counts so
+                    // the user can screenshot + the dev can see the
+                    // actual failure mode (instead of generic "no cards").
+                    // Common cause: APK's bundled catalog is stale
+                    // relative to user_cards.boba_id values.
+                    if (state.rawOwnedCount > 0 && state.joinedCount == 0) {
+                        BOBAEmptyState(
+                            icon = Icons.Default.Inventory2,
+                            headline = "Catalog mismatch",
+                            body = "Supabase returned ${state.rawOwnedCount} owned rows but " +
+                                "none resolved to a catalog card (catalog has " +
+                                "${state.catalogSize} cards). This usually means the bundled " +
+                                "catalog is older than the server-side user_cards bobaIds. " +
+                                "Pull-to-refresh after installing the latest build.",
+                            actionLabel = null,
+                            onAction = null,
+                        )
+                        return@Scaffold
+                    }
                     // Per-designation brand-voice empty states (parity
                     // with web tick 78 + universal-feature-states skill).
                     // Generic "Scan a card or browse Find" said the same

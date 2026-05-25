@@ -81,6 +81,8 @@ object BobaElements {
     val Hex    = Color(0xFF8B00FF)
     val Gum    = Color(0xFFFF69B4)
     val Super  = Color(0xFFFF00FF)
+    val Alt    = Color(0xFFB084CC)
+    val Cyber  = Color(0xFF39FF14)
     val None   = Color(0xFF666680)
 
     /**
@@ -97,6 +99,8 @@ object BobaElements {
         "HEX"   -> Hex
         "GUM"   -> Gum
         "SUPER" -> Super
+        "ALT"   -> Alt
+        "CYBER" -> Cyber
         else    -> None
     }
 }

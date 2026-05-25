@@ -411,7 +411,7 @@ Two distinct systems — don't mix. (Translates iOS §11.2 into M3 tokens.)
 - `--boba-surface #0D0D1A` → `surfaceContainerLow`
 
 **Element (content semantic only)** — separate `BobaElements` object, NOT in `colorScheme`:
-FIRE `#FF4D00` · ICE `#00BFFF` · STEEL `#8A9BB0` · BRAWL `#C0392B` · GLOW `#FFD700` · HEX `#8B00FF` · GUM `#FF69B4` · SUPER `#FF00FF` · NONE `#666680`.
+FIRE `#FF4D00` · ICE `#00BFFF` · STEEL `#8A9BB0` · BRAWL `#C0392B` · GLOW `#FFD700` · HEX `#8B00FF` · GUM `#FF69B4` · SUPER `#FF00FF` · ALT `#B084CC` · CYBER `#39FF14` · NONE `#666680`.
 
 The split: element on weapon chips / filter chips / accent dividers / charts. Brand on chrome (FilledButton, NavigationBar indicator, FAB). Never element-as-chrome ("FIRE-themed button"); never brand-as-meaning. Element UPPERCASE in JSON, mixed-case in UI. Dynamic color (`dynamicDarkColorScheme`) overrides `primary` only when user opts in (Android 12+); element colors never change.
 

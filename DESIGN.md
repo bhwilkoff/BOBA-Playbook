@@ -474,7 +474,7 @@ Two distinct systems — don't mix.
 
 **Brand (UI chrome only):** `--boba-orange #FF4D00` (primary CTA, FIRE) · `--boba-cyan #00F5FF` (links/highlights) · `--boba-violet #8B00FF` (secondary, HEX) · `--boba-near-black #080810` (bg) · `--boba-surface #0D0D1A` (panel).
 
-**Element (content semantic only):** FIRE `#FF4D00` · ICE `#00BFFF` · STEEL `#8A9BB0` · BRAWL `#C0392B` · GLOW `#FFD700` · HEX `#8B00FF` · GUM `#FF69B4` · SUPER `#FF00FF` · NONE `#666680`.
+**Element (content semantic only):** FIRE `#FF4D00` · ICE `#00BFFF` · STEEL `#8A9BB0` · BRAWL `#C0392B` · GLOW `#FFD700` · HEX `#8B00FF` · GUM `#FF69B4` · SUPER `#FF00FF` · ALT `#B084CC` · CYBER `#39FF14` · NONE `#666680`.
 
 **The split:** element colors only on weapon badges, filter chips, accent lines, distribution charts. Brand colors only on chrome (buttons, links, CTAs). Never element-as-chrome ("FIRE-themed button"); never brand-as-meaning ("orange = urgent" — orange already means FIRE).
 

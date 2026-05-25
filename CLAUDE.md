@@ -224,7 +224,7 @@ android/
 - `--boba-violet: #8B00FF` — HEX element, secondary accents
 - `--boba-near-black: #080810` — page background
 - `--boba-surface: #0D0D1A` — card/panel surface
-- Element colors: FIRE #FF4D00, ICE #00BFFF, HEX #8B00FF, STEEL #8A9BB0, BRAWL #C0392B, GLOW #FFD700, GUM #FF69B4, SUPER #FF00FF, NONE #666680
+- Element colors: FIRE #FF4D00, ICE #00BFFF, HEX #8B00FF, STEEL #8A9BB0, BRAWL #C0392B, GLOW #FFD700, GUM #FF69B4, SUPER #FF00FF, ALT #B084CC, CYBER #39FF14, NONE #666680
 
 ---
 

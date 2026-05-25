@@ -75,6 +75,38 @@ def build_boba_id(card: dict) -> str:
     return f"{card_number}-{hero}-{treatment}-{variation}-{weapon}"
 
 
+def build_boba_id_v2(card: dict) -> str:
+    """OLD 4-field formula (pre-2026-05-25). Used for backwards-compat
+    lookup so patches authored against the v2 catalog (notably the
+    audit-review export from before the v3 migration) still apply."""
+    card_number = card.get("cardNumber") or ""
+    hero = card.get("hero") or card.get("name") or ""
+    treatment = card.get("treatment") or ""
+    variation = card.get("variation") or ""
+    return f"{card_number}-{hero}-{treatment}-{variation}"
+
+
+def lookup_card(target: str, by_boba_v3: dict, by_boba_v2: dict):
+    """Resolve a patch entry's `old_bobaId` to a card. Tries v3 first,
+    falls back to v2 (audit-review export pre-migration). Returns
+    (card, ambiguity_note) — ambiguity_note is None on clean match,
+    or a string explaining why we skipped (ambiguous v2 → multiple
+    v3 cards). Returns (None, None) on plain miss."""
+    card = by_boba_v3.get(target)
+    if card is not None:
+        return card, None
+    # v3 miss. Try v2 fallback.
+    matches = by_boba_v2.get(target)
+    if not matches:
+        return None, None
+    if len(matches) == 1:
+        return matches[0], None
+    # True v2 ambiguity — the v3 migration split this v2 ID into
+    # multiple cards (almost always a FIRE/GLOW weapon-variant pair).
+    weapons = sorted({(c.get("element") or "<empty>") for c in matches})
+    return None, f"v2-ambiguous (matches {len(matches)} v3 cards across weapons: {', '.join(weapons)})"
+
+
 def apply_modifies(cards: list[dict], modifies: list[dict]) -> dict:
     """Apply modify[] entries field-by-field. Collisions on cardNumber
     or name (where the new bobaId would clash with an existing row)
@@ -83,19 +115,28 @@ def apply_modifies(cards: list[dict], modifies: list[dict]) -> dict:
     the entire card on collision, which threw away ~600 approved
     field-changes on the GLBF duplicate-row cluster."""
     by_boba = {c.get("bobaId"): c for c in cards if c.get("bobaId")}
+    # v2 fallback index — same v2 ID can match multiple v3 cards
+    # (FIRE/GLOW weapon variants), so list-valued.
+    by_boba_v2: dict[str, list[dict]] = {}
+    for c in cards:
+        by_boba_v2.setdefault(build_boba_id_v2(c), []).append(c)
     cards_modified = 0
     fields_applied = 0
     field_collisions = []   # per-field skipped due to bobaId collision
     skipped_unknown = []
+    skipped_ambiguous = []  # v2 IDs that match >1 v3 card
     name_cardnumber_changes = []
     for m in modifies:
         target = m.get("old_bobaId")
         changes = dict(m.get("changes") or {})
         if not target or not changes:
             continue
-        card = by_boba.get(target)
+        card, ambig = lookup_card(target, by_boba, by_boba_v2)
         if card is None:
-            skipped_unknown.append(target)
+            if ambig:
+                skipped_ambiguous.append({"old_bobaId": target, "reason": ambig})
+            else:
+                skipped_unknown.append(target)
             continue
 
         # Identify bobaId-affecting fields and decide which to drop.
@@ -144,6 +185,7 @@ def apply_modifies(cards: list[dict], modifies: list[dict]) -> dict:
         "cards_modified": cards_modified,
         "fields_applied": fields_applied,
         "skipped_unknown": skipped_unknown,
+        "skipped_ambiguous": skipped_ambiguous,
         "field_collisions": field_collisions,
         "bobaid_regen_count": len(name_cardnumber_changes),
     }
@@ -164,16 +206,23 @@ def apply_additions(cards: list[dict], additions: list[dict]) -> dict:
     dropped from any card that has it (idempotent migration)."""
     import re
     by_boba = {c.get("bobaId"): c for c in cards if c.get("bobaId")}
+    by_boba_v2: dict[str, list[dict]] = {}
+    for c in cards:
+        by_boba_v2.setdefault(build_boba_id_v2(c), []).append(c)
     applied = 0
     skipped_unknown = []
+    skipped_ambiguous = []
     for a in additions:
         target = a.get("old_bobaId")
         adds = a.get("additions") or {}
         if not target or not adds:
             continue
-        card = by_boba.get(target)
+        card, ambig = lookup_card(target, by_boba, by_boba_v2)
         if card is None:
-            skipped_unknown.append(target)
+            if ambig:
+                skipped_ambiguous.append({"old_bobaId": target, "reason": ambig})
+            else:
+                skipped_unknown.append(target)
             continue
         for k, v in adds.items():
             # printedSerial migration: strip numerator, keep denominator.
@@ -195,7 +244,11 @@ def apply_additions(cards: list[dict], additions: list[dict]) -> dict:
             else:
                 card[k] = v
         applied += 1
-    return {"applied": applied, "skipped_unknown": skipped_unknown}
+    return {
+        "applied": applied,
+        "skipped_unknown": skipped_unknown,
+        "skipped_ambiguous": skipped_ambiguous,
+    }
 
 
 def migrate_printed_serial_to_print_run(cards: list[dict]) -> int:
@@ -231,18 +284,29 @@ def apply_bad_images(cards: list[dict], bobaids: list[str]) -> dict:
     via wrangler). The catalog change is what the apps render off of,
     so this is sufficient to remove the bad art from display."""
     by_boba = {c.get("bobaId"): c for c in cards if c.get("bobaId")}
+    by_boba_v2: dict[str, list[dict]] = {}
+    for c in cards:
+        by_boba_v2.setdefault(build_boba_id_v2(c), []).append(c)
     applied = 0
     skipped_unknown = []
+    skipped_ambiguous = []
     for bid in bobaids:
-        card = by_boba.get(bid)
+        card, ambig = lookup_card(bid, by_boba, by_boba_v2)
         if card is None:
-            skipped_unknown.append(bid)
+            if ambig:
+                skipped_ambiguous.append({"old_bobaId": bid, "reason": ambig})
+            else:
+                skipped_unknown.append(bid)
             continue
         card["imageFile"] = None
         card["imageSource"] = None
         card["imageAvailable"] = False
         applied += 1
-    return {"applied": applied, "skipped_unknown": skipped_unknown}
+    return {
+        "applied": applied,
+        "skipped_unknown": skipped_unknown,
+        "skipped_ambiguous": skipped_ambiguous,
+    }
 
 
 def load_bad_images(path: Path) -> list[str]:
@@ -303,10 +367,12 @@ def main() -> int:
     print()
     if summary["modifies"]:
         m = summary["modifies"]
+        n_ambig = len(m.get("skipped_ambiguous") or [])
         print(f"[modify]    cards_modified={m['cards_modified']}, "
               f"fields_applied={m['fields_applied']}, "
               f"field_collisions={len(m['field_collisions'])}, "
               f"unknown_bobaIds={len(m['skipped_unknown'])}, "
+              f"v2_ambiguous={n_ambig}, "
               f"bobaId_regenerated={m['bobaid_regen_count']}")
         if m["field_collisions"]:
             print(f"\n[modify] {len(m['field_collisions'])} field-level "
@@ -326,18 +392,35 @@ def main() -> int:
                 print(f"  {bid}")
             if len(m["skipped_unknown"]) > 10:
                 print(f"  … and {len(m['skipped_unknown']) - 10} more")
+        if m.get("skipped_ambiguous"):
+            print(f"\n[modify] V2-AMBIGUOUS bobaIds (the pre-2026-05-25 4-field ID "
+                  f"matches multiple v3 cards — usually a FIRE/GLOW weapon-variant "
+                  f"pair the patch couldn't disambiguate). Re-export from review.html "
+                  f"to pick up v3-keyed IDs, OR add the weapon suffix manually:")
+            for entry in m["skipped_ambiguous"][:10]:
+                print(f"  {entry['old_bobaId']}  →  {entry['reason']}")
+            if len(m["skipped_ambiguous"]) > 10:
+                print(f"  … and {len(m['skipped_ambiguous']) - 10} more")
     if summary["additions"]:
         a = summary["additions"]
+        n_ambig = len(a.get("skipped_ambiguous") or [])
         print(f"\n[additions] applied={a['applied']}, "
-              f"unknown_bobaIds={len(a['skipped_unknown'])}")
+              f"unknown_bobaIds={len(a['skipped_unknown'])}, "
+              f"v2_ambiguous={n_ambig}")
     if summary["bad_images"]:
         b = summary["bad_images"]
+        n_ambig = len(b.get("skipped_ambiguous") or [])
         print(f"\n[bad_images] nullified={b['applied']}, "
-              f"unknown_bobaIds={len(b['skipped_unknown'])}")
+              f"unknown_bobaIds={len(b['skipped_unknown'])}, "
+              f"v2_ambiguous={n_ambig}")
         if b["skipped_unknown"]:
             print(f"  Unknown:")
             for bid in b["skipped_unknown"]:
                 print(f"    {bid}")
+        if b.get("skipped_ambiguous"):
+            print(f"  V2-ambiguous (need weapon suffix):")
+            for entry in b["skipped_ambiguous"]:
+                print(f"    {entry['old_bobaId']} → {entry['reason']}")
 
     if args.dry_run:
         print(f"\n[apply] DRY RUN — no writes.")

@@ -170,7 +170,8 @@ struct BOBAPlaybookApp: App {
                 let route = CardRoute(
                     cardNumber: cardNumber.uppercased(),
                     treatment: q?.first(where: { $0.name == "treatment" })?.value,
-                    hero: q?.first(where: { $0.name == "hero" })?.value
+                    hero: q?.first(where: { $0.name == "hero" })?.value,
+                    element: q?.first(where: { $0.name == "element" })?.value
                 )
                 cardStore.findNavigationPath.append(route)
             }
@@ -217,6 +218,7 @@ struct BOBAPlaybookApp: App {
            !cardQ.isEmpty {
             let treatment = comps?.queryItems?.first(where: { $0.name == "treatment" })?.value
             let hero      = comps?.queryItems?.first(where: { $0.name == "hero" })?.value
+            let element   = comps?.queryItems?.first(where: { $0.name == "element" })?.value
             // Build a custom-scheme URL preserving every query param so
             // handleDeepLink's existing parsing handles the rest.
             var newComps = URLComponents()
@@ -226,6 +228,7 @@ struct BOBAPlaybookApp: App {
             var items: [URLQueryItem] = []
             if let t = treatment { items.append(URLQueryItem(name: "treatment", value: t)) }
             if let h = hero      { items.append(URLQueryItem(name: "hero",      value: h)) }
+            if let e = element   { items.append(URLQueryItem(name: "element",   value: e)) }
             if !items.isEmpty { newComps.queryItems = items }
             if let translated = newComps.url {
                 handleDeepLink(translated)

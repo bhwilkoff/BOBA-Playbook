@@ -936,9 +936,12 @@ struct CardRouteResolver: View {
     }
 
     /// Resolve route → Card. Prefers bobaId (in-app push). Falls back
-    /// to cardNumber + treatment + hero narrowing for URL deep links
-    /// where bobaId is unknown until the catalog loads. `+` is
-    /// normalized to space (web URLs use form-encoding for spaces).
+    /// to cardNumber + treatment + hero + element narrowing for URL
+    /// deep links where bobaId is unknown until the catalog loads.
+    /// `+` is normalized to space (web URLs use form-encoding for
+    /// spaces). element disambiguates weapon-variant pairs that share
+    /// cardNumber + hero + treatment after the bobaId v3 migration
+    /// (DECISIONS.md #057).
     private var resolved: Card? {
         guard !cardStore.displayCards.isEmpty else { return nil }
         if let bobaId = route.bobaId,
@@ -948,11 +951,13 @@ struct CardRouteResolver: View {
         let treatment = route.treatment?.replacingOccurrences(of: "+", with: " ")
         let hero      = route.hero?.replacingOccurrences(of: "+", with: " ")
         let normalizedHero = hero?.trimmingCharacters(in: .whitespaces).lowercased()
+        let element   = route.element?.uppercased()
         return cardStore.displayCards.first { c in
             guard c.cardNumber == route.cardNumber else { return false }
             if let t = treatment, !t.isEmpty, c.treatment != t { return false }
             if let nh = normalizedHero, !nh.isEmpty,
                c.hero.trimmingCharacters(in: .whitespaces).lowercased() != nh { return false }
+            if let e = element, !e.isEmpty, c.element.uppercased() != e { return false }
             return true
         } ?? cardStore.displayCards.first(where: { $0.cardNumber == route.cardNumber })
     }

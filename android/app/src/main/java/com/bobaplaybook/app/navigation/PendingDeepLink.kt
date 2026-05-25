@@ -35,7 +35,19 @@ class PendingDeepLink @Inject constructor() {
  *  - Custom scheme:      bobaplaybook://{type}/{id}
  */
 sealed interface DeepLinkRoute {
+    /** Card identified by full v3 bobaId — legacy path-style URL or in-app push. */
     data class CardDetail(val bobaId: String) : DeepLinkRoute
+
+    /** Card identified by query-params (the canonical share-URL shape since
+     *  bobaId v3 / DECISIONS.md #057). element disambiguates weapon-variant
+     *  pairs (FIRE/GLOW etc.) that share cardNumber+hero+treatment. */
+    data class CardDetailByFields(
+        val cardNumber: String,
+        val hero: String?,
+        val treatment: String?,
+        val element: String?,
+    ) : DeepLinkRoute
+
     data class SearchQuery(val query: String) : DeepLinkRoute
     data class LearnCategory(val categoryId: String) : DeepLinkRoute
     data class PublicCollection(val username: String) : DeepLinkRoute
@@ -46,10 +58,27 @@ sealed interface DeepLinkRoute {
         /**
          * Parse a `bobaplaybook://...` URI or
          * `https://bobaplaybook.com/...` URI into a route.
+         *
+         * Card URLs come in two shapes:
+         *  - Query-param (canonical since bobaId v3):
+         *    `https://bobaplaybook.com/?card=GLBF-43&hero=BoJax&treatment=...&element=FIRE`
+         *  - Legacy path (still accepted for backwards-compat with
+         *    Android share URLs already in the wild):
+         *    `https://bobaplaybook.com/card/{full v3 bobaId}`
          */
         fun parse(uri: android.net.Uri): DeepLinkRoute? {
             val segments = uri.pathSegments
+            val cardQuery = uri.getQueryParameter("card")
             return when {
+                // Query-param card URL — checked FIRST so root-path
+                // `/?card=…` doesn't fall through to scheme-only logic.
+                !cardQuery.isNullOrEmpty() ->
+                    CardDetailByFields(
+                        cardNumber = cardQuery.uppercase(),
+                        hero       = uri.getQueryParameter("hero"),
+                        treatment  = uri.getQueryParameter("treatment"),
+                        element    = uri.getQueryParameter("element")?.uppercase(),
+                    )
                 segments.firstOrNull() == "card" && segments.size >= 2 ->
                     CardDetail(segments[1])
                 segments.firstOrNull() == "scan" || uri.host == "scan" ->

@@ -94,6 +94,7 @@ fun BOBAApp(
     decksActions: com.bobaplaybook.app.feature.decks.DecksActions,
     cardNavigationStore: com.bobaplaybook.app.feature.carddetail.CardNavigationStore,
     tabRefreshBus: com.bobaplaybook.app.navigation.TabRefreshBus,
+    cardRepository: com.bobaplaybook.core.data.catalog.CardRepository,
 ) {
     BobaTheme {
         // One NavController per tab so back stacks don't cross-pollute.
@@ -130,6 +131,28 @@ fun BOBAApp(
                     }
                     currentDestination = AppDestination.FIND
                     ctrl.navigate(NavRoutes.cardDetail(route.bobaId))
+                }
+                is DeepLinkRoute.CardDetailByFields -> {
+                    // Query-param share URL — canonical share shape since
+                    // bobaId v3 (DECISIONS.md #057). Resolve fields →
+                    // bobaId against the in-memory catalog, then navigate.
+                    val ctrl = tabControllers.getOrPut(AppDestination.FIND) {
+                        @Suppress("UNUSED_EXPRESSION") Unit
+                        return@LaunchedEffect
+                    }
+                    val resolved = resolveCardBobaIdByFields(
+                        repository = cardRepository,
+                        cardNumber = route.cardNumber,
+                        hero = route.hero,
+                        treatment = route.treatment,
+                        element = route.element,
+                    )
+                    if (resolved != null) {
+                        currentDestination = AppDestination.FIND
+                        ctrl.navigate(NavRoutes.cardDetail(resolved))
+                    }
+                    // If unresolved (catalog still loading), don't consume
+                    // — the LaunchedEffect re-runs as catalog populates.
                 }
                 is DeepLinkRoute.Scan -> { scanActive = true }
                 is DeepLinkRoute.SearchQuery -> { currentDestination = AppDestination.FIND }
@@ -624,4 +647,41 @@ private fun androidx.navigation.NavGraphBuilder.cardDetailComposable(navControll
             )
         }
     }
+}
+
+/**
+ * Resolve a card from query-param share URL fields → bobaId.
+ * cardNumber + hero + treatment + element narrowing chain; falls back
+ * progressively if narrower constraints don't match anything. element
+ * disambiguates weapon-variant pairs that share cardNumber+hero+treatment
+ * after the bobaId v3 migration (DECISIONS.md #057).
+ */
+private fun resolveCardBobaIdByFields(
+    repository: com.bobaplaybook.core.data.catalog.CardRepository,
+    cardNumber: String,
+    hero: String?,
+    treatment: String?,
+    element: String?,
+): String? {
+    val all = repository.cards.value
+    if (all.isEmpty()) return null
+    val cnUpper = cardNumber.uppercase()
+    val candidates = all.filter { it.cardNumber.uppercase() == cnUpper }
+    if (candidates.isEmpty()) return null
+    val tryPreds: (List<(com.bobaplaybook.core.domain.model.Card) -> Boolean>) -> com.bobaplaybook.core.domain.model.Card? = { preds ->
+        candidates.firstOrNull { c -> preds.all { it(c) } }
+    }
+    val heroP: ((com.bobaplaybook.core.domain.model.Card) -> Boolean)? =
+        hero?.takeIf { it.isNotEmpty() }?.let { h -> { c -> c.hero.equals(h, ignoreCase = true) } }
+    val treatmentP: ((com.bobaplaybook.core.domain.model.Card) -> Boolean)? =
+        treatment?.takeIf { it.isNotEmpty() }?.let { t -> { c -> c.treatment.equals(t, ignoreCase = true) } }
+    val elementP: ((com.bobaplaybook.core.domain.model.Card) -> Boolean)? =
+        element?.takeIf { it.isNotEmpty() }?.let { e -> { c -> c.element.equals(e, ignoreCase = true) } }
+    val resolved = listOfNotNull(heroP, treatmentP, elementP).let { preds ->
+        tryPreds(preds)
+            ?: (if (elementP != null) tryPreds(listOfNotNull(heroP, treatmentP)) else null)
+            ?: (if (treatmentP != null) tryPreds(listOfNotNull(heroP)) else null)
+            ?: candidates.first()
+    }
+    return resolved.bobaId
 }

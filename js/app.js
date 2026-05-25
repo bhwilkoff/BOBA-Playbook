@@ -364,12 +364,16 @@
     return str ? `?${str}` : '?';
   }
 
-  // Card URL: filter state + card identifier (cardNumber + hero + treatment).
+  // Card URL: filter state + card identifier
+  // (cardNumber + hero + treatment + element). The element parameter
+  // disambiguates weapon-variant pairs that share cardNumber/hero/
+  // treatment after the bobaId v3 migration (DECISIONS.md #057).
   function buildCardURL(card) {
     const p = buildSearchParams();
     p.set('card', String(card.cardNumber));
     if (card.hero) p.set('hero', card.hero);
     if (card.treatment) p.set('treatment', card.treatment);
+    if (card.element) p.set('element', card.element);
     return `?${p.toString()}`;
   }
 
@@ -419,24 +423,33 @@
     }
   }
 
-  // Resolve a card from URL params (card + hero + treatment).
+  // Resolve a card from URL params (card + hero + treatment + element).
+  // element disambiguates FIRE/GLOW pairs that share cardNumber+hero+
+  // treatment after the bobaId v3 migration (DECISIONS.md #057). Older
+  // shared URLs without &element= still resolve via the unambiguous
+  // hero+treatment fallback chain.
   function cardFromURLParams(params) {
     const num       = params.get('card');
     const hero      = params.get('hero');
     const treatment = params.get('treatment');
+    const element   = params.get('element');
     if (!num || !displayCards.length) return null;
     const numStr = String(num);
-    if (hero && treatment) {
-      return displayCards.find(c => String(c.cardNumber) === numStr && c.hero === hero && c.treatment === treatment)
-          ?? displayCards.find(c => String(c.cardNumber) === numStr && c.hero === hero)
-          ?? displayCards.find(c => String(c.cardNumber) === numStr);
-    }
-    if (hero) {
-      return displayCards.find(c => String(c.cardNumber) === numStr && c.hero === hero)
-          ?? displayCards.find(c => String(c.cardNumber) === numStr);
-    }
-    const set = cardsByNumber?.get(numStr.toUpperCase()) || cardsByNumber?.get(numStr);
-    return set?.[0] ?? displayCards.find(c => String(c.cardNumber) === numStr);
+    // Build a chain of progressively-narrower matchers and use the
+    // first that finds anything. Each rung adds one more constraint;
+    // missing fields are skipped (don't accidentally over-constrain
+    // when the inbound URL omits a param).
+    const candidates = displayCards.filter(c => String(c.cardNumber) === numStr);
+    if (!candidates.length) return null;
+    const match = (preds) => candidates.find(c => preds.every(p => p(c)));
+    const heroP      = hero      ? (c) => c.hero === hero            : null;
+    const treatmentP = treatment ? (c) => c.treatment === treatment  : null;
+    const elementP   = element   ? (c) => c.element === element      : null;
+    const tryPreds = (preds) => match(preds.filter(Boolean));
+    return tryPreds([heroP, treatmentP, elementP])
+        ?? tryPreds([heroP, treatmentP])
+        ?? tryPreds([heroP])
+        ?? candidates[0];
   }
 
   /// Reduced-motion respect — when the user prefers reduced motion,

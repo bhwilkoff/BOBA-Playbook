@@ -1022,11 +1022,17 @@ def build_review_html(review: list[dict], updates: list[dict],
     const totalA = PAYLOAD.additions.length;
     const pendU = pendingCount(PAYLOAD.updates, 'UPDATES');
     const pendR = pendingCount(PAYLOAD.review, 'REVIEW');
-    let approvedCount = 0, rejectedCount = 0;
+    let approvedFieldCount = 0, rejectedCount = 0;
+    const approvedBobaIds = new Set();
     for (const k in decisions) {
       if (k.endsWith(':__dismiss__')) continue;
-      if (decisions[k]?.action === 'approve') approvedCount++;
-      else if (decisions[k]?.action === 'reject') rejectedCount++;
+      if (decisions[k]?.action === 'approve') {
+        approvedFieldCount++;
+        const sep = k.lastIndexOf(':');
+        if (sep > 0) approvedBobaIds.add(k.substring(0, sep));
+      } else if (decisions[k]?.action === 'reject') {
+        rejectedCount++;
+      }
     }
     // Additions default-approve: count un-rejected ones too.
     const additionsAutoApprove = PAYLOAD.additions.filter(a => {
@@ -1034,12 +1040,15 @@ def build_review_html(review: list[dict], updates: list[dict],
       return !d || d.action !== 'reject';
     }).length;
     const pendingTotal = pendU + pendR;
+    // Cards in modify[] = unique bobaIds across approved decisions.
+    // Total field changes = approvedFieldCount. The two-pass export
+    // captures every approve so the patch matches these exactly.
     $('stats').innerHTML = `
       <span class="chip" style="background:rgba(0,245,255,0.18);border-color:#00F5FF"><strong>${pendingTotal}</strong> pending · ${pendU} UPDATES · ${pendR} REVIEW</span>
       <span class="chip" style="opacity:0.7">Totals: UPDATES <strong>${totalU}</strong> · REVIEW <strong>${totalR}</strong> · ADDITIONS <strong>${totalA}</strong></span>
-      <span class="chip">Approved: <strong>${approvedCount}</strong></span>
+      <span class="chip">Approved: <strong>${approvedFieldCount}</strong> fields across <strong>${approvedBobaIds.size}</strong> cards</span>
       <span class="chip">Rejected: <strong>${rejectedCount}</strong></span>
-      <span class="chip">Patch will include: <strong>${approvedCount} modify + ${additionsAutoApprove} additions</strong></span>
+      <span class="chip" style="background:rgba(255,77,0,0.18);border-color:#FF4D00">Patch will include: <strong>${approvedBobaIds.size} modify cards</strong> (${approvedFieldCount} fields) + <strong>${additionsAutoApprove} additions</strong></span>
     `;
   }
 
@@ -1231,40 +1240,88 @@ def build_review_html(review: list[dict], updates: list[dict],
   });
 
   // ============ EXPORT ============
+  //
+  // Two-pass build so EVERY localStorage approve decision lands in
+  // the patch, not just those matching a PAYLOAD entry's statuses map.
+  //
+  // Why two passes: the original single-pass version walked PAYLOAD
+  // entries and looked up their statuses. Decisions on bobaIds /
+  // fields outside that map (cross-session leftovers, REVIEW
+  // overrides on non-flagged fields, etc.) were silently dropped —
+  // which is what caused the "Page reports 946 approved, patch has
+  // 290 modify" mismatch Ben hit on 2026-05-25. The two-pass version
+  // surfaces all approves; apply_audit_patch.py is the final
+  // gatekeeper for "is this bobaId still resolvable?" via its
+  // v2-fallback lookup.
   $('export').addEventListener('click', () => {
+    // Index PAYLOAD entries by bobaId for fast lookup in pass 2.
+    const updatesByBoba = new Map(PAYLOAD.updates.map(u => [u.bobaId, u]));
+    const reviewByBoba  = new Map(PAYLOAD.review.map(r => [r.bobaId, r]));
+    const addByBoba     = new Map(PAYLOAD.additions.map(a => [a.old_bobaId, a]));
+
+    // Pass 1: walk PAYLOAD entries first so we attach full evidence
+    // when we have it. Track which (boba, field) pairs landed.
     const modify = [];
+    const modifyIndex = new Map();  // boba → modify entry in `modify`
+    const captured = new Set();     // "boba:field" pairs already in modify
+
+    function addChange(boba, field, value, evidence) {
+      const stored = modifyIndex.get(boba);
+      if (stored) {
+        stored.changes[field] = value;
+        if (evidence) stored.evidence[field] = evidence;
+      } else {
+        const entry = { old_bobaId: boba, changes: { [field]: value }, evidence: {} };
+        if (evidence) entry.evidence[field] = evidence;
+        modify.push(entry);
+        modifyIndex.set(boba, entry);
+      }
+      captured.add(boba + ':' + field);
+    }
+
+    function coerce(field, raw) {
+      if (field === 'power') return (raw === '' || raw == null) ? null : Number(raw);
+      return raw;
+    }
+
     for (const u of PAYLOAD.updates) {
-      const changes = {};
-      const evidence = {};
-      for (const [field, status] of Object.entries(u.statuses)) {
+      for (const field of Object.keys(u.statuses)) {
         const d = getDecision(u.bobaId, field);
         if (!d || d.action !== 'approve') continue;
-        let v = d.value;
-        if (field === 'power') v = v === '' ? null : Number(v);
-        changes[field] = v;
-        evidence[field] = u.evidence?.[field] || u.ocr?.[field] || {};
-      }
-      // Also pick up overrides on fields that weren't originally MISMATCH (REVIEW rescues).
-      if (Object.keys(changes).length) {
-        modify.push({ old_bobaId: u.bobaId, changes, evidence });
+        const ev = u.evidence?.[field] || u.ocr?.[field] || {};
+        addChange(u.bobaId, field, coerce(field, d.value), ev);
       }
     }
-    // REVIEW rows where user manually approved an override.
     for (const r of PAYLOAD.review) {
-      const changes = {};
-      const evidence = {};
-      for (const [field, status] of Object.entries(r.statuses)) {
+      for (const field of Object.keys(r.statuses)) {
         const d = getDecision(r.bobaId, field);
         if (!d || d.action !== 'approve') continue;
-        let v = d.value;
-        if (field === 'power') v = v === '' ? null : Number(v);
-        changes[field] = v;
-        evidence[field] = r.ocr?.[field] || {};
-      }
-      if (Object.keys(changes).length) {
-        modify.push({ old_bobaId: r.bobaId, changes, evidence });
+        const ev = r.ocr?.[field] || {};
+        addChange(r.bobaId, field, coerce(field, d.value), ev);
       }
     }
+
+    // Pass 2: walk ALL localStorage approve decisions. Anything not
+    // captured in pass 1 gets an entry too — bare evidence, but the
+    // approve is real and should be in the patch. apply_audit_patch.py
+    // will skip with `unknown_bobaIds` if the row no longer exists.
+    let pass2Added = 0;
+    for (const key of Object.keys(decisions)) {
+      if (key.endsWith(':__dismiss__')) continue;
+      const d = decisions[key];
+      if (!d || d.action !== 'approve') continue;
+      if (captured.has(key)) continue;
+      const sep = key.lastIndexOf(':');
+      if (sep < 0) continue;
+      const boba  = key.substring(0, sep);
+      const field = key.substring(sep + 1);
+      // Reconstruct evidence from PAYLOAD lookup tables when possible.
+      const src = updatesByBoba.get(boba) || reviewByBoba.get(boba);
+      const ev = (src && (src.evidence?.[field] || src.ocr?.[field])) || { decision_only: true };
+      addChange(boba, field, coerce(field, d.value), ev);
+      pass2Added++;
+    }
+
     // ADDITIONS — default-approve unless explicitly rejected.
     const additions = [];
     for (const a of PAYLOAD.additions) {
@@ -1277,6 +1334,10 @@ def build_review_html(review: list[dict], updates: list[dict],
         evidence: a.evidence,
       });
     }
+    // Pass 2 for additions: pick up rejected → not in payload, etc.
+    // (No-op currently; left as a placeholder if we extend additions
+    // to other fields.)
+
     const curated = {
       schema_version: 1,
       generated_at: new Date().toISOString(),
@@ -1291,7 +1352,8 @@ def build_review_html(review: list[dict], updates: list[dict],
     a.download = `curated-patch-${date}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast(`Exported ${modify.length} modify + ${additions.length} additions`);
+    const totalFields = modify.reduce((n, m) => n + Object.keys(m.changes).length, 0);
+    toast(`Exported ${modify.length} cards / ${totalFields} fields (${pass2Added} from cross-session decisions) + ${additions.length} additions`);
   });
 
   // Wire filters.

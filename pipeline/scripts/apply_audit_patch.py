@@ -347,6 +347,20 @@ def main() -> int:
 
     summary = {"modifies": None, "additions": None, "bad_images": None}
 
+    # ORDER: bad-images BEFORE patch. Nullification is a property of the
+    # current row identity; metadata changes that follow (cardNumber/name
+    # renames in modifies[]) can regenerate the bobaId, which would make
+    # bad-image lookups by the OLD bobaId silently miss. Doing bad-images
+    # first locks in the nullification while v2-fallback lookup still
+    # resolves cleanly. Patch then applies its sibling-field changes to
+    # the now-imageless card without conflict (modifies don't read
+    # imageFile, just write other fields).
+    if args.bad_images:
+        bobaids = load_bad_images(Path(args.bad_images))
+        print(f"[apply] bad-images list: {len(bobaids)} bobaIds",
+              flush=True)
+        summary["bad_images"] = apply_bad_images(cards, bobaids)
+
     if args.patch:
         with open(args.patch) as f:
             patch = json.load(f)
@@ -356,12 +370,6 @@ def main() -> int:
               flush=True)
         summary["modifies"] = apply_modifies(cards, patch.get("modify", []))
         summary["additions"] = apply_additions(cards, patch.get("additions", []))
-
-    if args.bad_images:
-        bobaids = load_bad_images(Path(args.bad_images))
-        print(f"[apply] bad-images list: {len(bobaids)} bobaIds",
-              flush=True)
-        summary["bad_images"] = apply_bad_images(cards, bobaids)
 
     # Report.
     print()

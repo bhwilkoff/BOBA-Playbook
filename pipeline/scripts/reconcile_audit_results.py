@@ -1305,7 +1305,14 @@ def build_review_html(review: list[dict], updates: list[dict],
     // captured in pass 1 gets an entry too — bare evidence, but the
     // approve is real and should be in the patch. apply_audit_patch.py
     // will skip with `unknown_bobaIds` if the row no longer exists.
+    //
+    // printedSerial decisions are SKIPPED — those belong in additions[]
+    // (default-approve + explicit-value-override below), so pulling
+    // them into modify[] would duplicate the change AND bypass the
+    // printedSerial → printRun integer migration in apply_audit_patch.
+    const additionsBobaIdSet = new Set(PAYLOAD.additions.map(a => a.old_bobaId));
     let pass2Added = 0;
+    let pass2SkippedAddition = 0;
     for (const key of Object.keys(decisions)) {
       if (key.endsWith(':__dismiss__')) continue;
       const d = decisions[key];
@@ -1315,6 +1322,10 @@ def build_review_html(review: list[dict], updates: list[dict],
       if (sep < 0) continue;
       const boba  = key.substring(0, sep);
       const field = key.substring(sep + 1);
+      if (field === 'printedSerial' && additionsBobaIdSet.has(boba)) {
+        pass2SkippedAddition++;
+        continue;
+      }
       // Reconstruct evidence from PAYLOAD lookup tables when possible.
       const src = updatesByBoba.get(boba) || reviewByBoba.get(boba);
       const ev = (src && (src.evidence?.[field] || src.ocr?.[field])) || { decision_only: true };
@@ -1353,7 +1364,7 @@ def build_review_html(review: list[dict], updates: list[dict],
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     const totalFields = modify.reduce((n, m) => n + Object.keys(m.changes).length, 0);
-    toast(`Exported ${modify.length} cards / ${totalFields} fields (${pass2Added} from cross-session decisions) + ${additions.length} additions`);
+    toast(`Exported ${modify.length} cards / ${totalFields} fields (${pass2Added} cross-session; ${pass2SkippedAddition} printedSerial gated to additions) + ${additions.length} additions`);
   });
 
   // Wire filters.

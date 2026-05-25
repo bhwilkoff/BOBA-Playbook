@@ -38,7 +38,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/LeBoss/Paper/1"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/LeBoss/Paper/1",
+    "printRun": null
   },
   {
     "cardNumber": "1",
@@ -79,7 +80,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Showtime/Paper/1"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Showtime/Paper/1",
+    "printRun": null
   },
   {
     "cardNumber": "1",
@@ -120,7 +122,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maverick/Paper/1"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maverick/Paper/1",
+    "printRun": null
   },
   {
     "cardNumber": "2",
@@ -161,7 +164,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Merlomes/Paper/2"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Merlomes/Paper/2",
+    "printRun": null
   },
   {
     "cardNumber": "2",
@@ -202,7 +206,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Showtime/Paper/2"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Showtime/Paper/2",
+    "printRun": null
   },
   {
     "cardNumber": "2",
@@ -243,7 +248,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gaveler/Paper/2"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gaveler/Paper/2",
+    "printRun": null
   },
   {
     "cardNumber": "3",
@@ -284,7 +290,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Chosen/Paper/3"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Chosen/Paper/3",
+    "printRun": null
   },
   {
     "cardNumber": "3",
@@ -325,7 +332,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Showtime/Paper/3"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Showtime/Paper/3",
+    "printRun": null
   },
   {
     "cardNumber": "3",
@@ -366,7 +374,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Victory/Paper/3"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Victory/Paper/3",
+    "printRun": null
   },
   {
     "cardNumber": "4",
@@ -407,7 +416,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Midas/Paper/4"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Midas/Paper/4",
+    "printRun": null
   },
   {
     "cardNumber": "4",
@@ -449,7 +459,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Matata/Paper/4"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Matata/Paper/4",
+    "printRun": null
   },
   {
     "cardNumber": "4",
@@ -490,7 +501,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dijon/Paper/4"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dijon/Paper/4",
+    "printRun": null
   },
   {
     "cardNumber": "5",
@@ -531,7 +543,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bison/Paper/5"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bison/Paper/5",
+    "printRun": null
   },
   {
     "cardNumber": "5",
@@ -573,7 +586,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Matata/Paper/5"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Matata/Paper/5",
+    "printRun": null
   },
   {
     "cardNumber": "5",
@@ -614,7 +628,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Crosbow/Paper/5"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Crosbow/Paper/5",
+    "printRun": null
   },
   {
     "cardNumber": "6",
@@ -655,7 +670,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Wargod/Paper/6"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Wargod/Paper/6",
+    "printRun": null
   },
   {
     "cardNumber": "6",
@@ -697,7 +713,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Matata/Paper/6"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Matata/Paper/6",
+    "printRun": null
   },
   {
     "cardNumber": "6",
@@ -738,7 +755,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Warden/Paper/6"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Warden/Paper/6",
+    "printRun": null
   },
   {
     "cardNumber": "7",
@@ -780,7 +798,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Donny%20Buckets/Paper/7"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Donny%20Buckets/Paper/7",
+    "printRun": null
   },
   {
     "cardNumber": "7",
@@ -821,7 +840,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Gaveler/Paper/7"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Gaveler/Paper/7",
+    "printRun": null
   },
   {
     "cardNumber": "7",
@@ -863,7 +883,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/PB%20Buckets/Paper/7"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/PB%20Buckets/Paper/7",
+    "printRun": null
   },
   {
     "cardNumber": "8",
@@ -904,7 +925,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Warp/Paper/8"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Warp/Paper/8",
+    "printRun": null
   },
   {
     "cardNumber": "8",
@@ -945,7 +967,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Gaveler/Paper/8"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Gaveler/Paper/8",
+    "printRun": null
   },
   {
     "cardNumber": "8",
@@ -986,7 +1009,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Skuba/Paper/8"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Skuba/Paper/8",
+    "printRun": null
   },
   {
     "cardNumber": "9",
@@ -1027,7 +1051,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Harpoon/Paper/9"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Harpoon/Paper/9",
+    "printRun": null
   },
   {
     "cardNumber": "9",
@@ -1068,7 +1093,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Gaveler/Paper/9"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Gaveler/Paper/9",
+    "printRun": null
   },
   {
     "cardNumber": "9",
@@ -1109,7 +1135,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Haliburst/Paper/9"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Haliburst/Paper/9",
+    "printRun": null
   },
   {
     "cardNumber": "10",
@@ -1151,7 +1178,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mustang/Paper/10"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mustang/Paper/10",
+    "printRun": null
   },
   {
     "cardNumber": "10",
@@ -1193,7 +1221,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Burrocious/Paper/10"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Burrocious/Paper/10",
+    "printRun": null
   },
   {
     "cardNumber": "10",
@@ -1235,7 +1264,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dart-Board/Paper/10"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dart-Board/Paper/10",
+    "printRun": null
   },
   {
     "cardNumber": "11",
@@ -1277,7 +1307,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Jaybird/Paper/11"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Jaybird/Paper/11",
+    "printRun": null
   },
   {
     "cardNumber": "11",
@@ -1319,7 +1350,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Burrocious/Paper/11"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Burrocious/Paper/11",
+    "printRun": null
   },
   {
     "cardNumber": "11",
@@ -1361,7 +1393,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dumper/Paper/11"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dumper/Paper/11",
+    "printRun": null
   },
   {
     "cardNumber": "12",
@@ -1403,7 +1436,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/J-Jetts/Paper/12"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/J-Jetts/Paper/12",
+    "printRun": null
   },
   {
     "cardNumber": "12",
@@ -1445,7 +1479,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Burrocious/Paper/12"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Burrocious/Paper/12",
+    "printRun": null
   },
   {
     "cardNumber": "12",
@@ -1487,7 +1522,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Switchblade/Paper/12"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Switchblade/Paper/12",
+    "printRun": null
   },
   {
     "cardNumber": "13",
@@ -1531,7 +1567,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Merri-Go-Round/Paper/13"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Merri-Go-Round/Paper/13",
+    "printRun": null
   },
   {
     "cardNumber": "13",
@@ -1573,7 +1610,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Victory/Paper/13"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Victory/Paper/13",
+    "printRun": null
   },
   {
     "cardNumber": "13",
@@ -1615,7 +1653,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Cupid/Paper/13"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Cupid/Paper/13",
+    "printRun": null
   },
   {
     "cardNumber": "14",
@@ -1658,7 +1697,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Shystep/Paper/14"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Shystep/Paper/14",
+    "printRun": null
   },
   {
     "cardNumber": "14",
@@ -1700,7 +1740,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Victory/Paper/14"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Victory/Paper/14",
+    "printRun": null
   },
   {
     "cardNumber": "14",
@@ -1742,7 +1783,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Air%20Ace/Paper/14"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Air%20Ace/Paper/14",
+    "printRun": null
   },
   {
     "cardNumber": "15",
@@ -1784,7 +1826,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Ram/Paper/15"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Ram/Paper/15",
+    "printRun": null
   },
   {
     "cardNumber": "15",
@@ -1826,7 +1869,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Victory/Paper/15"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Victory/Paper/15",
+    "printRun": null
   },
   {
     "cardNumber": "15",
@@ -1869,7 +1913,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maxed%20Out/Paper/15"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maxed%20Out/Paper/15",
+    "printRun": null
   },
   {
     "cardNumber": "16",
@@ -1911,7 +1956,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Freakshow/Paper/16"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Freakshow/Paper/16",
+    "printRun": null
   },
   {
     "cardNumber": "16",
@@ -1953,7 +1999,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Shrouded/Paper/16"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Shrouded/Paper/16",
+    "printRun": null
   },
   {
     "cardNumber": "16",
@@ -1996,7 +2043,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/King%20Tuck/Paper/16"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/King%20Tuck/Paper/16",
+    "printRun": null
   },
   {
     "cardNumber": "17",
@@ -2038,7 +2086,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lightningrod/Paper/17"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lightningrod/Paper/17",
+    "printRun": null
   },
   {
     "cardNumber": "17",
@@ -2080,7 +2129,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Shrouded/Paper/17"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Shrouded/Paper/17",
+    "printRun": null
   },
   {
     "cardNumber": "17",
@@ -2122,7 +2172,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Macho/Paper/17"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Macho/Paper/17",
+    "printRun": null
   },
   {
     "cardNumber": "18",
@@ -2164,7 +2215,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bayou/Paper/18"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bayou/Paper/18",
+    "printRun": null
   },
   {
     "cardNumber": "18",
@@ -2206,7 +2258,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Shrouded/Paper/18"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Shrouded/Paper/18",
+    "printRun": null
   },
   {
     "cardNumber": "18",
@@ -2248,7 +2301,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gladiator/Paper/18"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gladiator/Paper/18",
+    "printRun": null
   },
   {
     "cardNumber": "19",
@@ -2290,7 +2344,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/McArmyKnife/Paper/19"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/McArmyKnife/Paper/19",
+    "printRun": null
   },
   {
     "cardNumber": "19",
@@ -2332,7 +2387,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Taze'em/Paper/19"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Taze'em/Paper/19",
+    "printRun": null
   },
   {
     "cardNumber": "19",
@@ -2374,7 +2430,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/BrockNess/Paper/19"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/BrockNess/Paper/19",
+    "printRun": null
   },
   {
     "cardNumber": "20",
@@ -2416,7 +2473,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Tigre/Paper/20"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Tigre/Paper/20",
+    "printRun": null
   },
   {
     "cardNumber": "20",
@@ -2458,7 +2516,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Taze'em/Paper/20"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Taze'em/Paper/20",
+    "printRun": null
   },
   {
     "cardNumber": "20",
@@ -2500,7 +2559,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Fungi/Paper/20"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Fungi/Paper/20",
+    "printRun": null
   },
   {
     "cardNumber": "21",
@@ -2542,7 +2602,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Cheetah/Paper/21"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Cheetah/Paper/21",
+    "printRun": null
   },
   {
     "cardNumber": "21",
@@ -2584,7 +2645,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Taze'em/Paper/21"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Taze'em/Paper/21",
+    "printRun": null
   },
   {
     "cardNumber": "21",
@@ -2626,7 +2688,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Wattage/Paper/21"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Wattage/Paper/21",
+    "printRun": null
   },
   {
     "cardNumber": "22",
@@ -2668,7 +2731,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Spider/Paper/22"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Spider/Paper/22",
+    "printRun": null
   },
   {
     "cardNumber": "22",
@@ -2710,7 +2774,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Caliber/Paper/22"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Caliber/Paper/22",
+    "printRun": null
   },
   {
     "cardNumber": "22",
@@ -2752,7 +2817,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gunner/Paper/22"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gunner/Paper/22",
+    "printRun": null
   },
   {
     "cardNumber": "23",
@@ -2794,7 +2860,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Crews-Missle/Paper/23"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Crews-Missle/Paper/23",
+    "printRun": null
   },
   {
     "cardNumber": "23",
@@ -2836,7 +2903,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Caliber/Paper/23"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Caliber/Paper/23",
+    "printRun": null
   },
   {
     "cardNumber": "23",
@@ -2878,7 +2946,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Marksman/Paper/23"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Marksman/Paper/23",
+    "printRun": null
   },
   {
     "cardNumber": "24",
@@ -2920,7 +2989,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Unibrow/Paper/24"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Unibrow/Paper/24",
+    "printRun": null
   },
   {
     "cardNumber": "24",
@@ -2962,7 +3032,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Caliber/Paper/24"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Caliber/Paper/24",
+    "printRun": null
   },
   {
     "cardNumber": "24",
@@ -3004,7 +3075,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/D-Harp/Paper/24"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/D-Harp/Paper/24",
+    "printRun": null
   },
   {
     "cardNumber": "25",
@@ -3046,7 +3118,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Exterminaber/Paper/25"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Exterminaber/Paper/25",
+    "printRun": null
   },
   {
     "cardNumber": "25",
@@ -3088,7 +3161,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/C.C./Paper/25"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/C.C./Paper/25",
+    "printRun": null
   },
   {
     "cardNumber": "25",
@@ -3130,7 +3204,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Jeanetic/Paper/25"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Jeanetic/Paper/25",
+    "printRun": null
   },
   {
     "cardNumber": "26",
@@ -3172,7 +3247,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bomber/Paper/26"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bomber/Paper/26",
+    "printRun": null
   },
   {
     "cardNumber": "26",
@@ -3214,7 +3290,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/C.C./Paper/26"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/C.C./Paper/26",
+    "printRun": null
   },
   {
     "cardNumber": "26",
@@ -3256,7 +3333,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Doublecheck/Paper/26"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Doublecheck/Paper/26",
+    "printRun": null
   },
   {
     "cardNumber": "27",
@@ -3298,7 +3376,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Juice/Paper/27"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Juice/Paper/27",
+    "printRun": null
   },
   {
     "cardNumber": "27",
@@ -3340,7 +3419,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/C.C./Paper/27"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/C.C./Paper/27",
+    "printRun": null
   },
   {
     "cardNumber": "27",
@@ -3353,7 +3433,7 @@
     "subSet": "2024 Release",
     "variation": "2026 Edition",
     "treatment": "Base Set",
-    "element": "STEEL",
+    "element": "FIRE",
     "power": 115,
     "playCost": 0,
     "playAbility": null,
@@ -3382,7 +3462,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Caliber/Paper/27"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Caliber/Paper/27",
+    "printRun": null
   },
   {
     "cardNumber": "28",
@@ -3424,7 +3505,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Attak/Paper/28"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Attak/Paper/28",
+    "printRun": null
   },
   {
     "cardNumber": "28",
@@ -3466,7 +3548,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Doublecheck/Paper/28"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Doublecheck/Paper/28",
+    "printRun": null
   },
   {
     "cardNumber": "28",
@@ -3509,7 +3592,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Escape%20Artist/Paper/28"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Escape%20Artist/Paper/28",
+    "printRun": null
   },
   {
     "cardNumber": "29",
@@ -3551,7 +3635,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/ChetMate/Paper/29"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/ChetMate/Paper/29",
+    "printRun": null
   },
   {
     "cardNumber": "29",
@@ -3593,7 +3678,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Doublecheck/Paper/29"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Doublecheck/Paper/29",
+    "printRun": null
   },
   {
     "cardNumber": "29",
@@ -3635,7 +3721,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/J-Cam/Paper/29"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/J-Cam/Paper/29",
+    "printRun": null
   },
   {
     "cardNumber": "30",
@@ -3677,7 +3764,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Phoenix/Paper/30"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Phoenix/Paper/30",
+    "printRun": null
   },
   {
     "cardNumber": "30",
@@ -3719,7 +3807,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Doublecheck/Paper/30"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Doublecheck/Paper/30",
+    "printRun": null
   },
   {
     "cardNumber": "30",
@@ -3761,7 +3850,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Generator/Paper/30"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Generator/Paper/30",
+    "printRun": null
   },
   {
     "cardNumber": "31",
@@ -3803,7 +3893,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lieutenant/Paper/31"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lieutenant/Paper/31",
+    "printRun": null
   },
   {
     "cardNumber": "31",
@@ -3845,7 +3936,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cobra/Paper/31"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cobra/Paper/31",
+    "printRun": null
   },
   {
     "cardNumber": "31",
@@ -3888,7 +3980,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Tattoo/Paper/31"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Tattoo/Paper/31",
+    "printRun": null
   },
   {
     "cardNumber": "32",
@@ -3930,7 +4023,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Snowbear/Paper/32"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Snowbear/Paper/32",
+    "printRun": null
   },
   {
     "cardNumber": "32",
@@ -3972,7 +4066,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cobra/Paper/32"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cobra/Paper/32",
+    "printRun": null
   },
   {
     "cardNumber": "32",
@@ -3985,7 +4080,7 @@
     "subSet": "2024 Release",
     "variation": "First Edition",
     "treatment": "Base Set",
-    "element": "ICE",
+    "element": "FIRE",
     "power": 110,
     "playCost": 0,
     "playAbility": null,
@@ -4014,7 +4109,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Brawn/Paper/32"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Brawn/Paper/32",
+    "printRun": null
   },
   {
     "cardNumber": "33",
@@ -4056,7 +4152,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Boltage/Paper/33"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Boltage/Paper/33",
+    "printRun": null
   },
   {
     "cardNumber": "33",
@@ -4098,7 +4195,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cobra/Paper/33"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cobra/Paper/33",
+    "printRun": null
   },
   {
     "cardNumber": "33",
@@ -4140,7 +4238,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Cicada/Paper/33"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Cicada/Paper/33",
+    "printRun": null
   },
   {
     "cardNumber": "34",
@@ -4182,7 +4281,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Librarian/Paper/34"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Librarian/Paper/34",
+    "printRun": null
   },
   {
     "cardNumber": "34",
@@ -4227,7 +4327,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cruze-Control/Paper/34"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cruze-Control/Paper/34",
+    "printRun": null
   },
   {
     "cardNumber": "34",
@@ -4269,7 +4370,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Courthouse/Paper/34"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Courthouse/Paper/34",
+    "printRun": null
   },
   {
     "cardNumber": "35",
@@ -4311,7 +4413,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Aeronaut/Paper/35"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Aeronaut/Paper/35",
+    "printRun": null
   },
   {
     "cardNumber": "35",
@@ -4356,7 +4459,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cruze-Control/Paper/35"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cruze-Control/Paper/35",
+    "printRun": null
   },
   {
     "cardNumber": "35",
@@ -4398,7 +4502,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bandelero/Paper/35"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bandelero/Paper/35",
+    "printRun": null
   },
   {
     "cardNumber": "36",
@@ -4440,7 +4545,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sabotage/Paper/36"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sabotage/Paper/36",
+    "printRun": null
   },
   {
     "cardNumber": "36",
@@ -4485,7 +4591,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cruze-Control/Paper/36"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cruze-Control/Paper/36",
+    "printRun": null
   },
   {
     "cardNumber": "36",
@@ -4528,7 +4635,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Kettle-Bell/Paper/36"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Kettle-Bell/Paper/36",
+    "printRun": null
   },
   {
     "cardNumber": "37",
@@ -4571,7 +4679,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mic'd%20Up/Paper/37"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mic'd%20Up/Paper/37",
+    "printRun": null
   },
   {
     "cardNumber": "37",
@@ -4613,7 +4722,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Processor/Paper/37"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Processor/Paper/37",
+    "printRun": null
   },
   {
     "cardNumber": "37",
@@ -4655,7 +4765,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/JacHammer/Paper/37"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/JacHammer/Paper/37",
+    "printRun": null
   },
   {
     "cardNumber": "38",
@@ -4697,7 +4808,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Jambox/Paper/38"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Jambox/Paper/38",
+    "printRun": null
   },
   {
     "cardNumber": "38",
@@ -4739,7 +4851,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Processor/Paper/38"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Processor/Paper/38",
+    "printRun": null
   },
   {
     "cardNumber": "38",
@@ -4781,7 +4894,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/BaldWing/Paper/38"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/BaldWing/Paper/38",
+    "printRun": null
   },
   {
     "cardNumber": "39",
@@ -4824,7 +4938,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Simon%20Says/Paper/39"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Simon%20Says/Paper/39",
+    "printRun": null
   },
   {
     "cardNumber": "39",
@@ -4866,7 +4981,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Processor/Paper/39"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Processor/Paper/39",
+    "printRun": null
   },
   {
     "cardNumber": "39",
@@ -4908,7 +5024,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Rook/Paper/39"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Rook/Paper/39",
+    "printRun": null
   },
   {
     "cardNumber": "40",
@@ -4951,7 +5068,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mr.%20Irrelevant/Paper/40"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mr.%20Irrelevant/Paper/40",
+    "printRun": null
   },
   {
     "cardNumber": "40",
@@ -4993,7 +5111,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Burner/Paper/40"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Burner/Paper/40",
+    "printRun": null
   },
   {
     "cardNumber": "40",
@@ -5035,7 +5154,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Camera/Paper/40"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Camera/Paper/40",
+    "printRun": null
   },
   {
     "cardNumber": "41",
@@ -5078,7 +5198,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Pantera/Paper/41"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Pantera/Paper/41",
+    "printRun": null
   },
   {
     "cardNumber": "41",
@@ -5120,7 +5241,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Burner/Paper/41"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Burner/Paper/41",
+    "printRun": null
   },
   {
     "cardNumber": "41",
@@ -5162,7 +5284,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Homestead/Paper/41"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Homestead/Paper/41",
+    "printRun": null
   },
   {
     "cardNumber": "42",
@@ -5204,7 +5327,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Rockstar/Paper/42"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Rockstar/Paper/42",
+    "printRun": null
   },
   {
     "cardNumber": "42",
@@ -5246,7 +5370,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Burner/Paper/42"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Burner/Paper/42",
+    "printRun": null
   },
   {
     "cardNumber": "42",
@@ -5288,7 +5413,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Scary/Paper/42"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Scary/Paper/42",
+    "printRun": null
   },
   {
     "cardNumber": "43",
@@ -5330,7 +5456,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Big-Z/Paper/43"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Big-Z/Paper/43",
+    "printRun": null
   },
   {
     "cardNumber": "43",
@@ -5372,7 +5499,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cowboy/Paper/43"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cowboy/Paper/43",
+    "printRun": null
   },
   {
     "cardNumber": "43",
@@ -5415,7 +5543,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Canine/Paper/43"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Canine/Paper/43",
+    "printRun": null
   },
   {
     "cardNumber": "44",
@@ -5457,7 +5586,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Clutch/Paper/44"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Clutch/Paper/44",
+    "printRun": null
   },
   {
     "cardNumber": "44",
@@ -5499,7 +5629,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cowboy/Paper/44"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cowboy/Paper/44",
+    "printRun": null
   },
   {
     "cardNumber": "44",
@@ -5541,7 +5672,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Superbaby/Paper/44"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Superbaby/Paper/44",
+    "printRun": null
   },
   {
     "cardNumber": "45",
@@ -5583,7 +5715,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/PukaDot/Paper/45"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/PukaDot/Paper/45",
+    "printRun": null
   },
   {
     "cardNumber": "45",
@@ -5625,7 +5758,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cowboy/Paper/45"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cowboy/Paper/45",
+    "printRun": null
   },
   {
     "cardNumber": "45",
@@ -5667,7 +5801,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Javalanche/Paper/45"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Javalanche/Paper/45",
+    "printRun": null
   },
   {
     "cardNumber": "46",
@@ -5709,7 +5844,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sprinkler/Paper/46"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sprinkler/Paper/46",
+    "printRun": null
   },
   {
     "cardNumber": "46",
@@ -5751,7 +5887,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Yeti/Paper/46"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Yeti/Paper/46",
+    "printRun": null
   },
   {
     "cardNumber": "46",
@@ -5794,7 +5931,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Wild%20Bill/Paper/46"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Wild%20Bill/Paper/46",
+    "printRun": null
   },
   {
     "cardNumber": "47",
@@ -5836,7 +5974,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Foxhole/Paper/47"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Foxhole/Paper/47",
+    "printRun": null
   },
   {
     "cardNumber": "47",
@@ -5878,7 +6017,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Yeti/Paper/47"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Yeti/Paper/47",
+    "printRun": null
   },
   {
     "cardNumber": "47",
@@ -5920,7 +6060,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Thorn/Paper/47"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Thorn/Paper/47",
+    "printRun": null
   },
   {
     "cardNumber": "48",
@@ -5963,7 +6104,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Thomstone/Paper/48"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Thomstone/Paper/48",
+    "printRun": null
   },
   {
     "cardNumber": "48",
@@ -6005,7 +6147,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Yeti/Paper/48"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Yeti/Paper/48",
+    "printRun": null
   },
   {
     "cardNumber": "48",
@@ -6047,7 +6190,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Chiller/Paper/48"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Chiller/Paper/48",
+    "printRun": null
   },
   {
     "cardNumber": "49",
@@ -6089,7 +6233,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Botto/Paper/49"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Botto/Paper/49",
+    "printRun": null
   },
   {
     "cardNumber": "49",
@@ -6110,7 +6255,7 @@
     "isHTD": false,
     "dbs": null,
     "dbsTier": null,
-    "athleteInspiration": "Fernando Tat\u00eds Jr.",
+    "athleteInspiration": "Fernando Tatís Jr.",
     "isInspiredInk": false,
     "imageFile": "49-Tattoo-Base_Set-First_Edition.webp",
     "imageSource": "BV",
@@ -6128,11 +6273,12 @@
       "release",
       "set",
       "tattoo",
-      "tat\u00eds"
+      "tatís"
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tattoo/Paper/49"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tattoo/Paper/49",
+    "printRun": null
   },
   {
     "cardNumber": "49",
@@ -6175,7 +6321,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Zephyr/Paper/49"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Zephyr/Paper/49",
+    "printRun": null
   },
   {
     "cardNumber": "50",
@@ -6217,7 +6364,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lawman/Paper/50"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lawman/Paper/50",
+    "printRun": null
   },
   {
     "cardNumber": "50",
@@ -6238,7 +6386,7 @@
     "isHTD": false,
     "dbs": null,
     "dbsTier": null,
-    "athleteInspiration": "Fernando Tat\u00eds Jr.",
+    "athleteInspiration": "Fernando Tatís Jr.",
     "isInspiredInk": false,
     "imageFile": "50-Tattoo-Base_Set-First_Edition.webp",
     "imageSource": "BV",
@@ -6256,11 +6404,12 @@
       "release",
       "set",
       "tattoo",
-      "tat\u00eds"
+      "tatís"
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tattoo/Paper/50"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tattoo/Paper/50",
+    "printRun": null
   },
   {
     "cardNumber": "50",
@@ -6302,7 +6451,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Lumber/Paper/50"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Lumber/Paper/50",
+    "printRun": null
   },
   {
     "cardNumber": "51",
@@ -6344,7 +6494,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Barnacle/Paper/51"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Barnacle/Paper/51",
+    "printRun": null
   },
   {
     "cardNumber": "51",
@@ -6365,7 +6516,7 @@
     "isHTD": false,
     "dbs": null,
     "dbsTier": null,
-    "athleteInspiration": "Fernando Tat\u00eds Jr.",
+    "athleteInspiration": "Fernando Tatís Jr.",
     "isInspiredInk": false,
     "imageFile": "51-Tattoo-Base_Set-First_Edition.webp",
     "imageSource": "BV",
@@ -6383,11 +6534,12 @@
       "set",
       "steel",
       "tattoo",
-      "tat\u00eds"
+      "tatís"
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tattoo/Paper/51"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tattoo/Paper/51",
+    "printRun": null
   },
   {
     "cardNumber": "51",
@@ -6429,7 +6581,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Golden%20Bullet/Paper/51"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Golden%20Bullet/Paper/51",
+    "printRun": null
   },
   {
     "cardNumber": "52",
@@ -6471,7 +6624,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Laviathan/Paper/52"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Laviathan/Paper/52",
+    "printRun": null
   },
   {
     "cardNumber": "52",
@@ -6513,7 +6667,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Superbaby/Paper/52"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Superbaby/Paper/52",
+    "printRun": null
   },
   {
     "cardNumber": "52",
@@ -6555,7 +6710,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Ozzmosis/Paper/52"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Ozzmosis/Paper/52",
+    "printRun": null
   },
   {
     "cardNumber": "53",
@@ -6597,7 +6753,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Breeze/Paper/53"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Breeze/Paper/53",
+    "printRun": null
   },
   {
     "cardNumber": "53",
@@ -6639,7 +6796,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Superbaby/Paper/53"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Superbaby/Paper/53",
+    "printRun": null
   },
   {
     "cardNumber": "53",
@@ -6681,7 +6839,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/DeKap/Paper/53"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/DeKap/Paper/53",
+    "printRun": null
   },
   {
     "cardNumber": "54",
@@ -6723,7 +6882,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Gravedigger/Paper/54"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Gravedigger/Paper/54",
+    "printRun": null
   },
   {
     "cardNumber": "54",
@@ -6765,7 +6925,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Superbaby/Paper/54"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Superbaby/Paper/54",
+    "printRun": null
   },
   {
     "cardNumber": "54",
@@ -6808,7 +6969,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bell-Camp/Paper/54"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bell-Camp/Paper/54",
+    "printRun": null
   },
   {
     "cardNumber": "55",
@@ -6850,7 +7012,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/D-Hop/Paper/55"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/D-Hop/Paper/55",
+    "printRun": null
   },
   {
     "cardNumber": "55",
@@ -6892,7 +7055,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Jeesaw/Paper/55"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Jeesaw/Paper/55",
+    "printRun": null
   },
   {
     "cardNumber": "55",
@@ -6934,7 +7098,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bangford/Paper/55"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bangford/Paper/55",
+    "printRun": null
   },
   {
     "cardNumber": "56",
@@ -6976,7 +7141,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Alien/Paper/56"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Alien/Paper/56",
+    "printRun": null
   },
   {
     "cardNumber": "56",
@@ -7018,7 +7184,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Jeesaw/Paper/56"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Jeesaw/Paper/56",
+    "printRun": null
   },
   {
     "cardNumber": "56",
@@ -7060,7 +7227,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Forcefield/Paper/56"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Forcefield/Paper/56",
+    "printRun": null
   },
   {
     "cardNumber": "57",
@@ -7102,7 +7270,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Portalize/Paper/57"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Portalize/Paper/57",
+    "printRun": null
   },
   {
     "cardNumber": "57",
@@ -7144,7 +7313,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Jeesaw/Paper/57"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Jeesaw/Paper/57",
+    "printRun": null
   },
   {
     "cardNumber": "57",
@@ -7187,7 +7357,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Amoeba/Paper/57"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Amoeba/Paper/57",
+    "printRun": null
   },
   {
     "cardNumber": "58",
@@ -7229,7 +7400,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Torque/Paper/58"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Torque/Paper/58",
+    "printRun": null
   },
   {
     "cardNumber": "58",
@@ -7272,7 +7444,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tongue-Twister/Paper/58"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tongue-Twister/Paper/58",
+    "printRun": null
   },
   {
     "cardNumber": "58",
@@ -7314,7 +7487,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Action/Paper/58"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Action/Paper/58",
+    "printRun": null
   },
   {
     "cardNumber": "59",
@@ -7356,7 +7530,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Risarcher/Paper/59"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Risarcher/Paper/59",
+    "printRun": null
   },
   {
     "cardNumber": "59",
@@ -7399,7 +7574,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tongue-Twister/Paper/59"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tongue-Twister/Paper/59",
+    "printRun": null
   },
   {
     "cardNumber": "59",
@@ -7442,7 +7618,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Go-Cart/Paper/59"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Go-Cart/Paper/59",
+    "printRun": null
   },
   {
     "cardNumber": "60",
@@ -7484,7 +7661,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sarrtillery/Paper/60"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sarrtillery/Paper/60",
+    "printRun": null
   },
   {
     "cardNumber": "60",
@@ -7527,7 +7705,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tongue-Twister/Paper/60"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tongue-Twister/Paper/60",
+    "printRun": null
   },
   {
     "cardNumber": "60",
@@ -7569,7 +7748,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Castler/Paper/60"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Castler/Paper/60",
+    "printRun": null
   },
   {
     "cardNumber": "61",
@@ -7611,7 +7791,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/LeBoss/Paper/61"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/LeBoss/Paper/61",
+    "printRun": null
   },
   {
     "cardNumber": "61",
@@ -7653,7 +7834,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Halo/Paper/61"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Halo/Paper/61",
+    "printRun": null
   },
   {
     "cardNumber": "61",
@@ -7695,7 +7877,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maverick/Paper/61"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maverick/Paper/61",
+    "printRun": null
   },
   {
     "cardNumber": "62",
@@ -7737,7 +7920,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Merlomes/Paper/62"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Merlomes/Paper/62",
+    "printRun": null
   },
   {
     "cardNumber": "62",
@@ -7779,7 +7963,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Halo/Paper/62"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Halo/Paper/62",
+    "printRun": null
   },
   {
     "cardNumber": "62",
@@ -7821,7 +8006,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gaveler/Paper/62"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gaveler/Paper/62",
+    "printRun": null
   },
   {
     "cardNumber": "63",
@@ -7863,7 +8049,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Chosen/Paper/63"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Chosen/Paper/63",
+    "printRun": null
   },
   {
     "cardNumber": "63",
@@ -7905,7 +8092,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Halo/Paper/63"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Halo/Paper/63",
+    "printRun": null
   },
   {
     "cardNumber": "63",
@@ -7947,7 +8135,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Victory/Paper/63"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Victory/Paper/63",
+    "printRun": null
   },
   {
     "cardNumber": "64",
@@ -7989,7 +8178,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Midas/Paper/64"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Midas/Paper/64",
+    "printRun": null
   },
   {
     "cardNumber": "64",
@@ -8032,7 +8222,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Eagle-Eye/Paper/64"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Eagle-Eye/Paper/64",
+    "printRun": null
   },
   {
     "cardNumber": "64",
@@ -8074,7 +8265,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dijon/Paper/64"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dijon/Paper/64",
+    "printRun": null
   },
   {
     "cardNumber": "65",
@@ -8116,7 +8308,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bison/Paper/65"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bison/Paper/65",
+    "printRun": null
   },
   {
     "cardNumber": "65",
@@ -8159,7 +8352,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Eagle-Eye/Paper/65"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Eagle-Eye/Paper/65",
+    "printRun": null
   },
   {
     "cardNumber": "65",
@@ -8201,7 +8395,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Crosbow/Paper/65"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Crosbow/Paper/65",
+    "printRun": null
   },
   {
     "cardNumber": "66",
@@ -8243,7 +8438,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Wargod/Paper/66"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Wargod/Paper/66",
+    "printRun": null
   },
   {
     "cardNumber": "66",
@@ -8286,7 +8482,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Eagle-Eye/Paper/66"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Eagle-Eye/Paper/66",
+    "printRun": null
   },
   {
     "cardNumber": "66",
@@ -8328,7 +8525,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Warden/Paper/66"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Warden/Paper/66",
+    "printRun": null
   },
   {
     "cardNumber": "67",
@@ -8371,7 +8569,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Donny%20Buckets/Paper/67"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Donny%20Buckets/Paper/67",
+    "printRun": null
   },
   {
     "cardNumber": "67",
@@ -8413,7 +8612,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Turntable/Paper/67"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Turntable/Paper/67",
+    "printRun": null
   },
   {
     "cardNumber": "67",
@@ -8456,7 +8656,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/PB%20Buckets/Paper/67"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/PB%20Buckets/Paper/67",
+    "printRun": null
   },
   {
     "cardNumber": "68",
@@ -8498,7 +8699,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Warp/Paper/68"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Warp/Paper/68",
+    "printRun": null
   },
   {
     "cardNumber": "68",
@@ -8540,7 +8742,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Turntable/Paper/68"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Turntable/Paper/68",
+    "printRun": null
   },
   {
     "cardNumber": "68",
@@ -8582,7 +8785,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Skuba/Paper/68"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Skuba/Paper/68",
+    "printRun": null
   },
   {
     "cardNumber": "69",
@@ -8624,7 +8828,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Harpoon/Paper/69"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Harpoon/Paper/69",
+    "printRun": null
   },
   {
     "cardNumber": "69",
@@ -8666,7 +8871,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Turntable/Paper/69"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Turntable/Paper/69",
+    "printRun": null
   },
   {
     "cardNumber": "69",
@@ -8708,7 +8914,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Haliburst/Paper/69"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Haliburst/Paper/69",
+    "printRun": null
   },
   {
     "cardNumber": "70",
@@ -8750,7 +8957,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mustang/Paper/70"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mustang/Paper/70",
+    "printRun": null
   },
   {
     "cardNumber": "70",
@@ -8792,7 +9000,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bandelero/Paper/70"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bandelero/Paper/70",
+    "printRun": null
   },
   {
     "cardNumber": "70",
@@ -8834,7 +9043,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dart-Board/Paper/70"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dart-Board/Paper/70",
+    "printRun": null
   },
   {
     "cardNumber": "71",
@@ -8876,7 +9086,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Jaybird/Paper/71"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Jaybird/Paper/71",
+    "printRun": null
   },
   {
     "cardNumber": "71",
@@ -8918,7 +9129,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bandelero/Paper/71"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bandelero/Paper/71",
+    "printRun": null
   },
   {
     "cardNumber": "71",
@@ -8960,7 +9172,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dumper/Paper/71"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dumper/Paper/71",
+    "printRun": null
   },
   {
     "cardNumber": "72",
@@ -9002,7 +9215,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/J-Jetts/Paper/72"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/J-Jetts/Paper/72",
+    "printRun": null
   },
   {
     "cardNumber": "72",
@@ -9044,7 +9258,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bandelero/Paper/72"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bandelero/Paper/72",
+    "printRun": null
   },
   {
     "cardNumber": "72",
@@ -9086,7 +9301,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Switchblade/Paper/72"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Switchblade/Paper/72",
+    "printRun": null
   },
   {
     "cardNumber": "73",
@@ -9130,7 +9346,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Merri-Go-Round/Paper/73"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Merri-Go-Round/Paper/73",
+    "printRun": null
   },
   {
     "cardNumber": "73",
@@ -9173,7 +9390,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Marverati/Paper/73"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Marverati/Paper/73",
+    "printRun": null
   },
   {
     "cardNumber": "73",
@@ -9215,7 +9433,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Cupid/Paper/73"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Cupid/Paper/73",
+    "printRun": null
   },
   {
     "cardNumber": "74",
@@ -9258,7 +9477,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Shystep/Paper/74"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Shystep/Paper/74",
+    "printRun": null
   },
   {
     "cardNumber": "74",
@@ -9301,7 +9521,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Marverati/Paper/74"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Marverati/Paper/74",
+    "printRun": null
   },
   {
     "cardNumber": "74",
@@ -9343,7 +9564,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Air%20Ace/Paper/74"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Air%20Ace/Paper/74",
+    "printRun": null
   },
   {
     "cardNumber": "75",
@@ -9385,7 +9607,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Ram/Paper/75"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Ram/Paper/75",
+    "printRun": null
   },
   {
     "cardNumber": "75",
@@ -9428,7 +9651,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Marverati/Paper/75"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Marverati/Paper/75",
+    "printRun": null
   },
   {
     "cardNumber": "75",
@@ -9471,7 +9695,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maxed%20Out/Paper/75"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maxed%20Out/Paper/75",
+    "printRun": null
   },
   {
     "cardNumber": "76",
@@ -9513,7 +9738,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Freakshow/Paper/76"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Freakshow/Paper/76",
+    "printRun": null
   },
   {
     "cardNumber": "76",
@@ -9555,7 +9781,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Action/Paper/76"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Action/Paper/76",
+    "printRun": null
   },
   {
     "cardNumber": "76",
@@ -9598,7 +9825,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/King%20Tuck/Paper/76"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/King%20Tuck/Paper/76",
+    "printRun": null
   },
   {
     "cardNumber": "77",
@@ -9640,7 +9868,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lightningrod/Paper/77"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lightningrod/Paper/77",
+    "printRun": null
   },
   {
     "cardNumber": "77",
@@ -9682,7 +9911,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Action/Paper/77"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Action/Paper/77",
+    "printRun": null
   },
   {
     "cardNumber": "77",
@@ -9724,7 +9954,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Macho/Paper/77"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Macho/Paper/77",
+    "printRun": null
   },
   {
     "cardNumber": "78",
@@ -9766,7 +9997,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bayou/Paper/78"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bayou/Paper/78",
+    "printRun": null
   },
   {
     "cardNumber": "78",
@@ -9808,7 +10040,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Action/Paper/78"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Action/Paper/78",
+    "printRun": null
   },
   {
     "cardNumber": "78",
@@ -9850,7 +10083,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gladiator/Paper/78"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gladiator/Paper/78",
+    "printRun": null
   },
   {
     "cardNumber": "79",
@@ -9892,7 +10126,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/McArmyKnife/Paper/79"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/McArmyKnife/Paper/79",
+    "printRun": null
   },
   {
     "cardNumber": "79",
@@ -9935,7 +10170,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Vampire/Paper/79"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Vampire/Paper/79",
+    "printRun": null
   },
   {
     "cardNumber": "79",
@@ -9977,7 +10213,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/BrockNess/Paper/79"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/BrockNess/Paper/79",
+    "printRun": null
   },
   {
     "cardNumber": "80",
@@ -10019,7 +10256,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Tigre/Paper/80"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Tigre/Paper/80",
+    "printRun": null
   },
   {
     "cardNumber": "80",
@@ -10062,7 +10300,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Vampire/Paper/80"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Vampire/Paper/80",
+    "printRun": null
   },
   {
     "cardNumber": "80",
@@ -10104,7 +10343,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Fungi/Paper/80"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Fungi/Paper/80",
+    "printRun": null
   },
   {
     "cardNumber": "81",
@@ -10146,7 +10386,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Cheetah/Paper/81"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Cheetah/Paper/81",
+    "printRun": null
   },
   {
     "cardNumber": "81",
@@ -10189,7 +10430,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Vampire/Paper/81"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Vampire/Paper/81",
+    "printRun": null
   },
   {
     "cardNumber": "81",
@@ -10231,7 +10473,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Wattage/Paper/81"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Wattage/Paper/81",
+    "printRun": null
   },
   {
     "cardNumber": "82",
@@ -10273,7 +10516,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Spider/Paper/82"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Spider/Paper/82",
+    "printRun": null
   },
   {
     "cardNumber": "82",
@@ -10315,7 +10559,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Jeeves/Paper/82"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Jeeves/Paper/82",
+    "printRun": null
   },
   {
     "cardNumber": "82",
@@ -10357,7 +10602,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gunner/Paper/82"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gunner/Paper/82",
+    "printRun": null
   },
   {
     "cardNumber": "83",
@@ -10399,7 +10645,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Crews-Missle/Paper/83"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Crews-Missle/Paper/83",
+    "printRun": null
   },
   {
     "cardNumber": "83",
@@ -10441,7 +10688,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Jeeves/Paper/83"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Jeeves/Paper/83",
+    "printRun": null
   },
   {
     "cardNumber": "83",
@@ -10483,7 +10731,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Marksman/Paper/83"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Marksman/Paper/83",
+    "printRun": null
   },
   {
     "cardNumber": "84",
@@ -10525,7 +10774,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Unibrow/Paper/84"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Unibrow/Paper/84",
+    "printRun": null
   },
   {
     "cardNumber": "84",
@@ -10567,7 +10817,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Jeeves/Paper/84"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Jeeves/Paper/84",
+    "printRun": null
   },
   {
     "cardNumber": "84",
@@ -10609,7 +10860,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/D-Harp/Paper/84"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/D-Harp/Paper/84",
+    "printRun": null
   },
   {
     "cardNumber": "85",
@@ -10651,7 +10903,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Exterminaber/Paper/85"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Exterminaber/Paper/85",
+    "printRun": null
   },
   {
     "cardNumber": "85",
@@ -10693,7 +10946,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Carroller/Paper/85"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Carroller/Paper/85",
+    "printRun": null
   },
   {
     "cardNumber": "85",
@@ -10735,7 +10989,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Jeanetic/Paper/85"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Jeanetic/Paper/85",
+    "printRun": null
   },
   {
     "cardNumber": "86",
@@ -10777,7 +11032,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bomber/Paper/86"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bomber/Paper/86",
+    "printRun": null
   },
   {
     "cardNumber": "86",
@@ -10819,7 +11075,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Carroller/Paper/86"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Carroller/Paper/86",
+    "printRun": null
   },
   {
     "cardNumber": "86",
@@ -10861,7 +11118,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Doublecheck/Paper/86"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Doublecheck/Paper/86",
+    "printRun": null
   },
   {
     "cardNumber": "87",
@@ -10903,7 +11161,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Juice/Paper/87"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Juice/Paper/87",
+    "printRun": null
   },
   {
     "cardNumber": "87",
@@ -10945,7 +11204,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Carroller/Paper/87"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Carroller/Paper/87",
+    "printRun": null
   },
   {
     "cardNumber": "87",
@@ -10958,7 +11218,7 @@
     "subSet": "2024 Release",
     "variation": "2026 Edition",
     "treatment": "Base Set",
-    "element": "STEEL",
+    "element": "ICE",
     "power": 115,
     "playCost": 0,
     "playAbility": null,
@@ -10987,7 +11247,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Caliber/Paper/87"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Caliber/Paper/87",
+    "printRun": null
   },
   {
     "cardNumber": "88",
@@ -11029,7 +11290,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Attak/Paper/88"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Attak/Paper/88",
+    "printRun": null
   },
   {
     "cardNumber": "88",
@@ -11071,7 +11333,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Draco/Paper/88"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Draco/Paper/88",
+    "printRun": null
   },
   {
     "cardNumber": "88",
@@ -11114,7 +11377,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Escape%20Artist/Paper/88"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Escape%20Artist/Paper/88",
+    "printRun": null
   },
   {
     "cardNumber": "89",
@@ -11156,7 +11420,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/ChetMate/Paper/89"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/ChetMate/Paper/89",
+    "printRun": null
   },
   {
     "cardNumber": "89",
@@ -11198,7 +11463,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Draco/Paper/89"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Draco/Paper/89",
+    "printRun": null
   },
   {
     "cardNumber": "89",
@@ -11240,7 +11506,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/J-Cam/Paper/89"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/J-Cam/Paper/89",
+    "printRun": null
   },
   {
     "cardNumber": "90",
@@ -11282,7 +11549,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Phoenix/Paper/90"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Phoenix/Paper/90",
+    "printRun": null
   },
   {
     "cardNumber": "90",
@@ -11324,7 +11592,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Draco/Paper/90"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Draco/Paper/90",
+    "printRun": null
   },
   {
     "cardNumber": "90",
@@ -11366,7 +11635,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Generator/Paper/90"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Generator/Paper/90",
+    "printRun": null
   },
   {
     "cardNumber": "91",
@@ -11408,7 +11678,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lieutenant/Paper/91"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lieutenant/Paper/91",
+    "printRun": null
   },
   {
     "cardNumber": "91",
@@ -11451,7 +11722,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cha-Ching/Paper/91"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cha-Ching/Paper/91",
+    "printRun": null
   },
   {
     "cardNumber": "91",
@@ -11494,7 +11766,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Tattoo/Paper/91"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Tattoo/Paper/91",
+    "printRun": null
   },
   {
     "cardNumber": "92",
@@ -11536,7 +11809,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Snowbear/Paper/92"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Snowbear/Paper/92",
+    "printRun": null
   },
   {
     "cardNumber": "92",
@@ -11579,7 +11853,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cha-Ching/Paper/92"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cha-Ching/Paper/92",
+    "printRun": null
   },
   {
     "cardNumber": "92",
@@ -11621,7 +11896,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Brawn/Paper/92"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Brawn/Paper/92",
+    "printRun": null
   },
   {
     "cardNumber": "93",
@@ -11663,7 +11939,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Boltage/Paper/93"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Boltage/Paper/93",
+    "printRun": null
   },
   {
     "cardNumber": "93",
@@ -11706,7 +11983,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cha-Ching/Paper/93"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cha-Ching/Paper/93",
+    "printRun": null
   },
   {
     "cardNumber": "93",
@@ -11748,7 +12026,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Cicada/Paper/93"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Cicada/Paper/93",
+    "printRun": null
   },
   {
     "cardNumber": "94",
@@ -11790,7 +12069,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Librarian/Paper/94"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Librarian/Paper/94",
+    "printRun": null
   },
   {
     "cardNumber": "94",
@@ -11832,7 +12112,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Time/Paper/94"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Time/Paper/94",
+    "printRun": null
   },
   {
     "cardNumber": "94",
@@ -11874,7 +12155,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Courthouse/Paper/94"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Courthouse/Paper/94",
+    "printRun": null
   },
   {
     "cardNumber": "95",
@@ -11916,7 +12198,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Aeronaut/Paper/95"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Aeronaut/Paper/95",
+    "printRun": null
   },
   {
     "cardNumber": "95",
@@ -11958,7 +12241,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Time/Paper/95"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Time/Paper/95",
+    "printRun": null
   },
   {
     "cardNumber": "95",
@@ -12000,7 +12284,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bandelero/Paper/95"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bandelero/Paper/95",
+    "printRun": null
   },
   {
     "cardNumber": "96",
@@ -12042,7 +12327,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sabotage/Paper/96"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sabotage/Paper/96",
+    "printRun": null
   },
   {
     "cardNumber": "96",
@@ -12084,7 +12370,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Time/Paper/96"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Time/Paper/96",
+    "printRun": null
   },
   {
     "cardNumber": "96",
@@ -12127,7 +12414,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Kettle-Bell/Paper/96"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Kettle-Bell/Paper/96",
+    "printRun": null
   },
   {
     "cardNumber": "97",
@@ -12170,7 +12458,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mic'd%20Up/Paper/97"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mic'd%20Up/Paper/97",
+    "printRun": null
   },
   {
     "cardNumber": "97",
@@ -12212,7 +12501,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Fungi/Paper/97"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Fungi/Paper/97",
+    "printRun": null
   },
   {
     "cardNumber": "97",
@@ -12254,7 +12544,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/JacHammer/Paper/97"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/JacHammer/Paper/97",
+    "printRun": null
   },
   {
     "cardNumber": "98",
@@ -12296,7 +12587,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Jambox/Paper/98"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Jambox/Paper/98",
+    "printRun": null
   },
   {
     "cardNumber": "98",
@@ -12338,7 +12630,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Fungi/Paper/98"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Fungi/Paper/98",
+    "printRun": null
   },
   {
     "cardNumber": "98",
@@ -12380,7 +12673,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/BaldWing/Paper/98"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/BaldWing/Paper/98",
+    "printRun": null
   },
   {
     "cardNumber": "99",
@@ -12423,7 +12717,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Simon%20Says/Paper/99"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Simon%20Says/Paper/99",
+    "printRun": null
   },
   {
     "cardNumber": "99",
@@ -12465,7 +12760,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Fungi/Paper/99"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Fungi/Paper/99",
+    "printRun": null
   },
   {
     "cardNumber": "99",
@@ -12507,7 +12803,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Rook/Paper/99"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Rook/Paper/99",
+    "printRun": null
   },
   {
     "cardNumber": "100",
@@ -12550,7 +12847,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mr.%20Irrelevant/Paper/100"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mr.%20Irrelevant/Paper/100",
+    "printRun": null
   },
   {
     "cardNumber": "100",
@@ -12592,7 +12890,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Wildbeard/Paper/100"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Wildbeard/Paper/100",
+    "printRun": null
   },
   {
     "cardNumber": "100",
@@ -12634,7 +12933,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Camera/Paper/100"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Camera/Paper/100",
+    "printRun": null
   },
   {
     "cardNumber": "101",
@@ -12677,7 +12977,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Pantera/Paper/101"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Pantera/Paper/101",
+    "printRun": null
   },
   {
     "cardNumber": "101",
@@ -12719,7 +13020,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Wildbeard/Paper/101"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Wildbeard/Paper/101",
+    "printRun": null
   },
   {
     "cardNumber": "101",
@@ -12761,7 +13063,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Homestead/Paper/101"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Homestead/Paper/101",
+    "printRun": null
   },
   {
     "cardNumber": "102",
@@ -12803,7 +13106,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Rockstar/Paper/102"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Rockstar/Paper/102",
+    "printRun": null
   },
   {
     "cardNumber": "102",
@@ -12845,7 +13149,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Wildbeard/Paper/102"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Wildbeard/Paper/102",
+    "printRun": null
   },
   {
     "cardNumber": "102",
@@ -12887,7 +13192,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Scary/Paper/102"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Scary/Paper/102",
+    "printRun": null
   },
   {
     "cardNumber": "103",
@@ -12929,7 +13235,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Big-Z/Paper/103"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Big-Z/Paper/103",
+    "printRun": null
   },
   {
     "cardNumber": "103",
@@ -12971,7 +13278,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Shepherd/Paper/103"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Shepherd/Paper/103",
+    "printRun": null
   },
   {
     "cardNumber": "103",
@@ -13014,7 +13322,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Canine/Paper/103"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Canine/Paper/103",
+    "printRun": null
   },
   {
     "cardNumber": "104",
@@ -13056,7 +13365,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Clutch/Paper/104"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Clutch/Paper/104",
+    "printRun": null
   },
   {
     "cardNumber": "104",
@@ -13098,7 +13408,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Shepherd/Paper/104"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Shepherd/Paper/104",
+    "printRun": null
   },
   {
     "cardNumber": "104",
@@ -13140,7 +13451,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Superbaby/Paper/104"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Superbaby/Paper/104",
+    "printRun": null
   },
   {
     "cardNumber": "105",
@@ -13182,7 +13494,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/PukaDot/Paper/105"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/PukaDot/Paper/105",
+    "printRun": null
   },
   {
     "cardNumber": "105",
@@ -13224,7 +13537,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Shepherd/Paper/105"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Shepherd/Paper/105",
+    "printRun": null
   },
   {
     "cardNumber": "105",
@@ -13266,7 +13580,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Javalanche/Paper/105"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Javalanche/Paper/105",
+    "printRun": null
   },
   {
     "cardNumber": "106",
@@ -13308,7 +13623,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sprinkler/Paper/106"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sprinkler/Paper/106",
+    "printRun": null
   },
   {
     "cardNumber": "106",
@@ -13350,7 +13666,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Ollie/Paper/106"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Ollie/Paper/106",
+    "printRun": null
   },
   {
     "cardNumber": "106",
@@ -13393,7 +13710,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Wild%20Bill/Paper/106"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Wild%20Bill/Paper/106",
+    "printRun": null
   },
   {
     "cardNumber": "107",
@@ -13435,7 +13753,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Foxhole/Paper/107"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Foxhole/Paper/107",
+    "printRun": null
   },
   {
     "cardNumber": "107",
@@ -13477,7 +13796,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Ollie/Paper/107"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Ollie/Paper/107",
+    "printRun": null
   },
   {
     "cardNumber": "107",
@@ -13519,7 +13839,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Thorn/Paper/107"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Thorn/Paper/107",
+    "printRun": null
   },
   {
     "cardNumber": "108",
@@ -13562,7 +13883,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Thomstone/Paper/108"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Thomstone/Paper/108",
+    "printRun": null
   },
   {
     "cardNumber": "108",
@@ -13604,7 +13926,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Ollie/Paper/108"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Ollie/Paper/108",
+    "printRun": null
   },
   {
     "cardNumber": "108",
@@ -13646,7 +13969,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Chiller/Paper/108"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Chiller/Paper/108",
+    "printRun": null
   },
   {
     "cardNumber": "109",
@@ -13688,7 +14012,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Botto/Paper/109"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Botto/Paper/109",
+    "printRun": null
   },
   {
     "cardNumber": "109",
@@ -13730,7 +14055,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tank/Paper/109"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tank/Paper/109",
+    "printRun": null
   },
   {
     "cardNumber": "109",
@@ -13773,7 +14099,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Zephyr/Paper/109"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Zephyr/Paper/109",
+    "printRun": null
   },
   {
     "cardNumber": "110",
@@ -13815,7 +14142,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lawman/Paper/110"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lawman/Paper/110",
+    "printRun": null
   },
   {
     "cardNumber": "110",
@@ -13857,7 +14185,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tank/Paper/110"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tank/Paper/110",
+    "printRun": null
   },
   {
     "cardNumber": "110",
@@ -13899,7 +14228,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Lumber/Paper/110"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Lumber/Paper/110",
+    "printRun": null
   },
   {
     "cardNumber": "111",
@@ -13941,7 +14271,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Barnacle/Paper/111"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Barnacle/Paper/111",
+    "printRun": null
   },
   {
     "cardNumber": "111",
@@ -13983,7 +14314,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tank/Paper/111"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Tank/Paper/111",
+    "printRun": null
   },
   {
     "cardNumber": "111",
@@ -14025,7 +14357,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Golden%20Bullet/Paper/111"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Golden%20Bullet/Paper/111",
+    "printRun": null
   },
   {
     "cardNumber": "112",
@@ -14067,7 +14400,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Laviathan/Paper/112"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Laviathan/Paper/112",
+    "printRun": null
   },
   {
     "cardNumber": "112",
@@ -14109,7 +14443,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Grin/Paper/112"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Grin/Paper/112",
+    "printRun": null
   },
   {
     "cardNumber": "112",
@@ -14151,7 +14486,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Ozzmosis/Paper/112"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Ozzmosis/Paper/112",
+    "printRun": null
   },
   {
     "cardNumber": "113",
@@ -14193,7 +14529,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Breeze/Paper/113"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Breeze/Paper/113",
+    "printRun": null
   },
   {
     "cardNumber": "113",
@@ -14235,7 +14572,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Grin/Paper/113"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Grin/Paper/113",
+    "printRun": null
   },
   {
     "cardNumber": "113",
@@ -14277,7 +14615,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/DeKap/Paper/113"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/DeKap/Paper/113",
+    "printRun": null
   },
   {
     "cardNumber": "114",
@@ -14319,7 +14658,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Gravedigger/Paper/114"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Gravedigger/Paper/114",
+    "printRun": null
   },
   {
     "cardNumber": "114",
@@ -14361,7 +14701,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Grin/Paper/114"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Grin/Paper/114",
+    "printRun": null
   },
   {
     "cardNumber": "114",
@@ -14404,7 +14745,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bell-Camp/Paper/114"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bell-Camp/Paper/114",
+    "printRun": null
   },
   {
     "cardNumber": "115",
@@ -14446,7 +14788,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/D-Hop/Paper/115"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/D-Hop/Paper/115",
+    "printRun": null
   },
   {
     "cardNumber": "115",
@@ -14488,7 +14831,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bammer/Paper/115"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bammer/Paper/115",
+    "printRun": null
   },
   {
     "cardNumber": "115",
@@ -14530,7 +14874,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bangford/Paper/115"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bangford/Paper/115",
+    "printRun": null
   },
   {
     "cardNumber": "116",
@@ -14572,7 +14917,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Alien/Paper/116"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Alien/Paper/116",
+    "printRun": null
   },
   {
     "cardNumber": "116",
@@ -14614,7 +14960,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bammer/Paper/116"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bammer/Paper/116",
+    "printRun": null
   },
   {
     "cardNumber": "116",
@@ -14656,7 +15003,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Forcefield/Paper/116"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Forcefield/Paper/116",
+    "printRun": null
   },
   {
     "cardNumber": "117",
@@ -14698,7 +15046,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Portalize/Paper/117"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Portalize/Paper/117",
+    "printRun": null
   },
   {
     "cardNumber": "117",
@@ -14740,7 +15089,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bammer/Paper/117"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bammer/Paper/117",
+    "printRun": null
   },
   {
     "cardNumber": "117",
@@ -14783,7 +15133,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Amoeba/Paper/117"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Amoeba/Paper/117",
+    "printRun": null
   },
   {
     "cardNumber": "118",
@@ -14825,7 +15176,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Torque/Paper/118"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Torque/Paper/118",
+    "printRun": null
   },
   {
     "cardNumber": "118",
@@ -14867,7 +15219,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Barreler/Paper/118"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Barreler/Paper/118",
+    "printRun": null
   },
   {
     "cardNumber": "118",
@@ -14909,7 +15262,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Action/Paper/118"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Action/Paper/118",
+    "printRun": null
   },
   {
     "cardNumber": "119",
@@ -14951,7 +15305,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Risarcher/Paper/119"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Risarcher/Paper/119",
+    "printRun": null
   },
   {
     "cardNumber": "119",
@@ -14993,7 +15348,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Barreler/Paper/119"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Barreler/Paper/119",
+    "printRun": null
   },
   {
     "cardNumber": "119",
@@ -15036,7 +15392,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Go-Cart/Paper/119"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Go-Cart/Paper/119",
+    "printRun": null
   },
   {
     "cardNumber": "120",
@@ -15078,7 +15435,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sarrtillery/Paper/120"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sarrtillery/Paper/120",
+    "printRun": null
   },
   {
     "cardNumber": "120",
@@ -15120,7 +15478,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Barreler/Paper/120"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Barreler/Paper/120",
+    "printRun": null
   },
   {
     "cardNumber": "120",
@@ -15133,7 +15492,7 @@
     "subSet": "2024 Release",
     "variation": "First Edition",
     "treatment": "Base Set",
-    "element": "STEEL",
+    "element": "ICE",
     "power": 90,
     "playCost": 0,
     "playAbility": null,
@@ -15162,7 +15521,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Castler/Paper/120"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Castler/Paper/120",
+    "printRun": null
   },
   {
     "cardNumber": "121",
@@ -15204,7 +15564,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/LeBoss/Paper/121"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/LeBoss/Paper/121",
+    "printRun": null
   },
   {
     "cardNumber": "121",
@@ -15246,7 +15607,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cupid/Paper/121"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cupid/Paper/121",
+    "printRun": null
   },
   {
     "cardNumber": "121",
@@ -15288,7 +15650,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maverick/Paper/121"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maverick/Paper/121",
+    "printRun": null
   },
   {
     "cardNumber": "122",
@@ -15330,7 +15693,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Merlomes/Paper/122"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Merlomes/Paper/122",
+    "printRun": null
   },
   {
     "cardNumber": "122",
@@ -15372,7 +15736,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cupid/Paper/122"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cupid/Paper/122",
+    "printRun": null
   },
   {
     "cardNumber": "122",
@@ -15414,7 +15779,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gaveler/Paper/122"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gaveler/Paper/122",
+    "printRun": null
   },
   {
     "cardNumber": "123",
@@ -15456,7 +15822,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Chosen/Paper/123"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Chosen/Paper/123",
+    "printRun": null
   },
   {
     "cardNumber": "123",
@@ -15498,7 +15865,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cupid/Paper/123"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Cupid/Paper/123",
+    "printRun": null
   },
   {
     "cardNumber": "123",
@@ -15540,7 +15908,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Victory/Paper/123"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Victory/Paper/123",
+    "printRun": null
   },
   {
     "cardNumber": "124",
@@ -15582,7 +15951,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Midas/Paper/124"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Midas/Paper/124",
+    "printRun": null
   },
   {
     "cardNumber": "124",
@@ -15624,7 +15994,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Javalanche/Paper/124"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Javalanche/Paper/124",
+    "printRun": null
   },
   {
     "cardNumber": "124",
@@ -15666,7 +16037,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dijon/Paper/124"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dijon/Paper/124",
+    "printRun": null
   },
   {
     "cardNumber": "125",
@@ -15708,7 +16080,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bison/Paper/125"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bison/Paper/125",
+    "printRun": null
   },
   {
     "cardNumber": "125",
@@ -15750,7 +16123,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Javalanche/Paper/125"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Javalanche/Paper/125",
+    "printRun": null
   },
   {
     "cardNumber": "125",
@@ -15792,7 +16166,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Crosbow/Paper/125"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Crosbow/Paper/125",
+    "printRun": null
   },
   {
     "cardNumber": "126",
@@ -15834,7 +16209,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Wargod/Paper/126"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Wargod/Paper/126",
+    "printRun": null
   },
   {
     "cardNumber": "126",
@@ -15876,7 +16252,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Javalanche/Paper/126"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Javalanche/Paper/126",
+    "printRun": null
   },
   {
     "cardNumber": "126",
@@ -15918,7 +16295,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Warden/Paper/126"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Warden/Paper/126",
+    "printRun": null
   },
   {
     "cardNumber": "127",
@@ -15961,7 +16339,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Donny%20Buckets/Paper/127"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Donny%20Buckets/Paper/127",
+    "printRun": null
   },
   {
     "cardNumber": "127",
@@ -16003,7 +16382,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bionic/Paper/127"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bionic/Paper/127",
+    "printRun": null
   },
   {
     "cardNumber": "127",
@@ -16046,7 +16426,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/PB%20Buckets/Paper/127"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/PB%20Buckets/Paper/127",
+    "printRun": null
   },
   {
     "cardNumber": "128",
@@ -16088,7 +16469,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Warp/Paper/128"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Warp/Paper/128",
+    "printRun": null
   },
   {
     "cardNumber": "128",
@@ -16130,7 +16512,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bionic/Paper/128"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bionic/Paper/128",
+    "printRun": null
   },
   {
     "cardNumber": "128",
@@ -16172,7 +16555,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Skuba/Paper/128"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Skuba/Paper/128",
+    "printRun": null
   },
   {
     "cardNumber": "129",
@@ -16214,7 +16598,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Harpoon/Paper/129"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Harpoon/Paper/129",
+    "printRun": null
   },
   {
     "cardNumber": "129",
@@ -16256,7 +16641,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bionic/Paper/129"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Bionic/Paper/129",
+    "printRun": null
   },
   {
     "cardNumber": "129",
@@ -16298,7 +16684,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Haliburst/Paper/129"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Haliburst/Paper/129",
+    "printRun": null
   },
   {
     "cardNumber": "130",
@@ -16340,7 +16727,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mustang/Paper/130"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mustang/Paper/130",
+    "printRun": null
   },
   {
     "cardNumber": "130",
@@ -16382,7 +16770,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Stitcher/Paper/130"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Stitcher/Paper/130",
+    "printRun": null
   },
   {
     "cardNumber": "130",
@@ -16424,7 +16813,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dart-Board/Paper/130"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dart-Board/Paper/130",
+    "printRun": null
   },
   {
     "cardNumber": "131",
@@ -16466,7 +16856,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Jaybird/Paper/131"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Jaybird/Paper/131",
+    "printRun": null
   },
   {
     "cardNumber": "131",
@@ -16508,7 +16899,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Stitcher/Paper/131"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Stitcher/Paper/131",
+    "printRun": null
   },
   {
     "cardNumber": "131",
@@ -16550,7 +16942,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dumper/Paper/131"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dumper/Paper/131",
+    "printRun": null
   },
   {
     "cardNumber": "132",
@@ -16592,7 +16985,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/J-Jetts/Paper/132"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/J-Jetts/Paper/132",
+    "printRun": null
   },
   {
     "cardNumber": "132",
@@ -16634,7 +17028,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Stitcher/Paper/132"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Stitcher/Paper/132",
+    "printRun": null
   },
   {
     "cardNumber": "132",
@@ -16676,7 +17071,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Switchblade/Paper/132"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Switchblade/Paper/132",
+    "printRun": null
   },
   {
     "cardNumber": "133",
@@ -16720,7 +17116,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Merri-Go-Round/Paper/133"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Merri-Go-Round/Paper/133",
+    "printRun": null
   },
   {
     "cardNumber": "133",
@@ -16733,7 +17130,7 @@
     "subSet": "2025 Update",
     "variation": "First Edition",
     "treatment": "Base Set",
-    "element": "STEEL",
+    "element": "FIRE",
     "power": 95,
     "playCost": 0,
     "playAbility": null,
@@ -16763,7 +17160,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Triple%20Threat/Paper/133"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Triple%20Threat/Paper/133",
+    "printRun": null
   },
   {
     "cardNumber": "133",
@@ -16805,7 +17203,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Cupid/Paper/133"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Cupid/Paper/133",
+    "printRun": null
   },
   {
     "cardNumber": "134",
@@ -16848,7 +17247,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Shystep/Paper/134"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Shystep/Paper/134",
+    "printRun": null
   },
   {
     "cardNumber": "134",
@@ -16861,7 +17261,7 @@
     "subSet": "2025 Update",
     "variation": "First Edition",
     "treatment": "Base Set",
-    "element": "STEEL",
+    "element": "ICE",
     "power": 95,
     "playCost": 0,
     "playAbility": null,
@@ -16891,7 +17291,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Triple%20Threat/Paper/134"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Triple%20Threat/Paper/134",
+    "printRun": null
   },
   {
     "cardNumber": "134",
@@ -16933,7 +17334,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Air%20Ace/Paper/134"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Air%20Ace/Paper/134",
+    "printRun": null
   },
   {
     "cardNumber": "135",
@@ -16975,7 +17377,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Ram/Paper/135"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Ram/Paper/135",
+    "printRun": null
   },
   {
     "cardNumber": "135",
@@ -17018,7 +17421,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha",
-    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Triple%20Threat/Paper/135"
+    "radishUrl": "https://radishpriceguide.com/boba/2024/Alpha_Edition/Triple%20Threat/Paper/135",
+    "printRun": null
   },
   {
     "cardNumber": "135",
@@ -17061,7 +17465,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maxed%20Out/Paper/135"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maxed%20Out/Paper/135",
+    "printRun": null
   },
   {
     "cardNumber": "136",
@@ -17103,7 +17508,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Freakshow/Paper/136"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Freakshow/Paper/136",
+    "printRun": null
   },
   {
     "cardNumber": "136",
@@ -17146,7 +17552,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/King%20Tuck/Paper/136"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/King%20Tuck/Paper/136",
+    "printRun": null
   },
   {
     "cardNumber": "137",
@@ -17188,7 +17595,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lightningrod/Paper/137"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lightningrod/Paper/137",
+    "printRun": null
   },
   {
     "cardNumber": "137",
@@ -17230,7 +17638,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Macho/Paper/137"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Macho/Paper/137",
+    "printRun": null
   },
   {
     "cardNumber": "138",
@@ -17272,7 +17681,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bayou/Paper/138"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bayou/Paper/138",
+    "printRun": null
   },
   {
     "cardNumber": "138",
@@ -17314,7 +17724,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gladiator/Paper/138"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gladiator/Paper/138",
+    "printRun": null
   },
   {
     "cardNumber": "139",
@@ -17356,7 +17767,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/McArmyKnife/Paper/139"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/McArmyKnife/Paper/139",
+    "printRun": null
   },
   {
     "cardNumber": "139",
@@ -17398,7 +17810,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/BrockNess/Paper/139"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/BrockNess/Paper/139",
+    "printRun": null
   },
   {
     "cardNumber": "140",
@@ -17440,7 +17853,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Tigre/Paper/140"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Tigre/Paper/140",
+    "printRun": null
   },
   {
     "cardNumber": "140",
@@ -17482,7 +17896,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Fungi/Paper/140"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Fungi/Paper/140",
+    "printRun": null
   },
   {
     "cardNumber": "141",
@@ -17524,7 +17939,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Cheetah/Paper/141"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Cheetah/Paper/141",
+    "printRun": null
   },
   {
     "cardNumber": "141",
@@ -17566,7 +17982,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Wattage/Paper/141"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Wattage/Paper/141",
+    "printRun": null
   },
   {
     "cardNumber": "142",
@@ -17608,7 +18025,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Spider/Paper/142"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Spider/Paper/142",
+    "printRun": null
   },
   {
     "cardNumber": "142",
@@ -17650,7 +18068,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gunner/Paper/142"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gunner/Paper/142",
+    "printRun": null
   },
   {
     "cardNumber": "143",
@@ -17692,7 +18111,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Crews-Missle/Paper/143"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Crews-Missle/Paper/143",
+    "printRun": null
   },
   {
     "cardNumber": "143",
@@ -17734,7 +18154,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Marksman/Paper/143"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Marksman/Paper/143",
+    "printRun": null
   },
   {
     "cardNumber": "144",
@@ -17776,7 +18197,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Unibrow/Paper/144"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Unibrow/Paper/144",
+    "printRun": null
   },
   {
     "cardNumber": "144",
@@ -17818,7 +18240,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/D-Harp/Paper/144"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/D-Harp/Paper/144",
+    "printRun": null
   },
   {
     "cardNumber": "145",
@@ -17860,7 +18283,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Exterminaber/Paper/145"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Exterminaber/Paper/145",
+    "printRun": null
   },
   {
     "cardNumber": "145",
@@ -17902,7 +18326,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Jeanetic/Paper/145"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Jeanetic/Paper/145",
+    "printRun": null
   },
   {
     "cardNumber": "146",
@@ -17944,7 +18369,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bomber/Paper/146"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Bomber/Paper/146",
+    "printRun": null
   },
   {
     "cardNumber": "146",
@@ -17986,7 +18412,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Doublecheck/Paper/146"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Doublecheck/Paper/146",
+    "printRun": null
   },
   {
     "cardNumber": "147",
@@ -18028,7 +18455,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Juice/Paper/147"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Juice/Paper/147",
+    "printRun": null
   },
   {
     "cardNumber": "147",
@@ -18070,7 +18498,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Caliber/Paper/147"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Caliber/Paper/147",
+    "printRun": null
   },
   {
     "cardNumber": "148",
@@ -18112,7 +18541,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Attak/Paper/148"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Attak/Paper/148",
+    "printRun": null
   },
   {
     "cardNumber": "148",
@@ -18155,7 +18585,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Escape%20Artist/Paper/148"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Escape%20Artist/Paper/148",
+    "printRun": null
   },
   {
     "cardNumber": "149",
@@ -18197,7 +18628,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/ChetMate/Paper/149"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/ChetMate/Paper/149",
+    "printRun": null
   },
   {
     "cardNumber": "149",
@@ -18239,7 +18671,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/J-Cam/Paper/149"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/J-Cam/Paper/149",
+    "printRun": null
   },
   {
     "cardNumber": "150",
@@ -18281,7 +18714,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Phoenix/Paper/150"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Phoenix/Paper/150",
+    "printRun": null
   },
   {
     "cardNumber": "150",
@@ -18323,7 +18757,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Generator/Paper/150"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Generator/Paper/150",
+    "printRun": null
   },
   {
     "cardNumber": "151",
@@ -18365,7 +18800,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lieutenant/Paper/151"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lieutenant/Paper/151",
+    "printRun": null
   },
   {
     "cardNumber": "151",
@@ -18408,7 +18844,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Tattoo/Paper/151"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Tattoo/Paper/151",
+    "printRun": null
   },
   {
     "cardNumber": "152",
@@ -18450,7 +18887,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Snowbear/Paper/152"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Snowbear/Paper/152",
+    "printRun": null
   },
   {
     "cardNumber": "152",
@@ -18492,7 +18930,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Brawn/Paper/152"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Brawn/Paper/152",
+    "printRun": null
   },
   {
     "cardNumber": "153",
@@ -18534,7 +18973,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Boltage/Paper/153"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Boltage/Paper/153",
+    "printRun": null
   },
   {
     "cardNumber": "153",
@@ -18576,7 +19016,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Cicada/Paper/153"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Cicada/Paper/153",
+    "printRun": null
   },
   {
     "cardNumber": "154",
@@ -18618,7 +19059,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Librarian/Paper/154"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Librarian/Paper/154",
+    "printRun": null
   },
   {
     "cardNumber": "154",
@@ -18660,7 +19102,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Courthouse/Paper/154"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Courthouse/Paper/154",
+    "printRun": null
   },
   {
     "cardNumber": "155",
@@ -18702,7 +19145,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Aeronaut/Paper/155"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Aeronaut/Paper/155",
+    "printRun": null
   },
   {
     "cardNumber": "155",
@@ -18744,7 +19188,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bandelero/Paper/155"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bandelero/Paper/155",
+    "printRun": null
   },
   {
     "cardNumber": "156",
@@ -18786,7 +19231,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sabotage/Paper/156"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sabotage/Paper/156",
+    "printRun": null
   },
   {
     "cardNumber": "156",
@@ -18829,7 +19275,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Kettle-Bell/Paper/156"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Kettle-Bell/Paper/156",
+    "printRun": null
   },
   {
     "cardNumber": "157",
@@ -18872,7 +19319,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mic'd%20Up/Paper/157"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mic'd%20Up/Paper/157",
+    "printRun": null
   },
   {
     "cardNumber": "157",
@@ -18914,7 +19362,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/JacHammer/Paper/157"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/JacHammer/Paper/157",
+    "printRun": null
   },
   {
     "cardNumber": "158",
@@ -18956,7 +19405,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Jambox/Paper/158"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Jambox/Paper/158",
+    "printRun": null
   },
   {
     "cardNumber": "158",
@@ -18998,7 +19448,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/BaldWing/Paper/158"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/BaldWing/Paper/158",
+    "printRun": null
   },
   {
     "cardNumber": "159",
@@ -19041,7 +19492,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Simon%20Says/Paper/159"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Simon%20Says/Paper/159",
+    "printRun": null
   },
   {
     "cardNumber": "159",
@@ -19083,7 +19535,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Rook/Paper/159"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Rook/Paper/159",
+    "printRun": null
   },
   {
     "cardNumber": "160",
@@ -19126,7 +19579,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mr.%20Irrelevant/Paper/160"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Mr.%20Irrelevant/Paper/160",
+    "printRun": null
   },
   {
     "cardNumber": "160",
@@ -19168,7 +19622,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Camera/Paper/160"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Camera/Paper/160",
+    "printRun": null
   },
   {
     "cardNumber": "161",
@@ -19211,7 +19666,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Pantera/Paper/161"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Pantera/Paper/161",
+    "printRun": null
   },
   {
     "cardNumber": "161",
@@ -19253,7 +19709,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Homestead/Paper/161"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Homestead/Paper/161",
+    "printRun": null
   },
   {
     "cardNumber": "162",
@@ -19295,7 +19752,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Rockstar/Paper/162"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Rockstar/Paper/162",
+    "printRun": null
   },
   {
     "cardNumber": "162",
@@ -19337,7 +19795,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Scary/Paper/162"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Scary/Paper/162",
+    "printRun": null
   },
   {
     "cardNumber": "163",
@@ -19379,7 +19838,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Big-Z/Paper/163"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Big-Z/Paper/163",
+    "printRun": null
   },
   {
     "cardNumber": "163",
@@ -19422,7 +19882,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Canine/Paper/163"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Canine/Paper/163",
+    "printRun": null
   },
   {
     "cardNumber": "164",
@@ -19464,7 +19925,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Clutch/Paper/164"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Clutch/Paper/164",
+    "printRun": null
   },
   {
     "cardNumber": "164",
@@ -19506,7 +19968,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Superbaby/Paper/164"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Superbaby/Paper/164",
+    "printRun": null
   },
   {
     "cardNumber": "165",
@@ -19548,7 +20011,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/PukaDot/Paper/165"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/PukaDot/Paper/165",
+    "printRun": null
   },
   {
     "cardNumber": "165",
@@ -19590,7 +20054,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Javalanche/Paper/165"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Javalanche/Paper/165",
+    "printRun": null
   },
   {
     "cardNumber": "166",
@@ -19632,7 +20097,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sprinkler/Paper/166"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sprinkler/Paper/166",
+    "printRun": null
   },
   {
     "cardNumber": "166",
@@ -19675,7 +20141,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Wild%20Bill/Paper/166"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Wild%20Bill/Paper/166",
+    "printRun": null
   },
   {
     "cardNumber": "167",
@@ -19717,7 +20184,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Foxhole/Paper/167"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Foxhole/Paper/167",
+    "printRun": null
   },
   {
     "cardNumber": "167",
@@ -19759,7 +20227,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Thorn/Paper/167"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Thorn/Paper/167",
+    "printRun": null
   },
   {
     "cardNumber": "168",
@@ -19802,7 +20271,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Thomstone/Paper/168"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Thomstone/Paper/168",
+    "printRun": null
   },
   {
     "cardNumber": "168",
@@ -19844,7 +20314,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Chiller/Paper/168"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Chiller/Paper/168",
+    "printRun": null
   },
   {
     "cardNumber": "169",
@@ -19886,7 +20357,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Botto/Paper/169"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Botto/Paper/169",
+    "printRun": null
   },
   {
     "cardNumber": "169",
@@ -19929,7 +20401,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Zephyr/Paper/169"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Zephyr/Paper/169",
+    "printRun": null
   },
   {
     "cardNumber": "170",
@@ -19971,7 +20444,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lawman/Paper/170"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Lawman/Paper/170",
+    "printRun": null
   },
   {
     "cardNumber": "170",
@@ -20013,7 +20487,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Lumber/Paper/170"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Lumber/Paper/170",
+    "printRun": null
   },
   {
     "cardNumber": "171",
@@ -20055,7 +20530,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Barnacle/Paper/171"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Barnacle/Paper/171",
+    "printRun": null
   },
   {
     "cardNumber": "171",
@@ -20097,7 +20573,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Golden%20Bullet/Paper/171"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Golden%20Bullet/Paper/171",
+    "printRun": null
   },
   {
     "cardNumber": "172",
@@ -20139,7 +20616,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Laviathan/Paper/172"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Laviathan/Paper/172",
+    "printRun": null
   },
   {
     "cardNumber": "172",
@@ -20181,7 +20659,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Ozzmosis/Paper/172"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Ozzmosis/Paper/172",
+    "printRun": null
   },
   {
     "cardNumber": "173",
@@ -20223,7 +20702,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Breeze/Paper/173"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Breeze/Paper/173",
+    "printRun": null
   },
   {
     "cardNumber": "173",
@@ -20265,7 +20745,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/DeKap/Paper/173"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/DeKap/Paper/173",
+    "printRun": null
   },
   {
     "cardNumber": "174",
@@ -20307,7 +20788,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Gravedigger/Paper/174"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Gravedigger/Paper/174",
+    "printRun": null
   },
   {
     "cardNumber": "174",
@@ -20350,7 +20832,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bell-Camp/Paper/174"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bell-Camp/Paper/174",
+    "printRun": null
   },
   {
     "cardNumber": "175",
@@ -20392,7 +20875,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/D-Hop/Paper/175"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/D-Hop/Paper/175",
+    "printRun": null
   },
   {
     "cardNumber": "175",
@@ -20434,7 +20918,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bangford/Paper/175"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Bangford/Paper/175",
+    "printRun": null
   },
   {
     "cardNumber": "176",
@@ -20476,7 +20961,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Alien/Paper/176"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Alien/Paper/176",
+    "printRun": null
   },
   {
     "cardNumber": "176",
@@ -20518,7 +21004,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Forcefield/Paper/176"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Forcefield/Paper/176",
+    "printRun": null
   },
   {
     "cardNumber": "177",
@@ -20560,7 +21047,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Portalize/Paper/177"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Portalize/Paper/177",
+    "printRun": null
   },
   {
     "cardNumber": "177",
@@ -20603,7 +21091,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Amoeba/Paper/177"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Amoeba/Paper/177",
+    "printRun": null
   },
   {
     "cardNumber": "178",
@@ -20645,7 +21134,8 @@
     ],
     "rookieInspired": false,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Torque/Paper/178"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Torque/Paper/178",
+    "printRun": null
   },
   {
     "cardNumber": "178",
@@ -20687,7 +21177,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Action/Paper/178"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Action/Paper/178",
+    "printRun": null
   },
   {
     "cardNumber": "179",
@@ -20729,7 +21220,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Risarcher/Paper/179"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Risarcher/Paper/179",
+    "printRun": null
   },
   {
     "cardNumber": "179",
@@ -20772,7 +21264,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Go-Cart/Paper/179"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Go-Cart/Paper/179",
+    "printRun": null
   },
   {
     "cardNumber": "180",
@@ -20814,7 +21307,8 @@
     ],
     "rookieInspired": true,
     "release": "Alpha Update",
-    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sarrtillery/Paper/180"
+    "radishUrl": "https://radishpriceguide.com/boba/2025/Alpha_Update/Sarrtillery/Paper/180",
+    "printRun": null
   },
   {
     "cardNumber": "180",
@@ -20856,7 +21350,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Castler/Paper/180"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Castler/Paper/180",
+    "printRun": null
   },
   {
     "cardNumber": "181",
@@ -20898,7 +21393,8 @@
     ],
     "rookieInspired": true,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maverick/Paper/181"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Maverick/Paper/181",
+    "printRun": null
   },
   {
     "cardNumber": "182",
@@ -20940,7 +21436,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gaveler/Paper/182"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Gaveler/Paper/182",
+    "printRun": null
   },
   {
     "cardNumber": "183",
@@ -20982,7 +21479,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Victory/Paper/183"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Victory/Paper/183",
+    "printRun": null
   },
   {
     "cardNumber": "184",
@@ -21024,7 +21522,8 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dijon/Paper/184"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dijon/Paper/184",
+    "printRun": null
   },
   {
     "cardNumber": "185",
@@ -21066,174 +21565,266 @@
     ],
     "rookieInspired": false,
     "release": "Griffey",
-    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Crosbow/Paper/185"
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Crosbow/Paper/185",
+    "printRun": null
   },
   {
-    "cardNumber": "Promo",
-    "name": "A.I.",
-    "hero": "A.I.",
+    "cardNumber": "186",
+    "bobaId": "186-Warden-Base Set-First Edition",
+    "bvId": 17397,
+    "name": "Warden",
+    "hero": "Warden",
     "cardType": "Hero",
-    "set": "Promo Cards",
-    "subSet": "First Reward Promo",
-    "variation": "",
-    "treatment": "Exclusive Battlefoil",
-    "release": "Promo",
-    "element": "GLOW",
-    "power": 195,
+    "set": "Griffey Edition",
+    "subSet": "2025 Release",
+    "variation": "First Edition",
+    "treatment": "Base Set",
+    "element": "BRAWL",
+    "power": 120,
     "playCost": 0,
     "playAbility": null,
-    "athleteInspiration": "Allen Iverson",
-    "isInspiredInk": false,
-    "rookieInspired": false,
     "isBonusPlay": false,
     "isHTD": false,
     "dbs": null,
     "dbsTier": null,
-    "imageFile": "Promo-A.I.-Exclusive_Battlefoil.webp",
-    "imageSource": "mod_upload",
+    "athleteInspiration": "Cam Ward",
+    "isInspiredInk": false,
+    "imageFile": "186-Warden-Base_Set-First_Edition.webp",
+    "imageSource": "BV",
     "imageAvailable": true,
-    "radishUrl": null,
-    "searchTokens": "a.i. a.i. promo promo cards first reward promo exclusive battlefoil allen iverson glow 195",
-    "bobaId": "Promo-A.I.-Exclusive Battlefoil-"
+    "searchTokens": [
+      "186",
+      "2025",
+      "base",
+      "brawl",
+      "cam",
+      "edition",
+      "first",
+      "griffey",
+      "release",
+      "set",
+      "ward",
+      "warden"
+    ],
+    "rookieInspired": true,
+    "release": "Griffey",
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Warden/Paper/186",
+    "printRun": null
   },
   {
-    "cardNumber": "Promo",
-    "name": "Amon-Ra",
-    "hero": "Amon-Ra",
+    "cardNumber": "187",
+    "bobaId": "187-PB Buckets-Base Set-First Edition",
+    "bvId": 15038,
+    "name": "PB Buckets",
+    "hero": "PB Buckets",
     "cardType": "Hero",
-    "set": "Promo Cards",
-    "subSet": "First Reward Promo",
-    "variation": "",
-    "treatment": "Exclusive Battlefoil",
-    "release": "Promo",
-    "element": "GLOW",
-    "power": 195,
+    "set": "Griffey Edition",
+    "subSet": "2025 Release",
+    "variation": "First Edition",
+    "treatment": "Base Set",
+    "element": "BRAWL",
+    "power": 115,
     "playCost": 0,
     "playAbility": null,
-    "athleteInspiration": "Amon-Ra St. Brown",
-    "isInspiredInk": false,
-    "rookieInspired": false,
     "isBonusPlay": false,
     "isHTD": false,
     "dbs": null,
     "dbsTier": null,
-    "imageFile": "Promo-Amon-Ra-Exclusive_Battlefoil.webp",
-    "imageSource": "mod_upload",
+    "athleteInspiration": "Paige Bueckers",
+    "isInspiredInk": false,
+    "imageFile": "187-PB_Buckets-Base_Set-First_Edition.webp",
+    "imageSource": "BV",
     "imageAvailable": true,
-    "radishUrl": null,
-    "searchTokens": "amon-ra amon-ra promo promo cards first reward promo exclusive battlefoil amon-ra st. brown glow 195",
-    "bobaId": "Promo-Amon-Ra-Exclusive Battlefoil-"
+    "searchTokens": [
+      "187",
+      "2025",
+      "base",
+      "brawl",
+      "buckets",
+      "bueckers",
+      "edition",
+      "first",
+      "griffey",
+      "paige",
+      "pb",
+      "release",
+      "set"
+    ],
+    "rookieInspired": true,
+    "release": "Griffey",
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/PB%20Buckets/Paper/187",
+    "printRun": null
   },
   {
-    "cardNumber": "Promo",
-    "name": "Bojax",
-    "hero": "Bojax",
+    "cardNumber": "188",
+    "bobaId": "188-Skuba-Base Set-First Edition",
+    "bvId": 16270,
+    "name": "Skuba",
+    "hero": "Skuba",
     "cardType": "Hero",
-    "set": "Promo Cards",
-    "subSet": "First Reward Promo",
-    "variation": "",
-    "treatment": "Exclusive Battlefoil",
-    "release": "Promo",
-    "element": "GLOW",
-    "power": 195,
+    "set": "Griffey Edition",
+    "subSet": "2025 Release",
+    "variation": "First Edition",
+    "treatment": "Base Set",
+    "element": "BRAWL",
+    "power": 115,
     "playCost": 0,
     "playAbility": null,
-    "athleteInspiration": "Bo Jackson",
-    "isInspiredInk": false,
-    "rookieInspired": false,
     "isBonusPlay": false,
     "isHTD": false,
     "dbs": null,
     "dbsTier": null,
-    "imageFile": "Promo-Bojax-Exclusive_Battlefoil.webp",
-    "imageSource": "mod_upload",
+    "athleteInspiration": "Tarik Skubal",
+    "isInspiredInk": false,
+    "imageFile": "188-Skuba-Base_Set-First_Edition.webp",
+    "imageSource": "BV",
     "imageAvailable": true,
-    "radishUrl": null,
-    "searchTokens": "bojax bojax promo promo cards first reward promo exclusive battlefoil bo jackson glow 195",
-    "bobaId": "Promo-Bojax-Exclusive Battlefoil-"
+    "searchTokens": [
+      "188",
+      "2025",
+      "base",
+      "brawl",
+      "edition",
+      "first",
+      "griffey",
+      "release",
+      "set",
+      "skuba",
+      "skubal",
+      "tarik"
+    ],
+    "rookieInspired": false,
+    "release": "Griffey",
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Skuba/Paper/188",
+    "printRun": null
   },
   {
-    "cardNumber": "Promo",
-    "name": "Brandi",
-    "hero": "Brandi",
+    "cardNumber": "189",
+    "bobaId": "189-Haliburst-Base Set-First Edition",
+    "bvId": 12902,
+    "name": "Haliburst",
+    "hero": "Haliburst",
     "cardType": "Hero",
-    "set": "Promo Cards",
-    "subSet": "First Reward Promo",
-    "variation": "",
-    "treatment": "Exclusive Battlefoil",
-    "release": "Promo",
-    "element": "GLOW",
-    "power": 195,
+    "set": "Griffey Edition",
+    "subSet": "2025 Release",
+    "variation": "First Edition",
+    "treatment": "Base Set",
+    "element": "BRAWL",
+    "power": 115,
     "playCost": 0,
     "playAbility": null,
-    "athleteInspiration": "Brandi Chastain",
-    "isInspiredInk": false,
-    "rookieInspired": false,
     "isBonusPlay": false,
     "isHTD": false,
     "dbs": null,
     "dbsTier": null,
-    "imageFile": null,
-    "imageSource": null,
-    "imageAvailable": false,
-    "radishUrl": null,
-    "searchTokens": "brandi brandi promo promo cards first reward promo exclusive battlefoil brandi chastain glow 195",
-    "bobaId": "Promo-Brandi-Exclusive Battlefoil-"
-  },
-  {
-    "cardNumber": "Promo",
-    "name": "Cruschman",
-    "hero": "Cruschman",
-    "cardType": "Hero",
-    "set": "Promo Cards",
-    "subSet": "First Reward Promo",
-    "variation": "",
-    "treatment": "Exclusive Battlefoil",
-    "release": "Promo",
-    "element": "GLOW",
-    "power": 195,
-    "playCost": 0,
-    "playAbility": null,
-    "athleteInspiration": "Adley Rutschman",
+    "athleteInspiration": "Tyrese Haliburton",
     "isInspiredInk": false,
-    "rookieInspired": false,
-    "isBonusPlay": false,
-    "isHTD": false,
-    "dbs": null,
-    "dbsTier": null,
-    "imageFile": "Promo-Cruschman-Exclusive_Battlefoil.webp",
-    "imageSource": "mod_upload",
+    "imageFile": "189-Haliburst-Base_Set-First_Edition.webp",
+    "imageSource": "BV",
     "imageAvailable": true,
-    "radishUrl": null,
-    "searchTokens": "cruschman cruschman promo promo cards first reward promo exclusive battlefoil adley rutschman glow 195",
-    "bobaId": "Promo-Cruschman-Exclusive Battlefoil-"
+    "searchTokens": [
+      "189",
+      "2025",
+      "base",
+      "brawl",
+      "edition",
+      "first",
+      "griffey",
+      "haliburst",
+      "haliburton",
+      "release",
+      "set",
+      "tyrese"
+    ],
+    "rookieInspired": false,
+    "release": "Griffey",
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Haliburst/Paper/189",
+    "printRun": null
   },
   {
-    "cardNumber": "Top 8",
-    "name": "Bojax",
-    "hero": "Bojax",
+    "cardNumber": "190",
+    "bobaId": "190-Dart-Board-Base Set-First Edition",
+    "bvId": 16044,
+    "name": "Dart-Board",
+    "hero": "Dart-Board",
     "cardType": "Hero",
-    "set": "Promo Cards",
-    "subSet": "2025 Apex",
-    "variation": "2025 World Championships Top 8",
-    "treatment": "Alt Art Battlefoil",
-    "release": "Promo",
-    "element": "ALT",
-    "power": 200,
+    "set": "Griffey Edition",
+    "subSet": "2025 Release",
+    "variation": "First Edition",
+    "treatment": "Base Set",
+    "element": "BRAWL",
+    "power": 115,
     "playCost": 0,
     "playAbility": null,
-    "athleteInspiration": "Bo Jackson",
-    "isInspiredInk": false,
-    "rookieInspired": false,
     "isBonusPlay": false,
     "isHTD": false,
     "dbs": null,
     "dbsTier": null,
-    "imageFile": null,
-    "imageSource": null,
-    "imageAvailable": false,
-    "radishUrl": null,
-    "searchTokens": "bojax bojax top 8 promo cards 2025 apex alt art battlefoil 2025 world championships top 8 bo jackson alt 200",
-    "bobaId": "Top 8-Bojax-Alt Art Battlefoil-2025 World Championships Top 8"
+    "athleteInspiration": "Jaxson Dart",
+    "isInspiredInk": false,
+    "imageFile": "190-Dart-Board-Base_Set-First_Edition.webp",
+    "imageSource": "BV",
+    "imageAvailable": true,
+    "searchTokens": [
+      "190",
+      "2025",
+      "base",
+      "board",
+      "brawl",
+      "dart",
+      "edition",
+      "first",
+      "griffey",
+      "jaxson",
+      "release",
+      "set"
+    ],
+    "rookieInspired": true,
+    "release": "Griffey",
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dart-Board/Paper/190",
+    "printRun": null
+  },
+  {
+    "cardNumber": "191",
+    "bobaId": "191-Dumper-Base Set-First Edition",
+    "bvId": 11301,
+    "name": "Dumper",
+    "hero": "Dumper",
+    "cardType": "Hero",
+    "set": "Griffey Edition",
+    "subSet": "2025 Release",
+    "variation": "First Edition",
+    "treatment": "Base Set",
+    "element": "BRAWL",
+    "power": 115,
+    "playCost": 0,
+    "playAbility": null,
+    "isBonusPlay": false,
+    "isHTD": false,
+    "dbs": null,
+    "dbsTier": null,
+    "athleteInspiration": "Cal Raleigh",
+    "isInspiredInk": false,
+    "imageFile": "191-Dumper-Base_Set-First_Edition.webp",
+    "imageSource": "BV",
+    "imageAvailable": true,
+    "searchTokens": [
+      "191",
+      "2025",
+      "base",
+      "brawl",
+      "cal",
+      "dumper",
+      "edition",
+      "first",
+      "griffey",
+      "raleigh",
+      "release",
+      "set"
+    ],
+    "rookieInspired": false,
+    "release": "Griffey",
+    "radishUrl": "https://radishpriceguide.com/boba/2026/Griffey_Edition/Dumper/Paper/191",
+    "printRun": null
   }
 ]

@@ -104,6 +104,9 @@ class CollectionViewModel @Inject constructor(
             entriesByDesignation = byDesignation,
             totalValueUsd = totalValue,
             isLoading = catalog.isEmpty() || (isSignedIn && !hasRefreshedOnce),
+            rawOwnedCount = owned.size,
+            joinedCount = joined.size,
+            catalogSize = catalog.size,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -210,6 +213,12 @@ data class CollectionUiState(
         Designation.entries.associateWith { persistentListOf() },
     val totalValueUsd: Double = 0.0,
     val isLoading: Boolean = true,
+    /** Diagnostic: how many user_cards rows came back from Supabase. */
+    val rawOwnedCount: Int = 0,
+    /** Diagnostic: how many resolved to a catalog card via bobaId join. */
+    val joinedCount: Int = 0,
+    /** Diagnostic: total catalog size at the time the join ran. */
+    val catalogSize: Int = 0,
 )
 
 /** A single owned card joined with its catalog row for grid rendering. */

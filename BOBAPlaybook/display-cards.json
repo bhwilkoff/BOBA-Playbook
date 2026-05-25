@@ -14254,7 +14254,7 @@
   },
   {
     "cardNumber": "108",
-    "bobaId": "108-Chiller-Base Set-First Edition-STEEL",
+    "bobaId": "108-Chiller-Base Set-First Edition-ICE",
     "bvId": 5037,
     "name": "Chiller",
     "hero": "Chiller",
@@ -112448,7 +112448,7 @@
   },
   {
     "cardNumber": "BF-212",
-    "bobaId": "BF-212-Brawn-Battlefoil-First Edition-GLOW",
+    "bobaId": "BF-212-Brawn-Battlefoil-First Edition-ICE",
     "bvId": 696,
     "name": "Brawn",
     "hero": "Brawn",
@@ -261461,7 +261461,7 @@
   },
   {
     "cardNumber": "BLC-3",
-    "bobaId": "BLC-3-BoJax-Blue Raspberry-First Edition-ALT",
+    "bobaId": "BLC-3-BoJax-Blue Raspberry-First Edition-",
     "bvId": null,
     "name": "BoJax",
     "hero": "BoJax",
@@ -496807,7 +496807,7 @@
   },
   {
     "cardNumber": "KGSA-3",
-    "bobaId": "KGSA-3-Senior-Inspired Ink Bubble Gum Battlefoil-Ken Griffey Sr. Debut-HEX",
+    "bobaId": "KGSA-3-Senior-Inspired Ink Bubble Gum Battlefoil-Ken Griffey Sr. Debut-GUM",
     "bvId": 16161,
     "name": "Senior",
     "hero": "Senior",
@@ -499131,7 +499131,7 @@
   },
   {
     "cardNumber": "LA-36",
-    "bobaId": "LA-36-怪獣焼き-Hot Dog-Kaiju Dog-FIRE",
+    "bobaId": "LA-36-怪獣焼き-Hot Dog-Kaiju Dog-NONE",
     "bvId": 7812,
     "name": "怪獣焼き",
     "hero": "怪獣焼き",
@@ -499174,7 +499174,7 @@
   },
   {
     "cardNumber": "LA-37",
-    "bobaId": "LA-37-怪獣焼き-Hot Dog-Kaiju Dog-ICE",
+    "bobaId": "LA-37-怪獣焼き-Hot Dog-Kaiju Dog-NONE",
     "bvId": 7813,
     "name": "怪獣焼き",
     "hero": "怪獣焼き",
@@ -499217,7 +499217,7 @@
   },
   {
     "cardNumber": "LA-38",
-    "bobaId": "LA-38-怪獣焼き-Hot Dog-Kaiju Dog-HEX",
+    "bobaId": "LA-38-怪獣焼き-Hot Dog-Kaiju Dog-NONE",
     "bvId": 7814,
     "name": "怪獣焼き",
     "hero": "怪獣焼き",
@@ -623398,7 +623398,7 @@
   },
   {
     "cardNumber": "P-2",
-    "bobaId": "P-2-The Kid-Prize & Promos-2026 Release Day Promo-HEX",
+    "bobaId": "P-2-The Kid-Prize & Promos-2026 Release Day Promo-GUM",
     "bvId": 860,
     "name": "The Kid",
     "hero": "The Kid",
@@ -623444,7 +623444,7 @@
   },
   {
     "cardNumber": "P-3",
-    "bobaId": "P-3-The Kid-Prize & Promos-2026 Release Day Promo-GLOW",
+    "bobaId": "P-3-The Kid-Prize & Promos-2026 Release Day Promo-HEX",
     "bvId": 861,
     "name": "The Kid",
     "hero": "The Kid",
@@ -623490,7 +623490,7 @@
   },
   {
     "cardNumber": "P-4",
-    "bobaId": "P-4-The Kid-Prize & Promos-2026 Release Day Promo-FIRE",
+    "bobaId": "P-4-The Kid-Prize & Promos-2026 Release Day Promo-GLOW",
     "bvId": 862,
     "name": "The Kid",
     "hero": "The Kid",
@@ -623536,7 +623536,7 @@
   },
   {
     "cardNumber": "P-5",
-    "bobaId": "P-5-The Kid-Prize & Promos-2026 Release Day Promo-ICE",
+    "bobaId": "P-5-The Kid-Prize & Promos-2026 Release Day Promo-FIRE",
     "bvId": 863,
     "name": "The Kid",
     "hero": "The Kid",
@@ -623582,7 +623582,7 @@
   },
   {
     "cardNumber": "P-6",
-    "bobaId": "P-6-The Kid-Prize & Promos-2026 Release Day Promo-STEEL",
+    "bobaId": "P-6-The Kid-Prize & Promos-2026 Release Day Promo-ICE",
     "bvId": 864,
     "name": "The Kid",
     "hero": "The Kid",
@@ -623628,7 +623628,7 @@
   },
   {
     "cardNumber": "P-7",
-    "bobaId": "P-7-The Kid-Prize & Promos-2026 Release Day Promo-GUM",
+    "bobaId": "P-7-The Kid-Prize & Promos-2026 Release Day Promo-STEEL",
     "bvId": 865,
     "name": "The Kid",
     "hero": "The Kid",
@@ -666966,7 +666966,7 @@
   },
   {
     "cardNumber": "RAD-46",
-    "bobaId": "RAD-46-Bern Baby, Bern-80's Rad Battlefoil-Bernie Williams Debut-GLOW",
+    "bobaId": "RAD-46-Bern Baby, Bern-80's Rad Battlefoil-Bernie Williams Debut-HEX",
     "bvId": 4507,
     "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
@@ -669805,7 +669805,7 @@
   },
   {
     "cardNumber": "RAD-67",
-    "bobaId": "RAD-67-Butterfly Sting-80's Rad Battlefoil-First Edition-GLOW",
+    "bobaId": "RAD-67-Butterfly Sting-80's Rad Battlefoil-First Edition-HEX",
     "bvId": 2726,
     "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
@@ -672904,7 +672904,7 @@
   },
   {
     "cardNumber": "RAD-90",
-    "bobaId": "RAD-90-BrockNess-80's Rad Battlefoil-First Edition-STEEL",
+    "bobaId": "RAD-90-BrockNess-80's Rad Battlefoil-First Edition-HEX",
     "bvId": 1822,
     "name": "BrockNess",
     "hero": "BrockNess",
@@ -673980,7 +673980,7 @@
   },
   {
     "cardNumber": "RAD-98",
-    "bobaId": "RAD-98-Caliber-80's Rad Battlefoil-2026 Edition-FIRE",
+    "bobaId": "RAD-98-Caliber-80's Rad Battlefoil-2026 Edition-HEX",
     "bvId": 2858,
     "name": "Caliber",
     "hero": "Caliber",
@@ -674651,7 +674651,7 @@
   },
   {
     "cardNumber": "RAD-103",
-    "bobaId": "RAD-103-Brawn-80's Rad Battlefoil-First Edition-FIRE",
+    "bobaId": "RAD-103-Brawn-80's Rad Battlefoil-First Edition-HEX",
     "bvId": 807,
     "name": "Brawn",
     "hero": "Brawn",
@@ -675725,7 +675725,7 @@
   },
   {
     "cardNumber": "RAD-111",
-    "bobaId": "RAD-111-Camera-80's Rad Battlefoil-First Edition-FIRE",
+    "bobaId": "RAD-111-Camera-80's Rad Battlefoil-First Edition-HEX",
     "bvId": 4011,
     "name": "Camera",
     "hero": "Camera",
@@ -676124,7 +676124,7 @@
   },
   {
     "cardNumber": "RAD-114",
-    "bobaId": "RAD-114-Canine-80's Rad Battlefoil-First Edition-ICE",
+    "bobaId": "RAD-114-Canine-80's Rad Battlefoil-First Edition-HEX",
     "bvId": 5122,
     "name": "Canine",
     "hero": "Canine",
@@ -676347,7 +676347,7 @@
   },
   {
     "cardNumber": "RAD-116",
-    "bobaId": "RAD-116-Thighs Man-80's Rad Battlefoil-Joe Theisman-FIRE",
+    "bobaId": "RAD-116-Thighs Man-80's Rad Battlefoil-Joe Theisman-HEX",
     "bvId": 1026,
     "name": "Thighs Man",
     "hero": "Thighs Man",
@@ -678421,7 +678421,7 @@
   },
   {
     "cardNumber": "RAD-131",
-    "bobaId": "RAD-131-Castler-80's Rad Battlefoil-First Edition-ICE",
+    "bobaId": "RAD-131-Castler-80's Rad Battlefoil-First Edition-HEX",
     "bvId": 566,
     "name": "Castler",
     "hero": "Castler",
@@ -679236,7 +679236,7 @@
   },
   {
     "cardNumber": "RAD-137",
-    "bobaId": "RAD-137-Burner-80's Rad Battlefoil-Jalen Brunson Unmasked-ICE",
+    "bobaId": "RAD-137-Burner-80's Rad Battlefoil-Jalen Brunson Unmasked-GLOW",
     "bvId": 3849,
     "name": "Burner",
     "hero": "Burner",
@@ -680040,7 +680040,7 @@
   },
   {
     "cardNumber": "RAD-143",
-    "bobaId": "RAD-143-Cheryl Bomb-80's Rad Battlefoil-Cheryl Miller Debut-ICE",
+    "bobaId": "RAD-143-Cheryl Bomb-80's Rad Battlefoil-Cheryl Miller Debut-GLOW",
     "bvId": 3017,
     "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
@@ -682883,7 +682883,7 @@
   },
   {
     "cardNumber": "RAD-164",
-    "bobaId": "RAD-164-Billhook-80's Rad Battlefoil-Chauncey Billups Debut-ICE",
+    "bobaId": "RAD-164-Billhook-80's Rad Battlefoil-Chauncey Billups Debut-GLOW",
     "bvId": 1287,
     "name": "Billhook",
     "hero": "Billhook",
@@ -683964,7 +683964,7 @@
   },
   {
     "cardNumber": "RAD-172",
-    "bobaId": "RAD-172-Captain Hook-80's Rad Battlefoil-Jack Morris Debut-STEEL",
+    "bobaId": "RAD-172-Captain Hook-80's Rad Battlefoil-Jack Morris Debut-GLOW",
     "bvId": 4510,
     "name": "Captain Hook",
     "hero": "Captain Hook",
@@ -684637,7 +684637,7 @@
   },
   {
     "cardNumber": "RAD-177",
-    "bobaId": "RAD-177-Bern Baby, Bern-80's Rad Battlefoil-Bernie Williams Debut-STEEL",
+    "bobaId": "RAD-177-Bern Baby, Bern-80's Rad Battlefoil-Bernie Williams Debut-GLOW",
     "bvId": 5210,
     "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
@@ -687467,7 +687467,7 @@
   },
   {
     "cardNumber": "RAD-198",
-    "bobaId": "RAD-198-Butterfly Sting-80's Rad Battlefoil-First Edition-FIRE",
+    "bobaId": "RAD-198-Butterfly Sting-80's Rad Battlefoil-First Edition-GLOW",
     "bvId": 2491,
     "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
@@ -690592,7 +690592,7 @@
   },
   {
     "cardNumber": "RAD-221",
-    "bobaId": "RAD-221-BrockNess-80's Rad Battlefoil-First Edition-HEX",
+    "bobaId": "RAD-221-BrockNess-80's Rad Battlefoil-First Edition-GLOW",
     "bvId": 2058,
     "name": "BrockNess",
     "hero": "BrockNess",
@@ -691675,7 +691675,7 @@
   },
   {
     "cardNumber": "RAD-229",
-    "bobaId": "RAD-229-Caliber-80's Rad Battlefoil-2026 Edition-HEX",
+    "bobaId": "RAD-229-Caliber-80's Rad Battlefoil-2026 Edition-GLOW",
     "bvId": 4634,
     "name": "Caliber",
     "hero": "Caliber",
@@ -692356,7 +692356,7 @@
   },
   {
     "cardNumber": "RAD-234",
-    "bobaId": "RAD-234-Brawn-80's Rad Battlefoil-First Edition-ICE",
+    "bobaId": "RAD-234-Brawn-80's Rad Battlefoil-First Edition-GLOW",
     "bvId": 6687,
     "name": "Brawn",
     "hero": "Brawn",
@@ -693843,7 +693843,7 @@
   },
   {
     "cardNumber": "RAD-245",
-    "bobaId": "RAD-245-Canine-80's Rad Battlefoil-First Edition-HEX",
+    "bobaId": "RAD-245-Canine-80's Rad Battlefoil-First Edition-GLOW",
     "bvId": 102,
     "name": "Canine",
     "hero": "Canine",
@@ -696159,7 +696159,7 @@
   },
   {
     "cardNumber": "RAD-262",
-    "bobaId": "RAD-262-Castler-80's Rad Battlefoil-First Edition-HEX",
+    "bobaId": "RAD-262-Castler-80's Rad Battlefoil-First Edition-GLOW",
     "bvId": 4068,
     "name": "Castler",
     "hero": "Castler",
@@ -696294,7 +696294,7 @@
   },
   {
     "cardNumber": "RAD-263",
-    "bobaId": "RAD-263-Bojax-80's Rad Battlefoil-2026 Founding Hero-HEX",
+    "bobaId": "RAD-263-Bojax-80's Rad Battlefoil-2026 Founding Hero-FIRE",
     "bvId": 1239,
     "name": "Bojax",
     "hero": "Bojax",
@@ -697792,7 +697792,7 @@
   },
   {
     "cardNumber": "RAD-274",
-    "bobaId": "RAD-274-Cheryl Bomb-80's Rad Battlefoil-Cheryl Miller Debut-ICE",
+    "bobaId": "RAD-274-Cheryl Bomb-80's Rad Battlefoil-Cheryl Miller Debut-FIRE",
     "bvId": 4546,
     "name": "Cheryl Bomb",
     "hero": "Cheryl Bomb",
@@ -700648,7 +700648,7 @@
   },
   {
     "cardNumber": "RAD-295",
-    "bobaId": "RAD-295-Billhook-80's Rad Battlefoil-Chauncey Billups Debut-STEEL",
+    "bobaId": "RAD-295-Billhook-80's Rad Battlefoil-Chauncey Billups Debut-FIRE",
     "bvId": 1526,
     "name": "Billhook",
     "hero": "Billhook",
@@ -701734,7 +701734,7 @@
   },
   {
     "cardNumber": "RAD-303",
-    "bobaId": "RAD-303-Captain Hook-80's Rad Battlefoil-Jack Morris Debut-GLOW",
+    "bobaId": "RAD-303-Captain Hook-80's Rad Battlefoil-Jack Morris Debut-FIRE",
     "bvId": 926,
     "name": "Captain Hook",
     "hero": "Captain Hook",
@@ -702413,7 +702413,7 @@
   },
   {
     "cardNumber": "RAD-308",
-    "bobaId": "RAD-308-Bern Baby, Bern-80's Rad Battlefoil-Bernie Williams Debut-GLOW",
+    "bobaId": "RAD-308-Bern Baby, Bern-80's Rad Battlefoil-Bernie Williams Debut-FIRE",
     "bvId": 3600,
     "name": "Bern Baby, Bern",
     "hero": "Bern Baby, Bern",
@@ -705266,7 +705266,7 @@
   },
   {
     "cardNumber": "RAD-329",
-    "bobaId": "RAD-329-Butterfly Sting-80's Rad Battlefoil-First Edition-ICE",
+    "bobaId": "RAD-329-Butterfly Sting-80's Rad Battlefoil-First Edition-FIRE",
     "bvId": 5068,
     "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
@@ -708382,7 +708382,7 @@
   },
   {
     "cardNumber": "RAD-352",
-    "bobaId": "RAD-352-BrockNess-80's Rad Battlefoil-First Edition-GLOW",
+    "bobaId": "RAD-352-BrockNess-80's Rad Battlefoil-First Edition-FIRE",
     "bvId": 2215,
     "name": "BrockNess",
     "hero": "BrockNess",
@@ -709462,7 +709462,7 @@
   },
   {
     "cardNumber": "RAD-360",
-    "bobaId": "RAD-360-Caliber-80's Rad Battlefoil-2026 Edition-STEEL",
+    "bobaId": "RAD-360-Caliber-80's Rad Battlefoil-2026 Edition-FIRE",
     "bvId": 3641,
     "name": "Caliber",
     "hero": "Caliber",
@@ -710909,7 +710909,7 @@
   },
   {
     "cardNumber": "RAD-371",
-    "bobaId": "RAD-371-Triple Threat-80's Rad Battlefoil-First Edition-FIRE",
+    "bobaId": "RAD-371-Triple Threat-80's Rad Battlefoil-First Edition-HEX",
     "bvId": 5166,
     "name": "Triple Threat",
     "hero": "Triple Threat",
@@ -711045,7 +711045,7 @@
   },
   {
     "cardNumber": "RAD-372",
-    "bobaId": "RAD-372-Triple Threat-80's Rad Battlefoil-First Edition-FIRE",
+    "bobaId": "RAD-372-Triple Threat-80's Rad Battlefoil-First Edition-GLOW",
     "bvId": 5626,
     "name": "Triple Threat",
     "hero": "Triple Threat",
@@ -711317,7 +711317,7 @@
   },
   {
     "cardNumber": "RAD-374",
-    "bobaId": "RAD-374-Triple Threat-80's Rad Battlefoil-First Edition-FIRE",
+    "bobaId": "RAD-374-Triple Threat-80's Rad Battlefoil-First Edition-ICE",
     "bvId": 1932,
     "name": "Triple Threat",
     "hero": "Triple Threat",
@@ -711453,7 +711453,7 @@
   },
   {
     "cardNumber": "RAD-375",
-    "bobaId": "RAD-375-Triple Threat-80's Rad Battlefoil-First Edition-FIRE",
+    "bobaId": "RAD-375-Triple Threat-80's Rad Battlefoil-First Edition-STEEL",
     "bvId": 5456,
     "name": "Triple Threat",
     "hero": "Triple Threat",
@@ -711635,7 +711635,7 @@
   },
   {
     "cardNumber": "RAD-376",
-    "bobaId": "RAD-376-Canine-80's Rad Battlefoil-First Edition-HEX",
+    "bobaId": "RAD-376-Canine-80's Rad Battlefoil-First Edition-FIRE",
     "bvId": 874,
     "name": "Canine",
     "hero": "Canine",
@@ -713356,7 +713356,7 @@
   },
   {
     "cardNumber": "RAD-393",
-    "bobaId": "RAD-393-Castler-80's Rad Battlefoil-First Edition-ICE",
+    "bobaId": "RAD-393-Castler-80's Rad Battlefoil-First Edition-FIRE",
     "bvId": 1866,
     "name": "Castler",
     "hero": "Castler",
@@ -719434,7 +719434,7 @@
   },
   {
     "cardNumber": "RAD-460",
-    "bobaId": "RAD-460-Butterfly Sting-80's Rad Battlefoil-First Edition-STEEL",
+    "bobaId": "RAD-460-Butterfly Sting-80's Rad Battlefoil-First Edition-ICE",
     "bvId": 5007,
     "name": "Butterfly Sting",
     "hero": "Butterfly Sting",
@@ -721514,7 +721514,7 @@
   },
   {
     "cardNumber": "RAD-483",
-    "bobaId": "RAD-483-BrockNess-80's Rad Battlefoil-First Edition-STEEL",
+    "bobaId": "RAD-483-BrockNess-80's Rad Battlefoil-First Edition-ICE",
     "bvId": 929,
     "name": "BrockNess",
     "hero": "BrockNess",
@@ -722238,7 +722238,7 @@
   },
   {
     "cardNumber": "RAD-491",
-    "bobaId": "RAD-491-Caliber-80's Rad Battlefoil-2026 Edition-STEEL",
+    "bobaId": "RAD-491-Caliber-80's Rad Battlefoil-2026 Edition-ICE",
     "bvId": 5168,
     "name": "Caliber",
     "hero": "Caliber",
@@ -722690,7 +722690,7 @@
   },
   {
     "cardNumber": "RAD-496",
-    "bobaId": "RAD-496-Brawn-80's Rad Battlefoil-First Edition-STEEL",
+    "bobaId": "RAD-496-Brawn-80's Rad Battlefoil-First Edition-ICE",
     "bvId": 6294,
     "name": "Brawn",
     "hero": "Brawn",
@@ -723412,7 +723412,7 @@
   },
   {
     "cardNumber": "RAD-504",
-    "bobaId": "RAD-504-Camera-80's Rad Battlefoil-First Edition-STEEL",
+    "bobaId": "RAD-504-Camera-80's Rad Battlefoil-First Edition-ICE",
     "bvId": 3100,
     "name": "Camera",
     "hero": "Camera",
@@ -723682,7 +723682,7 @@
   },
   {
     "cardNumber": "RAD-507",
-    "bobaId": "RAD-507-Canine-80's Rad Battlefoil-First Edition-STEEL",
+    "bobaId": "RAD-507-Canine-80's Rad Battlefoil-First Edition-ICE",
     "bvId": 5366,
     "name": "Canine",
     "hero": "Canine",
@@ -744859,7 +744859,7 @@
   },
   {
     "cardNumber": "RHBF-19",
-    "bobaId": "RHBF-19-BrockNess-Red Headlines Battlefoil-First Edition-FIRE",
+    "bobaId": "RHBF-19-BrockNess-Red Headlines Battlefoil-First Edition-BRAWL",
     "bvId": 4639,
     "name": "BrockNess",
     "hero": "BrockNess",
@@ -745595,7 +745595,7 @@
   },
   {
     "cardNumber": "RHBF-27",
-    "bobaId": "RHBF-27-Caliber-Red Headlines Battlefoil-2026 Edition-FIRE",
+    "bobaId": "RHBF-27-Caliber-Red Headlines Battlefoil-2026 Edition-BRAWL",
     "bvId": 3896,
     "name": "Caliber",
     "hero": "Caliber",
@@ -746057,7 +746057,7 @@
   },
   {
     "cardNumber": "RHBF-32",
-    "bobaId": "RHBF-32-Brawn-Red Headlines Battlefoil-First Edition-FIRE",
+    "bobaId": "RHBF-32-Brawn-Red Headlines Battlefoil-First Edition-BRAWL",
     "bvId": 6203,
     "name": "Brawn",
     "hero": "Brawn",
@@ -746797,7 +746797,7 @@
   },
   {
     "cardNumber": "RHBF-40",
-    "bobaId": "RHBF-40-Camera-Red Headlines Battlefoil-First Edition-FIRE",
+    "bobaId": "RHBF-40-Camera-Red Headlines Battlefoil-First Edition-BRAWL",
     "bvId": 4922,
     "name": "Camera",
     "hero": "Camera",
@@ -747074,7 +747074,7 @@
   },
   {
     "cardNumber": "RHBF-43",
-    "bobaId": "RHBF-43-Canine-Red Headlines Battlefoil-First Edition-FIRE",
+    "bobaId": "RHBF-43-Canine-Red Headlines Battlefoil-First Edition-BRAWL",
     "bvId": 673,
     "name": "Canine",
     "hero": "Canine",
@@ -748645,7 +748645,7 @@
   },
   {
     "cardNumber": "RHBF-60",
-    "bobaId": "RHBF-60-Castler-Red Headlines Battlefoil-First Edition-FIRE",
+    "bobaId": "RHBF-60-Castler-Red Headlines Battlefoil-First Edition-BRAWL",
     "bvId": 5777,
     "name": "Castler",
     "hero": "Castler",
@@ -750920,7 +750920,7 @@
   },
   {
     "cardNumber": "RYA-2",
-    "bobaId": "RYA-2-Robin Hood-Inspired Ink Battlefoil-Robin Yount Debut-GUM",
+    "bobaId": "RYA-2-Robin Hood-Inspired Ink Battlefoil-Robin Yount Debut-HEX",
     "bvId": 15735,
     "name": "Robin Hood",
     "hero": "Robin Hood",
@@ -793827,7 +793827,7 @@
   },
   {
     "cardNumber": "SMA-3",
-    "bobaId": "SMA-3-Santa-Moss-Inspired Ink Bubble Gum Battlefoil-Santana Moss Debut-HEX",
+    "bobaId": "SMA-3-Santa-Moss-Inspired Ink Bubble Gum Battlefoil-Santana Moss Debut-GUM",
     "bvId": 16034,
     "name": "Santa-Moss",
     "hero": "Santa-Moss",

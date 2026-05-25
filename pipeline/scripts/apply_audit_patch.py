@@ -184,18 +184,26 @@ def apply_modifies(cards: list[dict], modifies: list[dict]) -> dict:
                 card[k] = v
             fields_applied += 1
 
-        # If the surviving changes still include name/cardNumber, regen bobaId.
-        if "cardNumber" in changes or "name" in changes:
+        # Regen bobaId if ANY bobaId-affecting field changed. v3 formula
+        # is `cardNumber-(hero|name)-treatment-variation-element` per
+        # DECISIONS.md #057, so changes to cardNumber/name/treatment/
+        # variation/element all require regeneration. Pre-fix this only
+        # checked cardNumber/name, which left 61 catalog rows with
+        # stale element-suffixed bobaIds after patch #5 changed element
+        # on 85 cards — caught by audit_bobaid_v3.py on 2026-05-25.
+        bobaid_affecting = {"cardNumber", "name", "treatment", "variation", "element"}
+        if any(k in changes for k in bobaid_affecting):
             if "name" in changes and not card.get("isSealed") and card.get("hero"):
                 card["hero"] = changes["name"]
             old_bid = card.get("bobaId")
             new_bid = build_boba_id(card)
-            card["bobaId"] = new_bid
-            by_boba.pop(old_bid, None)
-            by_boba[new_bid] = card
-            name_cardnumber_changes.append({
-                "from": old_bid, "to": new_bid, "changes": changes,
-            })
+            if new_bid != old_bid:
+                card["bobaId"] = new_bid
+                by_boba.pop(old_bid, None)
+                by_boba[new_bid] = card
+                name_cardnumber_changes.append({
+                    "from": old_bid, "to": new_bid, "changes": changes,
+                })
         cards_modified += 1
 
     return {

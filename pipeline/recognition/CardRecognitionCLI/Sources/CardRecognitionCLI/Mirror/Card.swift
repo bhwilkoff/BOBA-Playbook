@@ -119,8 +119,11 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
         return nil
     }
 
-    // Stable unique id — v2 formula matches boba_id.py: "{cardNumber}-{hero}-{treatment??''}-{variation??''}"
-    var id: String { "\(cardNumber)-\(hero)-\(treatment ?? "")-\(variation ?? "")" }
+    // Stable unique id — v3 formula matches boba_id.py + the main app's
+    // Card.id (DECISIONS.md #057). Element as 5th field disambiguates
+    // FIRE/GLOW weapon-variant pairs that share cardNumber+hero+
+    // treatment+variation.
+    var id: String { bobaId }
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: Card, rhs: Card) -> Bool { lhs.id == rhs.id }
@@ -212,12 +215,11 @@ extension Card {
     /// Card" — this is the primary key for the catalog. Verified
     /// 17,739 unique values across the bundle (zero collisions).
     ///
-    /// Computed at runtime rather than decoded — the formula is
-    /// deterministic so the value matches the `bobaId` stored in
-    /// the JSON bundles. Older bundles that pre-date the field
-    /// still resolve to the same id.
+    /// v3 5-field formula (DECISIONS.md #057). Element as 5th field
+    /// matches the stored bobaId in cards.json + the main app's
+    /// Card.bobaId.
     var bobaId: String {
         let identifier = hero.isEmpty ? name : hero
-        return "\(cardNumber)-\(identifier)-\(treatment ?? "")-\(variation ?? "")"
+        return "\(cardNumber)-\(identifier)-\(treatment ?? "")-\(variation ?? "")-\(element)"
     }
 }

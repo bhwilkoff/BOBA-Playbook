@@ -65,11 +65,15 @@ def load_cards_json(repo_root: Path) -> list[dict]:
 
 
 def boba_id_for(card: dict) -> str:
+    # v3 5-field formula (DECISIONS.md #057). Element is the 5th field
+    # and disambiguates FIRE/GLOW weapon-variant pairs. Must match
+    # pipeline_image_candidates.target_boba_id post-v3-migration.
     cn = (card.get("cardNumber") or "").strip()
     hero = (card.get("hero") or card.get("name") or "").strip()
     treat = (card.get("treatment") or "").strip()
     var = (card.get("variation") or "").strip()
-    return f"{cn}-{hero}-{treat}-{var}"
+    elem = (card.get("element") or "").strip()
+    return f"{cn}-{hero}-{treat}-{var}-{elem}"
 
 
 def index_bv_rows() -> dict[str, list[dict]]:

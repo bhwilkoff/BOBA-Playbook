@@ -74,9 +74,11 @@ struct UserCard: Codable, Identifiable, Hashable {
     let id: UUID
     let userId: UUID
     let cardNumber: String
-    /// Composite identifier matching Card.id: "{cardNumber}-{hero}-{treatment??''}-{variation??''}".
-    /// Used for exact card matching so two cards with the same card number but
-    /// different treatments/editions are never confused.
+    /// Composite identifier matching Card.id: v3 5-field formula
+    /// "{cardNumber}-{hero}-{treatment??''}-{variation??''}-{element}"
+    /// (DECISIONS.md #057). Used for exact card matching so weapon-
+    /// variant pairs (FIRE/GLOW) at the same cardNumber/treatment are
+    /// never confused.
     let bobaId: String?
     var designation: Designation
     var condition: String?
@@ -165,7 +167,9 @@ struct UserCard: Codable, Identifiable, Hashable {
 // MARK: - New card payload (for POST to Supabase)
 struct NewUserCard: Encodable {
     let cardNumber: String
-    /// Composite identifier matching Card.id ("{cardNumber}-{hero}-{treatment??''}-{variation??''}"). Stored server-side for exact card matching.
+    /// Composite identifier matching Card.id — v3 5-field formula
+    /// "{cardNumber}-{hero}-{treatment??''}-{variation??''}-{element}"
+    /// (DECISIONS.md #057). Stored server-side for exact card matching.
     let bobaId: String
     let designation: UserCard.Designation
     var condition: String?

@@ -3,7 +3,7 @@ CREATE TABLE user_cards (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id          uuid REFERENCES auth.users ON DELETE CASCADE,
   card_number      text NOT NULL,
-  boba_id          text,          -- canonical v2 key: "{cardNumber}-{hero}-{treatment??''}-{variation??''}" (One ID per Card)
+  boba_id          text,          -- canonical v3 key: "{cardNumber}-{hero||name}-{treatment??''}-{variation??''}-{element??''}" (DECISIONS.md #057)
   designation      text DEFAULT 'personal' CHECK (designation IN ('personal','for_sale','for_trade','wanted','grails')),
   condition        text,
   serial_number    int,
@@ -111,8 +111,8 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
 -- Card corrections: mods submit field-level fixes to static card data
 CREATE TABLE card_corrections (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  boba_id      text,             -- canonical 4-field ID: "{cardNumber}-{hero}-{treatment}-{variation}"
-                                  -- Mantra: One Image per Card. One ID per Card.
+  boba_id      text,             -- canonical v3 5-field ID: "{cardNumber}-{hero||name}-{treatment}-{variation}-{element}"
+                                  -- Mantra: One Image per Card. One ID per Card. DECISIONS.md #057.
   card_number  text NOT NULL,
   corrections  jsonb NOT NULL,   -- e.g. {"hero": "BoJax", "element": "FIRE"}
   notes        text,
@@ -148,7 +148,7 @@ CREATE POLICY "admins review corrections"
 -- or register an approved replacement (Supabase Storage path)
 CREATE TABLE card_image_overrides (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  boba_id         text,          -- canonical 4-field ID; preferred for disambiguation
+  boba_id         text,          -- canonical v3 5-field ID; preferred for disambiguation
   card_number     text NOT NULL,
   action          text NOT NULL CHECK (action IN ('replace', 'remove')),
   storage_path    text,   -- Supabase Storage path (for 'replace' action)

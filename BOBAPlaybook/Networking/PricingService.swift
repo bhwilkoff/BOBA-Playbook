@@ -201,7 +201,7 @@ actor PricingService {
         // re-opened cards + saves eBay API quota. Refresh button
         // bypasses this path by setting forceRefresh=true.
         if !forceRefresh,
-           let bobaId = bobaIdHint(cardNumber: cardNumber, hero: hero, treatment: treatment, variation: variation),
+           let bobaId = bobaIdHint(cardNumber: cardNumber, hero: hero, treatment: treatment, variation: variation, element: element),
            let cachedResult = await fetchCachedPricingResult(bobaId: bobaId) {
             cache[key] = cachedResult
             return cachedResult
@@ -261,7 +261,7 @@ actor PricingService {
         // response so callers see one consistent result.
         var soldSection = response.sold
         if soldSection == nil {
-            if let bobaId = bobaIdHint(cardNumber: cardNumber, hero: hero, treatment: treatment, variation: variation),
+            if let bobaId = bobaIdHint(cardNumber: cardNumber, hero: hero, treatment: treatment, variation: variation, element: element),
                let estimated = await fetchEstimatorBucket(bobaId: bobaId) {
                 soldSection = estimated
             }
@@ -293,13 +293,17 @@ actor PricingService {
 
     /// Reconstruct the v2 bobaId from the call params. Mirrors
     /// `scripts/boba_id.py` (CLAUDE.md "One ID per Card"):
-    /// `{cardNumber}-{hero or name}-{treatment or ""}-{variation or ""}`.
-    /// All four fields are passed through; trailing dashes are
-    /// intentional and stable.
-    private func bobaIdHint(cardNumber: String, hero: String, treatment: String?, variation: String?) -> String? {
+    /// `{cardNumber}-{hero or name}-{treatment or ""}-{variation or ""}-{element}`
+    /// — v3 5-field formula per DECISIONS.md #057. Element is the 5th
+    /// field and disambiguates FIRE/GLOW weapon-variant pairs that
+    /// otherwise share cardNumber + hero + treatment + variation.
+    /// Must match the stored `bobaId` field used as `boba_id` in
+    /// Supabase's card_prices_latest view; pre-v3 (4-field) hints
+    /// silently missed the cache for variant-pair cards.
+    private func bobaIdHint(cardNumber: String, hero: String, treatment: String?, variation: String?, element: String) -> String? {
         guard !cardNumber.isEmpty else { return nil }
         let id = hero.isEmpty ? "" : hero
-        return "\(cardNumber)-\(id)-\(treatment ?? "")-\(variation ?? "")"
+        return "\(cardNumber)-\(id)-\(treatment ?? "")-\(variation ?? "")-\(element)"
     }
 
     private struct EstimatorResponse: Decodable {

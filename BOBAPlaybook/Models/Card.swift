@@ -131,8 +131,9 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
         return nil
     }
 
-    // Stable unique id — v2 formula matches boba_id.py:
-    // "{cardNumber}-{hero or name}-{treatment??''}-{variation??''}".
+    // Stable unique id — v3 formula matches boba_id.py:
+    // "{cardNumber}-{hero or name}-{treatment??''}-{variation??''}-{element}".
+    // 5th field is the weapon (DECISIONS.md #057 / 2026-05-25).
     // For Sealed Products (no hero) the `name` field stands in so
     // the id matches the catalog's canonical bobaId field + the
     // `Card.bobaId` getter below. Without the name fallback,
@@ -150,10 +151,15 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
     /// FIRE/GLOW weapon-variant pairs (101 collisions across GLBF +
     /// RAD), which crashed `Dictionary(uniqueKeysWithValues:)` in
     /// DeckBuilderStore.loadTemplate and elsewhere.
-    var id: String { bobaId }
+    ///
+    /// `nonisolated` because the project default isolation is MainActor
+    /// (per memory feedback_project_default_mainactor_isolation) but
+    /// pure value-derived computed properties are safe across actors
+    /// and Hashable conformance in Sets / Dictionary keys requires it.
+    nonisolated var id: String { bobaId }
 
-    func hash(into hasher: inout Hasher) { hasher.combine(id) }
-    static func == (lhs: Card, rhs: Card) -> Bool { lhs.id == rhs.id }
+    nonisolated func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    nonisolated static func == (lhs: Card, rhs: Card) -> Bool { lhs.id == rhs.id }
 
     // Custom decoder handles nullable hero/element/imageAvailable for sealed products
     init(from decoder: Decoder) throws {
@@ -265,8 +271,9 @@ extension Card {
     ///
     /// Computed at runtime rather than decoded — the formula is
     /// deterministic so the value matches the `bobaId` stored in
-    /// the JSON bundles.
-    var bobaId: String {
+    /// the JSON bundles. `nonisolated` because `id` (Hashable key)
+    /// returns this value and must be callable from any actor.
+    nonisolated var bobaId: String {
         let identifier = hero.isEmpty ? name : hero
         return "\(cardNumber)-\(identifier)-\(treatment ?? "")-\(variation ?? "")-\(element)"
     }

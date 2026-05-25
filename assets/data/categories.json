@@ -364,7 +364,7 @@
         "ALT"
       ],
       "sampleBobaIds": [
-        "BLC-3-BoJax-Blue Raspberry-First Edition-ALT",
+        "BLC-3-BoJax-Blue Raspberry-First Edition-",
         "BLC-6-BoJax-Blue Raspberry-First Edition-ALT",
         "BLC-10-Young-Gunner-Blue Raspberry-First Edition-ALT",
         "BLC-12-Emmitt-164-Blue Raspberry-First Edition-ALT",
@@ -886,10 +886,10 @@
       ],
       "sampleBobaIds": [
         "P-1-The Kid-Prize & Promos-2026 Release Day Promo-SUPER",
-        "P-2-The Kid-Prize & Promos-2026 Release Day Promo-HEX",
-        "P-3-The Kid-Prize & Promos-2026 Release Day Promo-GLOW",
-        "P-4-The Kid-Prize & Promos-2026 Release Day Promo-FIRE",
-        "P-5-The Kid-Prize & Promos-2026 Release Day Promo-ICE"
+        "P-2-The Kid-Prize & Promos-2026 Release Day Promo-GUM",
+        "P-3-The Kid-Prize & Promos-2026 Release Day Promo-HEX",
+        "P-4-The Kid-Prize & Promos-2026 Release Day Promo-GLOW",
+        "P-5-The Kid-Prize & Promos-2026 Release Day Promo-FIRE"
       ]
     },
     "Red Battlefoil": {
@@ -1952,16 +1952,16 @@
         "Jim Rice"
       ],
       "bobaIds": [
-        "ABF-182-Boston Stongboy-Alpha Battlefoil-Jim Rice Debut",
-        "ABF-313-Boston Stongboy-Alpha Battlefoil-Jim Rice Debut",
-        "ABF-444-Boston Stongboy-Alpha Battlefoil-Jim Rice Debut",
-        "ABF-51-Boston Stongboy-Alpha Battlefoil-Jim Rice Debut",
-        "ABF-575-Boston Stongboy-Alpha Battlefoil-Jim Rice Debut",
-        "ABF-706-Boston Stongboy-Alpha Battlefoil-Jim Rice Debut",
-        "BBF-51-Boston Stongboy-Blue Battlefoil-Jim Rice Debut",
-        "BLBF-182-Boston Stongboy-Blizzard Battlefoil-Jim Rice Debut",
-        "BLBF-313-Boston Stongboy-Blizzard Battlefoil-Jim Rice Debut",
-        "BLBF-51-Boston Stongboy-Blizzard Battlefoil-Jim Rice Debut"
+        "ABF-182-Boston Strongboy-Alpha Battlefoil-Jim Rice Debut-GLOW",
+        "ABF-313-Boston Strongboy-Alpha Battlefoil-Jim Rice Debut-FIRE",
+        "ABF-444-Boston Strongboy-Alpha Battlefoil-Jim Rice Debut-ICE",
+        "ABF-51-Boston Strongboy-Alpha Battlefoil-Jim Rice Debut-HEX",
+        "ABF-575-Boston Strongboy-Alpha Battlefoil-Jim Rice Debut-STEEL",
+        "ABF-706-Boston Strongboy-Alpha Battlefoil-Jim Rice Debut-BRAWL",
+        "BBF-51-Boston Strongboy-Blue Battlefoil-Jim Rice Debut-ICE",
+        "BLBF-182-Boston Strongboy-Blizzard Battlefoil-Jim Rice Debut-GLOW",
+        "BLBF-313-Boston Strongboy-Blizzard Battlefoil-Jim Rice Debut-FIRE",
+        "BLBF-51-Boston Strongboy-Blizzard Battlefoil-Jim Rice Debut-HEX"
       ]
     },
     "Botto": {
@@ -2472,7 +2472,7 @@
         "Cam Thomas"
       ],
       "bobaIds": [
-        "108-Chiller-Base Set-First Edition-STEEL",
+        "108-Chiller-Base Set-First Edition-ICE",
         "168-Chiller-Base Set-First Edition-STEEL",
         "228-Chiller-Base Set-First Edition-BRAWL",
         "48-Chiller-Base Set-First Edition-FIRE",

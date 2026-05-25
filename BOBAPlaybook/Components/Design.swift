@@ -782,14 +782,14 @@ struct BOBACardCell: View {
     /// count is dense enough that the thumb pixelates (1- or 2-across).
     var size: CardImageView.ImageSize = .thumb
     /// Whether to render the print-run + format-legality corner badges
-    /// on top of the card art. Default true preserves browsing-surface
-    /// behavior (Find grid); Collection + Decks grids pass false per
-    /// Ben's feedback that the badges clutter cells where the user
-    /// already knows / has chosen the cards. Variant-disambiguation
+    /// on top of the card art. Default is FALSE — Ben confirmed on
+    /// 2026-05-25 that no card grid (Find, Decks, Collection) should
+    /// carry overlay badges on cells. The Collection Wall view's
+    /// PRICING overlay (separate code path in CollectionWallSheet) is
+    /// the only on-cell overlay that stays. Variant-disambiguation
     /// surfaces (Card Detail's Other Versions, Collection Detail's
-    /// variation tiles) call `.cardThumbBadges()` explicitly and
-    /// don't go through this flag.
-    var showCornerBadges: Bool = true
+    /// variation tiles) opt in via `.cardThumbBadges()`.
+    var showCornerBadges: Bool = false
 
     /// 5:7 portrait card aspect — matches every BoBA card. Constant
     /// so the small-multiples guarantee holds across surfaces.
@@ -922,9 +922,11 @@ extension View {
 struct BOBACardGridItem: View {
     let card: Card
     var columnCount: Int = 2
-    /// Passed through to BOBACardCell — see its docstring. Collection
-    /// + Decks grid call sites pass false; Find keeps the default true.
-    var showCornerBadges: Bool = true
+    /// Passed through to BOBACardCell — see its docstring. Default
+    /// false across every grid surface per Ben's request 2026-05-25;
+    /// callers that need badges (variant-disambiguation) opt in via
+    /// `.cardThumbBadges()` instead.
+    var showCornerBadges: Bool = false
 
     /// 1- through 4-across cells render large enough that the 200px
     /// thumb pixelates noticeably — pull the ≤1200px full WebP at

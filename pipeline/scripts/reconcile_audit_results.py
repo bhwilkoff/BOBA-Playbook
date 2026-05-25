@@ -337,6 +337,8 @@ def reconcile(catalog: list[dict], ocr_results: list[dict],
             "catalog": {
                 "cardNumber": card.get("cardNumber"),
                 "name": card.get("name") or card.get("hero"),
+                "hero": card.get("hero"),
+                "variation": card.get("variation"),
                 "power": card.get("power"),
                 "element": card.get("element"),
                 "treatment": card.get("treatment"),
@@ -1241,12 +1243,145 @@ def build_review_html(review: list[dict], updates: list[dict],
     $(id).addEventListener('change', applyFilters);
   });
 
+  // ============ V2 → V3 bobaId localStorage migration ============
+  // Decisions made against the pre-2026-05-25 (4-field) bobaId catalog
+  // remain in localStorage. New HTMLs use 5-field v3 bobaIds.
+  // Rekey existing decisions from v2 to v3 by looking up each entry's
+  // catalog fields and computing both formulas.
+  (function migrateV2ToV3() {
+    function v2Id(c) {
+      const hero = c.hero || c.name || '';
+      const cn   = c.cardNumber || '';
+      const tr   = c.treatment || '';
+      const va   = c.variation || '';
+      return cn + '-' + hero + '-' + tr + '-' + va;
+    }
+    const map = {};  // v2 → v3
+    const allEntries = [...PAYLOAD.updates, ...PAYLOAD.review, ...PAYLOAD.additions];
+    allEntries.forEach(e => {
+      const c = e.catalog;
+      if (!c) return;
+      const v2 = v2Id(c);
+      const v3 = e.bobaId;
+      if (v2 !== v3) map[v2] = v3;
+    });
+    let migrated = 0;
+    for (const key of Object.keys(decisions)) {
+      const sep = key.lastIndexOf(':');
+      if (sep < 0) continue;
+      const oldBoba = key.substring(0, sep);
+      const field   = key.substring(sep + 1);
+      const newBoba = map[oldBoba];
+      if (newBoba && newBoba !== oldBoba) {
+        const newKey = newBoba + ':' + field;
+        if (!(newKey in decisions)) decisions[newKey] = decisions[key];
+        delete decisions[key];
+        migrated++;
+      }
+    }
+    if (migrated > 0) {
+      persist();
+      console.log('[review] migrated', migrated, 'v2 → v3 decisions');
+    }
+  })();
+
   // ============ INIT ============
   renderAdditions();
   renderUpdates();
   renderReview();
   updateStats();
   applyFilters();
+
+  // ============ FLOW OPTIMIZATIONS ============
+  // Keyboard shortcuts + auto-advance to next undecided row.
+  // R/K = keep catalog · A/Space = approve · D = dismiss · J/↓ = next · U/↑ = prev · ? = help
+  let focusedRow = null;
+
+  function focusRow(row, scroll = true) {
+    if (focusedRow === row) return;
+    if (focusedRow) focusedRow.classList.remove('keyboard-focus');
+    focusedRow = row;
+    if (row) {
+      row.classList.add('keyboard-focus');
+      if (scroll) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }
+
+  function visibleRows() {
+    return Array.from(document.querySelectorAll('.card-row'))
+      .filter(r => r.offsetParent !== null && !r.classList.contains('dismissed'));
+  }
+
+  function isDecided(row) {
+    const boba = row.dataset.boba;
+    if (!boba) return false;
+    return Object.keys(decisions).some(k =>
+      k.startsWith(boba + ':') && !k.endsWith(':__dismiss__') && decisions[k]?.action);
+  }
+
+  function nextRow(from, direction = 1, skipDecided = true) {
+    const rows = visibleRows();
+    if (!rows.length) return null;
+    let idx = from ? rows.indexOf(from) : -1;
+    for (let step = 1; step <= rows.length; step++) {
+      const i = (idx + direction * step + rows.length) % rows.length;
+      if (!skipDecided || !isDecided(rows[i])) return rows[i];
+    }
+    return null;
+  }
+
+  function applyToFocused(action) {
+    if (!focusedRow) {
+      const first = nextRow(null, 1, true) || visibleRows()[0];
+      focusRow(first);
+      return;
+    }
+    const boba = focusedRow.dataset.boba;
+    const actionEls = focusedRow.querySelectorAll('.actions[data-field]');
+    actionEls.forEach(actEl => {
+      const field = actEl.dataset.field;
+      if (action === 'approve') {
+        const input = actEl.querySelector('[data-role="value"]');
+        setDecision(boba, field, 'approve', input ? input.value : undefined);
+      } else if (action === 'reject') {
+        setDecision(boba, field, 'reject');
+      } else if (action === 'dismiss') {
+        setDecision(boba, '__dismiss__', 'reject');
+        focusedRow.classList.add('dismissed');
+      }
+      updateActionState(actEl);
+    });
+    const next = nextRow(focusedRow, 1, true);
+    if (next) focusRow(next);
+  }
+
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === 'r' || k === 'k') { e.preventDefault(); applyToFocused('reject'); }
+    else if (k === 'a' || k === ' ') { e.preventDefault(); applyToFocused('approve'); }
+    else if (k === 'd') { e.preventDefault(); applyToFocused('dismiss'); }
+    else if (k === 'j' || k === 'arrowdown') { e.preventDefault(); const n = nextRow(focusedRow, 1, false); if (n) focusRow(n); }
+    else if (k === 'u' || k === 'arrowup') { e.preventDefault(); const p = nextRow(focusedRow, -1, false); if (p) focusRow(p); }
+    else if (k === '?') { e.preventDefault(); toast('Keys: R/K = keep catalog · A/Space = approve · D = dismiss · J/↓ = next · U/↑ = prev'); }
+  });
+
+  document.addEventListener('click', e => {
+    const row = e.target.closest('.card-row');
+    if (row && !e.target.closest('button, input, select, a')) focusRow(row, false);
+  });
+
+  const focusStyle = document.createElement('style');
+  focusStyle.textContent = '.card-row.keyboard-focus { outline: 3px solid #00F5FF; outline-offset: -3px; box-shadow: 0 0 24px rgba(0,245,255,0.3); }';
+  document.head.appendChild(focusStyle);
+
+  setTimeout(() => {
+    const first = nextRow(null, 1, true) || visibleRows()[0];
+    if (first) focusRow(first);
+    toast('Keyboard shortcuts active — press ? for help');
+  }, 300);
 })();
 </script>
 </body></html>""".replace("__PAYLOAD__", payload_json.replace("</", "<\\/"))

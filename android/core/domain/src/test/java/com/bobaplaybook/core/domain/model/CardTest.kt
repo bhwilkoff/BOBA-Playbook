@@ -25,7 +25,7 @@ class CardTest {
     }
 
     @Test
-    fun `bobaId formula matches v2 — heroed card`() {
+    fun `bobaId formula matches v3 — heroed card`() {
         val card = Card(
             cardNumber = "1",
             name = "Maverick",
@@ -36,11 +36,12 @@ class CardTest {
             treatment = "Base Set",
             variation = "First Edition",
         )
-        assertEquals("1-Maverick-Base Set-First Edition", card.bobaId)
+        // v3 (DECISIONS.md #057): cardNumber-hero-treatment-variation-element
+        assertEquals("1-Maverick-Base Set-First Edition-FIRE", card.bobaId)
     }
 
     @Test
-    fun `bobaId formula matches v2 — sealed product falls back to name`() {
+    fun `bobaId formula matches v3 — sealed product falls back to name`() {
         val card = Card(
             cardNumber = "BOX-1",
             name = "Booster Box",
@@ -49,7 +50,9 @@ class CardTest {
             element = "NONE",
             set = "Base Set",
         )
-        assertEquals("BOX-1-Booster Box--", card.bobaId)
+        // Sealed products use name when hero is empty; element NONE
+        // still occupies the 5th slot for stability.
+        assertEquals("BOX-1-Booster Box---NONE", card.bobaId)
     }
 
     @Test
@@ -64,7 +67,8 @@ class CardTest {
             treatment = null,
             variation = null,
         )
-        assertEquals("42-Showtime--", card.bobaId)
+        // Two trailing dashes from empty treatment + variation, then -ICE
+        assertEquals("42-Showtime---ICE", card.bobaId)
     }
 
     @Test

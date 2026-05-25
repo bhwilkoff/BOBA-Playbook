@@ -143,10 +143,14 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
     // with the canonical bobaId then failed to resolve, and
     // sealed products rendered as their raw bobaId in Collection
     // (Ben 2026-05-22).
-    var id: String {
-        let identifier = hero.isEmpty ? name : hero
-        return "\(cardNumber)-\(identifier)-\(treatment ?? "")-\(variation ?? "")"
-    }
+    /// Hashable / Identifiable key. Must match the stored `bobaId`
+    /// field (v3 5-field formula per DECISIONS.md #057) so the iOS
+    /// catalog index `cardsById` agrees with Supabase user_cards rows
+    /// + shared-URL targets. The v2 4-field formula collided on
+    /// FIRE/GLOW weapon-variant pairs (101 collisions across GLBF +
+    /// RAD), which crashed `Dictionary(uniqueKeysWithValues:)` in
+    /// DeckBuilderStore.loadTemplate and elsewhere.
+    var id: String { bobaId }
 
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
     static func == (lhs: Card, rhs: Card) -> Bool { lhs.id == rhs.id }

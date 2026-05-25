@@ -691,17 +691,63 @@ def build_review_html(review: list[dict], updates: list[dict],
   }
 
   // ============ RENDER ============
+  //
+  // Chunked rendering — building all 2,475 card-rows + their tables +
+  // buttons in one synchronous burst froze the browser. New approach:
+  // render the first CHUNK_SIZE rows immediately, then IntersectionObserver
+  // appends another chunk every time the bottom sentinel scrolls into view.
+  // Same pattern as the Collection grid in the web app (DECISIONS.md #020
+  // / WEB-DESIGN.md note). Each chunk is a single DOM-attach batch so
+  // layout cost is bounded.
+  const CHUNK_SIZE = 40;
+  const sectionState = { updates: null, review: null, additions: null };
 
-  function renderUpdates() {
-    const host = $('list-updates');
+  function renderChunkedSection(kind, items, builderFn) {
+    const host = $('list-' + kind);
     host.innerHTML = '';
-    if (!PAYLOAD.updates.length) {
-      host.innerHTML = '<div class="empty">No UPDATES — no catalog corrections proposed.</div>';
+    const sentinel = host.appendChild(document.createElement('div'));
+    sentinel.className = 'chunk-sentinel';
+    sentinel.style.height = '20px';
+    const state = { rendered: 0, items, builder: builderFn, sentinel, host };
+    sectionState[kind] = state;
+    if (!items.length) {
+      host.innerHTML = '<div class="empty">No entries in this section.</div>';
       return;
     }
-    PAYLOAD.updates.forEach(e => {
-      host.appendChild(buildUpdatesRow(e));
-    });
+    appendChunk(kind);  // initial chunk
+    // Observe the sentinel — append more whenever it enters viewport.
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries[0].isIntersecting) return;
+      if (state.rendered >= state.items.length) {
+        observer.disconnect();
+        sentinel.remove();
+        return;
+      }
+      appendChunk(kind);
+    }, { rootMargin: '600px 0px' });
+    observer.observe(sentinel);
+    state.observer = observer;
+  }
+
+  function appendChunk(kind) {
+    const s = sectionState[kind];
+    if (!s) return;
+    const next = Math.min(s.rendered + CHUNK_SIZE, s.items.length);
+    // Build into a fragment so layout happens once.
+    const frag = document.createDocumentFragment();
+    for (let i = s.rendered; i < next; i++) {
+      frag.appendChild(s.builder(s.items[i]));
+    }
+    s.host.insertBefore(frag, s.sentinel);
+    s.rendered = next;
+    applyFiltersToSection(kind);
+  }
+
+  function renderUpdates() {
+    renderChunkedSection('updates', PAYLOAD.updates, buildUpdatesRow);
+    if (!PAYLOAD.updates.length) {
+      $('list-updates').innerHTML = '<div class="empty">No UPDATES — no catalog corrections proposed.</div>';
+    }
   }
 
   function buildUpdatesRow(e) {
@@ -743,13 +789,10 @@ def build_review_html(review: list[dict], updates: list[dict],
   }
 
   function renderReview() {
-    const host = $('list-review');
-    host.innerHTML = '';
+    renderChunkedSection('review', PAYLOAD.review, buildReviewRow);
     if (!PAYLOAD.review.length) {
-      host.innerHTML = '<div class="empty">No REVIEW cards.</div>';
-      return;
+      $('list-review').innerHTML = '<div class="empty">No REVIEW cards.</div>';
     }
-    PAYLOAD.review.forEach(e => host.appendChild(buildReviewRow(e)));
   }
 
   function buildReviewRow(e) {
@@ -789,13 +832,10 @@ def build_review_html(review: list[dict], updates: list[dict],
   }
 
   function renderAdditions() {
-    const host = $('list-additions');
-    host.innerHTML = '';
+    renderChunkedSection('additions', PAYLOAD.additions, buildAdditionsRow);
     if (!PAYLOAD.additions.length) {
-      host.innerHTML = '<div class="empty">No printedSerial additions — no IK cards had a serial extracted.</div>';
-      return;
+      $('list-additions').innerHTML = '<div class="empty">No printedSerial additions — no IK cards had a serial extracted.</div>';
     }
-    PAYLOAD.additions.forEach(e => host.appendChild(buildAdditionsRow(e)));
   }
 
   function buildAdditionsRow(e) {
@@ -963,11 +1003,85 @@ def build_review_html(review: list[dict], updates: list[dict],
   }
 
   // ============ FILTERS ============
+  //
+  // With chunked rendering, filters need to consult both rendered AND
+  // unrendered items. When the user types a search query or picks a
+  // field filter, we walk the full payload and render any unrendered
+  // matches before applying display:none/block on the now-rendered
+  // rows. Without this, a filter would silently hide matches that
+  // hadn't been built yet.
+  function itemMatchesFilter(item, kind, q, field, stateFilter) {
+    if (q) {
+      // Lightweight text-search over bobaId + catalog fields.
+      const text = JSON.stringify(item).toLowerCase();
+      if (!text.includes(q)) return false;
+    }
+    if (field) {
+      if (kind === 'ADDITIONS') {
+        if (field !== 'printedSerial') return false;
+      } else {
+        const status = item.statuses?.[field];
+        if (!status) return false;
+        // Only show the field's value being a candidate for decision
+        // (MISMATCH for UPDATES; LOW_CONF/NULL_OCR for REVIEW).
+      }
+    }
+    if (stateFilter) {
+      const bobaId = item.bobaId || item.old_bobaId;
+      const fields = kind === 'ADDITIONS' ? ['printedSerial'] :
+                     Object.keys(item.statuses || {}).filter(f => f !== 'serial');
+      let pending = false, approved = false, rejected = false;
+      for (const f of fields) {
+        const d = getDecision(bobaId, f);
+        if (kind === 'UPDATES' && item.statuses[f] !== 'MISMATCH') continue;
+        if (!d) pending = true;
+        else if (d.action === 'approve') approved = true;
+        else if (d.action === 'reject') rejected = true;
+      }
+      if (stateFilter === 'pending'  && !pending)  return false;
+      if (stateFilter === 'approved' && !approved) return false;
+      if (stateFilter === 'rejected' && !rejected) return false;
+    }
+    return true;
+  }
+
   function applyFilters() {
     const q = $('search').value.toLowerCase().trim();
     const bucket = $('filter-bucket').value;
     const field = $('filter-field').value;
     const stateFilter = $('filter-status').value;
+    const filtersActive = q || bucket !== 'all' || field || stateFilter;
+
+    // If any filter is active, render every MATCHING unrendered item
+    // (skip non-matches entirely so the DOM stays small even on
+    // narrow filters like "field=power" against 2,475 rows). The
+    // chunking observer is paused while filters are active and
+    // resumes once filters clear.
+    if (filtersActive) {
+      ['updates', 'review', 'additions'].forEach(kind => {
+        const sectionKind = kind === 'additions' ? 'ADDITIONS' :
+                            kind === 'updates' ? 'UPDATES' : 'REVIEW';
+        if (bucket !== 'all' && bucket !== sectionKind) return;
+        const s = sectionState[kind];
+        if (!s) return;
+        const frag = document.createDocumentFragment();
+        let scanned = s.rendered;
+        // Walk unrendered tail. Only append items that match the
+        // active filter; mark non-matches as 'rendered' too so we
+        // don't rescan them, but skip the DOM build.
+        for (let i = s.rendered; i < s.items.length; i++) {
+          if (itemMatchesFilter(s.items[i], sectionKind, q, field, stateFilter)) {
+            frag.appendChild(s.builder(s.items[i]));
+          }
+          scanned = i + 1;
+        }
+        if (frag.childNodes.length) {
+          s.host.insertBefore(frag, s.sentinel);
+        }
+        s.rendered = scanned;
+      });
+    }
+
     document.querySelectorAll('.card-row').forEach(row => {
       const boba = row.dataset.boba.toLowerCase();
       const kind = row.dataset.kind;
@@ -978,8 +1092,12 @@ def build_review_html(review: list[dict], updates: list[dict],
         if (!text.includes(q)) visible = false;
       }
       if (visible && field) {
-        const hasField = row.querySelector(`tr[data-field="${field}"]`);
-        if (!hasField) visible = false;
+        if (kind === 'ADDITIONS') {
+          if (field !== 'printedSerial') visible = false;
+        } else {
+          const hasField = row.querySelector(`tr[data-field="${field}"]`);
+          if (!hasField) visible = false;
+        }
       }
       if (visible && stateFilter) {
         const proposed = row.querySelectorAll('.actions');
@@ -1000,10 +1118,19 @@ def build_review_html(review: list[dict], updates: list[dict],
     ['updates','review','additions'].forEach(s => {
       const rows = document.querySelectorAll(`#section-${s} .card-row`);
       const visibleN = Array.from(rows).filter(r => r.style.display !== 'none').length;
+      const total = (sectionState[s]?.items?.length) || 0;
       const h = $('head-' + s);
       const baseText = h.textContent.split(' (')[0];
-      h.textContent = `${baseText} (${visibleN} visible)`;
+      h.textContent = filtersActive
+        ? `${baseText} (${visibleN} of ${total})`
+        : `${baseText} (${total})`;
     });
+  }
+
+  function applyFiltersToSection(kind) {
+    // After a new chunk lands, re-evaluate which of its rows should be
+    // visible per the current filter state.
+    applyFilters();
   }
 
   // ============ BULK ACTIONS ============

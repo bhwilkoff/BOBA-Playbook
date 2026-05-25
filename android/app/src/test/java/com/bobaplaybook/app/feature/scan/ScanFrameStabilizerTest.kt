@@ -18,8 +18,10 @@ import org.junit.Test
  */
 class ScanFrameStabilizerTest {
 
-    // bobaId formula (CLAUDE.md): "{cardNumber}-{hero}-{treatment}-{variation}"
-    // Trailing dashes are intentional and stable.
+    // bobaId formula v3 (CLAUDE.md / DECISIONS.md #057):
+    //   "{cardNumber}-{hero}-{treatment}-{variation}-{element}"
+    // Trailing dashes are intentional and stable; element is the 5th
+    // and final slot, populated as "FIRE" in the match() helper below.
     // Scores deliberately fall below the fast-commit tier (>=1.8 ⇒ 2
     // agreements; >=2.5 ⇒ 1) so these tests continue to validate
     // the default 3-of-5 multi-frame path. Fast-commit tier behavior
@@ -27,7 +29,7 @@ class ScanFrameStabilizerTest {
     // tests below.
     private val mav = match(cardNumber = "1", hero = "Maverick", score = 1.5)
     private val tig = match(cardNumber = "20", hero = "Tigre", score = 1.5)
-    private val mavBobaId = "1-Maverick--"
+    private val mavBobaId = "1-Maverick---FIRE"
 
     @Test
     fun `single hot frame does not commit`() {

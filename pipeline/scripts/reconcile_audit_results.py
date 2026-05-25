@@ -617,6 +617,10 @@ def build_review_html(review: list[dict], updates: list[dict],
       <option value="approved">Approved</option>
       <option value="rejected">Rejected / kept catalog</option>
     </select>
+    <label style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid rgba(0,245,255,0.4);border-radius:6px;cursor:pointer">
+      <input type="checkbox" id="hide-decided" checked>
+      Hide decided rows
+    </label>
     <button id="approve-visible-ocr">Approve all visible OCR values</button>
     <button id="reject-visible">Keep catalog for all visible</button>
     <button class="primary" id="export">Export curated patch.json</button>
@@ -667,6 +671,18 @@ def build_review_html(review: list[dict], updates: list[dict],
     persist();
     updateStats();
     updateRowState(boba);
+    scheduleApplyFilters();
+  }
+  // Debounce applyFilters via rAF so a bulk loop (approve-row, R-key
+  // hitting N fields, "approve-visible") only does one full DOM walk.
+  let _filterScheduled = false;
+  function scheduleApplyFilters() {
+    if (_filterScheduled) return;
+    _filterScheduled = true;
+    requestAnimationFrame(() => {
+      _filterScheduled = false;
+      if (typeof applyFilters === 'function') applyFilters();
+    });
   }
   function persist() {
     try { localStorage.setItem(LS_KEY, JSON.stringify(decisions)); }
@@ -981,10 +997,31 @@ def build_review_html(review: list[dict], updates: list[dict],
     });
   }
 
+  // A row is "decided" if EVERY proposed field on it has a decision.
+  // (Dismissed rows also count as decided.) Used by Hide-decided +
+  // pending counters.
+  function entryIsDecided(entry, kind) {
+    const boba = entry.bobaId || entry.old_bobaId;
+    if (getDecision(boba, '__dismiss__')) return true;
+    if (kind === 'ADDITIONS') return true;  // default-approve
+    const statuses = entry.statuses || {};
+    const proposedFields = Object.keys(statuses).filter(f => {
+      const s = statuses[f];
+      return s && (s.bucket === 'UPDATE' || s.bucket === 'REVIEW');
+    });
+    if (!proposedFields.length) return true;
+    return proposedFields.every(f => !!getDecision(boba, f));
+  }
+  function pendingCount(items, kind) {
+    return items.filter(e => !entryIsDecided(e, kind)).length;
+  }
+
   function updateStats() {
     const totalU = PAYLOAD.updates.length;
     const totalR = PAYLOAD.review.length;
     const totalA = PAYLOAD.additions.length;
+    const pendU = pendingCount(PAYLOAD.updates, 'UPDATES');
+    const pendR = pendingCount(PAYLOAD.review, 'REVIEW');
     let approvedCount = 0, rejectedCount = 0;
     for (const k in decisions) {
       if (k.endsWith(':__dismiss__')) continue;
@@ -996,10 +1033,12 @@ def build_review_html(review: list[dict], updates: list[dict],
       const d = getDecision(a.old_bobaId, 'printedSerial');
       return !d || d.action !== 'reject';
     }).length;
+    const pendingTotal = pendU + pendR;
     $('stats').innerHTML = `
-      <span class="chip">UPDATES <strong>${totalU}</strong> · REVIEW <strong>${totalR}</strong> · ADDITIONS <strong>${totalA}</strong></span>
-      <span class="chip">Explicitly approved: <strong>${approvedCount}</strong></span>
-      <span class="chip">Explicitly rejected: <strong>${rejectedCount}</strong></span>
+      <span class="chip" style="background:rgba(0,245,255,0.18);border-color:#00F5FF"><strong>${pendingTotal}</strong> pending · ${pendU} UPDATES · ${pendR} REVIEW</span>
+      <span class="chip" style="opacity:0.7">Totals: UPDATES <strong>${totalU}</strong> · REVIEW <strong>${totalR}</strong> · ADDITIONS <strong>${totalA}</strong></span>
+      <span class="chip">Approved: <strong>${approvedCount}</strong></span>
+      <span class="chip">Rejected: <strong>${rejectedCount}</strong></span>
       <span class="chip">Patch will include: <strong>${approvedCount} modify + ${additionsAutoApprove} additions</strong></span>
     `;
   }
@@ -1052,7 +1091,8 @@ def build_review_html(review: list[dict], updates: list[dict],
     const bucket = $('filter-bucket').value;
     const field = $('filter-field').value;
     const stateFilter = $('filter-status').value;
-    const filtersActive = q || bucket !== 'all' || field || stateFilter;
+    const hideDecided = $('hide-decided')?.checked;
+    const filtersActive = q || bucket !== 'all' || field || stateFilter || hideDecided;
 
     // If any filter is active, render every MATCHING unrendered item
     // (skip non-matches entirely so the DOM stays small even on
@@ -1113,6 +1153,23 @@ def build_review_html(review: list[dict], updates: list[dict],
         if (stateFilter === 'pending'  && !pending)  visible = false;
         if (stateFilter === 'approved' && !approved) visible = false;
         if (stateFilter === 'rejected' && !rejected) visible = false;
+      }
+      // Hide rows where every proposed field has a decision (or
+      // dismissed). Keeps the visible list ≈ "still to review".
+      if (visible && hideDecided) {
+        const boba = row.dataset.boba;
+        if (getDecision(boba, '__dismiss__')) {
+          visible = false;
+        } else {
+          const proposed = row.querySelectorAll('.actions[data-field]');
+          if (proposed.length) {
+            const allDecided = Array.from(proposed).every(a =>
+              !!getDecision(a.dataset.boba, a.dataset.field));
+            if (allDecided) visible = false;
+          } else if (kind === 'ADDITIONS') {
+            visible = false;
+          }
+        }
       }
       row.style.display = visible ? '' : 'none';
     });
@@ -1238,9 +1295,11 @@ def build_review_html(review: list[dict], updates: list[dict],
   });
 
   // Wire filters.
-  ['search', 'filter-bucket', 'filter-field', 'filter-status'].forEach(id => {
-    $(id).addEventListener('input', applyFilters);
-    $(id).addEventListener('change', applyFilters);
+  ['search', 'filter-bucket', 'filter-field', 'filter-status', 'hide-decided'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener('input', applyFilters);
+    el.addEventListener('change', applyFilters);
   });
 
   // ============ V2 → V3 bobaId localStorage migration ============

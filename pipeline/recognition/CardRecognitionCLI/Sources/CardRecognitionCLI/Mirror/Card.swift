@@ -34,6 +34,11 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
     let dbs: Int?                     // Deck Balancing System score (Plays only, nil for Heroes/HotDogs/Sealed)
     let dbsTier: String?              // "Low" | "Medium" | "High" | "Very High" (Plays only)
     let athleteInspiration: String?
+    /// Per-card searchable aliases — e.g. ["Skeeball"] on Skeee cards
+    /// so users typing the printed-on-card name (which differs from
+    /// the catalog hero name) still find the card. Word-split and
+    /// merged into the haystack at match time by CardSearch.
+    let searchAliases: [String]?
     let isInspiredInk: Bool
     /// True when the hero's inspiration athlete was in their rookie season
     /// at print time. Non-Hero rows decode as false.
@@ -41,6 +46,13 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
     var imageFile: String?
     let imageSource: String?
     let imageAvailable: Bool
+    /// Frozen legacy field — populated for cards in the catalog before
+    /// 2026-05-23. Used SOLELY as the destination of the per-card
+    /// "View on Radish" external-link button per Radish's email-stated
+    /// allowance for "ordinary user-facing linking." Nil for new
+    /// cards; the button falls back to the Radish homepage. NEVER
+    /// passed to any Worker / matcher / pricing lookup — that
+    /// automation is prohibited.
     let radishUrl: String?
 
     // Sealed product fields (nil for regular cards)
@@ -119,14 +131,35 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
         return nil
     }
 
-    // Stable unique id — v3 formula matches boba_id.py + the main app's
-    // Card.id (DECISIONS.md #057). Element as 5th field disambiguates
-    // FIRE/GLOW weapon-variant pairs that share cardNumber+hero+
-    // treatment+variation.
-    var id: String { bobaId }
+    // Stable unique id — v3 formula matches boba_id.py:
+    // "{cardNumber}-{hero or name}-{treatment??''}-{variation??''}-{element}".
+    // 5th field is the weapon (DECISIONS.md #057 / 2026-05-25).
+    // For Sealed Products (no hero) the `name` field stands in so
+    // the id matches the catalog's canonical bobaId field + the
+    // `Card.bobaId` getter below. Without the name fallback,
+    // `card.id` for sealed produced an "old form" string
+    // ("SEALED-foo---Bundle") that DIDN'T match the canonical
+    // bobaId stored in cards.json — which is what the catalog
+    // index `cardsById` is keyed on. User_cards rows written
+    // with the canonical bobaId then failed to resolve, and
+    // sealed products rendered as their raw bobaId in Collection
+    // (Ben 2026-05-22).
+    /// Hashable / Identifiable key. Must match the stored `bobaId`
+    /// field (v3 5-field formula per DECISIONS.md #057) so the iOS
+    /// catalog index `cardsById` agrees with Supabase user_cards rows
+    /// + shared-URL targets. The v2 4-field formula collided on
+    /// FIRE/GLOW weapon-variant pairs (101 collisions across GLBF +
+    /// RAD), which crashed `Dictionary(uniqueKeysWithValues:)` in
+    /// DeckBuilderStore.loadTemplate and elsewhere.
+    ///
+    /// `nonisolated` because the project default isolation is MainActor
+    /// (per memory feedback_project_default_mainactor_isolation) but
+    /// pure value-derived computed properties are safe across actors
+    /// and Hashable conformance in Sets / Dictionary keys requires it.
+    nonisolated var id: String { bobaId }
 
-    func hash(into hasher: inout Hasher) { hasher.combine(id) }
-    static func == (lhs: Card, rhs: Card) -> Bool { lhs.id == rhs.id }
+    nonisolated func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    nonisolated static func == (lhs: Card, rhs: Card) -> Bool { lhs.id == rhs.id }
 
     // Custom decoder handles nullable hero/element/imageAvailable for sealed products
     init(from decoder: Decoder) throws {
@@ -141,7 +174,15 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
         variation          = try c.decodeIfPresent(String.self,    forKey: .variation)
         treatment          = try c.decodeIfPresent(String.self,    forKey: .treatment)
         release            = try c.decodeIfPresent(String.self,    forKey: .release) ?? ""
-        element            = try c.decodeIfPresent(String.self,    forKey: .element)   ?? "NONE"
+        // Default to empty string (NOT "NONE") for null element so the
+        // v3 bobaId formula matches the canonical Python/Android source:
+        // Python uses `card.get("element") or ""` → empty; Android uses
+        // `val element: String = ""`. Sealed products in the catalog
+        // store empty element; iOS defaulting to "NONE" caused the
+        // computed bobaId to end in "-NONE" while stored ended in "-",
+        // producing a Card.id mismatch that hid sealed-product art +
+        // metadata in Collection / Find.
+        element            = try c.decodeIfPresent(String.self,    forKey: .element)   ?? ""
         power              = try c.decodeIfPresent(Int.self,       forKey: .power)
         // playCost is an Int for Play cards (0–6 Hot Dogs) but sealed products
         // incorrectly store their MSRP price here as a Double. Decode flexibly.
@@ -158,6 +199,7 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
         dbs                = try c.decodeIfPresent(Int.self,       forKey: .dbs)
         dbsTier            = try c.decodeIfPresent(String.self,    forKey: .dbsTier)
         athleteInspiration = try c.decodeIfPresent(String.self,    forKey: .athleteInspiration)
+        searchAliases      = try c.decodeIfPresent([String].self,  forKey: .searchAliases)
         isInspiredInk      = try c.decodeIfPresent(Bool.self,      forKey: .isInspiredInk) ?? false
         rookieInspired     = try c.decodeIfPresent(Bool.self,      forKey: .rookieInspired) ?? false
         let file           = try c.decodeIfPresent(String.self,    forKey: .imageFile)
@@ -207,18 +249,39 @@ extension Card: Transferable {
 }
 
 extension Card {
+    /// Destination for the per-card "View on Radish" external-link
+    /// button. Prefers the legacy frozen `radishUrl` field (acquired
+    /// before 2026-05-23 from Radish's sitemap, treated as static
+    /// reference data); falls back to the Radish homepage when the
+    /// field is null. This is the ONE permitted use of Radish-derived
+    /// data per the email — no probing, no validation, no lookups,
+    /// no pricing impact, no Worker call.
+    var radishDisplayURL: URL {
+        if let raw = radishUrl, let url = URL(string: raw) { return url }
+        return URL(string: "https://radishpriceguide.com")!
+    }
+}
+
+extension Card {
     /// Canonical card identifier matching `scripts/boba_id.py`'s
-    /// 4-field v2 formula:
-    ///   `cardNumber-(hero or name)-(treatment or "")-(variation or "")`
+    /// 5-field v3 formula:
+    ///   `cardNumber-(hero or name)-(treatment or "")-(variation or "")-(element or "")`
+    /// The 5th field is the card's WEAPON (catalog stores it under the
+    /// legacy field name `element` per DECISIONS.md #027). Added
+    /// 2026-05-25 to disambiguate FIRE-weapon vs GLOW-weapon variant
+    /// siblings that share otherwise-identical (cardNumber, hero,
+    /// treatment, variation). Without weapon in the bobaId, the
+    /// catalog needed to use distinct cardNumbers as a workaround for
+    /// those pairs.
     /// Sealed products use `name` when `hero` is empty. Trailing
     /// dashes are intentional and stable. CLAUDE.md "One ID per
-    /// Card" — this is the primary key for the catalog. Verified
-    /// 17,739 unique values across the bundle (zero collisions).
+    /// Card" — this is the primary key for the catalog.
     ///
-    /// v3 5-field formula (DECISIONS.md #057). Element as 5th field
-    /// matches the stored bobaId in cards.json + the main app's
-    /// Card.bobaId.
-    var bobaId: String {
+    /// Computed at runtime rather than decoded — the formula is
+    /// deterministic so the value matches the `bobaId` stored in
+    /// the JSON bundles. `nonisolated` because `id` (Hashable key)
+    /// returns this value and must be callable from any actor.
+    nonisolated var bobaId: String {
         let identifier = hero.isEmpty ? name : hero
         return "\(cardNumber)-\(identifier)-\(treatment ?? "")-\(variation ?? "")-\(element)"
     }

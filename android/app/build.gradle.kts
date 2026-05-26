@@ -47,8 +47,8 @@ android {
         // (See ANDROID-DEV.md §13.2). Bumped locally only for sideload smoke-tests.
         // 2026-05-25: bumped to 2 / 0.1.1 for first Play Console closed-testing
         // upload after the bobaId v3 migration + Collection-empty bug fixes.
-        versionCode = 3
-        versionName = "0.1.2"
+        versionCode = 4
+        versionName = "0.1.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -169,6 +169,47 @@ val syncSharedAssets = tasks.register<Exec>("syncSharedAssets") {
 
 tasks.named("preBuild").configure {
     dependsOn(syncSharedAssets)
+}
+
+// ----------------------------------------------------------------------
+// native-debug-symbols.zip for Play Console
+// ----------------------------------------------------------------------
+// Play Console fires "App Bundle contains native code, and you've not
+// uploaded debug symbols" whenever the AAB contains any `.so` files
+// without a paired symbols upload. The AAB contains ~191 KB of
+// stripped `.so` files Google ships pre-stripped via AndroidX +
+// CameraX + DataStore (verified via `readelf -S`), so AGP's
+// `extractReleaseNativeDebugMetadata` task reports NO-SOURCE and no
+// symbols zip is produced.
+//
+// The fix (confirmed working at Play Console as of 2026-05): zip the
+// stripped `.so` files themselves with ABI folders at the top level
+// and upload via `edits.deobfuscationfiles.upload` with
+// `deobfuscationFileType=nativeCode`. Play Console validates BuildID
+// matches the AAB, accepts the upload, and dismisses the warning.
+// Crash reports get correct library attribution (which .so a native
+// frame belongs to) — line numbers stay unsymbolicated, which is
+// unavoidable for Google-shipped stripped binaries.
+//
+// Run via `:app:bundleRelease` — wired as `finalizedBy` below so the
+// zip is always produced alongside every release AAB. Output lives at
+// `app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip`
+// which is the path the GitHub Actions workflow already expects.
+val packageReleaseNativeDebugSymbols = tasks.register<Zip>("packageReleaseNativeDebugSymbols") {
+    description = "Zip stripped native libs for Play Console upload (workaround for AndroidX libs Google ships pre-stripped)."
+    group = "build"
+    val mergedLibsRoot = layout.buildDirectory.dir(
+        "intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib"
+    )
+    from(mergedLibsRoot)
+    include("**/*.so")
+    archiveFileName.set("native-debug-symbols.zip")
+    destinationDirectory.set(layout.buildDirectory.dir("outputs/native-debug-symbols/release"))
+    dependsOn("mergeReleaseNativeLibs")
+}
+
+tasks.matching { it.name == "bundleRelease" }.configureEach {
+    finalizedBy(packageReleaseNativeDebugSymbols)
 }
 
 

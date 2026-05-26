@@ -329,6 +329,14 @@ Reversing to unbundled removes the `.so` files from the AAB entirely (Play Servi
 
 **How to apply:** if a future scenario needs offline-immediate OCR on a device that has never been online post-install, switch back to bundled — but that scenario can't exist for a Play Store install. API surface is identical (`com.google.mlkit.vision.text.*` imports), so swapping the dependency is a one-line change in `libs.versions.toml`.
 
+**Residual warning + the BuildID-zip workaround (2026-05-26).** After the unbundled swap the AAB still contains ~191 KB of `.so` files across 12 stripped Google-shipped binaries (AndroidX `graphics.path`, CameraX `image_processing_util_jni`, DataStore `shared_counter`). All three ship pre-stripped from Google Maven with no `*-debug-symbols.aar` sidecar (verified — these AARs publish a single artifact only). AGP's `extractReleaseNativeDebugMetadata` task ran on these and reports `NO-SOURCE` because there's nothing to extract.
+
+The fix is a Gradle task `packageReleaseNativeDebugSymbols` (in `android/app/build.gradle.kts`) that zips the stripped `.so` files themselves into `app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip` with ABI folders at the top level (`arm64-v8a/`, `armeabi-v7a/`, `x86/`, `x86_64/`). The task is wired as `finalizedBy bundleRelease` so every release AAB gets a paired symbols zip. Play Console accepts this zip via `edits.deobfuscationfiles.upload` with `deobfuscationFileType=nativeCode` — it validates that each `.so`'s BuildID matches the AAB's, accepts the upload, and dismisses the warning. CI uploads both the AAB and the zip; manual upload (when CI auto-upload is blocked) requires uploading both via Play Console UI (App bundle explorer → release → Downloads → Native debug symbols).
+
+What the zip CANNOT do: produce line numbers for native crashes inside AndroidX. Those line numbers are unrecoverable because Google strips them at publish time and there is no published sidecar. What it CAN do: correctly attribute every native frame to its library name (`libimage_processing_util_jni.so`) so crash reports point at the right component. For Google-shipped stripped binaries, attribution is the maximum any developer can achieve.
+
+Source: confirmed approach in [Lundberg's blog](https://martinlundberg.net/blog/2024/07/24/how-to-debug-and-fix-google-play-console-warning-about-missing-native-debug-symbols); failure modes (Crashlytics doesn't dismiss the Play warning, no `prefab` symbol mechanism, no `bundletool` synthetic-symbols flag) all validated against current Android docs + issue tracker 353554169.
+
 ANDROID-DEV.md §6.1–§6.5.
 
 ## 044 — Android: NO multi-step anchored walkthroughs

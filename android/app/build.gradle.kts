@@ -47,8 +47,8 @@ android {
         // (See ANDROID-DEV.md §13.2). Bumped locally only for sideload smoke-tests.
         // 2026-05-25: bumped to 2 / 0.1.1 for first Play Console closed-testing
         // upload after the bobaId v3 migration + Collection-empty bug fixes.
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -119,13 +119,15 @@ android {
             // by-name so a missing config (creds not set) silently
             // leaves the release build unsigned.
             signingConfigs.findByName("release")?.let { signingConfig = it }
-            // Ship native-debug-symbols.zip alongside the AAB so Play
-            // Console can symbolicate any ML Kit native crashes. ML Kit
-            // Text Recognition ships the only non-Kotlin/Java .so files
-            // in our build (per ANDROID-DEV.md §8.6). SYMBOL_TABLE keeps
-            // function names but not line numbers; ~3-5 MB additional
-            // upload. Use "FULL" if you need line-precision later.
-            ndk.debugSymbolLevel = "SYMBOL_TABLE"
+            // ML Kit ships via Google Play Services dynamic delivery
+            // (DECISIONS.md #043 amended 2026-05-26), so the AAB no
+            // longer carries libmlkit_google_ocr_pipeline.so. A few
+            // tiny stripped .so files still ship via AndroidX (graphics
+            // path), CameraX (image_processing_util_jni), and DataStore
+            // (shared_counter). FULL asks AGP to extract whatever it
+            // can — at minimum build IDs — so Play Console gets a
+            // non-empty symbols upload and stops warning.
+            ndk.debugSymbolLevel = "FULL"
         }
     }
 

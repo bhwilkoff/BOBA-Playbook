@@ -49,6 +49,15 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
 
+        <!-- ML Kit Text Recognition (Latin) ships via Google Play
+             Services dynamic delivery (DECISIONS.md #043 amended
+             2026-05-26). This meta-data triggers a one-time model
+             download at install time so the first scan doesn't
+             have to wait for it. -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

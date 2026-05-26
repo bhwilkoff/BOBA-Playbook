@@ -316,14 +316,18 @@ Android ships fixed brand theme (orange/cyan/violet on near-black) by default �
 
 **Why:** card-art palette is the focal point; wallpaper-derived primary fighting `#FF4D00` reads muddy. Same rule as iOS §11.2: element on content semantics; brand on chrome. `BobaTheme.kt` builds brand `colorScheme` from fixed seeds; toggle ON applies `dynamicDarkColorScheme(LocalContext.current)` to `primary` only on Android 12+. Element colors never change. ANDROID-DESIGN.md §6.8 + §11.2.
 
-## 043 — Android Scan: CameraX + ML Kit Text Recognition v2 bundled; OCR-only v1
-*2026-05-19*
+## 043 — Android Scan: CameraX + ML Kit Text Recognition v2 unbundled; OCR-only v1
+*2026-05-19 · amended 2026-05-26*
 
-CameraX 1.5+ + ML Kit Text Recognition v2 bundled (Latin, ~5-7 MB APK delta). Matches iOS Vision shape.
-
-**Why bundled:** unbundled saves ~260KB but requires first-run download; bundled = iOS parity (works offline immediately).
+CameraX 1.5+ + ML Kit Text Recognition v2 via Google Play Services dynamic delivery (`com.google.android.gms:play-services-mlkit-text-recognition`). Manifest meta-data `com.google.mlkit.vision.DEPENDENCIES = "ocr"` triggers a one-time model download at install. Matches iOS Vision shape.
 
 **Why OCR-only v1:** #035 made FP primary on iOS due to silent-wrong failure in **grid scan** specifically. Single-card live scan with OCR + hero-name veto + confidence threshold is sufficient (iOS pre-FP design ran fine for months). Adding FP needs MediaPipe Image Embedder + parallel `feature-prints-android.bin` — defer to v2.
+
+**Why unbundled (amended 2026-05-26):** the original 2026-05-19 decision picked the bundled artifact (`com.google.mlkit:text-recognition`) for "works offline immediately" iOS parity. After uploading the first signed AAB to Play Console closed testing on 2026-05-25, the upload surfaced "App Bundle contains native code, and you've not uploaded debug symbols" — ML Kit ships its `.so` files pre-stripped (verified via `readelf -S libmlkit_google_ocr_pipeline.so`), so AGP's `extractReleaseNativeSymbolTables` task produces nothing and no `native-debug-symbols.zip` can be generated. The warning is cosmetic today but is exactly the kind of thing Google Play could promote to a hard release blocker on no notice.
+
+Reversing to unbundled removes the `.so` files from the AAB entirely (Play Services hosts them), shrinks the AAB ~11 MB, eliminates the warning permanently, and reframes the original "offline-immediate" trade-off correctly: the user already had to be online to install the app, so the marginal cost of a ~3-5 MB Play Services model download at install is zero. Manifest meta-data ensures the model lands before the first scan so the user-facing scan experience matches the bundled posture.
+
+**How to apply:** if a future scenario needs offline-immediate OCR on a device that has never been online post-install, switch back to bundled — but that scenario can't exist for a Play Store install. API surface is identical (`com.google.mlkit.vision.text.*` imports), so swapping the dependency is a one-line change in `libs.versions.toml`.
 
 ANDROID-DEV.md §6.1–§6.5.
 

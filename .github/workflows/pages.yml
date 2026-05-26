@@ -1,0 +1,75 @@
+name: Deploy bobaplaybook.com
+
+# Custom Pages workflow that replaces the default `pages-build-deployment`.
+# Reason: the default workflow tars the whole repo, which choked on
+# dangling symlinks in `.claude/skills/*` and would also leak dev-only
+# files (iOS/Android source, internal *.md docs, build artifacts,
+# credentials) into the deployed site. This workflow assembles a clean
+# `_site/` directory containing only the web deliverables, then
+# uploads + deploys via the official Pages actions.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Single deploy job; cancel in-progress runs for the same branch.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble _site/
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          # Top-level files served as-is.
+          cp -v \
+            index.html \
+            404.html \
+            discord-callback.html \
+            manifest.json \
+            CNAME \
+            .nojekyll \
+            _site/
+          # Asset directories. Each entry must exist; CI fails loudly
+          # if any of them are deleted without updating this list.
+          for dir in css js assets docs terms privacy data-deletion Logos Resources; do
+            cp -r "$dir" _site/
+          done
+          # .well-known/ holds apple-app-site-association +
+          # assetlinks.json — load-bearing for iOS Universal Links
+          # and Android App Links. Don't deploy without these.
+          mkdir -p _site/.well-known
+          cp .well-known/apple-app-site-association _site/.well-known/
+          cp .well-known/assetlinks.json _site/.well-known/
+          echo "--- _site/ contents ---"
+          find _site -maxdepth 2 -type f | sort
+
+      - uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

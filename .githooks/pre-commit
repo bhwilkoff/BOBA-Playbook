@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit — thin shim that delegates to the actual
+# guard script. Lives in a tracked directory so the hook ships with
+# the repo (default .git/hooks isn't checked in).
+#
+# Activate with:  git config core.hooksPath .githooks
+# (CLAUDE.md doesn't activate this automatically — each contributor
+#  opts in once after clone.)
+
+exec "$(git rev-parse --show-toplevel)/scripts/pre-commit-checks.sh"

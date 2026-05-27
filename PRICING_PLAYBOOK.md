@@ -784,3 +784,41 @@ ingested exactly 1 matched listing (tight matching preserved); a two-ingest
 diff correctly flagged the disappeared listing (vanished:1). `/comps` serves
 it as it accumulates. The catalog-grinding cron + its KV cursor / quota-floor
 machinery are retired (DECISIONS.md #058).
+
+### NEXT UNIT (post-compaction 2026-05-27) — unify into marketValue() + fold Whatnot asks into Listed Range
+
+The pricing data plumbing is DONE (Tiers 1–5 + Whatnot products + vanish-
+inference push model + community comps + #058 ADR). The remaining work is a
+single client-side consolidation per platform — do it as ONE focused unit:
+
+**Goal:** one helper per platform implementing the #058 four-signal hierarchy
+in ONE place (today each client wires it ad hoc): `marketValue(card) ->
+{ value, confidence, source, basis }`, consumed by card-detail + Collection
+value. The four signals, in order:
+1. **Recent Sales** (transacted) — read `boba-pricing-tracker /comps?bobaId=`
+   (inferred-sold + community comps). NOTE: this is the missing client read —
+   inferred-sold currently only reaches clients THROUGH the estimator labeled
+   "Estimate"; #058 says it must surface as **Recent Sales**, distinct from
+   Estimate. Add a direct `/comps` read (web `js/api.js`/`app.js`; iOS
+   `PricingService`; Android `PricingService`).
+2. **Listed Range** (asking, when no sold) — THE (A) MERGE: combine eBay
+   `active` prices + Whatnot **matchesCard** asks into one low/avg/high/count,
+   labeled "Active eBay + Whatnot · no recent sales yet". Tight matching:
+   matchesCard only, never the hero set.
+3. **Buy Now** (eBay actives + COMC + Whatnot tiles) — already shipped, leave.
+4. **Estimate** (estimator) — only clearly labeled + fed real comps.
+
+**Per-platform touchpoints:**
+- Web: `renderPricingData` (realSold gate, Listed Range path) in `js/app.js`;
+  `fetchWhatnotProducts`/`fetchMarketEstimate` siblings → add `fetchComps`.
+- iOS: `PricingService.swift` (add `comps()` reading `/comps`); `PricingSection`
+  Listed Range render; `WhatnotProductsService` already has matched listings.
+- Android: `PricingService.kt` (add `fetchComps`); `CardDetailViewModel`
+  `marketEstimateUsd`/`marketEstimateBasis` computed props; whatnotListings.
+
+**Tracker `/comps` URL:** `https://boba-pricing-tracker.benwilkoff.workers.dev/comps?bobaId=X&days=90`
+→ `{ bobaId, comps:[{price,soldAt,confidence,source,...}], summary:{low,median,high,count} }`.
+
+**Done state:** all 4 signals render from one helper; Listed Range reflects
+eBay + Whatnot asks; inferred-sold/community show as "Recent Sales" with their
+source pills (not "Estimate"). Update PARITY §8 rows.

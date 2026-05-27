@@ -440,3 +440,82 @@ actor PricingService {
         let active:    PricingBucket?
     }
 }
+
+/// Whatnot active product listings (Tier 2 — an ASKING signal surfaced in
+/// the BUY NOW panel only; NEVER mixed into the sold-comp / market-value
+/// waterfall — asks run above sold and would inflate, per DECISIONS.md
+/// #034 + PRICING_PLAYBOOK §4). Calls `boba-ebay-proxy /whatnot/products`,
+/// which binds listings to the specific card via cardNumber + weapon and
+/// flags `matchesCard` (best-first). Soft-fails to empty on any error or a
+/// Cloudflare challenge, so a Whatnot hiccup never blocks eBay pricing.
+///
+/// Inlined here rather than its own file per the Xcode synchronized-group
+/// reliability note (memory `feedback_xcode_synchronized_groups`).
+actor WhatnotProductsService {
+    static let shared = WhatnotProductsService()
+    private init() {}
+
+    struct Listing: Decodable, Sendable, Identifiable {
+        var id: String { listingId.isEmpty ? "\(title)-\(priceCents)" : listingId }
+        let title: String
+        let price: Decimal
+        let priceCents: Int
+        let currency: String?
+        let condition: String?
+        let listingId: String
+        let listingUrl: String
+        let seller: String?
+        let sellerUrl: String?
+        let imageUrl: String?
+        let format: String?        // "buy_now" | "auction"
+        let matchesCard: Bool?
+    }
+
+    struct Response: Decodable, Sendable {
+        let count: Int
+        let bestMatchCount: Int?
+        let listings: [Listing]
+        let challenged: Bool?
+    }
+
+    private var cache: [String: (resp: Response, at: Date)] = [:]
+    private let lifetime: TimeInterval = 720  // 12 min — matches the Worker edge cache
+
+    /// Returns Whatnot listings for a card (matched-first), or an empty
+    /// response on any failure. Never throws — additive BUY NOW source.
+    func products(query: String, cardNumber: String, weapon: String,
+                  forceRefresh: Bool = false) async -> Response {
+        let empty = Response(count: 0, bestMatchCount: 0, listings: [], challenged: nil)
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return empty }
+
+        let key = "\(q.lowercased())|\(cardNumber.lowercased())|\(weapon.lowercased())"
+        if !forceRefresh, let e = cache[key],
+           Date().timeIntervalSince(e.at) < lifetime {
+            return e.resp
+        }
+
+        let base = await MainActor.run { WorkerConfig.ebayProxyURL }
+        guard !base.isEmpty,
+              var comp = URLComponents(string: "\(base)/whatnot/products") else { return empty }
+        comp.queryItems = [
+            URLQueryItem(name: "query",      value: q),
+            URLQueryItem(name: "cardNumber", value: cardNumber),
+            URLQueryItem(name: "weapon",     value: weapon),
+        ]
+        guard let url = comp.url else { return empty }
+
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 6
+        do {
+            let (data, _) = try await URLSession.shared.data(for: req)
+            let decoded = try JSONDecoder().decode(Response.self, from: data)
+            cache[key] = (decoded, Date())
+            return decoded
+        } catch {
+            // Soft-fail; don't cache so a transient failure doesn't lock
+            // out a real success on the next view re-entry.
+            return empty
+        }
+    }
+}

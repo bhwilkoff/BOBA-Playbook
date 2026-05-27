@@ -89,6 +89,7 @@ import com.bobaplaybook.core.domain.model.CardFormatEligibility
 import com.bobaplaybook.core.network.CDN
 import com.bobaplaybook.core.network.CommunityCompResult
 import com.bobaplaybook.core.network.PricingListing
+import com.bobaplaybook.core.network.WhatnotListing
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
 import com.bobaplaybook.core.ui.components.BOBAIconTooltip
@@ -1403,6 +1404,16 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
         }
     }
 
+    // Whatnot active asks (Tier 2) — additive Buy Now signal beneath the
+    // eBay buckets. Matched-first then "Other {hero}" (Hybrid). Asks NEVER
+    // fold into any sold number (#034 + PRICING_PLAYBOOK §7).
+    if (state.whatnotListings.isNotEmpty()) {
+        WhatnotAsksSection(
+            listings = state.whatnotListings,
+            hero = state.card?.hero.orEmpty(),
+        )
+    }
+
     // "View on Radish" — single ordinary user-facing link permitted by
     // Radish per email 2026-05-23. Opens the system default browser
     // (Intent.ACTION_VIEW, not CustomTabsIntent) so the user fully
@@ -1619,6 +1630,87 @@ private fun SubmitCommunityCompSheet(
         ) {
             androidx.compose.material3.DatePicker(state = dpState)
         }
+    }
+}
+
+/**
+ * Whatnot active asks (Tier 2) — additive Buy Now strip beneath the eBay
+ * buckets. Hybrid surfacing: this card's matched listings first, then
+ * "Other {hero} listings". Violet accent separates it from eBay; rows tap
+ * out to the Whatnot listing. Asking prices, NEVER a sold/value number
+ * (#034). Top 3 per group. Mirrors web/iOS.
+ */
+@Composable
+private fun WhatnotAsksSection(listings: List<WhatnotListing>, hero: String) {
+    val violet = Color(0xFF8B00FF)
+    val matched = listings.filter { it.matchesCard }
+    val others  = listings.filterNot { it.matchesCard }
+    val lead = (if (matched.isNotEmpty()) matched else others).take(3)
+
+    Column(modifier = Modifier.padding(top = 8.dp)) {
+        Text(
+            text = "WHATNOT · ACTIVE ASKS",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = violet,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+        lead.forEach { WhatnotAskRow(it, violet) }
+        if (matched.isNotEmpty() && others.isNotEmpty()) {
+            Text(
+                text = "Other $hero listings",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 2.dp),
+            )
+            others.take(3).forEach { WhatnotAskRow(it, violet) }
+        }
+    }
+}
+
+@Composable
+private fun WhatnotAskRow(l: WhatnotListing, accent: Color) {
+    val ctx = LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                if (l.listingUrl.isNotBlank()) {
+                    runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, l.listingUrl.toUri())) }
+                }
+            }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = l.priceUsd.formatUsdAmount(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFF4D00),
+            modifier = Modifier.width(72.dp),
+        )
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(
+                text = l.title,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            val pill = if (l.format == "auction") "Whatnot bid" else "Whatnot ask"
+            val seller = l.seller?.takeIf { it.isNotBlank() }?.let { " · @$it" }.orEmpty()
+            Text(
+                text = "$pill$seller",
+                style = MaterialTheme.typography.labelSmall,
+                color = accent,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
+        Text(
+            text = "↗",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

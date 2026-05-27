@@ -10,6 +10,7 @@ import com.bobaplaybook.core.network.MarketEstimate
 import com.bobaplaybook.core.network.PricingListing
 import com.bobaplaybook.core.network.PricingService
 import com.bobaplaybook.core.network.ProfileService
+import com.bobaplaybook.core.network.WhatnotListing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.collections.immutable.ImmutableList
@@ -53,6 +54,12 @@ data class CardDetailUiState(
     val workerMarketAverageUsd: Double? = null,
     val workerMarketSource: String? = null,
     val workerMarketCount: Int = 0,
+    /**
+     * Whatnot active listings (Tier 2 — asking signal, Buy Now only;
+     * never folded into the sold/value number, #034). matchesCard flags
+     * the ones the Worker bound to this card; UI shows those first.
+     */
+    val whatnotListings: ImmutableList<WhatnotListing> = persistentListOf(),
 ) {
     /**
      * Prefer the Worker's pre-computed canonical average; fall back to
@@ -178,6 +185,7 @@ class CardDetailViewModel @Inject constructor(
                 workerMarketAverageUsd = pricing.marketAverage[bobaId],
                 workerMarketSource = pricing.marketSource[bobaId],
                 workerMarketCount = pricing.marketCount[bobaId] ?: 0,
+                whatnotListings = pricing.whatnot[bobaId].orEmpty().toPersistentList(),
             )
         }.stateIn(
             scope = viewModelScope,
@@ -212,6 +220,15 @@ class CardDetailViewModel @Inject constructor(
             val estimate = if (cached == null && bundle.ebaySold.isEmpty()) {
                 pricingService.fetchMarketEstimate(bobaId)
             } else null
+            // Whatnot active asks — additive Buy Now source, runs on both
+            // cached + live paths (not in card_prices_latest). Soft-fails
+            // to []. Query by the hero token; Worker binds via cardNumber
+            // + weapon and flags matchesCard.
+            val whatnot = pricingService.fetchWhatnotProducts(
+                query = card.hero,
+                cardNumber = card.cardNumber,
+                weapon = if (card.isSealed) "" else card.element,
+            )
             pricingState.value = pricingState.value.copy(
                 isLoading = false,
                 ebayActive = pricingState.value.ebayActive + (bobaId to bundle.ebayActive),
@@ -220,6 +237,7 @@ class CardDetailViewModel @Inject constructor(
                 marketAverage = pricingState.value.marketAverage + (bobaId to bundle.marketAverageUsd),
                 marketSource = pricingState.value.marketSource + (bobaId to bundle.marketSource),
                 marketCount = pricingState.value.marketCount + (bobaId to bundle.marketCount),
+                whatnot = pricingState.value.whatnot + (bobaId to whatnot),
             )
         }
     }
@@ -249,4 +267,6 @@ private data class PricingState(
     /** "sold" / "listed" — per-bobaId. */
     val marketSource: Map<String, String?> = emptyMap(),
     val marketCount: Map<String, Int> = emptyMap(),
+    /** Whatnot active listings — per-bobaId (asking signal, Buy Now only). */
+    val whatnot: Map<String, List<WhatnotListing>> = emptyMap(),
 )

@@ -3957,22 +3957,16 @@
           <span class="pricing-item-arrow">↗</span>
         </a>`;
     };
+    // Show ONLY this card's listings — never other cards for the hero
+    // (that distracts from the card you're looking at). The non-matched
+    // listings stay in the Worker response for the pricing pipeline, just
+    // not surfaced in the card view.
     const matched = listings.filter(l => l.matchesCard);
-    const others  = listings.filter(l => !l.matchesCard);
-    const hasMatch = matched.length > 0;
-    const parts = [];
-    // Lead with matched listings when the Worker flagged any; otherwise
-    // show the hero's listings as a single group.
-    const lead = hasMatch ? matched : others;
-    parts.push(`<div class="pricing-items">${lead.slice(0, 3).map(row).join('')}</div>`);
-    if (hasMatch && others.length) {
-      parts.push(`<p class="pricing-whatnot-other-label">Other ${escHtml(heroLabel || 'hero')} listings</p>`);
-      parts.push(`<div class="pricing-items">${others.slice(0, 3).map(row).join('')}</div>`);
-    }
+    if (!matched.length) return '';
     return `
       <div class="pricing-section pricing-section-whatnot">
         <p class="pricing-items-label pricing-whatnot-label">WHATNOT · ACTIVE ASKS</p>
-        ${parts.join('')}
+        <div class="pricing-items">${matched.slice(0, 3).map(row).join('')}</div>
       </div>`;
   }
 

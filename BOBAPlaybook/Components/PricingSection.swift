@@ -564,25 +564,18 @@ struct PricingSection: View {
     /// into any sold number (#034). Top 3 per group.
     @ViewBuilder
     private func whatnotStrip(_ listings: [WhatnotProductsService.Listing]) -> some View {
+        // Show ONLY this card's listings — never other cards for the hero
+        // (that distracts from the card you're looking at). Non-matched
+        // listings stay in the Worker response for the pricing pipeline.
         let matched = listings.filter { $0.matchesCard == true }
-        let others  = listings.filter { $0.matchesCard != true }
-        let hasMatch = !matched.isEmpty
-        let lead = hasMatch ? matched : others
-        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
-            Text("WHATNOT · ACTIVE ASKS")
-                .font(Design.Fonts.mono(8, weight: .bold))
-                .foregroundStyle(Design.Colors.bobaViolet)
-                .tracking(1.5)
-
-            whatnotGroup(Array(lead.prefix(3)))
-
-            if hasMatch, !others.isEmpty {
-                Text("Other \(card.hero) listings")
+        if !matched.isEmpty {
+            VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                Text("WHATNOT · ACTIVE ASKS")
                     .font(Design.Fonts.mono(8, weight: .bold))
-                    .foregroundStyle(Design.Colors.textMuted)
-                    .tracking(0.5)
-                    .padding(.top, 2)
-                whatnotGroup(Array(others.prefix(3)))
+                    .foregroundStyle(Design.Colors.bobaViolet)
+                    .tracking(1.5)
+
+                whatnotGroup(Array(matched.prefix(3)))
             }
         }
     }

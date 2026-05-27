@@ -484,12 +484,13 @@ actor WhatnotProductsService {
     /// Returns Whatnot listings for a card (matched-first), or an empty
     /// response on any failure. Never throws — additive BUY NOW source.
     func products(query: String, cardNumber: String, weapon: String,
+                  treatment: String = "", power: String = "",
                   forceRefresh: Bool = false) async -> Response {
         let empty = Response(count: 0, bestMatchCount: 0, listings: [], challenged: nil)
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return empty }
 
-        let key = "\(q.lowercased())|\(cardNumber.lowercased())|\(weapon.lowercased())"
+        let key = "\(q.lowercased())|\(cardNumber.lowercased())|\(weapon.lowercased())|\(treatment.lowercased())|\(power)"
         if !forceRefresh, let e = cache[key],
            Date().timeIntervalSince(e.at) < lifetime {
             return e.resp
@@ -498,10 +499,14 @@ actor WhatnotProductsService {
         let base = await MainActor.run { WorkerConfig.ebayProxyURL }
         guard !base.isEmpty,
               var comp = URLComponents(string: "\(base)/whatnot/products") else { return empty }
+        // BoBA sellers title by card number OR power — send both so the
+        // Worker can match on whichever the listing used.
         comp.queryItems = [
             URLQueryItem(name: "query",      value: q),
             URLQueryItem(name: "cardNumber", value: cardNumber),
             URLQueryItem(name: "weapon",     value: weapon),
+            URLQueryItem(name: "treatment",  value: treatment),
+            URLQueryItem(name: "power",      value: power),
         ]
         guard let url = comp.url else { return empty }
 

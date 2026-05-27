@@ -1668,13 +1668,15 @@ const WHATNOT_PRODUCTS_CACHE_TTL = 12 * 60; // 12 min — asks move slowly
 async function handleWhatnotProducts(request, _env) {
   const url   = new URL(request.url);
   const query = (url.searchParams.get("query") || "").trim();
-  // Optional card-binding signals. When present, listings whose titles
-  // match get flagged matchesCard:true and sorted first — the "Hybrid"
-  // surfacing (this card's listings, then other listings for the hero).
-  // weapon is required alongside cardNumber for a best-match because BoBA
-  // weapon-variant siblings share a cardNumber (DECISIONS.md #057).
+  // Card-binding signals. BoBA Whatnot sellers title a card by its card
+  // NUMBER ("J-Cam #149") OR its POWER ("J-Cam Steel 110 Power") — often
+  // one but not the other — so the matcher accepts EITHER, gated by weapon
+  // + treatment so weapon-variant siblings (#057) and special treatments
+  // don't leak in.
   const cardNumber = (url.searchParams.get("cardNumber") || "").trim();
   const weapon     = (url.searchParams.get("weapon") || url.searchParams.get("element") || "").trim();
+  const treatment  = (url.searchParams.get("treatment") || "").trim();
+  const powerStr   = (url.searchParams.get("power") || "").trim();
   const debug = url.searchParams.get("debug") === "1";
   if (!query) {
     return json({ query: "", count: 0, listings: [], error: "query required" }, 400);
@@ -1682,10 +1684,12 @@ async function handleWhatnotProducts(request, _env) {
 
   const cache = caches.default;
   const cacheKey = new Request(
-    `https://boba-cache.internal/whatnot/products/v2/` +
+    `https://boba-cache.internal/whatnot/products/v3/` +
       `${encodeURIComponent(query.toLowerCase())}|` +
       `${encodeURIComponent(cardNumber.toLowerCase())}|` +
-      `${encodeURIComponent(weapon.toLowerCase())}`,
+      `${encodeURIComponent(weapon.toLowerCase())}|` +
+      `${encodeURIComponent(treatment.toLowerCase())}|` +
+      `${encodeURIComponent(powerStr)}`,
     { method: "GET" }
   );
   if (!debug) {
@@ -1713,19 +1717,28 @@ async function handleWhatnotProducts(request, _env) {
     fetchError = err.message;
   }
 
-  // Card-match scoring (Hybrid surfacing). matchesCard requires the
-  // cardNumber token in the title AND (when weapon is supplied) the weapon
-  // word — weapon-variant siblings share a cardNumber, so weapon is what
-  // separates them. Matched listings sort first, cheapest within each group.
+  // Card-match scoring. A listing matches THIS card when its title carries
+  // either the exact card number OR the exact power — BoBA sellers use one
+  // or the other (or both) — AND it isn't a different weapon (siblings
+  // share a cardNumber, #057) or a different treatment (special foils for a
+  // Base Set card). Matched listings sort first, cheapest within the group.
+  const hasIdentity = !!(cardNumber || weapon || powerStr);
   let bestMatchCount = 0;
-  if (cardNumber) {
-    const re = wnCardNumberRegex(cardNumber);
+  if (hasIdentity) {
+    const numRe   = wnCardNumberRegex(cardNumber);
     const weaponLc = weapon.toLowerCase();
+    const powerRe = /^\d+$/.test(powerStr) ? new RegExp(`\\b${powerStr}\\b`) : null;
     for (const l of listings) {
       const t = (l.title || "").toLowerCase();
-      const numHit = re ? re.test(t) : false;
-      const wepHit = weaponLc ? t.includes(weaponLc) : false;
-      l.matchesCard = numHit && (!weaponLc || wepHit);
+      // Hard rejects: a different weapon, or a special treatment when this
+      // card is Base Set (titleHasTreatmentConflict handles base-vs-special).
+      if (titleNamesConflictingWeapon(t, weapon) || titleHasTreatmentConflict(t, treatment)) {
+        l.matchesCard = false;
+        continue;
+      }
+      const numHit = numRe ? numRe.test(t) : false;
+      const powHit = powerRe ? powerRe.test(t) : false;
+      l.matchesCard = numHit || powHit;
       if (l.matchesCard) bestMatchCount++;
     }
     listings.sort((a, b) => {
@@ -1734,10 +1747,10 @@ async function handleWhatnotProducts(request, _env) {
     });
   }
 
-  // Summary — scoped to the matched group when card-binding is on and we
-  // have matches (so the range reflects THIS card, not the hero's whole
+  // Summary — scoped to the matched group when we have card-binding signals
+  // and matches (so the range reflects THIS card, not the hero's whole
   // catalog); otherwise over all listings.
-  const summarySet = (cardNumber && bestMatchCount)
+  const summarySet = (hasIdentity && bestMatchCount)
     ? listings.filter(l => l.matchesCard)
     : listings;
   const prices = summarySet
@@ -1749,7 +1762,7 @@ async function handleWhatnotProducts(request, _env) {
     high:    prices[prices.length - 1],
     average: prices.reduce((a, b) => a + b, 0) / prices.length,
     count:   prices.length,
-    scope:   (cardNumber && bestMatchCount) ? "card" : "all",
+    scope:   (hasIdentity && bestMatchCount) ? "card" : "all",
   } : null;
 
   const payload = {
@@ -1757,7 +1770,7 @@ async function handleWhatnotProducts(request, _env) {
     cardNumber: cardNumber || undefined,
     weapon:     weapon || undefined,
     count: listings.length,
-    bestMatchCount: cardNumber ? bestMatchCount : undefined,
+    bestMatchCount: hasIdentity ? bestMatchCount : undefined,
     challenged: challenged || undefined,
     fetchError,
     summary,

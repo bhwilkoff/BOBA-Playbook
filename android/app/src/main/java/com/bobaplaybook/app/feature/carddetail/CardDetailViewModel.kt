@@ -228,6 +228,8 @@ class CardDetailViewModel @Inject constructor(
                 query = card.hero,
                 cardNumber = card.cardNumber,
                 weapon = if (card.isSealed) "" else card.element,
+                treatment = card.treatment.orEmpty(),
+                power = card.power,
             )
             pricingState.value = pricingState.value.copy(
                 isLoading = false,

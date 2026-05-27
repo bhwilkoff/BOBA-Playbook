@@ -759,7 +759,9 @@ struct PricingSection: View {
             // flags matchesCard (best-first). Asks, never sold (#034).
             Task {
                 let resp = await WhatnotProductsService.shared.products(
-                    query: card.hero, cardNumber: card.cardNumber, weapon: card.element)
+                    query: card.hero, cardNumber: card.cardNumber, weapon: card.element,
+                    treatment: card.treatment ?? "",
+                    power: card.power.map(String.init) ?? "")
                 if resp.challenged != true { whatnotListings = resp.listings }
             }
         }

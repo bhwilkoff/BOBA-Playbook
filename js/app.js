@@ -3927,6 +3927,10 @@
         query:      heroQuery,
         cardNumber: card.cardNumber || '',
         weapon:     card.element || '',
+        treatment:  card.treatment || '',
+        // BoBA sellers title by card number OR power — send both so the
+        // Worker can match on whichever the listing used.
+        ...(card.power != null ? { power: String(card.power) } : {}),
       });
       const res = await fetch(`${WORKER_URL}/whatnot/products?${params}`);
       if (!res.ok) return null;

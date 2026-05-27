@@ -5324,6 +5324,33 @@ dialog.modal-overlay[open] {
   vertical-align: middle;
 }
 
+/* Whatnot active-asks strip — sits beneath the eBay BUY NOW bucket.
+   Violet accent to separate it from the cyan COMC strip; "ask"/"bid"
+   pill keeps clear these are list prices, not transacted (#034). The
+   "Other {hero}" divider separates this-card matches from the rest. */
+.pricing-whatnot-label { color: var(--boba-violet); }
+.pricing-whatnot-pill {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 1px 5px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--boba-violet);
+  background: rgba(139, 0, 255, 0.12);
+  border: 1px solid rgba(139, 0, 255, 0.40);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+.pricing-whatnot-other-label {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted, #8a8aa0);
+}
+
 /* ── Scan candidates picker ───────────────────────────────────────────────── */
 
 .scan-candidates {

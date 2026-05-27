@@ -654,3 +654,46 @@ ALTER TABLE public.card_image_overrides
 ALTER TABLE public.card_image_overrides
   ADD CONSTRAINT card_image_overrides_status_check
     CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text, 'applied'::text]));
+
+-- ============================================================================
+-- Tier 3 — community-submitted sold comps (PRICING_PLAYBOOK.md §5)
+-- Applied 2026-05-27 (migrations community_comps_tier3 + _tighten_grants).
+-- Any authenticated user submits (rate-limited via submit_community_comp);
+-- mods/admins review; approved comps are public and feed the pricing-tracker
+-- /comps aggregation -> the estimator.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.community_comps (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  boba_id         text NOT NULL,
+  price_usd       numeric(10,2) NOT NULL CHECK (price_usd > 0 AND price_usd < 1000000),
+  sold_at         date NOT NULL,
+  source_platform text NOT NULL CHECK (source_platform = ANY (ARRAY['ebay','whatnot','mercari','in-person','other'])),
+  photo_url       text,
+  notes           text CHECK (notes IS NULL OR char_length(notes) <= 280),
+  status          text NOT NULL DEFAULT 'pending' CHECK (status = ANY (ARRAY['pending','approved','rejected'])),
+  reviewed_by     uuid,
+  reviewed_at     timestamptz,
+  reject_reason   text,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_community_comps_boba_status ON public.community_comps(boba_id, status);
+CREATE INDEX IF NOT EXISTS idx_community_comps_user ON public.community_comps(user_id);
+ALTER TABLE public.community_comps ENABLE ROW LEVEL SECURITY;
+
+-- Reads: own rows; approved rows (public); mods/admins all. No direct INSERT
+-- policy — submission flows through submit_community_comp (SECURITY DEFINER).
+CREATE POLICY "read own comps"      ON public.community_comps FOR SELECT USING (user_id = auth.uid());
+CREATE POLICY "read approved comps" ON public.community_comps FOR SELECT USING (status = 'approved');
+CREATE POLICY "mods read all comps" ON public.community_comps FOR SELECT USING (current_user_role() = ANY (ARRAY['moderator','admin']));
+CREATE POLICY "mods review comps"   ON public.community_comps FOR UPDATE USING (current_user_role() = ANY (ARRAY['moderator','admin']));
+
+-- RPCs (see migration community_comps_tier3 for full bodies):
+--   submit_community_comp(boba_id, price, sold_at, platform, photo_url, notes)
+--     -> uuid  (authenticated; rate limits 5/user/day, 1/bobaId/user/week)
+--   get_pending_community_comps() -> setof community_comps   (mods/admins)
+--   review_community_comp(id, approve, reject_reason)        (mods/admins)
+--   get_approved_comps(boba_id) -> (price_usd, sold_at, source_platform, photo_url)
+--     (anon + authenticated — public approved comps; pricing-tracker reads this)
+-- Grants tightened (community_comps_tighten_grants): submit/review/pending are
+-- authenticated-only; get_approved_comps is anon-callable by design.

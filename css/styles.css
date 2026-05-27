@@ -11774,3 +11774,28 @@ body.db-rules-open { overflow: hidden; }
 }
 
 body.watch-player-open { overflow: hidden; }
+
+/* Tier 3 — community comp submission (quiet + subordinate; WEB-DESIGN §14.6).
+   Low-emphasis link at the foot of the pricing body that toggles a compact
+   inline form. Deliberately understated so it never competes with the card
+   art, the pricing, or add-to-collection. */
+.pricing-comp-foot { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.pricing-comp-link {
+  background: none; border: none; padding: 4px 0; cursor: pointer;
+  color: var(--boba-cyan, #00F5FF); font: inherit; font-size: 0.8rem; opacity: 0.82;
+}
+.pricing-comp-link:hover { opacity: 1; text-decoration: underline; }
+.pricing-comp-form { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.pricing-comp-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.pricing-comp-form input,
+.pricing-comp-form select {
+  background: var(--boba-surface, #0D0D1A); color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px;
+  padding: 8px 10px; font: inherit; font-size: 0.85rem; min-width: 0;
+}
+.pcc-price { flex: 0 0 92px; }
+.pcc-date { flex: 1 1 130px; }
+.pcc-platform { flex: 1 1 120px; }
+.pcc-notes { width: 100%; }
+.pcc-hint, .pcc-thanks { font-size: 0.72rem; color: var(--text-muted, #8a8aa0); margin: 2px 0 0; }
+.pcc-thanks { color: var(--boba-cyan, #00F5FF); }

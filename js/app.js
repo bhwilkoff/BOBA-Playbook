@@ -3712,7 +3712,7 @@
           if (cached) {
             // COMC is still live (it's not in card_prices_history).
             const comcResp = await fetchComcListings(card.cardNumber);
-            renderPricingData(section, cached, { days, comcListings: comcResp });
+            renderPricingData(section, cached, { days, comcListings: comcResp, bobaId: card.bobaId });
             return;
           }
         }
@@ -3745,7 +3745,7 @@
           const est = await fetchMarketEstimate(card.bobaId);
           if (est) data.sold = est;
         }
-        renderPricingData(section, data, { days, comcListings: comcResp });
+        renderPricingData(section, data, { days, comcListings: comcResp, bobaId: card.bobaId });
       } catch {
         const body = section.querySelector('.pricing-body');
         if (body) body.innerHTML = '<p class="pricing-error">Pricing unavailable</p>';
@@ -4045,6 +4045,63 @@
       </div>`;
   }
 
+  /// Tier 3 community-comp submission — a quiet, subordinate affordance at the
+  /// foot of the pricing body (WEB-DESIGN §14.6). A low-emphasis link toggles a
+  /// compact INLINE form (no second <dialog>; avoids the §4 dialog-soup
+  /// anti-pattern). Never rivals the card art or add-to-collection. Submit ->
+  /// API.submitCommunityComp; mod-reviewed before it surfaces.
+  function appendCompSubmit(body, bobaId) {
+    body.insertAdjacentHTML('beforeend', `
+      <div class="pricing-comp-foot">
+        <button type="button" class="pricing-comp-link">Saw one sell? Add a price</button>
+        <form class="pricing-comp-form" hidden>
+          <div class="pricing-comp-row">
+            <input type="number" class="pcc-price" placeholder="Price $" min="0" step="0.01" inputmode="decimal" aria-label="Sold price" />
+            <input type="date" class="pcc-date" aria-label="Sold date" />
+            <select class="pcc-platform" aria-label="Where it sold">
+              <option value="ebay">eBay</option>
+              <option value="whatnot">Whatnot</option>
+              <option value="mercari">Mercari</option>
+              <option value="in-person">In person</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <input type="text" class="pcc-notes" placeholder="Notes (optional)" maxlength="280" aria-label="Notes" />
+          <div class="pricing-comp-row">
+            <button type="submit" class="pcc-submit btn-primary">Submit</button>
+            <button type="button" class="pcc-cancel btn-ghost-sm">Cancel</button>
+          </div>
+          <p class="pcc-hint">A moderator reviews submissions before they appear.</p>
+        </form>
+      </div>`);
+    const foot = body.querySelector('.pricing-comp-foot');
+    const link = foot.querySelector('.pricing-comp-link');
+    const form = foot.querySelector('.pricing-comp-form');
+    link.addEventListener('click', () => {
+      link.hidden = true;
+      form.hidden = false;
+      const d = form.querySelector('.pcc-date');
+      if (d && !d.value) d.value = new Date().toISOString().slice(0, 10);
+      form.querySelector('.pcc-price').focus();
+    });
+    foot.querySelector('.pcc-cancel').addEventListener('click', () => { form.hidden = true; link.hidden = false; });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const price    = parseFloat(form.querySelector('.pcc-price').value);
+      const soldAt   = form.querySelector('.pcc-date').value;
+      const platform = form.querySelector('.pcc-platform').value;
+      const notes    = form.querySelector('.pcc-notes').value.trim();
+      if (!(price > 0)) { showToast('Enter a valid price'); return; }
+      if (!soldAt)      { showToast('Pick the sold date'); return; }
+      const btn = form.querySelector('.pcc-submit');
+      btn.disabled = true;
+      const res = await API.submitCommunityComp({ bobaId, price, soldAt, platform, notes });
+      btn.disabled = false;
+      if (res.error) { showToast(res.error); return; }
+      foot.innerHTML = '<p class="pcc-thanks">Thanks — a moderator will review your comp.</p>';
+    });
+  }
+
   function renderPricingData(section, data, opts = {}) {
     const body = section.querySelector('.pricing-body');
     if (!body) return;
@@ -4073,6 +4130,7 @@
         parts.push(renderComcStrip(opts.comcListings));
       }
       body.innerHTML = parts.length ? parts.join('') : '<p class="pricing-none">No eBay sales or listings found.</p>';
+      if (opts.bobaId) appendCompSubmit(body, opts.bobaId);
       return;
     }
 

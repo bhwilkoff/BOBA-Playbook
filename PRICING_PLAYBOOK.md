@@ -525,3 +525,11 @@ The community-comp backbone is live on Supabase (project `pazkimtkwwwekuguxkff`)
 - DDL version-controlled in `supabase_schema.sql`.
 
 **Tier 3 remaining (client work):** submission UI on CardDetail (iOS/web/Android — price/date/platform/photo/notes), the `boba-comp-upload` Worker (R2 photo, reuse avatar-upload), and the mod-queue UI (extend the `card_corrections` admin panel). Photo fingerprint-verify deferred to v2 (mod approval gates v1).
+
+### 2026-05-27 — Tier 3 web submission UI (quiet + subordinate, per Ben)
+
+Design rule ratified in DESIGN.md §8.7 + ANDROID-DESIGN.md §8.7 + WEB-DESIGN.md §14.6: the submission affordance must NOT displace why people open a card (art / current price / collection). So it's a **single low-emphasis link at the foot of the pricing section** ("Saw one sell? Add a price") that toggles a **compact inline form** (price · sold date · platform · notes) — inline rather than a second `<dialog>` to avoid web's dialog-soup anti-pattern, and visually understated. The 95% who came for art/price/collection see only a tiny link; the engaged collector taps in.
+
+Web shipped: `API.submitCommunityComp` (api.js) → `submit_community_comp` RPC (auth-gated; server enforces the rate limits); `appendCompSubmit` renders the link+form at the foot of `renderPricingData`; toast on submit ("a moderator will review your comp"); CSS understated. `node --check` clean on api.js + app.js. Photo upload deferred (text-only v1; `boba-comp-upload` Worker is the next piece).
+
+**Still remaining:** iOS + Android submission affordance (same quiet pattern, native idiom — `.medium` sheet / `ModalBottomSheet`), `boba-comp-upload` Worker (R2 photo), mod-queue UI.

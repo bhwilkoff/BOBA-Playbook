@@ -416,6 +416,8 @@ Real-sold header (single line, only when Recent Sales exists): *"~$24 · based o
 
 **Anti-patterns:** presenting a derived or empty estimate as "Market Est." (the dishonest-provenance trap PRICING_PLAYBOOK §7 kills); asking+sold combined (inflation); one source when both available; sources behind disclosure (provenance is the trust mechanism).
 
+**Community comps (Tier 3) — quiet + subordinate.** A single low-emphasis link at the FOOT of the pricing section ("Saw one sell? Add a price") opens a focused `.medium` sheet (price · sold date · platform · optional photo · notes → `submit_community_comp`). It NEVER sits above the art, NEVER rivals "Add to Collection", and is auth-gated inline via `BOBASignInPrompt` (§6.5 — prompt, not a wall). The collector who has comp data taps in; everyone else sees only a tiny link. Submitted comps are mod-reviewed before surfacing as "Recent Sales · BoBA Community". Rationale (learning-orientation): invite participation in pricing accuracy without displacing why people actually open a card — art, current price, collection.
+
 ### 8.8 Wall view + Price Overlay — for everyone
 
 Both lifted from streamer-only gate (DECISIONS.md #036).

@@ -491,6 +491,16 @@ Supersedes §4's sold-archive design. Whatnot PRODUCT search = **active asking l
 - **#034 compliance (binding):** Whatnot asks NEVER feed the value number — not into `normaliseSoldEnriched`, `sold`, `user_cards.estimated_value`, or `boba-price-estimator`. Buy-Now/Listed source only. Auction starting bids especially are floors, not clearing prices.
 - **Effort:** ~120-line Worker endpoint + thin per-platform pill. **Needs a Cloudflare deploy to verify** (field-name confirmation + live test).
 
-### Blocker for the backend tiers — Cloudflare/Supabase deploy access
+### 2026-05-27 — Cloudflare confirmed unblocked + Tier 1 foundation deployed
 
-Tiers 1, 2, and 4 are Cloudflare Workers (+ Tier 1 a new D1 DB); Tier 3 is Supabase. Building them "no-shortcuts" means deploy + verify in a tight loop, not shipping un-runnable code. **Next action requires a `CLOUDFLARE_API_TOKEN`** (Workers+D1 edit scope) so wrangler can deploy non-interactively, and confirmation of Supabase migration access. Until then, autonomous progress is limited to client-side scaffolding + the #058 ADR.
+**No token needed** — `wrangler` is already authenticated on the dev machine (benwilkoff@gmail.com) with `workers`/`workers_kv`/`d1` write scope. Backend tiers are buildable now.
+
+**Rarity model shipped** (`scripts/build_rarity_model.py` → `assets/data/rarity-model.json`): the official guides encoded as a factual reference table (weapon tier · foil-only · treatment→distribution tier, 35/59 mapped + 24 population-fallback · observed `printRun`), validated over 17,929 cards (SUPER 1/1 top, common base bottom).
+
+**Tier 1 foundation live:**
+- D1 `boba-pricing` created (id in wrangler.toml) + schema applied (`listings`, `snapshot_runs`).
+- `boba-pricing-tracker` Worker deployed. `GET /comps?bobaId=X` read endpoint **live + validated** (clean empty result over the empty DB, §3.5 shape). Snapshot/vanish/confidence implemented; **cron OFF**.
+
+**The two-part build (next).** Reliable vanish-inference needs the FULL active-listing set + stable item ids. The proxy's main endpoint returns only the **top ~10 of N** with `{title,price,date,url}` and no format/seller/endDate; worse, its unmatched-path fall-through silently serves that truncated set. So the snapshot is **hard-gated**: `activeListingsFor` consumes a listing set ONLY if the response is marked `full:true` (returns [] otherwise — verified the snapshot is a no-op, writes nothing). **Step 1:** add `GET /tracker/active?…&full=1` to `boba-ebay-proxy` returning every matched active listing with `{itemId, price, buyingOption, endDate, seller, condition, image, url, full:true}` from Browse (careful — it's the production pricing Worker; verify `/` responses unchanged). **Step 2:** enable the snapshot + 6h cron, validate one manual run. See `workers/pricing-tracker/README.md`.
+
+**Supabase (Tier 3):** likely reachable via the connected Supabase integration — to check when Tier 3 starts.

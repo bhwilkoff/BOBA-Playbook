@@ -572,6 +572,40 @@ copy button (already shipped — codified here).
 **Anti-patterns to avoid:** sidebar overlap with map (already fixed
 v2.067 — codified here).
 
+### 14.6 Card detail — pricing panels (provenance-honest)
+
+**Binding.** Web mirrors iOS DESIGN.md §8.7; pricing renders in the
+card-detail `<dialog>` (§14.1), not a separate view. The governing
+rule is **provenance honesty**: every number states what kind of
+data it is, and we NEVER present a derived guess as a "Market Est."
+when no real sold data backs it (the post-Radish / post-Marketplace-
+Insights failure mode — PRICING_PLAYBOOK.md + DECISIONS.md #058).
+
+Most-specific honestly-labeled signal, in order:
+
+1. **RECENT SALES** — real sold comps (eBay vanish-inferred / Whatnot
+   / community), each row with its source pill. Shown only when real
+   sold data exists.
+2. **LISTED RANGE** — when there is NO real sold data, the active
+   eBay listings are the honest primary signal: LOW/AVG/HIGH range +
+   count + subhead "Active eBay listings · no recent sales data yet"
+   + an "eBay listed" pill. Replaces the old fabricated `MARKET EST.`
+   render (the `estimated` / `priceType === 'listed'` path).
+3. **BUY NOW** — only when RECENT SALES exists: active asking +
+   COMC ("COMC asking · Ungraded NM", soft-fail on `challenged`).
+4. **Estimate** (Tier 4) — `boba-price-estimator`, shown only
+   clearly labeled and only when fed real comps; suppressed while
+   starved (current state).
+
+Per-section: `.pricing-section` tiles (price + title + source pill +
+tap-through `<a target="_blank" rel="noopener">`). Empty / loading
+per §10. A single per-card "View on Radish" external link is
+preserved (DECISIONS.md #056).
+
+**Anti-patterns to avoid:** rendering `MARKET EST.` from an empty or
+derived estimate; folding COMC asking into a sold number (#034);
+hiding the source pill (provenance is the trust mechanism).
+
 ---
 
 ## 15. Roadmap — refactors implied by ratifying this doc

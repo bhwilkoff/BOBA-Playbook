@@ -399,18 +399,22 @@ Three structs (`CardDetailView`, `BrowserCardDetailSheet`, `CollectionCardDetail
 
 **Hero zoom rules:** source applies `.matchedTransitionSource(id, in:)` as outermost modifier; destination applies `.navigationTransition(.zoom(sourceID:, in:))`; one `@Namespace` per parent shared source↔destination; push via NavigationLink or path-append; ID = `card.id` for Find/Decks, `bobaId` for Collection. **"nil view" warning** = iOS couldn't find matching source ID → fallback transition. Causes: matchedTransitionSource on INNER view wrapped by Button/overlay/modifier (apply as outermost), or applied inside a function-returning-view (apply at call site).
 
-### 8.7 Pricing panels — Buy Now + Sold history
+### 8.7 Pricing panels — provenance-honest (Recent Sales · Listed Range)
 
-Lives inside `CardDetailView`. Live-fetched (DECISIONS.md #013). COMC asking stays OUT of sold-comp waterfall (#034) — asking inflates 10-25%.
+Lives inside `CardDetailView`. Live-fetched (DECISIONS.md #013). COMC asking stays OUT of any sold-comp number (#034) — asking inflates 10-25%.
 
-1. **Buy Now** (asking): eBay actives + COMC asking w/ "COMC asking · Ungraded NM" pill. Soft-fail COMC silently when Worker returns `challenged: true`.
-2. **Sold history** (transacted): eBay sold (Marketplace Insights API, 90-day window, tuned `normaliseSoldEnriched` scorer). Market est for cards with no eBay sold activity falls through to the `boba-price-estimator` Worker (comparability function over our own catalog, KV-cached). Radish removed 2026-05-23 — see DECISIONS.md #056. A single per-card "View on Radish" external-browser link is preserved on every card detail (uses the legacy frozen `card.radishUrl` when present, falls back to the Radish homepage).
+**Provenance is the contract.** Every number states what kind of data it is. We NEVER present a derived guess as a "Market Est." when no real sold data backs it — that was the post-Radish/post-Marketplace-Insights failure mode (see PRICING_PLAYBOOK.md + DECISIONS.md #058). The panel shows the most-specific *honestly-labeled* signal available, in this order:
 
-Per-section: horizontal scroll of price tiles (thumb + price + source pill + tap-through). Empty = section-local `ContentUnavailableView` w/ refresh. Loading = 3-tile skeleton.
+1. **Recent Sales** (transacted — the real thing): real sold comps, each row carrying its own source pill — eBay vanish-inferred (PRICING_PLAYBOOK Tier 1), Whatnot (Tier 2), or community (Tier 3, "BoBA Community · @user"). Shown only when real sold data exists.
+2. **Listed Range** (asking — what's on the market now): when there is NO real sold data, the active eBay listings ARE the honest primary signal. Header "LISTED RANGE", LOW/AVG/HIGH range + count, provenance line "Active eBay listings · no recent sales data yet", pill "eBay listed". This replaces the old "fall through to a fabricated Market Est." behavior.
+3. **Buy Now** (where to buy): when Recent Sales exists, active eBay listings + COMC asking ("COMC asking · Ungraded NM" pill, soft-fail on `challenged: true`) render as a separate "Buy Now" section. When there is no Recent Sales, the active data is the Listed Range (item 2) — not a duplicate Buy Now.
+4. **Estimate** (derived — Tier 4, when it has real comps): the `boba-price-estimator` surfaces ONLY clearly labeled as an estimate ("Estimated · based on N comparable cards") and only when fed real comp data. Never the sole number presented as market value. Suppressed entirely while the estimator is starved (current state).
 
-Market estimate header (single line): *"~$24 · based on 8 recent eBay sold comps"*. Asking NEVER folded in. Cached `user_cards.estimated_value` for Collection value-summary; grid doesn't re-fetch live.
+Per-section: horizontal scroll of price tiles (thumb + price + source pill + tap-through). Empty = section-local `ContentUnavailableView` w/ refresh. Loading = 3-tile skeleton. A single per-card "View on Radish" external-browser link is preserved on every card detail (legacy frozen `card.radishUrl` when present, else the Radish homepage; DECISIONS.md #056).
 
-**Anti-patterns:** asking+sold combined (inflation); one source when both available; sources behind disclosure (provenance is the trust mechanism).
+Real-sold header (single line, only when Recent Sales exists): *"~$24 · based on 8 recent sales"*. Asking NEVER folded in. Cached `user_cards.estimated_value` for Collection value-summary; grid doesn't re-fetch live.
+
+**Anti-patterns:** presenting a derived or empty estimate as "Market Est." (the dishonest-provenance trap PRICING_PLAYBOOK §7 kills); asking+sold combined (inflation); one source when both available; sources behind disclosure (provenance is the trust mechanism).
 
 ### 8.8 Wall view + Price Overlay — for everyone
 

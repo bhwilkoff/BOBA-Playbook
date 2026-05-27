@@ -252,20 +252,15 @@ actor PricingService {
         }
         let response = try JSONDecoder().decode(PricingResponse.self, from: data)
 
-        // Market Est. fallback — when the Worker returns no sold
-        // section, consult the dedicated `boba-price-estimator` Worker
-        // for a comparability-derived estimate. Treated as a sold
-        // bucket flagged estimated=true so the UI can render
-        // "MARKET EST." copy instead of "RECENT SALES" (PricingSection
-        // checks the `estimated` field). Synchronous off the eBay
-        // response so callers see one consistent result.
-        var soldSection = response.sold
-        if soldSection == nil {
-            if let bobaId = bobaIdHint(cardNumber: cardNumber, hero: hero, treatment: treatment, variation: variation, element: element),
-               let estimated = await fetchEstimatorBucket(bobaId: bobaId) {
-                soldSection = estimated
-            }
-        }
+        // Provenance-honest pricing (PRICING_PLAYBOOK.md §7 · DESIGN.md
+        // §8.7): when the Worker returns no real sold comps we do NOT
+        // fabricate a "MARKET EST." from the starved `boba-price-
+        // estimator`. PricingSection instead surfaces the active eBay
+        // listings honestly as "LISTED RANGE". `fetchEstimatorBucket`
+        // is retained (DECISIONS.md #025 keep-code-hide-entry-point)
+        // for the Tier 4 overhaul, which reintroduces a clearly-labeled
+        // estimate ONLY when fed real comp data.
+        let soldSection = response.sold
 
         // Accept the response if any section has data
         let hasDualData = soldSection != nil || response.active != nil

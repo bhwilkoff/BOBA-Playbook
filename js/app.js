@@ -4016,6 +4016,13 @@
       ? ` · ${count_probable} probable`
       : '';
 
+    // Listed Range (no real sold data): the active listings ARE the
+    // honest signal. The caption states provenance plainly so the user
+    // knows these are asking prices, not sales (WEB-DESIGN.md §14.6).
+    const countCaption = opts.listedRange
+      ? `${count} active eBay listing${count !== 1 ? 's' : ''} · no recent sales data yet`
+      : `${count} ${typeStr}${count !== 1 ? 's' : ''}${probableNote}`;
+
     return `
       <div class="pricing-section${isSold ? '' : ' pricing-section-active'}">
         <p class="pricing-items-label">${label}</p>
@@ -4033,7 +4040,7 @@
             <span class="pricing-val">${fmt(high)}</span>
           </div>
         </div>
-        <p class="pricing-sale-count">${count} ${typeStr}${count !== 1 ? 's' : ''}${probableNote}</p>
+        <p class="pricing-sale-count">${countCaption}</p>
         ${itemsHtml}
       </div>`;
   }
@@ -4043,18 +4050,29 @@
     if (!body) return;
     const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
 
-    // New dual-section format
+    // New dual-section format — provenance-honest per WEB-DESIGN.md §14.6.
     if (data.sold || data.active) {
       const parts = [];
-      if (data.sold)   parts.push(renderPricingSection('RECENT SALES', data.sold, true,  opts));
-      if (data.active) parts.push(renderPricingSection('BUY NOW',      data.active, false, opts));
+      // Real sold data = transacted comps, NOT an estimator-derived
+      // bucket (which carries estimated:true / count 0). Only then do
+      // we show "RECENT SALES" + a separate "BUY NOW" asking panel.
+      const realSold = !!(data.sold && !data.sold.estimated && (data.sold.count || 0) > 0);
+      if (realSold) {
+        parts.push(renderPricingSection('RECENT SALES', data.sold, true, opts));
+        if (data.active) parts.push(renderPricingSection('BUY NOW', data.active, false, opts));
+      } else if (data.active) {
+        // No real sold data — the active eBay listings ARE the honest
+        // primary signal. Show them as "LISTED RANGE", never a
+        // fabricated "Market Est." (PRICING_PLAYBOOK.md §7).
+        parts.push(renderPricingSection('LISTED RANGE', data.active, false, { ...opts, listedRange: true }));
+      }
       // COMC asking-price strip — additive, only renders when we
       // actually have listings (current state with Cloudflare
       // Turnstile on COMC's side: empty array, nothing renders).
       if (Array.isArray(opts.comcListings) && opts.comcListings.length > 0) {
         parts.push(renderComcStrip(opts.comcListings));
       }
-      body.innerHTML = parts.join('');
+      body.innerHTML = parts.length ? parts.join('') : '<p class="pricing-none">No eBay sales or listings found.</p>';
       return;
     }
 

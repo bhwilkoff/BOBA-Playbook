@@ -211,7 +211,10 @@ class PricingService @Inject constructor(
      * the resolver ranks it above Listed Range. Returns null when no comps
      * exist yet so the caller falls through to Listed Range. Soft-fails.
      */
-    suspend fun fetchComps(bobaId: String, days: Int = 90): CompsResult? = withContext(Dispatchers.IO) {
+    // `days` defaults to a full year: sold history doesn't go stale like
+    // active asks, and the wider window surfaces the most comps as vanish-
+    // inference accrues. Independent of the card-detail active-listing picker.
+    suspend fun fetchComps(bobaId: String, days: Int = 365): CompsResult? = withContext(Dispatchers.IO) {
         if (bobaId.isBlank()) return@withContext null
         runCatching {
             val resp: CompsResponse = httpClient.get("${WorkerConfig.PRICING_TRACKER}/comps") {

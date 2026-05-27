@@ -514,3 +514,14 @@ Supersedes §4's sold-archive design. Whatnot PRODUCT search = **active asking l
 - Validated: `/estimate` → `no_comps_yet`; `/refresh?budget=3` → processed 3, wrote 0 (no errors; produces estimates automatically as the tracker accrues inferred sales). Nightly cron unchanged (still within the 5-cron cap — it already had a slot).
 
 **Remaining:** Tier 2 (Whatnot Products), Tier 3 (community comps — the fastest path to comp data ahead of the 14-day tracker), and #6 (unify `marketValue` + wire the estimator/comps into clients as a clearly-labeled "Estimated"/"Recent Sales" signal per §8.7, re-enabling what Tier 5 suppressed — only when real data backs it).
+
+### 2026-05-27 — Tier 3 data foundation built + wired into the estimator
+
+The community-comp backbone is live on Supabase (project `pazkimtkwwwekuguxkff`) and feeding the estimator — the *fastest* path to real comp data (no 14-day wait):
+- **`community_comps` table + RLS** (migration `community_comps_tier3`): own/approved/mod read policies; review = mods/admins. `user_id` ON DELETE SET NULL so approved comps survive account deletion (anonymized).
+- **RPCs** mirroring the `card_corrections`/`request_role` pattern: `submit_community_comp` (authenticated, rate-limited 5/user/day + 1/bobaId/user/week), `get_pending_community_comps` (mod queue), `review_community_comp` (approve/reject), `get_approved_comps` (public). Grants tightened (`_tighten_grants`) per the security advisor — submit/review/pending are authenticated-only; `get_approved_comps` is anon-callable by design.
+- **Estimator wiring:** `boba-pricing-tracker /comps` now MERGES approved community comps (Supabase `get_approved_comps`, anon key as a wrangler secret) with the D1 inferred-sold — one sold-comps endpoint, `source: "inferred_sold+community"`, each row tagged (`community-{platform}` / `ebay-inferred`). The estimator reads `/comps` median, so approved comps flow straight through.
+- **Validated end-to-end:** seeded an approved comp → it appeared in `/comps` (count 1, `$14.25`, `community-whatnot`) → cleaned up. Security advisor clean for the new objects.
+- DDL version-controlled in `supabase_schema.sql`.
+
+**Tier 3 remaining (client work):** submission UI on CardDetail (iOS/web/Android — price/date/platform/photo/notes), the `boba-comp-upload` Worker (R2 photo, reuse avatar-upload), and the mod-queue UI (extend the `card_corrections` admin panel). Photo fingerprint-verify deferred to v2 (mod approval gates v1).

@@ -28,6 +28,10 @@ CATALOG_URL         = "https://bobaplaybook.com/assets/data/cards.json"
 CADENCE_HOURS       = "6"
 PER_RUN_BUDGET      = "400"
 BROWSE_SAFETY_FLOOR = "1500"
+# Tier 3: /comps merges approved community comps from Supabase
+# (get_approved_comps RPC). SUPABASE_ANON_KEY is a wrangler secret
+# (public anon key, but kept out of git): wrangler secret put SUPABASE_ANON_KEY
+SUPABASE_URL        = "https://pazkimtkwwwekuguxkff.supabase.co"
 
 # Cron ENABLED 2026-05-27 after the enriched /tracker/active endpoint shipped +
 # the pipeline was validated end-to-end. Sized against MEASURED quota: eBay

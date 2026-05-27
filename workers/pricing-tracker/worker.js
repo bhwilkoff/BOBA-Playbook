@@ -75,12 +75,47 @@ async function handleComps(url, env) {
       LIMIT 50`
   ).bind(bobaId, FLOOR, since).all();
 
-  const comps = (results || []).filter(c => c.price > 0);
-  const prices = comps.map(c => c.price).sort((a, b) => a - b);
+  const comps = (results || []).filter(c => c.price > 0)
+    .map(c => ({ ...c, source: "ebay-inferred" }));
+
+  // Merge approved community comps (Tier 3) — mod-approved, user-attested
+  // sold prices from Supabase. Both are real "sold" signals, so they share
+  // the summary; each row keeps its source so clients can pill it.
+  for (const cc of await fetchCommunityComps(bobaId, since.slice(0, 10), env)) comps.push(cc);
+
+  const prices = comps.map(c => Number(c.price)).filter(p => p > 0).sort((a, b) => a - b);
   const summary = prices.length
     ? { low: prices[0], median: prices[(prices.length - 1) >> 1], high: prices[prices.length - 1], count: prices.length }
     : { low: 0, median: 0, high: 0, count: 0 };
-  return json({ bobaId, comps, summary, windowDays: days, source: "inferred_sold" });
+  return json({ bobaId, comps, summary, windowDays: days, source: "inferred_sold+community" });
+}
+
+/** Approved community comps for a card (Tier 3), via Supabase get_approved_comps. */
+async function fetchCommunityComps(bobaId, sinceDate, env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return [];
+  try {
+    const res = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/get_approved_comps`, {
+      method: "POST",
+      headers: {
+        apikey: env.SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_boba_id: bobaId }),
+    });
+    if (!res.ok) return [];
+    const rows = await res.json();
+    return (rows || [])
+      .filter(r => Number(r.price_usd) > 0 && (!r.sold_at || r.sold_at >= sinceDate))
+      .map(r => ({
+        price: Number(r.price_usd),
+        soldAt: r.sold_at,
+        confidence: 1.0,                          // mod-approved + user-attested
+        format: null, itemId: null,
+        imageUrl: r.photo_url || null,
+        source: `community-${r.source_platform}`,
+      }));
+  } catch { return []; }
 }
 
 /** POST /snapshot?budget=N — manual trigger (same path as cron). */

@@ -626,3 +626,42 @@ the estimator on all platforms. iOS/Android mod-queue parity is a follow-up
 **Still remaining (Tier 3):** `boba-comp-upload` Worker (R2 photo, reuse
 `boba-avatar-upload`); iOS/Android mod-queue parity (optional — web covers
 the sole-admin case today). Photo fingerprint-verify stays v2.
+
+### 2026-05-27 — Tier 2 Whatnot Products Worker endpoint (built + verified)
+
+`GET /whatnot/products?query=...` on `boba-ebay-proxy` returns current
+active Whatnot listings: `{ query, count, summary:{low,average,high,count},
+listings:[{ title, price, priceCents, currency, condition, listingId,
+listingUrl, seller, sellerUrl, imageUrl, format:"buy_now"|"auction" }],
+challenged? }`. Live-verified against `query=bojax` → 17 real listings,
+$6.00–$25,000, correct sellers/images/formats.
+
+**Reverse-engineering notes (the hard part):**
+- Whatnot's public search is Next.js **App Router (React Flight stream)** —
+  NO `__NEXT_DATA__`, and the rich feed is NOT in the 3 `ApolloSSRDataTransport`
+  pushes. The listing entities are emitted as **raw, un-escaped JSON objects**
+  in the HTML, so the robust extractor scans `{"__typename":"ListingNode"` and
+  brace-matches each object directly (more durable than chasing the Flight/
+  Apollo wrapper, which changes more often than the entity shape).
+- Entity shape: `ListingNode { title, price:{__typename:"Money",amount,currency},
+  currentBid, transactionType:"BUY_IT_NOW"|"AUCTION", listingStatus:"ACTIVE",
+  user:{username}, salesChannels:[{channelId}], id(base64 "ListingNode:<num>") }`.
+- **`Money.amount` is in CENTS** — calibrated against live data (699=$6.99,
+  199900=$1,999.00, 1500000=$15,000); a dollars assumption would have been a
+  100× error. Each listing is inlined ~6× per page → de-dupe by decoded
+  listingId.
+- Worker egress passes Whatnot's IP-reputation anti-bot (same as the shipping
+  `/whatnot/upcoming` shows feed); `api.whatnot.com/graphql` is Turnstile-
+  walled so we never touch it. Challenge detection → `challenged:true` soft-
+  fail (COMC contract). 12-min edge cache. Diagnostics removed post-fix.
+
+**Open design question before client integration (for Ben):** Whatnot's
+search tokenizer is loose. A single distinctive hero token (`bojax`) returns
+clean BoBA-only results, but a multi-word query (`bojax day one`) gets diluted
+by unrelated "one/day" listings (Xbox Day One, Spider-Man One More Day). So
+per-card surfacing needs a query/match strategy: query by the distinctive BoBA
+hero token, then filter the returned titles to the specific card by cardNumber/
+weapon tokens (the eBay-scoring approach). Since these render in **Buy Now only**
+(never the Market Est., never the sold waterfall — asks inflate, #034 + §7),
+some fuzziness is tolerable: the user scans titled tiles and taps through, just
+like eBay actives. Client integration (iOS/web/Android Buy Now tiles) is next.

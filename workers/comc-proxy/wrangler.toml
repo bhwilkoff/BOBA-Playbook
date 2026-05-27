@@ -24,6 +24,12 @@ enabled = true
 binding = "COMC_CACHE"
 id = "498c14da03ee4010a3b987ed1d48f50b"
 
-# Daily sweep harvest at 06:00 UTC. Adjust frequency vs. catalog volatility.
+# Cron removed 2026-05-27 — COMC is fully Turnstile-blocked (DECISIONS.md #034),
+# so the daily sweep harvests nothing. The slot was reclaimed for
+# boba-pricing-tracker (the live Tier-1 pricing data source). The on-demand
+# proxy still works; re-add a cron here if COMC's WAF stance ever changes
+# (#034) — note the account's 5-cron cap means freeing another slot first.
+# Explicit empty array so `wrangler deploy` actively CLEARS the old schedule
+# (omitting [triggers] leaves it registered).
 [triggers]
-crons = ["0 6 * * *"]
+crons = []

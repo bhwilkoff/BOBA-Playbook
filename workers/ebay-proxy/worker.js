@@ -912,6 +912,28 @@ async function handleTrackerActive(request, env) {
   return json({ full: true, count: items.length, query: keywords, items });
 }
 
+/** GET /tracker/ratelimit — our app's actual eBay API rate limits + remaining
+ *  quota (Developer Analytics getRateLimits). Lets us size the pricing-tracker
+ *  cron against real headroom instead of guessing. */
+async function handleRateLimit(request, env) {
+  let token;
+  try { token = await getAppToken(env, caches.default); }
+  catch (e) { return json({ error: String(e?.message ?? e) }, 502); }
+  const res = await fetch("https://api.ebay.com/developer/analytics/v1_beta/rate_limit", {
+    headers: { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
+  });
+  const data = await res.json().catch(() => ({}));
+  // Flatten to {apiName: {limit, remaining, reset}} for the Browse-ish APIs.
+  const summary = {};
+  for (const rl of (data.rateLimits ?? [])) {
+    for (const r of (rl.resources ?? [])) {
+      const rate = (r.rates ?? [])[0] ?? {};
+      summary[`${rl.apiName}/${r.name}`] = { limit: rate.limit, remaining: rate.remaining, reset: rate.reset, window: rate.timeWindow };
+    }
+  }
+  return json({ status: res.status, summary, raw: data });
+}
+
 // ── Discord message proxy ─────────────────────────────────────────────────────
 
 /**
@@ -1160,6 +1182,7 @@ export default {
     if (request.method === "GET"  && url.pathname.endsWith("/whatnot/upcoming")) return handleWhatnotUpcoming(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/scrape-ebay"))      return handleScrapeEbay(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/tracker/active"))   return handleTrackerActive(request, env);
+    if (request.method === "GET"  && url.pathname.endsWith("/tracker/ratelimit")) return handleRateLimit(request, env);
     const { searchParams } = url;
     const cardNumber = searchParams.get("cardNumber");
     const hero       = searchParams.get("hero") || "";

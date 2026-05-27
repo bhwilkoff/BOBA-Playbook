@@ -103,6 +103,21 @@ async function runSnapshot(env, budget) {
   const started = nowIso();
   let cardsPolled = 0, listingsSeen = 0;
   let err = null;
+
+  // Safety: the tracker shares eBay's 5,000/day Browse quota with LIVE user
+  // pricing. Never starve it — skip this run if Browse remaining is below the
+  // floor (per-run budget + margin), so live pricing always wins.
+  const SAFETY_FLOOR = Number(env.BROWSE_SAFETY_FLOOR || 1500);
+  try {
+    const rl = await env.EBAY_PROXY_SVC.fetch(new Request("https://internal/tracker/ratelimit"));
+    const browse = ((await rl.json().catch(() => ({}))).summary || {})["Browse/buy.browse"];
+    const remaining = browse ? Number(browse.remaining) : null;
+    if (remaining != null && remaining < SAFETY_FLOOR) {
+      await recordRun(env, started, 0, 0, 0, `skipped: Browse remaining ${remaining} < floor ${SAFETY_FLOOR}`);
+      return { started, skipped: true, browseRemaining: remaining };
+    }
+  } catch { /* quota check failed — proceed; small budget + per-card try/catch bound the risk */ }
+
   try {
     const catalog = await (await fetch(env.CATALOG_URL, { cf: { cacheTtl: 3600 } })).json();
     const tracked = catalog.filter(c => c.imageFile && c.cardType !== "Sealed Product");

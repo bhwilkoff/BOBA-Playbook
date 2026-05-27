@@ -22,6 +22,12 @@ crons = ["0 3 * * *"]
 binding = "EBAY_PROXY_SVC"
 service = "boba-ebay-proxy"
 
+# Tier 1 vanish-inference store — the estimator's comp source (real inferred-
+# sold prices). Replaces the dead eBay-Marketplace-Insights sold path.
+[[services]]
+binding = "PRICING_TRACKER_SVC"
+service = "boba-pricing-tracker"
+
 # Variables
 [vars]
 # URL of the canonical catalog JSON the estimator reads from. GitHub

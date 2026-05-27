@@ -60,7 +60,7 @@ Card identification uses iOS Vision (`VNRecognizeTextRequest`) and AVFoundation 
 
 ## 013 — Pricing Comps Strategy
 *2026-04-03*
-Pricing fetched live at card-detail view time via Cloudflare Worker (eBay Browse + Marketplace Insights APIs). Prices not stored in Supabase — live lookups only. Collection value dashboard caches last-fetched price in `user_cards.estimated_value`. **Radish Price Guide integration was removed 2026-05-23** per the partner's request — see #056. Worker URL lives in `Config.swift` + `js/app.js`.
+Pricing fetched live at card-detail view time via Cloudflare Worker. Prices not stored in Supabase — live lookups only; Collection value caches last-fetched price in `user_cards.estimated_value`. Worker URL lives in `Config.swift` + `js/app.js`. **Superseded by #058** — the provenance-honest architecture (Radish removed #056; Marketplace Insights permanently unavailable; we generate our own sold-history). See #058 + PRICING_PLAYBOOK.md.
 
 ## 014 — iOS Card Catalog: Two-Phase Progressive Loading
 *2026-04-03*
@@ -130,9 +130,9 @@ When a feature is built but blocked on external dependencies (Discord trade room
 *2026-04-13*
 `reconcile_all.py::step11_optimize_images` ends with an md5-uniqueness check across the image tiers: any group of files resolving to different `(cardNumber, hero)` keys but sharing identical bytes is flagged to `image_collisions.json` with a per-tier remediation hint.
 
-**Why**: The bobaId scheme enforces "One ID per Card" at the catalog layer, but nothing enforced "One Image per Card" at the CDN-payload layer. On 2026-04-13 Caliber card #24 was showing D-Harp's art — an earlier optimizer run had silently overwritten Caliber's webp with D-Harp's bytes (cards.json was correct). Only md5 comparison of the actual outputs catches this; a post-mortem found 35 such pairs, and a bad source image or PIL race could regress it.
+**Why**: the bobaId scheme enforces "One ID per Card" at the catalog layer, but nothing enforced "One Image per Card" at the CDN-payload layer. Caliber #24 once showed D-Harp's art — an optimizer run had silently overwritten Caliber's webp with D-Harp's bytes (cards.json was correct); only md5 comparison of the outputs catches this (a post-mortem found 35 such pairs).
 
-**How to apply**: If `image_collisions.json` is written after a run, STOP — don't sync to R2 until every group is resolved. The `notes` field says whether to delete bad outputs and re-run step 11 (tier-level) or re-download correct source art (master-level). When the correct art doesn't exist publicly, reclassify into the missing-art queue (`imageFile/imageSource=null, imageAvailable=false`) and let `ebay_missing_images.py` recover it.
+**How to apply**: if `image_collisions.json` is written after a run, STOP — don't sync to R2 until every group is resolved. The `notes` field says whether to delete bad outputs and re-run step 11 (tier-level) or re-download source art (master-level); when correct art doesn't exist publicly, reclassify into the missing-art queue and let `ebay_missing_images.py` recover it.
 
 **Principle**: Every invariant the app relies on should be enforced where it can be measured. "One Image per Card" lives in binary content, so the check runs against binary content.
 
@@ -214,9 +214,7 @@ All five scan modes route through `ScanMatching.resolve(...)`. The prior design 
 
 **Redesign:** image fingerprint (`feature-prints.bin`, 16,123 cards / 12.7 MB) is the primary identifier; every signal contributes candidates and scores: FP top-30 by L2 distance form the pool, refined by OCR cardNumber, hero name, and element/treatment/power. **Hero veto:** any candidate whose hero isn't in a clearly-named top-left set gets −2.0 (the missing piece the waterfall lacked). Confidence floor 1.4, margin floor 0.3 — below either, the resolver returns nil ("Not identified").
 
-**Why FP primary:** OCR fails partially in success-looking ways (silent-wrong); FP fails completely in failure-looking ways (resolver returns nil; user retries). Silent-wrong is the worst possible UX for card recognition.
-
-**Grid-cell perspective rectification:** `GridCardDetector` perspective-corrects from each anchor's quad with adaptive bleed sized from lane spacing — fixes the prior ~22% under-detection from anchor-clipped bottom-left card numbers.
+**Why FP primary:** OCR fails partially in success-looking ways (silent-wrong); FP fails completely in failure-looking ways (resolver returns nil; user retries). Silent-wrong is the worst possible UX for card recognition. (`GridCardDetector` also perspective-corrects from each anchor's quad with lane-spacing-sized bleed — fixed the prior ~22% under-detection; see `[[feedback_vision_rect_under_detection]]`.)
 
 ## 036 — Wall + Price Overlay: lift from streamer-only gate
 *2026-05-03*
@@ -278,9 +276,9 @@ CameraX 1.5+ + ML Kit Text Recognition v2 via Google Play Services dynamic deliv
 
 **Why OCR-only v1:** #035 made FP primary on iOS due to silent-wrong failure in **grid scan** specifically. Single-card live scan with OCR + hero-name veto + confidence threshold is sufficient. Adding FP needs MediaPipe + a parallel `feature-prints-android.bin` — defer to v2.
 
-**Why unbundled (amended 2026-05-26):** the original bundled artifact triggered a Play Console "missing debug symbols" warning — ML Kit ships its `.so` files pre-stripped, so AGP's native-symbol task produces nothing. The warning is cosmetic today but exactly the kind of thing Google could promote to a hard blocker on no notice. Unbundling removes the `.so` files from the AAB (Play Services hosts them), shrinks it ~11 MB, and eliminates the warning. The "offline-immediate" trade-off was illusory: the user had to be online to install. API surface is identical, so swapping is a one-line change in `libs.versions.toml`.
+**Why unbundled (amended 2026-05-26):** the bundled artifact triggered a Play Console "missing debug symbols" warning (ML Kit ships `.so` pre-stripped → AGP's native-symbol task produces nothing). Unbundling removes the `.so` from the AAB (Play Services hosts them), shrinks it ~11 MB, eliminates the warning, and is a one-line swap in `libs.versions.toml`; API surface is identical (install still requires being online, so the "offline" trade-off was illusory).
 
-**Residual warning:** the AAB still ships pre-stripped `.so` files from other Google libs with no sidecar. A Gradle task zips them into a BuildID-matched `native-debug-symbols.zip` (`finalizedBy bundleRelease`) that Play Console accepts; it restores native-frame→library attribution but not line numbers (Google strips those at publish) — the max achievable for stripped binaries. ANDROID-DEV.md §6.
+**Residual warning:** other pre-stripped Google `.so` files remain; a Gradle task zips them into a BuildID-matched `native-debug-symbols.zip` (`finalizedBy bundleRelease`) Play Console accepts — restores frame→library attribution, not line numbers (Google strips those). ANDROID-DEV.md §6.
 
 ## 044 — Android: NO multi-step anchored walkthroughs
 *2026-05-19*
@@ -353,25 +351,19 @@ Partially supersedes the web-side of [#012](#012). Scan on web is no longer "out
 
 ## 055 — Android scan: multi-pathway OCR recovery for shiny / holographic cards
 *2026-05-23*
-Real-world testing of **DEKAP GGL-779 (Great Grandma's Linoleum Battlefoil — Glow)** drove a rewrite of the Android matcher to accumulate **six independent OCR-recovery paths** rather than rely on one clean read. iOS #035's strict cardNumber regex + hero veto stays the core; Android adds cross-token reassembly, digit-confusion suffix normalisation, missing-dash reconstruction, heroes-gated prefix-only candidate gathering, digit-to-letter prefix normalisation (`G6L`→`GGL` — most-impactful; OCR reads `G` as `6` on shimmer), and reconstructed cardNumbers — plus cross-frame token aggregation, loose bare-digit recovery, and fuzzy element matching (Levenshtein 1).
+Real-world testing of **DEKAP GGL-779 (Great Grandma's Linoleum Battlefoil — Glow)** drove a rewrite of the Android matcher to accumulate **multiple independent OCR-recovery paths** rather than rely on one clean read (cross-token reassembly, digit-confusion + digit-to-letter prefix normalisation — `G6L`→`GGL`, most-impactful since OCR reads `G` as `6` on shimmer — missing-dash reconstruction, heroes-gated prefix-only candidates, cross-frame aggregation, fuzzy element matching). iOS #035's strict cardNumber regex + hero veto stays the core. The **killer feature: a parallel preprocessed-OCR pipeline** — a periodic `enhanceContrast` (percentile luma stretch) on a `PreviewView.bitmap` snapshot feeds a SECOND ML Kit pass into the same token buffer, restoring the cardNumber-strip contrast auto-exposure blows out on shimmer. Full path list + don't-touch diagram in memory `[[reference_android_scanner_recovery_paths]]` + SCANNER_LOOP.md.
 
-The **killer feature: a parallel preprocessed-OCR pipeline** — a periodic `enhanceContrast` (percentile luma stretch) on a `PreviewView.bitmap` snapshot feeds a SECOND ML Kit pass into the same token buffer, restoring the cardNumber-strip contrast that auto-exposure blows out on shimmer.
-
-**Why Android diverges from iOS:** iOS has a cleaner OCR baseline (Vision) plus `feature-prints.bin` FP matching (#035); Android's ML Kit OCR is noisier on shimmer and FP is deferred to v2 (#043).
-
-**Don't:** lower the stabilizer single-frame tier below 2.5, or relax the 0.3 margin / 1.4 confidence floors — both tried at iters 46-47 and reverted within minutes (wrong-card / wrong-element commits). The floors are load-bearing. New paths get a SCANNER_LOOP.md row + a `ScanCardMatcherTest` JVM test, verified via `adb logcat -s ShinyScanDiag`. Full diagram + don't-touch list in `[[reference_android_scanner_recovery_paths]]`.
+**Why Android diverges from iOS:** iOS has a cleaner OCR baseline (Vision) + `feature-prints.bin` FP (#035); Android's ML Kit OCR is noisier on shimmer, FP deferred to v2 (#043). **Don't:** lower the stabilizer single-frame tier below 2.5, or relax the 0.3 margin / 1.4 confidence floors (tried iters 46-47, reverted within minutes — wrong-card/element commits). The floors are load-bearing; new paths get a SCANNER_LOOP.md row + `ScanCardMatcherTest` JVM test.
 
 ## 056 — Radish Price Guide integration removed (compliance request)
 *2026-05-23*
 On 2026-05-23 the Radish Price Guide owner + lead developer emailed that they consider BOBA a competing product and revoked authorization for Radish data, images, pricing, mapping, lookup logic, automated workflows, and partner/primary-source language. The ONE thing they remain comfortable with: "ordinary user-facing linking" where the user leaves BOBA to view info directly on Radish.
 
-**What was removed** (full tick log in `RADISH_REMOVAL_LOOP.md`): every Radish fetch/resolver/scraper across the Workers, iOS/web/Android clients, and pipeline; pricing collapsed to eBay sold + active. A backfill queue (`scripts/identify_radish_sourced_cards.py`) re-sources the 8,386 Radish-sourced images from BazookaVault.
+**What was removed** (full tick log in `RADISH_REMOVAL_LOOP.md`): every Radish fetch/resolver/scraper across Workers, clients, and pipeline; pricing replacement is now its own architecture (#058 — we generate our own sold-history rather than swap one third-party dependency for another). A backfill queue (`scripts/identify_radish_sourced_cards.py`) re-sources the 8,386 Radish-sourced images from BazookaVault.
 
-**The one approved use case — per-card external link.** The email allowed "ordinary user-facing linking," and Ben confirmed direct card-links are within the spirit. Reconciliation: use the legacy `card.radishUrl` field already in `cards.json` (acquired pre-email, treated as frozen static data), falling back to `https://radishpriceguide.com` when null; button "View on Radish" opens the system default browser externally. Every prohibited form of automation — sitemap pulls, HEAD probing, alias tables, runtime URL construction, Worker endpoints — stays fully deleted.
+**The one approved use case — per-card external link.** The email allowed "ordinary user-facing linking"; Ben confirmed direct card-links are within the spirit. Use the legacy frozen `card.radishUrl` field (acquired pre-email), falling back to `https://radishpriceguide.com` when null; "View on Radish" opens the system browser externally.
 
-**Pricing replacement plan** (separate entry when shipped): eBay Marketplace Insights sold comps (Tier 1); a new `boba-price-estimator` comparability Worker over our own catalog for no-activity cards (Tier 2); community comps via `card_corrections` (Tier 3). Research found no third-party source worth integrating to replace Radish (PSA APR, 130point, TCDb, Whatnot, COMC, Goldin all unusable) — eBay is the only first-party-licensed long-tail source.
-
-**Why principle-wise:** preserving the ability to operate independently of any single third party is the load-bearing concern; the replacement plan deepens BOBA's own moat rather than swapping one dependency for another. **How to apply:** reject any PR adding a Radish reference (fetch, URL construction beyond the homepage fallback, alias table, lookup logic, source pill, partner language). The only permitted Radish code: the `card.radishUrl` per-card link + homepage fallback.
+**Why principle-wise:** operating independently of any single third party is the load-bearing concern. **How to apply:** reject any PR adding a Radish reference (fetch, URL construction beyond the homepage fallback, alias table, lookup logic, source pill, partner language); the only permitted Radish code is the `card.radishUrl` per-card link + homepage fallback. Every other automation — sitemap pulls, HEAD probing, alias tables, runtime URL construction, Worker endpoints — stays deleted.
 
 ## 057 — bobaId formula v3 adds weapon as 5th field
 *2026-05-25*
@@ -384,8 +376,19 @@ bobaId = f"{cardNumber}-{hero or name}-{treatment or ''}-{variation or ''}-{elem
 
 **Why**: The card-art audit found many cards exist as FIRE-weapon + GLOW-weapon variant siblings sharing otherwise-identical (cardNumber, hero, treatment, variation), which collided on the v2 bobaId. The catalog had worked around it with distinct cardNumbers per variant — but that broke when 101 OCR-driven cardNumber merges would have produced true bobaId duplicates. Including weapon in the bobaId lets both weapon variants keep the same physical printed cardNumber without collision.
 
-**Migration shape**: deterministic old→new mapping for all 17,974 cards, applied in lockstep across the 3 canonical formula sources (`boba_id.py`, `Card.swift`, `Card.kt`), the 5 catalog bundles, and every Supabase `boba_id` column + pipeline tables. The feature-prints index rebuilds automatically (keys are opaque strings).
+**Migration**: deterministic old→new mapping for all 17,974 cards, in lockstep across the 3 canonical formula sources (`boba_id.py`, `Card.swift`, `Card.kt`), the 5 catalog bundles, and every Supabase `boba_id` column + pipeline tables; feature-prints index rebuilds automatically. NOT changed: R2 image filenames (`imageFile` is a separate stored string — old keys stay valid) and pipeline staging identifiers (distinct `Auto`-suffix workflow tokens).
 
-**What was NOT changed**: R2 image filenames (`imageFile` is a separate stored string, not derived at lookup — old keys stay valid) and pipeline-internal staging identifiers (a distinct `Auto`-suffix format — workflow tokens, not user-facing bobaIds).
+**How to apply**: any code reading/writing a bobaId uses the 5-field formula; the three canonical sources share one shape — never redefine inline. A 6th disambiguator (v3 verified zero collisions) repeats this shape: new field at the end, deterministic catalog → mapping table → Supabase UPDATEs.
 
-**How to apply**: any code reading or writing a bobaId must use the 5-field formula; the three canonical sources share one shape — never redefine it inline. If a 6th disambiguator ever becomes necessary (v3 verified zero collisions across 17,974 cards), repeat this shape — new field at the end, deterministic catalog → mapping table → Supabase UPDATEs.
+## 058 — Pricing is provenance-honest; we generate our own sold data
+*2026-05-27*
+
+The post-Radish, post-Marketplace-Insights pricing architecture (full build log + per-tier rules: PRICING_PLAYBOOK.md; UI rules: DESIGN.md §8.7 · WEB-DESIGN.md §14.6 · ANDROID-DESIGN.md §8.7, which cite this entry). eBay Marketplace Insights (sold comps) is permanently unavailable — it has rejected applicants for years — so any pipeline depending on a third party for sold data is structurally broken. Supersedes Radish-era #013; generalizes COMC's asks-out-of-waterfall rule (#034) to *every* asking source.
+
+**Principle — provenance is the contract.** Every price states what KIND of data it is; we NEVER present an asking price or derived guess as "what it's worth" (asks run 10-25% above transacted → folding them in silently inflates every card). The most-specific *honestly-labeled* signal wins, in order: (1) **Recent Sales** — transacted comps, each with a source pill (eBay/Whatnot vanish-inferred · community); (2) **Listed Range** — with NO sold data, the active listings ARE the honest signal ("N active · no recent sales yet"), never a fabricated "Market Est."; (3) **Buy Now** — active asks (eBay + COMC + Whatnot), additive, never in a sold number; (4) **Estimate** — the comparability estimator, only when labeled AND fed real comps.
+
+**Why we generate our own data.** No external API gives us sold comps, so `boba-pricing-tracker` snapshots public *active* listings (eBay + Whatnot) into D1 and infers "sold @ last-seen price" + confidence when a listing **vanishes** from a later snapshot (~60 days → a sold-history we own); plus community comps (Tier 3) and the `boba-price-estimator` over our own catalog. All real sold signals merge through one endpoint (`/comps`); asking sources never enter it.
+
+**Match precision is load-bearing — "one card, one bobaId, one price"** (`workers/ebay-proxy/worker.js`): eBay sold requires exact card-number AND hero (partial/hero-only → dropped); **weapon-conflict** reject (FIRE vs GLOW share a cardNumber, #057); **treatment-conflict** reject (Base Set rejects Battlefoil/Inspired/etc.); **ordinal exclusion** ("1" ≠ "1st Edition") + **prefixed-number guard** ("1" ≠ "#OHBF-1"). **Whatnot is adaptive** — sellers title by card NUMBER *or* POWER, so a listing matches on EITHER, same weapon/treatment gates.
+
+**How to apply.** Reject any PR that (a) presents an asking/estimator number as market value without real sold data, (b) folds asks into a sold/value figure, or (c) loosens a match gate so another card's listings count. New *asking* sources → Buy Now / Listed Range; new *sold* sources → `/comps`.

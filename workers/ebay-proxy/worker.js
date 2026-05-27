@@ -85,6 +85,47 @@ function titleLooksLikeBoba(titleLower) {
   return /battle arena|bo ?jackson|\bbo ?ba\b|bojax/.test(titleLower);
 }
 
+// Distinctive special-treatment / parallel markers (multi-char, low
+// false-positive). A Base Set card's listing must name NONE of these —
+// presence means a different (special-treatment) card, e.g. Inspired Ink
+// / Colosseum / Battlefoil shown for a Base Set #1. Short/ambiguous
+// aliases ("logo","rad","super","ii","sf","auto") are deliberately
+// excluded to avoid false rejects on base listings.
+const SPECIAL_TREATMENT_MARKERS = [
+  "battlefoil", "battle foil", "inspired ink", "inspired", "superfoil",
+  "super foil", "logofoil", "kanjifoil", "colosseum", "coliseum", "coloseum",
+  "linoleum", "mixtape", "blizzard", "chillin",
+];
+function treatmentIsBase(treatment) {
+  const t = String(treatment || "").toLowerCase();
+  return t === "" || t.includes("base");
+}
+/** True when the title's treatment is incompatible with the card's. For a
+ *  Base Set card, ANY special-treatment marker is a conflict. For a
+ *  special-treatment card, a DIFFERENT special marker (one its own
+ *  treatment doesn't match) is a conflict. */
+function titleHasTreatmentConflict(titleLower, treatment) {
+  const namesSpecial = SPECIAL_TREATMENT_MARKERS.some(m => titleLower.includes(m));
+  if (!namesSpecial) return false;
+  if (treatmentIsBase(treatment)) return true;
+  return !treatmentMatches(titleLower, treatment);
+}
+
+/** Card-number token matcher with ordinal exclusion — "1" must NOT match
+ *  the "1" in "1st Edition" (an edition marker, not a card number). The
+ *  dominant false-match for low-numbered cards. Dash-insensitive. */
+function cardNumberTitleRegex(cardNumber) {
+  const cn = String(cardNumber || "").trim().toLowerCase();
+  if (!cn) return null;
+  const esc = cn.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/-/g, "-?");
+  // Leading boundary is start / whitespace / "#" only — NOT any non-digit.
+  // This stops a purely-numeric card number ("1") matching the suffix of a
+  // treatment-prefixed number like "#OHBF-1" (Orange Battlefoil #1) or
+  // "GGL-1". Trailing (?!st|nd|rd|th) excludes ordinals ("1st Edition").
+  try { return new RegExp(`(?:^|[\\s#])0*${esc}(?!st|nd|rd|th)(?:\\D|$)`, "i"); }
+  catch (_) { return null; }
+}
+
 // Base scope for Browse API. Marketplace Insights requires buy.marketplace.insights
 // but requesting it as a combined scope causes a 400 if not approved. Instead we
 // request just the base scope and let the Insights call return 403 (handled as
@@ -389,6 +430,11 @@ function scoreSoldListing(item, card) {
   if (titleNamesConflictingWeapon(titleLower, card.element)) {
     return { score: 0, reasons: ["weapon_conflict"] };
   }
+  // Treatment / parallel conflict — a Base Set card must not match an
+  // Inspired Ink / Colosseum / Battlefoil listing (a different card).
+  if (titleHasTreatmentConflict(titleLower, card.treatment)) {
+    return { score: 0, reasons: ["treatment_conflict"] };
+  }
 
   const reasons = [];
   let score = 0;
@@ -406,7 +452,8 @@ function scoreSoldListing(item, card) {
       } else {
         const numPart = String(card.cardNumber).replace(/\D/g, "");
         if (numPart) {
-          const re = new RegExp(`(?:^|\\D)0*${numPart}(?:\\D|$)`);
+          // Ordinal-excluded so "P-8" doesn't match "8th" etc.
+          const re = new RegExp(`(?:^|\\D)0*${numPart}(?!st|nd|rd|th)(?:\\D|$)`);
           if (re.test(titleLower)) cardNumSignal = 0.5;
         }
       }
@@ -842,7 +889,7 @@ function normaliseSoldEnriched(items, card) {
  * no full card number in title). Image check can reject these but never force-reject
  * an unreadable image — null AI result = keep the listing.
  */
-async function matchActiveCandidates(items, cardNumber, hero, power, env, element = "") {
+async function matchActiveCandidates(items, cardNumber, hero, power, env, element = "", treatment = "", cardSet = "") {
   // Phase 1: filter with confidence
   const candidates = [];
   for (const item of items) {
@@ -855,6 +902,11 @@ async function matchActiveCandidates(items, cardNumber, hero, power, env, elemen
     // Weapon-variant sibling reject (#057) — a title naming a different
     // weapon than the card is a different print of the same cardNumber.
     if (titleNamesConflictingWeapon(titleLower, element)) continue;
+    // Treatment / parallel conflict — a Base Set card must not match an
+    // Inspired Ink / Colosseum / Battlefoil listing (a different card).
+    if (titleHasTreatmentConflict(titleLower, treatment)) continue;
+    // Wrong-edition reject — e.g. a 2025 Griffey listing for a 2026 card.
+    if (cardSet && wrongEditionInTitle(title, cardSet)) continue;
 
     const aspectResult = checkAspects(aspects, cardNumber, power);
     let match = false, confidence = "low";
@@ -870,21 +922,23 @@ async function matchActiveCandidates(items, cardNumber, hero, power, env, elemen
         match = false;
       } else if (isNumeric) {
         // Tightened (2026-05-27): hero ALONE matched every card for that
-        // hero. Require the card number as a bounded token in the title
-        // too, so only the exact card matches ("one card, one price").
-        const numRe = new RegExp(`(?:^|\\D)0*${cardNumber}(?:\\D|$)`);
-        match      = titleNorm.includes(norm(hero)) && numRe.test(titleLower);
+        // hero. Require the card number as a bounded title token too
+        // (ordinal-excluded so "1" ≠ "1st Edition"), so only the exact
+        // card matches ("one card, one price").
+        const numRe = cardNumberTitleRegex(cardNumber);
+        match      = titleNorm.includes(norm(hero)) && !!numRe && numRe.test(titleLower);
         confidence = "medium";
       } else {
         if (titleNorm.includes(norm(cardNumber))) {
           match = true; confidence = "high";
         } else {
-          // Loose fallback (numeric part of the card number) — now also
-          // requires the hero in the title so a bare "8" can't pull in an
-          // unrelated card. AI image-verify still gates these.
+          // Loose fallback (numeric part of the card number) — also
+          // requires the hero in the title and excludes ordinals so a
+          // bare "8" / "1st" can't pull in an unrelated card. AI
+          // image-verify still gates these.
           const numPart = cardNumber.replace(/\D/g, "");
-          if (numPart && titleNorm.includes(norm(hero))) {
-            const re = new RegExp(`(?:^|\\D)0*${numPart}(?:\\D|$)`);
+          const re = numPart ? cardNumberTitleRegex(numPart) : null;
+          if (re && titleNorm.includes(norm(hero))) {
             if (re.test(titleLower)) { match = true; confidence = "low"; }
           }
         }
@@ -913,8 +967,8 @@ async function matchActiveCandidates(items, cardNumber, hero, power, env, elemen
 
 /** Slim shape for the live `/` response — output unchanged from before the
  *  matchActiveCandidates extraction. */
-async function normaliseActive(items, cardNumber, hero, power, env, element = "") {
-  const candidates = await matchActiveCandidates(items, cardNumber, hero, power, env, element);
+async function normaliseActive(items, cardNumber, hero, power, env, element = "", treatment = "", cardSet = "") {
+  const candidates = await matchActiveCandidates(items, cardNumber, hero, power, env, element, treatment, cardSet);
   return candidates.map(c => ({
     title: c.item.title ?? "",
     price: c.price,
@@ -926,8 +980,8 @@ async function normaliseActive(items, cardNumber, hero, power, env, element = ""
 /** Rich shape for the Tier 1 vanish-inference tracker (PRICING_PLAYBOOK §3):
  *  EVERY matched active listing with a stable item id + the signals the
  *  confidence formula needs. NOT used by the live `/` response. */
-async function normaliseActiveFull(items, cardNumber, hero, power, env, element = "") {
-  const candidates = await matchActiveCandidates(items, cardNumber, hero, power, env, element);
+async function normaliseActiveFull(items, cardNumber, hero, power, env, element = "", treatment = "", cardSet = "") {
+  const candidates = await matchActiveCandidates(items, cardNumber, hero, power, env, element, treatment, cardSet);
   return candidates.map(c => ({
     itemId:       c.item.itemId ?? null,
     price:        c.price,
@@ -951,6 +1005,8 @@ async function handleTrackerActive(request, env) {
   const cardNumber = searchParams.get("cardNumber");
   const hero       = searchParams.get("hero") || "";
   const element    = searchParams.get("element") || "";
+  const treatment  = searchParams.get("treatment") || "";
+  const cardSet    = searchParams.get("set") || "";
   const powerRaw   = searchParams.get("power");
   const power      = powerRaw != null ? parseInt(powerRaw, 10) : null;
   if (!cardNumber) return json({ error: "cardNumber required", full: true, count: 0, items: [] }, 400);
@@ -966,7 +1022,7 @@ async function handleTrackerActive(request, env) {
   const { items: raw, error } = await searchActive(token, keywords);
   if (error) return json({ error, full: true, count: 0, items: [] }, 502);
 
-  const items = await normaliseActiveFull(raw, cardNumber, hero, power, env, element);
+  const items = await normaliseActiveFull(raw, cardNumber, hero, power, env, element, treatment, cardSet);
   return json({ full: true, count: items.length, query: keywords, items });
 }
 
@@ -1369,7 +1425,7 @@ export default {
       // exists. Users should always be able to see cards currently for sale.
       const { items: activeRaw, error: activeErr } = await searchActive(token, keywordsSpecific);
       if (!activeErr) {
-        const activeItems = await normaliseActive(activeRaw, cardNumber, hero, power, env, searchParams.get("element") || "");
+        const activeItems = await normaliseActive(activeRaw, cardNumber, hero, power, env, searchParams.get("element") || "", searchParams.get("treatment") || "", searchParams.get("set") || "");
         if (activeItems.length > 0) {
           const sorted = [...activeItems].sort((a, b) => a.price - b.price);
           const prices = sorted.map(i => i.price);

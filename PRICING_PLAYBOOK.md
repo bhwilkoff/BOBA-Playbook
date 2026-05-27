@@ -289,7 +289,19 @@ Replace the eBay-proxy fetch inside the estimator (which currently returns nothi
 
 The 0.6/0.3/0.1 weights are a guess, and re-guessing new weights repeats the mistake. Once Tier 1+2+3 produce real sold comps, **fit a hedonic model**: `log(price) ~ treatment_family + serialization_tier + cardType + power_tier + weapon + set + hero`, learning each factor's actual price contribution from observed sales. A comp-less card's estimate = the model's feature-based prediction blended with its nearest-rarity-class comps. Hero enters as one learned coefficient (expected: a modest multiplier), never a 0.6 prior. **This is why Tier 1 must land first — the estimator is only as good as the comp data feeding it.** Until enough comps exist, fall back to the derived-scarcity heuristic (§6.2) with rarity axes dominant + hero a small bonus. Validate any model on a held-out set of cards that DO have comps before shipping; spot-check the long tail (Battlefoils especially).
 
-**Open (Ben's domain call):** how to establish the treatment rarity ORDER pre-comps — derive purely from catalog population + serialization (data-only, no manual ranking), or seed with a canonical treatment-rarity tier list from Ben, or both (his tiers as prior, population/comps as refinement). See build-log.
+### 6.4 Rarity backbone — official taxonomy (bobattlearena.com/collecting-basics)
+
+Ben's authoritative source (2026-05-27). The official page ranks rarity primarily as a **WEAPON ladder** — this is the spine of the scarcity index:
+
+`BRAWL` (new) · `STEEL` (common core) → `FIRE` / `ICE` (Inspired Ink serialized, "a step up in power") → `GLOW` (scarcer) → `HEX` (elite) → `GUM` (Secret Rare, extreme rarity) → `SUPER` (Superfoil 1/1).
+
+Plus a **Battlefoil color → rarity** ladder (color matches weapon, Hobby & Jumbo packs only): RED (Brawl) / SILVER (Steel) = **Common** · BLUE (Ice) / ORANGE (Fire) = **SP** · GREEN (Glow) = **SSP Case Hit** · PINK (Hex) = **Secret 1/1**.
+
+**Serialization print runs, per the official page:** Fire /50 · Ice /50 · Glow /25 · Hex /10; Gum = secret; Super = 1/1.
+
+> ⚠️ **DATA DISCREPANCY — confirm before encoding the numbers.** The official page (as read 2026-05-27) gives Fire /50, Ice /50, Glow /25, **Hex /10**. CLAUDE.md + DECISIONS.md #028 state **Hex /5, Glow /10, Fire /25, Ice /50**. The relative ORDER is consistent (Hex rarest → Glow → Fire ≥ Ice), so the rarity *ladder* — which is all the estimator's weighting needs — is safe either way and is NOT blocked. But the absolute counts conflict and one is stale; the canonical numbers in CLAUDE.md/#028 should be reconciled against the live page (Ben to confirm; possible the line changed, or one source misread). Do NOT overwrite #028 until confirmed.
+
+**Themed Battlefoils** (Grandma's Linoleum, 80's Rad, Blizzard, Mixtape, Alpha, Colosseum, Logofoil, Icon, Headlines, Fire Tracks, Miami Ice, Chillin'/Grillin', Power Glove, Slime, …) make up most of the 59 catalog `treatment` values and are NOT individually ranked on the page. Tier them by **catalog population as a scarcity proxy** + real comps once available (some are explicit "case hits"/SP and tier high). The weapon ladder + color tiers + serialization are the hard backbone; the themed foils are the learn-from-data layer.
 
 ---
 

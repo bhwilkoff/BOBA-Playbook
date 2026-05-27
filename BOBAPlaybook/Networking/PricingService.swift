@@ -483,7 +483,10 @@ actor PricingService {
     /// a card from `boba-pricing-tracker /comps`. nil when none exist yet —
     /// the resolver then falls through to Listed Range. Soft-fails; this is
     /// an additive real-sold signal, never blocks the pricing render.
-    func comps(bobaId: String, days: Int = 90) async -> CompsResult? {
+    /// `days` defaults to a full year: sold history doesn't go stale like
+    /// active asks, and the wider window surfaces the most comps as vanish-
+    /// inference accrues. Independent of the card-detail active-listing picker.
+    func comps(bobaId: String, days: Int = 365) async -> CompsResult? {
         let base = await MainActor.run { WorkerConfig.pricingTrackerURL }
         guard !base.isEmpty,
               var comp = URLComponents(string: "\(base)/comps") else { return nil }

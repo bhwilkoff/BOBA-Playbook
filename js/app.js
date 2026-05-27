@@ -3728,7 +3728,7 @@
             const [comcResp, whatnotResp, comps] = await Promise.all([
               fetchComcListings(card.cardNumber),
               fetchWhatnotProducts(card),
-              fetchComps(card.bobaId, days),
+              fetchComps(card.bobaId),
             ]);
             renderPricingData(section, cached, {
               days, comcListings: comcResp, whatnotResp, comps,
@@ -3760,7 +3760,7 @@
           fetchWhatnotProducts(card),
           // Real transacted comps we generate ourselves (#058). Surfaces
           // as "Recent Sales", ranking above the Listed Range / Estimate.
-          fetchComps(card.bobaId, days),
+          fetchComps(card.bobaId),
         ]);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -3879,7 +3879,7 @@
   /// `{ items, summary }` where each item carries a `source`
   /// ("ebay-inferred" / "whatnot-inferred" / "community-…") for its pill,
   /// or null when no comps exist for this card yet (graceful no-data).
-  async function fetchComps(bobaId, days = 90) {
+  async function fetchComps(bobaId, days = 365) {
     if (!bobaId) return null;
     try {
       const res = await fetch(`${TRACKER_URL}/comps?bobaId=${encodeURIComponent(bobaId)}&days=${days}`);
@@ -3971,6 +3971,11 @@
         high: highs.length ? Math.max(...highs) : 0,
         count: total,
         hasEbay: ebayCount > 0, hasWhatnot: wnCount > 0,
+        // Keep the eBay active listings' individual rows so they render as
+        // tap-through links beneath the aggregate (Whatnot matched asks get
+        // their own strip below). Without this the section showed the count
+        // but no buyable links.
+        items: (active && Array.isArray(active.items)) ? active.items : [],
       };
     }
     // ── 3. Estimate (labeled, last resort) ────────────────────────────

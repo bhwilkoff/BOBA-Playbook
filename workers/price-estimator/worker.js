@@ -68,15 +68,15 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-// Weights — primary axes sum to 1.0 when all three match. Fallback
-// axes are only consulted when primary axes are sparse; they carry
-// reduced weight to reflect the looser comparability.
-const WEIGHT_SAME_HERO              = 0.6;
-const WEIGHT_SAME_WEAPON_POWER      = 0.3;
-const WEIGHT_SAME_SET               = 0.1;
-const WEIGHT_SAME_WEAPON_TREATMENT  = 0.2;   // fallback
-const WEIGHT_SAME_CARD_TYPE         = 0.1;   // fallback
-const WEIGHT_SAME_TREATMENT         = 0.1;   // fallback
+// Rarity-first comparability (PRICING_PLAYBOOK.md §6.2). For BoBA, price
+// tracks RARITY — not hero. The old hero=0.6 weighting was backwards.
+// Comparables are now ranked tightest-rarity-class first (treatment-family +
+// weapon + power-tier + type, then identical serialized print run, then
+// looser treatment groupings); hero is the weakest, last-resort axis.
+// computeEstimate uses the tightest class with enough priced comps and takes
+// the MEDIAN (robust to the wild asking-price outliers eBay returns) — no
+// weighted-sum of arbitrary axis weights (the "guess" §6.3 warns against;
+// real per-feature weights get learned from comps once the dataset exists).
 
 // Confidence threshold. ≥ 6 priced comps from primary axes = high
 // confidence; ≥ 3 = medium; below = low (UI surfaces a caveat).
@@ -128,102 +128,76 @@ function treatmentFamily(treatment) {
  * primary axes return nothing.
  */
 function findComparables(target, catalog) {
+  // Axes ordered tightest (most price-comparable) → loosest. Rarity drives
+  // price, so the rarity class leads and hero is the last resort.
   const result = {
-    same_hero:         [],
-    same_weapon_power: [],
-    same_set:          [],
-    // Fallback axes — looser comparators, only used when the primary 3
-    // are sparse.
-    same_weapon_treatment: [],   // weapon + treatment-family only (no power-tier match)
-    same_card_type:        [],   // weapon + card type (Hero / Play / Hot Dog)
-    same_treatment:        [],   // any card of the same treatment family
+    rarity_class:     [],   // treatment-family + weapon + power-tier + cardType
+    serial:           [],   // identical serialized print run (hard scarcity peer)
+    treatment_weapon: [],   // treatment-family + weapon (cross power-tier)
+    treatment:        [],   // treatment-family (cross weapon/power)
+    hero:             [],   // same hero — secondary signal only
   };
   const tHero  = (target.hero || "").toLowerCase();
   const tPower = powerTier(target.power);
   const tEl    = target.element;
   const tFam   = treatmentFamily(target.treatment);
-  const tSet   = target.set;
   const tType  = target.cardType;
+  const tPrint = target.printRun;
 
   for (const c of catalog) {
     if (!c.bobaId || c.bobaId === target.bobaId) continue;
-    // Same hero — most weight-bearing axis
-    if (tHero && (c.hero || "").toLowerCase() === tHero) {
-      result.same_hero.push(c.bobaId);
-    }
-    const cFam = treatmentFamily(c.treatment);
+    const cFam   = treatmentFamily(c.treatment);
     const cPower = powerTier(c.power);
-    // Primary: same (weapon, power-tier, treatment-family)
-    if (
-      tEl && c.element === tEl &&
-      tPower && cPower === tPower &&
-      tFam && cFam === tFam
-    ) {
-      result.same_weapon_power.push(c.bobaId);
+
+    if (tEl && c.element === tEl && tFam && cFam === tFam &&
+        tPower && cPower === tPower && tType && c.cardType === tType) {
+      result.rarity_class.push(c.bobaId);
     }
-    // Primary: same (set, cardType)
-    if (tSet && c.set === tSet && tType && c.cardType === tType) {
-      result.same_set.push(c.bobaId);
+    // Serialized cards of the SAME print run track each other strongly
+    // regardless of hero (a /5 sells like other /5s). printRun is the
+    // hardest scarcity signal we have (Feature 0, §6.4).
+    if (tPrint && c.printRun === tPrint) {
+      result.serial.push(c.bobaId);
     }
-    // Fallback: same (weapon, treatment-family) without power-tier
     if (tEl && c.element === tEl && tFam && cFam === tFam) {
-      result.same_weapon_treatment.push(c.bobaId);
+      result.treatment_weapon.push(c.bobaId);
     }
-    // Fallback: same (weapon, cardType) — broader cross-set
-    if (tEl && c.element === tEl && tType && c.cardType === tType) {
-      result.same_card_type.push(c.bobaId);
-    }
-    // Fallback: same treatment family across all cards
     if (tFam && cFam === tFam) {
-      result.same_treatment.push(c.bobaId);
+      result.treatment.push(c.bobaId);
+    }
+    if (tHero && (c.hero || "").toLowerCase() === tHero) {
+      result.hero.push(c.bobaId);
     }
   }
-  // Cap each axis at 20 comps to keep eBay-query fan-out bounded.
+  // Cap each axis to keep the /comps fan-out bounded.
   for (const k of Object.keys(result)) {
-    if (result[k].length > 20) result[k] = result[k].slice(0, 20);
+    if (result[k].length > 30) result[k] = result[k].slice(0, 30);
   }
   return result;
 }
 
 /**
- * For a list of bobaIds, fetch the most-recent average sold price from
- * boba-ebay-proxy. Returns a map bobaId → number (skipping cards with
- * no eBay sold data).
+ * For a list of bobaIds, fetch real inferred-sold comp prices from the Tier 1
+ * tracker (boba-pricing-tracker `/comps`). Returns a map bobaId → median sold
+ * price, skipping cards with no inferred-sold data yet. Replaces the dead
+ * eBay-Marketplace-Insights sold path (PRICING_PLAYBOOK.md §0, §6.1) — the
+ * estimator now stands on comps we generate ourselves.
  */
-async function fetchCompPrices(bobaIds, catalog, env) {
-  const indexByBobaId = new Map(catalog.map(c => [c.bobaId, c]));
+async function fetchCompPrices(bobaIds, env) {
   const prices = new Map();
-  // Cap concurrency at 6 — Cloudflare Workers prefer fewer in-flight
-  // fetches over a tighter pool.
   const CONCURRENCY = 6;
   let i = 0;
   async function worker() {
     while (i < bobaIds.length) {
-      const idx = i++;
-      const id  = bobaIds[idx];
-      const card = indexByBobaId.get(id);
-      if (!card) continue;
+      const id = bobaIds[i++];
       try {
-        const params = new URLSearchParams({
-          cardNumber: card.cardNumber || "",
-          hero:       card.hero       || "",
-          set:        card.set        || "",
-          element:    card.element    || "",
-          days:       "90",
-        });
-        if (card.treatment) params.set("treatment", card.treatment);
-        if (card.power != null) params.set("power", String(card.power));
-        // Service-binding fetch — public-URL Worker-to-Worker gets 404'd
-        // by Cloudflare's edge router. The binding goes through the
-        // runtime directly.
-        const req = new Request(`https://internal/?${params}`);
-        const res = await env.EBAY_PROXY_SVC.fetch(req);
+        // Service-binding fetch — direct runtime route, no edge round-trip.
+        const req = new Request(`https://internal/comps?bobaId=${encodeURIComponent(id)}&days=90`);
+        const res = await env.PRICING_TRACKER_SVC.fetch(req);
         if (!res.ok) continue;
         const data = await res.json();
-        // Prefer the explicitly-sold section's average. Falls back to
-        // the top-level average when the response is in legacy shape.
-        const avg = data?.sold?.average ?? data?.average ?? 0;
-        if (avg > 0) prices.set(id, avg);
+        const median = data?.summary?.median ?? 0;
+        if (median > 0) prices.set(id, median);
       } catch {
         // Single-card failure must not break the cron — skip silently.
       }
@@ -234,79 +208,50 @@ async function fetchCompPrices(bobaIds, catalog, env) {
 }
 
 /**
- * Combine the per-axis comparable prices into a single weighted estimate.
- * Returns null when no axis has data.
- *
- * Tiered: primary axes (same_hero, same_weapon_power, same_set) are
- * always weighted. Fallback axes (same_weapon_treatment, same_card_type,
- * same_treatment) are only consulted when the primary axes are sparse —
- * they prevent a brand-new card in a brand-new set from getting a null
- * estimate just because its in-set comps don't exist yet. The fallback
- * paths drive the `confidence` field (low / med / high) so the UI can
- * caveat estimates derived from looser data.
+ * Rarity-first estimate (PRICING_PLAYBOOK.md §6.2). Walk the comparability
+ * axes tightest → loosest and use the FIRST axis that has enough priced comps;
+ * the estimate is the MEDIAN of that axis's comps (robust to the wild outliers
+ * eBay returns). Returns null when no axis has a single priced comp — honest:
+ * a card with zero comparable sold data gets NO fabricated estimate (Tier 5
+ * "Listed Range" covers that case). Real per-feature weighting is learned once
+ * the comp dataset grows (§6.3).
  */
 function computeEstimate(comparables, priceMap) {
-  const primaryAxes = [
-    { ids: comparables.same_hero,         weight: WEIGHT_SAME_HERO,         tag: "same_hero" },
-    { ids: comparables.same_weapon_power, weight: WEIGHT_SAME_WEAPON_POWER, tag: "same_weapon_power" },
-    { ids: comparables.same_set,          weight: WEIGHT_SAME_SET,          tag: "same_set" },
-  ];
-  const fallbackAxes = [
-    { ids: comparables.same_weapon_treatment, weight: WEIGHT_SAME_WEAPON_TREATMENT, tag: "same_weapon_treatment" },
-    { ids: comparables.same_card_type,        weight: WEIGHT_SAME_CARD_TYPE,        tag: "same_card_type" },
-    { ids: comparables.same_treatment,        weight: WEIGHT_SAME_TREATMENT,        tag: "same_treatment" },
-  ];
+  // Tightest → loosest. Hero is last (a weak signal, not a price driver).
+  const order = ["rarity_class", "serial", "treatment_weapon", "treatment", "hero"];
+  const priceFor = ids => ids.map(id => priceMap.get(id)).filter(p => p > 0).sort((a, b) => a - b);
 
-  function aggregateAxes(axes) {
-    let weightedSum = 0;
-    let totalWeight = 0;
-    let totalCount  = 0;
-    const sourcesHit = [];
-    for (const axis of axes) {
-      const compsWithPrice = axis.ids.filter(id => priceMap.has(id));
-      if (compsWithPrice.length === 0) continue;
-      const avg = compsWithPrice
-        .map(id => priceMap.get(id))
-        .reduce((a, b) => a + b, 0) / compsWithPrice.length;
-      weightedSum  += avg * axis.weight;
-      totalWeight  += axis.weight;
-      totalCount   += compsWithPrice.length;
-      sourcesHit.push(axis.tag);
-    }
-    return { weightedSum, totalWeight, totalCount, sourcesHit };
+  // Prefer the tightest axis with >= CONFIDENCE_MED priced comps; else the
+  // tightest axis with any priced comp at all.
+  let tag = null, priced = null;
+  for (const t of order) {
+    const p = priceFor(comparables[t] || []);
+    if (p.length >= CONFIDENCE_MED) { tag = t; priced = p; break; }
   }
+  if (!priced) {
+    for (const t of order) {
+      const p = priceFor(comparables[t] || []);
+      if (p.length >= 1) { tag = t; priced = p; break; }
+    }
+  }
+  if (!priced) return null;
 
-  const primary = aggregateAxes(primaryAxes);
-  // Only consult fallback axes when primary axes returned too little —
-  // they're noisier, so consulting them when primaries had data
-  // would dilute the signal.
-  const useFallbacks = primary.totalCount < CONFIDENCE_MED;
-  const fallback = useFallbacks ? aggregateAxes(fallbackAxes) : null;
-  const totalWeight = primary.totalWeight + (fallback?.totalWeight ?? 0);
-  if (totalWeight === 0) return null;
-  const weightedSum = primary.weightedSum + (fallback?.weightedSum ?? 0);
-  const totalCount = primary.totalCount + (fallback?.totalCount ?? 0);
-  const sourcesHit = [...primary.sourcesHit, ...(fallback?.sourcesHit ?? [])];
+  const median = priced[(priced.length - 1) >> 1];
 
-  const mid = weightedSum / totalWeight;
-  const low  = Math.max(0, mid * (1 - CLAMP_FRAC));
-  const high = mid * (1 + CLAMP_FRAC);
-
-  // Confidence reflects how much primary-axis signal underpins the
-  // estimate. Fallback-only estimates are always low-confidence.
-  let confidence;
-  if (primary.totalCount >= CONFIDENCE_HIGH) confidence = "high";
-  else if (primary.totalCount >= CONFIDENCE_MED) confidence = "med";
-  else confidence = "low";
+  // Confidence: a tight rarity class with many comps is high; a single loose
+  // comp is low; hero-only is always low (weakest axis).
+  let confidence = "low";
+  if (tag !== "hero" && priced.length >= CONFIDENCE_HIGH) confidence = "high";
+  else if (priced.length >= CONFIDENCE_MED) confidence = "med";
 
   return {
-    low:               Math.round(low  * 100) / 100,
-    mid:               Math.round(mid  * 100) / 100,
-    high:              Math.round(high * 100) / 100,
-    comparableCount:   totalCount,
-    comparableSources: sourcesHit,
+    low:               Math.round(priced[0]                  * 100) / 100,
+    mid:               Math.round(median                     * 100) / 100,
+    high:              Math.round(priced[priced.length - 1]  * 100) / 100,
+    comparableCount:   priced.length,
+    comparableSources: [tag],
     confidence,
-    method:            useFallbacks ? "comparability_tiered" : "comparability",
+    method:            "rarity_comparability",
   };
 }
 
@@ -357,7 +302,7 @@ async function refreshAllEstimates(env, budgetOverride) {
     const target = cardsWithBobaId[i++];
 
     // Skip-if-fresh check.
-    const existing = await env.ESTIMATES.get(`estimate:${target.bobaId}`);
+    const existing = await env.ESTIMATES.get(`estimate:v2:${target.bobaId}`);
     if (existing) {
       try {
         const parsed = JSON.parse(existing);
@@ -372,12 +317,14 @@ async function refreshAllEstimates(env, budgetOverride) {
     processed++;
     const comparables = findComparables(target, catalog);
     const allCompIds = Array.from(new Set([
-      ...comparables.same_hero,
-      ...comparables.same_weapon_power,
-      ...comparables.same_set,
+      ...comparables.rarity_class,
+      ...comparables.serial,
+      ...comparables.treatment_weapon,
+      ...comparables.treatment,
+      ...comparables.hero,
     ]));
     if (allCompIds.length === 0) continue;
-    const prices = await fetchCompPrices(allCompIds, catalog, env);
+    const prices = await fetchCompPrices(allCompIds, env);
     const estimate = computeEstimate(comparables, prices);
     if (!estimate) continue;
     const entry = {
@@ -386,7 +333,7 @@ async function refreshAllEstimates(env, budgetOverride) {
       computedAt: new Date().toISOString(),
     };
     await env.ESTIMATES.put(
-      `estimate:${target.bobaId}`,
+      `estimate:v2:${target.bobaId}`,
       JSON.stringify(entry),
       { expirationTtl: 7 * 24 * 3600 },
     );
@@ -413,7 +360,7 @@ async function handleEstimateRequest(request, env) {
       headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
-  const raw = await env.ESTIMATES.get(`estimate:${bobaId}`);
+  const raw = await env.ESTIMATES.get(`estimate:v2:${bobaId}`);
   if (!raw) {
     return new Response(JSON.stringify({
       bobaId,

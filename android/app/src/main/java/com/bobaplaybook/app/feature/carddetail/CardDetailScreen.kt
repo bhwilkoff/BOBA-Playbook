@@ -1408,10 +1408,7 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
     // eBay buckets. Matched-first then "Other {hero}" (Hybrid). Asks NEVER
     // fold into any sold number (#034 + PRICING_PLAYBOOK §7).
     if (state.whatnotListings.isNotEmpty()) {
-        WhatnotAsksSection(
-            listings = state.whatnotListings,
-            hero = state.card?.hero.orEmpty(),
-        )
+        WhatnotAsksSection(listings = state.whatnotListings)
     }
 
     // "View on Radish" — single ordinary user-facing link permitted by
@@ -1641,12 +1638,13 @@ private fun SubmitCommunityCompSheet(
  * (#034). Top 3 per group. Mirrors web/iOS.
  */
 @Composable
-private fun WhatnotAsksSection(listings: List<WhatnotListing>, hero: String) {
-    val violet = Color(0xFF8B00FF)
+private fun WhatnotAsksSection(listings: List<WhatnotListing>) {
+    // Show ONLY this card's listings — never other cards for the hero
+    // (that distracts from the card you're looking at). Non-matched
+    // listings stay in the Worker response for the pricing pipeline.
     val matched = listings.filter { it.matchesCard }
-    val others  = listings.filterNot { it.matchesCard }
-    val lead = (if (matched.isNotEmpty()) matched else others).take(3)
-
+    if (matched.isEmpty()) return
+    val violet = Color(0xFF8B00FF)
     Column(modifier = Modifier.padding(top = 8.dp)) {
         Text(
             text = "WHATNOT · ACTIVE ASKS",
@@ -1655,16 +1653,7 @@ private fun WhatnotAsksSection(listings: List<WhatnotListing>, hero: String) {
             color = violet,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
-        lead.forEach { WhatnotAskRow(it, violet) }
-        if (matched.isNotEmpty() && others.isNotEmpty()) {
-            Text(
-                text = "Other $hero listings",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 2.dp),
-            )
-            others.take(3).forEach { WhatnotAskRow(it, violet) }
-        }
+        matched.take(3).forEach { WhatnotAskRow(it, violet) }
     }
 }
 

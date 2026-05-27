@@ -68,15 +68,21 @@ async function handleComps(url, env) {
 
   const { results } = await env.DB.prepare(
     `SELECT sold_price_usd AS price, vanished_at AS soldAt, sold_confidence AS confidence,
-            format, item_id AS itemId, image_url AS imageUrl
+            format, item_id AS itemId, image_url AS imageUrl, source
        FROM listings
       WHERE boba_id = ? AND inferred_sold = 1 AND sold_confidence >= ? AND vanished_at >= ?
       ORDER BY vanished_at DESC
       LIMIT 50`
   ).bind(bobaId, FLOOR, since).all();
 
+  // Tag each inferred-sold comp by the marketplace it vanished from
+  // ("ebay-inferred" / "whatnot-inferred") so clients can pill the source.
   const comps = (results || []).filter(c => c.price > 0)
-    .map(c => ({ ...c, source: "ebay-inferred" }));
+    .map(c => ({
+      price: c.price, soldAt: c.soldAt, confidence: c.confidence,
+      format: c.format, itemId: c.itemId, imageUrl: c.imageUrl,
+      source: `${c.source || "ebay"}-inferred`,
+    }));
 
   // Merge approved community comps (Tier 3) — mod-approved, user-attested
   // sold prices from Supabase. Both are real "sold" signals, so they share
@@ -158,15 +164,23 @@ async function runSnapshot(env, budget) {
     const tracked = catalog.filter(c => c.imageFile && c.cardType !== "Sealed Product");
     const start = Number((await env.CURSOR.get("cursor:tracker:next_index")) || 0) % tracked.length;
 
+    const upserts = [];
     for (let n = 0; n < budget; n++) {
       const card = tracked[(start + n) % tracked.length];
       cardsPolled++;
-      const listings = await activeListingsFor(card, env);
-      for (const li of listings) {
+      for (const li of await activeListingsFor(card, env)) {
         listingsSeen++;
-        await upsertListing(env, card.bobaId, li);
+        upserts.push(upsertStmt(env, card.bobaId, li, "ebay"));
+      }
+      // Whatnot active listings (matched only) — same vanish-inference,
+      // tagged source='whatnot'. Soft-fails to [] (challenge/error). The
+      // proxy caches the scrape by hero, so same-hero cards share one fetch.
+      for (const li of await whatnotListingsFor(card, env)) {
+        listingsSeen++;
+        upserts.push(upsertStmt(env, card.bobaId, li, "whatnot"));
       }
     }
+    await flushBatch(env, upserts);
     const next = (start + budget) % tracked.length;
     await env.CURSOR.put("cursor:tracker:next_index", String(next));
 
@@ -219,12 +233,16 @@ async function activeListingsFor(card, env) {
     .filter(li => li.itemId && li.price > 0);
 }
 
-async function upsertListing(env, bobaId, li) {
+// Build (not run) one upsert statement. Cloudflare caps subrequests per
+// invocation, and a per-listing `.run()` is one subrequest each — at
+// catalog scale that blows the cap. So we collect statements and flush via
+// `DB.batch()` (one subrequest per batch).
+function upsertStmt(env, bobaId, li, source = "ebay") {
   const now = nowIso();
-  await env.DB.prepare(
-    `INSERT INTO listings (item_id, boba_id, price_usd, condition, format, end_time,
+  return env.DB.prepare(
+    `INSERT INTO listings (item_id, boba_id, source, price_usd, condition, format, end_time,
                            seller_id, image_url, title, first_seen, last_seen)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(item_id) DO UPDATE SET
        price_usd = excluded.price_usd,
        last_seen = excluded.last_seen,
@@ -232,8 +250,50 @@ async function upsertListing(env, bobaId, li) {
        format    = COALESCE(excluded.format, listings.format),
        end_time  = COALESCE(excluded.end_time, listings.end_time),
        seller_id = COALESCE(excluded.seller_id, listings.seller_id)`
-  ).bind(li.itemId, bobaId, li.price, li.condition, li.format, li.endTime,
-         li.sellerId, li.image, li.title, now, now).run();
+  ).bind(li.itemId, bobaId, source, li.price, li.condition, li.format, li.endTime,
+         li.sellerId, li.image, li.title, now, now);
+}
+
+/** Flush prepared statements in chunked `DB.batch()` calls (1 subrequest each). */
+async function flushBatch(env, stmts) {
+  for (let i = 0; i < stmts.length; i += 50) {
+    await env.DB.batch(stmts.slice(i, i + 50));
+  }
+}
+
+/**
+ * Matched Whatnot active listings for one card, for vanish-inference. Uses
+ * the SAME tight matcher as the live card view (cardNumber OR power, gated
+ * by weapon + treatment) via the proxy's /whatnot/products, then keeps ONLY
+ * matchesCard listings — the tracker never ingests other-card listings, so
+ * the inferred sold-history stays "one card, one price". The proxy caches
+ * the scrape by hero, so many cards of a hero cost one fetch.
+ */
+async function whatnotListingsFor(card, env) {
+  const hero = card.hero || "";
+  if (!hero) return [];
+  const params = new URLSearchParams({
+    query: hero, cardNumber: card.cardNumber || "", weapon: card.element || "",
+  });
+  if (card.treatment) params.set("treatment", card.treatment);
+  if (card.power != null) params.set("power", String(card.power));
+  const res = await env.EBAY_PROXY_SVC.fetch(new Request(`https://internal/whatnot/products?${params}`));
+  if (!res.ok) return [];
+  const data = await res.json().catch(() => null);
+  if (!data || data.challenged || !Array.isArray(data.listings)) return [];
+  return data.listings
+    .filter(l => l.matchesCard && l.listingId && Number(l.price) > 0)
+    .map(l => ({
+      itemId: `wn-${l.listingId}`,
+      price: Number(l.price),
+      title: l.title || "",
+      url: l.listingUrl || "",
+      image: l.imageUrl || null,
+      format: l.format || null,        // "buy_now" | "auction"
+      endTime: null,
+      sellerId: l.seller || null,
+      condition: l.condition || null,
+    }));
 }
 
 /**
@@ -250,16 +310,16 @@ async function detectVanished(env) {
        FROM listings WHERE vanished_at IS NULL AND last_seen < ?`
   ).bind(cutoff).all();
 
-  let count = 0;
-  for (const row of results || []) {
+  const now = nowIso();
+  const stmts = (results || []).map(row => {
     const conf = soldConfidence(row);
-    await env.DB.prepare(
+    return env.DB.prepare(
       `UPDATE listings SET vanished_at = ?, inferred_sold = ?, sold_confidence = ?, sold_price_usd = ?
          WHERE item_id = ?`
-    ).bind(nowIso(), conf >= 0.55 ? 1 : 0, conf, row.price_usd, row.item_id).run();
-    count++;
-  }
-  return count;
+    ).bind(now, conf >= 0.55 ? 1 : 0, conf, row.price_usd, row.item_id);
+  });
+  await flushBatch(env, stmts);
+  return stmts.length;
 }
 
 // §3.4 sold-inference confidence (additive, capped 0..1). v1 uses listing

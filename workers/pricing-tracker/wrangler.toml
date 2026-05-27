@@ -26,18 +26,28 @@ id      = "b44ff8f1197646c2a4ba5563a2a68959"
 [vars]
 CATALOG_URL         = "https://bobaplaybook.com/assets/data/cards.json"
 CADENCE_HOURS       = "6"
-PER_RUN_BUDGET      = "400"
+# 250 cards/run × 2 service-binding fetches (eBay + Whatnot) = ~500 fetch
+# subrequests; D1 writes are batched (DB.batch = 1 subrequest per 50) — well
+# under Cloudflare's per-invocation cap. 250 × 4 runs/day = 1,000 eBay
+# Browse calls/day (the pre-run BROWSE_SAFETY_FLOOR check protects live pricing).
+PER_RUN_BUDGET      = "250"
 BROWSE_SAFETY_FLOOR = "1500"
 # Tier 3: /comps merges approved community comps from Supabase
 # (get_approved_comps RPC). SUPABASE_ANON_KEY is a wrangler secret
 # (public anon key, but kept out of git): wrangler secret put SUPABASE_ANON_KEY
 SUPABASE_URL        = "https://pazkimtkwwwekuguxkff.supabase.co"
 
-# Cron ENABLED 2026-05-27 after the enriched /tracker/active endpoint shipped +
-# the pipeline was validated end-to-end. Sized against MEASURED quota: eBay
-# Browse limit is 5,000/day (getRateLimits via /tracker/ratelimit); ~4,850
-# remained mid-day, so organic usage is light. 400 cards x 4 runs/day = 1,600/
-# day. worker.js also runs a pre-run quota check and SKIPS the run if Browse
-# remaining < BROWSE_SAFETY_FLOOR — live pricing's shared quota is never starved.
+# Cron DISABLED 2026-05-27 — BLOCKED on the Cloudflare Workers FREE-plan
+# limit of 50 subrequests per invocation. Full-catalog snapshotting needs
+# 2 service-binding fetches per card (eBay + Whatnot), so even ~25 cards
+# exceeds the cap regardless of D1-write batching. The vanish-inference
+# logic (eBay + Whatnot, tight matching, source-tagged, batched writes) is
+# complete + deployed; it just can't iterate the 17k catalog on free.
+# Two ways forward (Ben's call): (a) Workers Paid (~$5/mo → 1,000-subrequest
+# cap → PER_RUN_BUDGET 250 works); or (b) re-architect to ON-VIEW push —
+# record active listings into D1 from the proxy's `/` + `/whatnot/products`
+# handlers on each card-detail open (one tiny invocation per view, naturally
+# under 50, and snapshots exactly the cards people look at). `/comps` is live
+# either way. Re-enable with: crons = ["0 */6 * * *"].
 [triggers]
-crons = ["0 */6 * * *"]
+crons = []

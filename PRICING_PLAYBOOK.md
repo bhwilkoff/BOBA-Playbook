@@ -180,37 +180,64 @@ KV cursor namespace can be the same `ESTIMATES` we already use (different key pr
 
 ---
 
-## 4. Tier 2 — Whatnot post-stream archive scraper
+## 4. Tier 2 — Whatnot PRODUCTS (current active asks)
 
-Whatnot is a primary BoBA sales channel. Stream archives are public per-stream pages that show sold prices. Aggregating these gives us real (not inferred) sold data with high confidence.
+**Revised 2026-05-27 (Ben's direction).** The original Tier 2 was a
+post-stream *sold-archive* scraper. Ben killed that: *"Whatnot doesn't
+publish sold data in a format that actually works for our purposes. The
+only thing we should do for Whatnot is to provide the 'Products' that are
+currently being sold… the same thing that we are doing with eBay outside
+of our API access."* Example surface:
+`https://www.whatnot.com/search?query=bojax&searchVertical=PRODUCT`.
 
-### 4.1 Research required first (before implementing)
+So Tier 2 is now **current active product listings**, treated exactly like
+eBay *active* listings:
 
-- Whatnot archive URL pattern (per-stream, per-seller, per-search)
-- Whether archives expose price data in DOM HTML or in an embedded JSON blob (`__NEXT_DATA__` style)
-- Whether they rate-limit or Cloudflare-Turnstile the archive pages (COMC-style block would route us to Browser Rendering API)
-- Whether per-card images on archives are good enough for the existing image-fingerprint pipeline to match BoBA cards reliably
-- ToS check — Whatnot's robots.txt + ToS posture on archive scraping (public-archive scraping has historically been judged fair use; we'd cite eBay v. Bidder's Edge boundaries)
+- **A listed/asking signal, NOT a sold comp.** Whatnot Products go in the
+  card-detail **Buy Now** section, never the sold-comp waterfall — asks run
+  10–25% above transacted (same rule as COMC asking, DECISIONS.md #034, and
+  the honest-framing rule of Tier 5 §7). They never move the Market Est.
+- **Fetched LIVE per card-detail, like eBay actives — no cron, no D1.**
+  eBay actives are fetched on demand through `boba-ebay-proxy` when a card
+  opens; Whatnot Products follow the same model. This sidesteps the 5-cron
+  account cap entirely (the Tier-1 tracker already holds a slot) and keeps
+  Whatnot data as fresh as the user's view.
+- **No write to `community_comps`.** That table is Tier-3 user-submitted
+  *sold* comps; active asks don't belong there.
 
-Spawn a research subagent for this — output a 1-page brief on (a) URL/data shape, (b) anti-bot posture, (c) the most efficient per-card matching strategy. Reuse `boba-ebay-proxy`'s scoring logic for keyword-to-bobaId mapping.
+### 4.1 Research (in flight)
 
-### 4.2 Architecture sketch
+A subagent is researching the Products data shape + anti-bot posture
+(launched 2026-05-27): is there a JSON/GraphQL endpoint the search page
+calls server-side, or is it `__NEXT_DATA__` in the HTML, or does it need a
+headless browser; does a datacenter-IP fetch hit Turnstile; robots.txt +
+ToS posture. The brief picks one of: (A) direct JSON/GraphQL fetch, (B)
+`__NEXT_DATA__` parse, (C) Cloudflare Browser Rendering required, (D) not
+feasible / too ToS-risky.
 
-Two paths depending on the research outcome:
+ToS framing: there is no public Whatnot API, so — exactly as Ben framed it
+— we'd fetch the same public product-search data a browser sees, the
+equivalent of what we do against eBay (which *does* have an official API we
+use). If the research returns (C)/(D) or a Turnstile wall (COMC-style), we
+do NOT proceed — we don't fight anti-bot for a secondary asking signal.
 
-**Path A — direct Worker scrape.** If archives serve HTML/JSON without aggressive anti-bot:
-- Worker cron every 12h
-- Hits archive pages per known BoBA seller (research output gives us the list)
-- Per item: OCR'd card name + price + sale date → matched to bobaId via fingerprint or fuzzy text
-- Writes to D1 `community_comps` (same table as Tier 3) with `source: "whatnot"`, `confidence: 0.95`
+### 4.2 Architecture (pending research outcome A or B)
 
-**Path B — Cloudflare Browser Rendering.** If archives require JS rendering or have Turnstile (per COMC):
-- Same logic but via Browser Rendering API
-- Costs ~$0.075/browser-hour; budget cap on cron
+- New endpoint on `boba-ebay-proxy` (reuse its infra + keyword→bobaId
+  scoring): `GET /whatnot/products?query={hero/cardNumber}` → returns active
+  listings `[{ title, price, currency, url, seller, imageUrl }]`, short
+  KV-cached. Soft-fail to empty on any error or anti-bot block (clients show
+  nothing, never an error — same posture as COMC `challenged:true`).
+- Clients add a Whatnot tile group to the Buy Now section beside eBay
+  actives. Source pill: **"Whatnot · @{seller}"**. Tap-through opens the
+  listing (`CustomTabsIntent` / `SafariView` / `target=_blank`).
 
-### 4.3 Surfacing to users
+### 4.3 Surfacing — honest + subordinate
 
-Same `/comps` endpoint as Tier 1, with `source: "whatnot"` per row. Source pill: "Whatnot · stream @ {seller}".
+Buy Now section only. Never in the Market Est. line, never in `/comps`,
+never in the sold waterfall. If a card has Whatnot asks but no eBay/sold
+data, the headline stays the honest "Listed Range" (Tier 5 §7) — Whatnot
+asks are part of that listed range, clearly sourced.
 
 ---
 

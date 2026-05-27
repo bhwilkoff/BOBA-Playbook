@@ -750,3 +750,37 @@ Live result for J-Cam #149 STEEL (power 110, Base Set): bestMatchCount 1 —
 exactly "J-Cam Steel 110 Power" ($3); Battlefoil/Brawl/Fire/Ice/Icon
 correctly excluded. node --check (web) + :app:compileDebugKotlin (Android)
 clean. iOS v2.383.
+
+### 2026-05-27 — Tier 1 re-architected to a PUSH model (free-plan, on-view)
+
+Validating the cron snapshot surfaced a hard ceiling: this Worker is on the
+Cloudflare **free plan (50 subrequests/invocation)**, and full-catalog
+snapshotting needs 2 service-binding fetches per card — so even ~25 cards in
+one cron invocation exceeds the cap (the original eBay-only budget-600 design
+never validated for this reason). Ben's call: stay free, engineer the best
+data model around it.
+
+**The fix — push, don't pull** (the same shape "refresh market values"
+already uses successfully under quota: one card = one proxy invocation):
+- The proxy fires `ctx.waitUntil(TRACKER_SVC /ingest)` on every pricing fetch
+  — card-detail opens AND each card of a Collection refresh — recording that
+  card's CURRENT active listings (eBay: the FULL matched set, not the
+  truncated top-10; Whatnot: the matchesCard set only, preserving the tight
+  matching). One tiny call per pricing request → always under the cap, scales
+  with real usage, snapshots exactly the cards people look at. NO cron.
+- Vanish-detection is now PER-CARD on ingest: any of the card's previously-
+  seen un-vanished listings absent from THIS fresh fetch disappeared → infer
+  sold. Correct because it's judged only against a real new fetch of the same
+  card — an un-viewed card is never re-evaluated, so no time-based-sweep false
+  vanishes (the failure mode a naïve on-view model would have).
+- D1 writes batched (`DB.batch`); `source` column distinguishes eBay/Whatnot;
+  `/comps` tags `{ebay,whatnot}-inferred` + merges community comps.
+- Clients send `bobaId` on pricing + `/whatnot/products` so the proxy keys the
+  tracker on the exact card. iOS reconstructs it via `bobaIdHint` (no
+  signature change); web/Android pass `card.bobaId`.
+
+Validated live: a pricing call ingested 95 eBay actives; a Whatnot call
+ingested exactly 1 matched listing (tight matching preserved); a two-ingest
+diff correctly flagged the disappeared listing (vanished:1). `/comps` serves
+it as it accumulates. The catalog-grinding cron + its KV cursor / quota-floor
+machinery are retired (DECISIONS.md #058).

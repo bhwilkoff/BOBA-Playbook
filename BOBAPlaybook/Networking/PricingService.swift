@@ -224,6 +224,12 @@ actor PricingService {
             // credit treatment matches. No effect on legacy mode.
             queryItems.append(URLQueryItem(name: "treatment", value: treatment))
         }
+        // bobaId lets the proxy push this card's active listings to the
+        // vanish-inference tracker keyed on the exact card (DECISIONS.md #058).
+        // Reconstructed from the same fields (no signature change).
+        if let bobaId = bobaIdHint(cardNumber: cardNumber, hero: hero, treatment: treatment, variation: variation, element: element) {
+            queryItems.append(URLQueryItem(name: "bobaId", value: bobaId))
+        }
         components?.queryItems = queryItems
         guard let url = components?.url else { throw PricingError.notConfigured }
 
@@ -484,7 +490,7 @@ actor WhatnotProductsService {
     /// Returns Whatnot listings for a card (matched-first), or an empty
     /// response on any failure. Never throws — additive BUY NOW source.
     func products(query: String, cardNumber: String, weapon: String,
-                  treatment: String = "", power: String = "",
+                  treatment: String = "", power: String = "", bobaId: String = "",
                   forceRefresh: Bool = false) async -> Response {
         let empty = Response(count: 0, bestMatchCount: 0, listings: [], challenged: nil)
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -507,6 +513,8 @@ actor WhatnotProductsService {
             URLQueryItem(name: "weapon",     value: weapon),
             URLQueryItem(name: "treatment",  value: treatment),
             URLQueryItem(name: "power",      value: power),
+            // bobaId → proxy pushes matched listings to the vanish tracker (#058).
+            URLQueryItem(name: "bobaId",     value: bobaId),
         ]
         guard let url = comp.url else { return empty }
 

@@ -130,6 +130,7 @@ class PricingService @Inject constructor(
         set: String?,
         element: String?,
         days: Int = 90,
+        bobaId: String = "",
     ): PricingBundle = withContext(Dispatchers.IO) {
         runCatching {
             val response: PricingResponse = httpClient.get(WorkerConfig.EBAY_PROXY) {
@@ -138,6 +139,8 @@ class PricingService @Inject constructor(
                 set?.takeIf { it.isNotBlank() }?.let { parameter("set", it) }
                 element?.takeIf { it.isNotBlank() }?.let { parameter("element", it) }
                 parameter("days", days)
+                // bobaId → proxy pushes active listings to the vanish tracker (#058).
+                if (bobaId.isNotBlank()) parameter("bobaId", bobaId)
             }.body()
 
             // Every listing comes from eBay post-2026-05-23 — the Worker
@@ -179,6 +182,7 @@ class PricingService @Inject constructor(
         weapon: String,
         treatment: String = "",
         power: Int? = null,
+        bobaId: String = "",
     ): List<WhatnotListing> = withContext(Dispatchers.IO) {
         val q = query.trim()
         if (q.isEmpty()) return@withContext emptyList()
@@ -191,6 +195,8 @@ class PricingService @Inject constructor(
                 if (weapon.isNotBlank()) parameter("weapon", weapon)
                 if (treatment.isNotBlank()) parameter("treatment", treatment)
                 if (power != null) parameter("power", power.toString())
+                // bobaId → proxy pushes matched listings to the vanish tracker (#058).
+                if (bobaId.isNotBlank()) parameter("bobaId", bobaId)
             }.body()
             if (response.challenged == true) emptyList()
             else response.listings.map { it.toDomain() }

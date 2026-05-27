@@ -210,6 +210,7 @@ class CardDetailViewModel @Inject constructor(
                 hero = card.hero,
                 set = card.set,
                 element = card.element.takeIf { !card.isSealed },
+                bobaId = bobaId,
             )
             // Market Est. fallback — query boba-price-estimator when
             // the eBay-proxy returned no sold history. Surfaces as a
@@ -230,6 +231,7 @@ class CardDetailViewModel @Inject constructor(
                 weapon = if (card.isSealed) "" else card.element,
                 treatment = card.treatment.orEmpty(),
                 power = card.power,
+                bobaId = bobaId,
             )
             pricingState.value = pricingState.value.copy(
                 isLoading = false,

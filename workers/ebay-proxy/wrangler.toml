@@ -16,6 +16,15 @@ compatibility_date = "2024-01-01"
 [ai]
 binding = "AI"
 
+# Vanish-inference push (DECISIONS.md #058): on every pricing fetch the
+# proxy fires `POST /ingest` (ctx.waitUntil) to record the card's current
+# active listings into the tracker's D1. One tiny call per pricing request —
+# scales with real usage, no catalog-grinding cron. Non-circular: the tracker
+# no longer calls back into the proxy.
+[[services]]
+binding = "TRACKER_SVC"
+service = "boba-pricing-tracker"
+
 # Sold-comp matcher mode — "enriched" (default) uses the scoring-based
 # matcher introduced 2026-04-23; "legacy" is the previous binary
 # isExactMatch filter. Flip to "legacy" via the Cloudflare dashboard

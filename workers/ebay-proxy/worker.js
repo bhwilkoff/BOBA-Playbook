@@ -1554,6 +1554,13 @@ const WHATNOT_PRODUCTS_CACHE_TTL = 12 * 60; // 12 min — asks move slowly
 async function handleWhatnotProducts(request, _env) {
   const url   = new URL(request.url);
   const query = (url.searchParams.get("query") || "").trim();
+  // Optional card-binding signals. When present, listings whose titles
+  // match get flagged matchesCard:true and sorted first — the "Hybrid"
+  // surfacing (this card's listings, then other listings for the hero).
+  // weapon is required alongside cardNumber for a best-match because BoBA
+  // weapon-variant siblings share a cardNumber (DECISIONS.md #057).
+  const cardNumber = (url.searchParams.get("cardNumber") || "").trim();
+  const weapon     = (url.searchParams.get("weapon") || url.searchParams.get("element") || "").trim();
   const debug = url.searchParams.get("debug") === "1";
   if (!query) {
     return json({ query: "", count: 0, listings: [], error: "query required" }, 400);
@@ -1561,7 +1568,10 @@ async function handleWhatnotProducts(request, _env) {
 
   const cache = caches.default;
   const cacheKey = new Request(
-    `https://boba-cache.internal/whatnot/products/v1/${encodeURIComponent(query.toLowerCase())}`,
+    `https://boba-cache.internal/whatnot/products/v2/` +
+      `${encodeURIComponent(query.toLowerCase())}|` +
+      `${encodeURIComponent(cardNumber.toLowerCase())}|` +
+      `${encodeURIComponent(weapon.toLowerCase())}`,
     { method: "GET" }
   );
   if (!debug) {
@@ -1589,7 +1599,34 @@ async function handleWhatnotProducts(request, _env) {
     fetchError = err.message;
   }
 
-  const prices = listings
+  // Card-match scoring (Hybrid surfacing). matchesCard requires the
+  // cardNumber token in the title AND (when weapon is supplied) the weapon
+  // word — weapon-variant siblings share a cardNumber, so weapon is what
+  // separates them. Matched listings sort first, cheapest within each group.
+  let bestMatchCount = 0;
+  if (cardNumber) {
+    const re = wnCardNumberRegex(cardNumber);
+    const weaponLc = weapon.toLowerCase();
+    for (const l of listings) {
+      const t = (l.title || "").toLowerCase();
+      const numHit = re ? re.test(t) : false;
+      const wepHit = weaponLc ? t.includes(weaponLc) : false;
+      l.matchesCard = numHit && (!weaponLc || wepHit);
+      if (l.matchesCard) bestMatchCount++;
+    }
+    listings.sort((a, b) => {
+      if (!!a.matchesCard !== !!b.matchesCard) return a.matchesCard ? -1 : 1;
+      return a.price - b.price;
+    });
+  }
+
+  // Summary — scoped to the matched group when card-binding is on and we
+  // have matches (so the range reflects THIS card, not the hero's whole
+  // catalog); otherwise over all listings.
+  const summarySet = (cardNumber && bestMatchCount)
+    ? listings.filter(l => l.matchesCard)
+    : listings;
+  const prices = summarySet
     .map(l => l.price)
     .filter(p => typeof p === "number" && p > 0)
     .sort((a, b) => a - b);
@@ -1598,11 +1635,15 @@ async function handleWhatnotProducts(request, _env) {
     high:    prices[prices.length - 1],
     average: prices.reduce((a, b) => a + b, 0) / prices.length,
     count:   prices.length,
+    scope:   (cardNumber && bestMatchCount) ? "card" : "all",
   } : null;
 
   const payload = {
     query,
+    cardNumber: cardNumber || undefined,
+    weapon:     weapon || undefined,
     count: listings.length,
+    bestMatchCount: cardNumber ? bestMatchCount : undefined,
     challenged: challenged || undefined,
     fetchError,
     summary,
@@ -1622,6 +1663,17 @@ async function handleWhatnotProducts(request, _env) {
 function buildWhatnotProductSearchUrl(query) {
   return `${WHATNOT_BASE}/search?query=${encodeURIComponent(query)}` +
          `&searchVertical=PRODUCT&referringSource=typed`;
+}
+
+// Dash-insensitive, word-boundaried matcher for a BoBA card number like
+// "P-8", "GGL-779", "24". Sellers often drop the dash ("P8"), so make it
+// optional; word boundaries stop "1" matching inside "150".
+function wnCardNumberRegex(cardNumber) {
+  const cn = String(cardNumber || "").trim().toLowerCase();
+  if (!cn) return null;
+  const esc = cn.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/-/g, "-?");
+  try { return new RegExp(`\\b${esc}\\b`, "i"); }
+  catch (_) { return null; }
 }
 
 function whatnotExtractProducts(html, query) {

@@ -1,0 +1,36 @@
+name               = "boba-pricing-tracker"
+main               = "worker.js"
+compatibility_date = "2024-09-23"
+
+# Tier 1 vanish-inference store (PRICING_PLAYBOOK.md §3). Snapshots public
+# eBay active listings into D1 over time; infers sold-from-disappearance.
+
+[[d1_databases]]
+binding       = "DB"
+database_name = "boba-pricing"
+database_id   = "918e5ec1-1286-431d-a27a-2171d7c851ba"
+
+# Service binding to the eBay proxy — keeps Browse OAuth + scoring in one
+# place (no Worker-to-Worker duplication). The snapshot loop calls the
+# proxy's full-active-listings endpoint (see README §"two-part build").
+[[services]]
+binding = "EBAY_PROXY_SVC"
+service = "boba-ebay-proxy"
+
+# Rotating cursor + run stats. Reuses the estimator's KV namespace with a
+# distinct key prefix (PRICING_PLAYBOOK §3.7).
+[[kv_namespaces]]
+binding = "CURSOR"
+id      = "b44ff8f1197646c2a4ba5563a2a68959"
+
+[vars]
+CATALOG_URL    = "https://bobaplaybook.com/assets/data/cards.json"
+CADENCE_HOURS  = "6"
+PER_RUN_BUDGET = "600"
+
+# Cron is DISABLED until the snapshot loop is validated against the enriched
+# eBay-proxy endpoint (README §"two-part build"). Inferring sold from a
+# truncated top-10 listing set would produce false positives. Enable only
+# after the proxy returns the FULL active set + stable item ids:
+# [triggers]
+# crons = ["0 */6 * * *"]

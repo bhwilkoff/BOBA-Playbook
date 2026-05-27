@@ -1285,7 +1285,7 @@ function clampFrac(v, defaultVal = 0) {
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS });
 
     const url = new URL(request.url);
@@ -1294,7 +1294,7 @@ export default {
     if (request.method === "POST" && url.pathname.endsWith("/discord/refresh")) return handleDiscordRefresh(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/discord/messages")) return handleDiscordMessages(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/whatnot/upcoming")) return handleWhatnotUpcoming(request, env);
-    if (request.method === "GET"  && url.pathname.endsWith("/whatnot/products")) return handleWhatnotProducts(request, env);
+    if (request.method === "GET"  && url.pathname.endsWith("/whatnot/products")) return handleWhatnotProducts(request, env, ctx);
     if (request.method === "GET"  && url.pathname.endsWith("/scrape-ebay"))      return handleScrapeEbay(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/tracker/active"))   return handleTrackerActive(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/tracker/ratelimit")) return handleRateLimit(request, env);
@@ -1436,6 +1436,11 @@ export default {
             count:   activeItems.length,
             items:   sampleAcrossRange(sorted, 10),
           };
+          // Push the FULL matched active set (not the truncated top-10) to
+          // the vanish-inference tracker — fire-and-forget, per the push
+          // model (DECISIONS.md #058). Only on a fresh fetch (this branch);
+          // cache hits already pushed when they were fresh.
+          pushIngest(env, ctx, searchParams.get("bobaId"), "ebay", activeItems);
         }
       } else {
         browseError = activeErr;
@@ -1665,7 +1670,26 @@ function buildWhatnotSearchUrl(query, statuses) {
 
 const WHATNOT_PRODUCTS_CACHE_TTL = 12 * 60; // 12 min — asks move slowly
 
-async function handleWhatnotProducts(request, _env) {
+/**
+ * Fire-and-forget push of one card's CURRENT active listings to the
+ * boba-pricing-tracker for vanish-inference (push model, DECISIONS.md #058).
+ * No-op without a bobaId, the TRACKER_SVC binding, ctx, or any listings;
+ * never blocks or fails the pricing response. eBay listings carry an /itm/
+ * url (the tracker parses the itemId); Whatnot listings must arrive with an
+ * explicit `itemId` ("wn-{listingId}").
+ */
+function pushIngest(env, ctx, bobaId, source, listings) {
+  if (!bobaId || !env.TRACKER_SVC || !ctx || !Array.isArray(listings) || listings.length === 0) return;
+  ctx.waitUntil(
+    env.TRACKER_SVC.fetch(new Request("https://internal/ingest", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ bobaId, source, listings }),
+    })).then(() => {}).catch(() => {})
+  );
+}
+
+async function handleWhatnotProducts(request, env, ctx) {
   const url   = new URL(request.url);
   const query = (url.searchParams.get("query") || "").trim();
   // Card-binding signals. BoBA Whatnot sellers title a card by its card
@@ -1720,6 +1744,24 @@ async function handleWhatnotProducts(request, _env) {
       if (!!a.matchesCard !== !!b.matchesCard) return a.matchesCard ? -1 : 1;
       return a.price - b.price;
     });
+  }
+
+  // Push the MATCHED listings (this exact card only — preserves the tight
+  // matching) to the vanish-inference tracker (push model, DECISIONS.md #058).
+  // Keyed "wn-{listingId}" so they never collide with eBay item ids.
+  const bobaId = url.searchParams.get("bobaId") || "";
+  if (bobaId && bestMatchCount > 0) {
+    pushIngest(env, ctx, bobaId, "whatnot",
+      listings.filter(l => l.matchesCard && l.listingId).map(l => ({
+        itemId:    `wn-${l.listingId}`,
+        price:     l.price,
+        title:     l.title,
+        url:       l.listingUrl,
+        image:     l.imageUrl || null,
+        format:    l.format || null,
+        sellerId:  l.seller || null,
+        condition: l.condition || null,
+      })));
   }
 
   // Summary — scoped to the matched group when we have card-binding signals

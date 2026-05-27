@@ -761,7 +761,8 @@ struct PricingSection: View {
                 let resp = await WhatnotProductsService.shared.products(
                     query: card.hero, cardNumber: card.cardNumber, weapon: card.element,
                     treatment: card.treatment ?? "",
-                    power: card.power.map(String.init) ?? "")
+                    power: card.power.map(String.init) ?? "",
+                    bobaId: card.bobaId)
                 if resp.challenged != true { whatnotListings = resp.listings }
             }
         }

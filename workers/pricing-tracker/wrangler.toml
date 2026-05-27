@@ -2,52 +2,24 @@ name               = "boba-pricing-tracker"
 main               = "worker.js"
 compatibility_date = "2024-09-23"
 
-# Tier 1 vanish-inference store (PRICING_PLAYBOOK.md §3). Snapshots public
-# eBay active listings into D1 over time; infers sold-from-disappearance.
+# Tier 1 vanish-inference store (PRICING_PLAYBOOK.md §3 + DECISIONS.md #058).
+# PUSH MODEL: the eBay proxy POSTs /ingest (ctx.waitUntil) on every pricing
+# fetch — card-detail opens + each card of a Collection "refresh market
+# values". Each ingest is its own tiny invocation (under Cloudflare's
+# free-plan 50-subrequest cap), so there is NO catalog-grinding cron. Vanish-
+# detection runs per-card on ingest. /comps serves inferred-sold + community.
 
 [[d1_databases]]
 binding       = "DB"
 database_name = "boba-pricing"
 database_id   = "918e5ec1-1286-431d-a27a-2171d7c851ba"
 
-# Service binding to the eBay proxy — keeps Browse OAuth + scoring in one
-# place (no Worker-to-Worker duplication). The snapshot loop calls the
-# proxy's full-active-listings endpoint (see README §"two-part build").
-[[services]]
-binding = "EBAY_PROXY_SVC"
-service = "boba-ebay-proxy"
-
-# Rotating cursor + run stats. Reuses the estimator's KV namespace with a
-# distinct key prefix (PRICING_PLAYBOOK §3.7).
-[[kv_namespaces]]
-binding = "CURSOR"
-id      = "b44ff8f1197646c2a4ba5563a2a68959"
-
 [vars]
-CATALOG_URL         = "https://bobaplaybook.com/assets/data/cards.json"
-CADENCE_HOURS       = "6"
-# 250 cards/run × 2 service-binding fetches (eBay + Whatnot) = ~500 fetch
-# subrequests; D1 writes are batched (DB.batch = 1 subrequest per 50) — well
-# under Cloudflare's per-invocation cap. 250 × 4 runs/day = 1,000 eBay
-# Browse calls/day (the pre-run BROWSE_SAFETY_FLOOR check protects live pricing).
-PER_RUN_BUDGET      = "250"
-BROWSE_SAFETY_FLOOR = "1500"
 # Tier 3: /comps merges approved community comps from Supabase
 # (get_approved_comps RPC). SUPABASE_ANON_KEY is a wrangler secret
 # (public anon key, but kept out of git): wrangler secret put SUPABASE_ANON_KEY
-SUPABASE_URL        = "https://pazkimtkwwwekuguxkff.supabase.co"
+SUPABASE_URL = "https://pazkimtkwwwekuguxkff.supabase.co"
 
-# Cron DISABLED 2026-05-27 — BLOCKED on the Cloudflare Workers FREE-plan
-# limit of 50 subrequests per invocation. Full-catalog snapshotting needs
-# 2 service-binding fetches per card (eBay + Whatnot), so even ~25 cards
-# exceeds the cap regardless of D1-write batching. The vanish-inference
-# logic (eBay + Whatnot, tight matching, source-tagged, batched writes) is
-# complete + deployed; it just can't iterate the 17k catalog on free.
-# Two ways forward (Ben's call): (a) Workers Paid (~$5/mo → 1,000-subrequest
-# cap → PER_RUN_BUDGET 250 works); or (b) re-architect to ON-VIEW push —
-# record active listings into D1 from the proxy's `/` + `/whatnot/products`
-# handlers on each card-detail open (one tiny invocation per view, naturally
-# under 50, and snapshots exactly the cards people look at). `/comps` is live
-# either way. Re-enable with: crons = ["0 */6 * * *"].
-[triggers]
-crons = []
+# No cron — the push model needs none. (The old catalog-grind cron is gone:
+# 2 service-binding fetches/card × 17k cards can't fit one invocation on the
+# free plan. See DECISIONS.md #058.)

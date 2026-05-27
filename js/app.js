@@ -3735,6 +3735,9 @@
           set:     card.set     || '',
           element: card.element || '',
           days:    String(days),
+          // bobaId lets the proxy push this card's active listings to the
+          // vanish-inference tracker keyed on the exact card (DECISIONS.md #058).
+          ...(card.bobaId ? { bobaId: card.bobaId } : {}),
           ...(card.power    != null ? { power:     String(card.power) }  : {}),
           ...(card.treatment       ? { treatment: card.treatment }       : {}),
           ...(forceRefresh         ? { fresh: '1', _t: String(Date.now()) } : {}),
@@ -3931,6 +3934,8 @@
         // BoBA sellers title by card number OR power — send both so the
         // Worker can match on whichever the listing used.
         ...(card.power != null ? { power: String(card.power) } : {}),
+        // bobaId → proxy pushes matched listings to the vanish tracker (#058).
+        ...(card.bobaId ? { bobaId: card.bobaId } : {}),
       });
       const res = await fetch(`${WORKER_URL}/whatnot/products?${params}`);
       if (!res.ok) return null;

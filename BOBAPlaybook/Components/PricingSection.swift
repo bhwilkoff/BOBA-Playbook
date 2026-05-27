@@ -22,6 +22,8 @@ struct PricingSection: View {
     /// when COMC's WAF blocks the worker (current state per 2026-04-29).
     /// Soft-fail by design.
     @State private var comcListings: [ComcService.Listing] = []
+    /// Whatnot active asks (Tier 2) — additive BUY NOW source, matched-first.
+    @State private var whatnotListings: [WhatnotProductsService.Listing] = []
     /// Tier 3 community-comp submission sheet (PRICING_PLAYBOOK §5). Opened
     /// from a quiet foot affordance; the sheet carries the form + auth gate.
     @State private var showCommunityCompSheet = false
@@ -96,6 +98,12 @@ struct PricingSection: View {
                         // inventory) means nothing shows.
                         if showActiveListings, !comcListings.isEmpty {
                             comcStrip(comcListings)
+                        }
+                        // Whatnot active asks — additive BUY NOW source,
+                        // matched-first then "Other {hero}" (Hybrid). Asks
+                        // never fold into any sold number (#034).
+                        if showActiveListings, !whatnotListings.isEmpty {
+                            whatnotStrip(whatnotListings)
                         }
                     } else {
                         // Legacy single-section layout
@@ -547,6 +555,93 @@ struct PricingSection: View {
         return "\(listing.cardNumber) \(hero)"
     }
 
+    // MARK: - Whatnot active asks (Tier 2)
+
+    /// Renders Whatnot active listings beneath the eBay BUY NOW + COMC
+    /// strips. Hybrid surfacing: this card's matched listings first, then
+    /// an "Other {hero} listings" group below a divider. Violet accent
+    /// separates it from the cyan COMC strip. Asking prices, NEVER folded
+    /// into any sold number (#034). Top 3 per group.
+    @ViewBuilder
+    private func whatnotStrip(_ listings: [WhatnotProductsService.Listing]) -> some View {
+        let matched = listings.filter { $0.matchesCard == true }
+        let others  = listings.filter { $0.matchesCard != true }
+        let hasMatch = !matched.isEmpty
+        let lead = hasMatch ? matched : others
+        VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+            Text("WHATNOT · ACTIVE ASKS")
+                .font(Design.Fonts.mono(8, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaViolet)
+                .tracking(1.5)
+
+            whatnotGroup(Array(lead.prefix(3)))
+
+            if hasMatch, !others.isEmpty {
+                Text("Other \(card.hero) listings")
+                    .font(Design.Fonts.mono(8, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .tracking(0.5)
+                    .padding(.top, 2)
+                whatnotGroup(Array(others.prefix(3)))
+            }
+        }
+    }
+
+    private func whatnotGroup(_ listings: [WhatnotProductsService.Listing]) -> some View {
+        VStack(spacing: 1) {
+            ForEach(listings) { listing in
+                Button {
+                    if let url = URL(string: listing.listingUrl) {
+                        selectedItemURL = IdentifiableURL(url: url)
+                    }
+                } label: {
+                    whatnotRow(listing)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
+        .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+    }
+
+    private func whatnotRow(_ listing: WhatnotProductsService.Listing) -> some View {
+        HStack(spacing: Design.Spacing.sm) {
+            Text(listing.price, format: .currency(code: listing.currency ?? "USD"))
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(Design.Colors.bobaOrange)
+                .frame(width: 64, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(listing.title)
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .lineLimit(1)
+                whatnotSourcePill(listing)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 10))
+                .foregroundStyle(Design.Colors.textMuted)
+        }
+        .padding(.horizontal, Design.Spacing.md)
+        .padding(.vertical, Design.Spacing.sm)
+        .background(Design.Colors.surface2)
+    }
+
+    private func whatnotSourcePill(_ listing: WhatnotProductsService.Listing) -> some View {
+        let label = listing.format == "auction" ? "Whatnot bid" : "Whatnot ask"
+        let seller = (listing.seller?.isEmpty == false) ? " · @\(listing.seller!)" : ""
+        return Text("\(label)\(seller)")
+            .font(Design.Fonts.mono(8, weight: .bold))
+            .tracking(0.5)
+            .foregroundStyle(Design.Colors.bobaViolet)
+            .lineLimit(1)
+            .padding(.horizontal, 5).padding(.vertical, 2)
+            .background(Capsule().fill(Design.Colors.bobaViolet.opacity(0.10))
+                .overlay(Capsule().strokeBorder(Design.Colors.bobaViolet.opacity(0.40), lineWidth: 0.7)))
+    }
+
     /// Caption for the Market Est. row. "comps" means the range came
     /// from comparable cards; "own_sales" means it came from the
     /// card's own historical sales (rare for the estimated path —
@@ -656,14 +751,23 @@ struct PricingSection: View {
         fetchError = nil
         result     = nil
         comcListings = []
-        // COMC fires in parallel with the pricing waterfall — it's an
-        // additive source on the BUY NOW panel, never blocks the
-        // primary fetch. Soft-fails to [] when the Worker is blocked
-        // by Cloudflare Turnstile (current state) or any other error.
+        whatnotListings = []
+        // COMC + Whatnot fire in parallel with the pricing waterfall —
+        // additive asking sources on the BUY NOW panel, never block the
+        // primary fetch. Both soft-fail to [] when their Worker is blocked
+        // by Cloudflare or hits any other error.
         if showActiveListings {
             Task {
                 let resp = await ComcService.shared.listings(cardNumber: card.cardNumber)
                 comcListings = resp.listings
+            }
+            // Whatnot active asks — query by the distinctive hero token;
+            // the Worker binds to this card via cardNumber + weapon and
+            // flags matchesCard (best-first). Asks, never sold (#034).
+            Task {
+                let resp = await WhatnotProductsService.shared.products(
+                    query: card.hero, cardNumber: card.cardNumber, weapon: card.element)
+                if resp.challenged != true { whatnotListings = resp.listings }
             }
         }
         Task {

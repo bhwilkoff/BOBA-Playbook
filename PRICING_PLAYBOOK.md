@@ -289,19 +289,28 @@ Replace the eBay-proxy fetch inside the estimator (which currently returns nothi
 
 The 0.6/0.3/0.1 weights are a guess, and re-guessing new weights repeats the mistake. Once Tier 1+2+3 produce real sold comps, **fit a hedonic model**: `log(price) ~ treatment_family + serialization_tier + cardType + power_tier + weapon + set + hero`, learning each factor's actual price contribution from observed sales. A comp-less card's estimate = the model's feature-based prediction blended with its nearest-rarity-class comps. Hero enters as one learned coefficient (expected: a modest multiplier), never a 0.6 prior. **This is why Tier 1 must land first — the estimator is only as good as the comp data feeding it.** Until enough comps exist, fall back to the derived-scarcity heuristic (§6.2) with rarity axes dominant + hero a small bonus. Validate any model on a held-out set of cards that DO have comps before shipping; spot-check the long tail (Battlefoils especially).
 
-### 6.4 Rarity backbone — official taxonomy (bobattlearena.com/collecting-basics)
+### 6.4 Rarity model — robust, tier-based, learned (the estimator's foundation)
 
-Ben's authoritative source (2026-05-27). The official page ranks rarity primarily as a **WEAPON ladder** — this is the spine of the scarcity index:
+Built from the two official guides (Alpha Update + 2026 Edition "Parallels, Rarity & Checklist" PDFs, promo.bobattlearena.com). **Deliberately NOT pinned to exact print-run numbers.** The old Hex /5 · Glow /10 figures (DECISIONS #028 / CLAUDE.md) were an estimate that's already stale, and the official guides don't price by serialization counts at all — they use **ordinal rarity tiers + distribution + power**, which is robust and survives set changes. Ben's directive (2026-05-27): build a strong, robust, data-learned estimator, not a brittle rarity-fact table. So the below are **features with priors**, never fixed weights.
 
-`BRAWL` (new) · `STEEL` (common core) → `FIRE` / `ICE` (Inspired Ink serialized, "a step up in power") → `GLOW` (scarcer) → `HEX` (elite) → `GUM` (Secret Rare, extreme rarity) → `SUPER` (Superfoil 1/1).
+**Feature 1 — Weapon rarity tier** (the spine; 2026 Weapons chart, ordinal): `BRAWL` Common · `STEEL` Common → `FIRE` Rare · `ICE` Rare → `GLOW` Ultra Rare → `HEX` Secret Rare · `GUM` Secret Rare → `SUPER` 1-of-1. Brawl/Steel/Fire/Ice come Battlefoil AND non-foil; Glow/Hex/Gum are Battlefoil-only; Super is Superfoil-only — so **foil-only status is itself a scarcity bump**.
 
-Plus a **Battlefoil color → rarity** ladder (color matches weapon, Hobby & Jumbo packs only): RED (Brawl) / SILVER (Steel) = **Common** · BLUE (Ice) / ORANGE (Fire) = **SP** · GREEN (Glow) = **SSP Case Hit** · PINK (Hex) = **Secret 1/1**.
+**Feature 2 — Distribution tier** (which SKU a parallel is pulled from = how hard to get; 2026 Parallels chart, more-restricted = rarer):
+- **All SKUs:** Inspired Ink autos · Alpha · 80's Rad · Colosseum · Logofoil · Blizzard · Miami Ice · Fire Tracks · Mixtape.
+- **Jumbo/Hobby only:** Metallic Inspired Ink · the 6 Colors (Red/Silver/Blue/Orange/Green/Pink Battlefoil) · Grandma's Linoleum · Gum.
+- **Double Mega & Blaster:** Great Grandma's Linoleum · Grillin' · Chillin' · Slime · Icons (per-weapon: Brawl/Steel/Ice/Fire/Glow/Hex).
+- **Double Mega only:** Bonus Plays · Power Glove.
+- **Blaster only:** Silver/Blue/Orange/Red Headlines.
 
-**Serialization print runs, per the official page:** Fire /50 · Ice /50 · Glow /25 · Hex /10; Gum = secret; Super = 1/1.
+**Feature 3 — Power** — correlates with tier on the official cards (Common ~120–130, Rare ~135, Ultra/Secret ~155–185, Super ~190–200). A continuous feature, not a hard rule.
 
-> ⚠️ **DATA DISCREPANCY — confirm before encoding the numbers.** The official page (as read 2026-05-27) gives Fire /50, Ice /50, Glow /25, **Hex /10**. CLAUDE.md + DECISIONS.md #028 state **Hex /5, Glow /10, Fire /25, Ice /50**. The relative ORDER is consistent (Hex rarest → Glow → Fire ≥ Ice), so the rarity *ladder* — which is all the estimator's weighting needs — is safe either way and is NOT blocked. But the absolute counts conflict and one is stale; the canonical numbers in CLAUDE.md/#028 should be reconciled against the live page (Ben to confirm; possible the line changed, or one source misread). Do NOT overwrite #028 until confirmed.
+**Feature 4 — Card class** — `cardType` (Hero/Play/HotDog/Sealed) + parallel flags (`isInspiredInk` = autograph, `isBonusPlay`, `isHTD`, `rookieInspired`).
 
-**Themed Battlefoils** (Grandma's Linoleum, 80's Rad, Blizzard, Mixtape, Alpha, Colosseum, Logofoil, Icon, Headlines, Fire Tracks, Miami Ice, Chillin'/Grillin', Power Glove, Slime, …) make up most of the 59 catalog `treatment` values and are NOT individually ranked on the page. Tier them by **catalog population as a scarcity proxy** + real comps once available (some are explicit "case hits"/SP and tier high). The weapon ladder + color tiers + serialization are the hard backbone; the themed foils are the learn-from-data layer.
+**Feature 5 — Treatment family** — the 59 catalog `treatment` values, tiered via Feature 2 distribution + foil status + catalog population, refined by comps.
+
+**Feature 6 — Hero** — a secondary learned multiplier (star athletes lift price within a rarity class; the autograph checklists in the guides map hero → athlete). Never the base.
+
+**How they combine — LEARN, don't hardcode.** Once Tier 1+2+3 produce comps, fit a hedonic model (§6.3) so each feature's price contribution is learned from real sales; the guides' ordinal tiers are the prior + the cold-start fallback for comp-less cards. Robustness comes from (a) ordinal tiers that don't break when print runs change, (b) distribution as an orthogonal scarcity axis, (c) learned weights over hardcoded facts. Exact serialization counts are intentionally NOT load-bearing. The guide tier/distribution mappings are encoded once as a reference table the estimator Worker + clients read.
 
 ---
 

@@ -2481,8 +2481,12 @@
     let resultIds = null; // null = "all cards"; Set of bobaId strings when filtered
 
     // Text search
-    // Normalize dashes to spaces so card numbers like "CBF-656" tokenize correctly.
-    const q = filters.query.trim().toLowerCase().replace(/-/g, ' ');
+    // Keep dashes inside each word (split on whitespace only); each token
+    // also expands to its dash-removed joined form ("p-8" -> "p8") below,
+    // which is how card numbers are indexed. Replacing dashes with spaces
+    // split "P-8" into "p" + "8" — two tokens that were AND-ed together, so
+    // the card (indexed under the joined token "p8") was never found.
+    const q = filters.query.trim().toLowerCase();
 
     // Smart-search showcase shortcut: typing the full showcase name
     // ("WOBA", "Baseball") narrows to the showcase without requiring
@@ -2498,8 +2502,16 @@
       for (const token of tokens) {
         // Expand community aliases: if the user typed a known slang
         // ("bojax", "obf", "lino", "blizzy"), we also match the
-        // canonical-form prefixes so they land real results.
-        const expansions = [token, ...((aliasIndex[token] || []).map(s => s.toLowerCase()))];
+        // canonical-form prefixes so they land real results. Also expand
+        // the dash-removed joined form so a card-number token like "p-8"
+        // matches the joined index token "p8".
+        const dashless = token.replace(/-/g, '');
+        const expansions = [
+          token,
+          ...(dashless && dashless !== token ? [dashless] : []),
+          ...((aliasIndex[token] || []).map(s => s.toLowerCase())),
+          ...(dashless !== token ? (aliasIndex[dashless] || []).map(s => s.toLowerCase()) : []),
+        ];
 
         // Collect tokenIndex prefix matches — values are now bobaIds
         const matches = new Set();
@@ -3212,20 +3224,14 @@
       ? `<span class="print-run-cell-badge${printRunCell === 'SSP' ? ' print-run-cell-badge--ssp' : ''}" aria-hidden="true">${escHtml(printRunCell)}</span>`
       : '';
 
-    // Tick 468 — Format-legality hint bottom-leading (Android tick
-    // 464/466 + iOS tick 467 parity / Discord backlog #4 carry-forward).
-    // Surfaces only when card is legal in less than all 4 formats.
-    const formatHint = restrictedLegalAbbrevFor(card);
-    const formatHintHtml = formatHint
-      ? `<span class="format-legality-hint" aria-hidden="true">${escHtml(formatHint)}</span>`
-      : '';
-
+    // No format-legality ("S+ C") overlay on the card art — card art stays
+    // clean (the only on-grid overlay is Collection's price overlay). The
+    // legality detail lives in the card-detail modal, not over the art.
     el.innerHTML = `
       <div class="card-img-wrap">
         ${imgHtml}
         ${ribbonHtml}
         ${printRunBadgeHtml}
-        ${formatHintHtml}
       </div>
       <div class="card-info">
         <div class="card-number">${escHtml(card.cardType === 'Sealed Product' ? card.set : card.cardNumber)}</div>
@@ -4348,18 +4354,13 @@
       const printRunBadge = printRun
         ? `<span class="version-print-run${printRun === 'SSP' ? ' version-print-run--ssp' : ''}" aria-hidden="true">${escHtml(printRun)}</span>`
         : '';
-      // Tick 473 — format-legality hint for Other Versions (iOS tick 472
-      // + Android tick 469 parity). Bottom-left, amber chip, only when
-      // the variant is legal in less than 4 formats.
-      const formatHint = restrictedLegalAbbrevFor(v);
-      const formatHintBadge = formatHint
-        ? `<span class="version-format-hint" aria-hidden="true">${escHtml(formatHint)}</span>`
-        : '';
-      const ariaHints = [label, printRun, formatHint].filter(Boolean).join(' — ');
+      // No format-legality ("S+ C") overlay on the version art — kept off
+      // the card art to match the grid (legality lives in the modal).
+      const ariaHints = [label, printRun].filter(Boolean).join(' — ');
       return `
         <button class="version-tile" data-version-card="${escHtml(String(v.cardNumber))}"
                 aria-label="${escHtml(v.name)} — ${ariaHints}">
-          <span class="version-thumb-wrap">${thumb}${printRunBadge}${formatHintBadge}</span>
+          <span class="version-thumb-wrap">${thumb}${printRunBadge}</span>
           <span class="version-label">${label}</span>
         </button>`;
     }).join('');
@@ -4429,24 +4430,6 @@
       : { format: 'Brawl', status: 'legal' };
     const checklist = { format: 'Checklist', status: 'legal' };
     return [spec, specPlus, brawl, checklist];
-  }
-
-  /// Tick 468 — Discord backlog #4 carry-forward (per-cell badge half).
-  /// Returns "S+ C"-style abbreviation of legal formats ONLY when the
-  /// card is legal in less than all 4 — so the badge surfaces unusual
-  /// cards instead of cluttering every cell. CONSTRAINED treated as
-  /// legal (the card is still playable). Mirrors iOS + Android helpers.
-  function restrictedLegalAbbrevFor(card) {
-    const chips = legalFormatsFor(card);
-    if (chips.length === 0) return null;
-    const ABBR = { 'Spec': 'S', 'Spec+': 'S+', 'Brawl': 'B', 'Checklist': 'C' };
-    const abbrev = chips
-      .filter(c => c.status !== 'illegal')
-      .map(c => ABBR[c.format])
-      .filter(Boolean);
-    if (abbrev.length === 4) return null;       // legal everywhere → no badge
-    if (abbrev.length === 0) return null;       // legal nowhere → defensive null
-    return abbrev.join(' ');
   }
 
   function getCardRarity(card) {

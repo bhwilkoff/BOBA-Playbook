@@ -1180,6 +1180,7 @@ export default {
     if (request.method === "POST" && url.pathname.endsWith("/discord/refresh")) return handleDiscordRefresh(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/discord/messages")) return handleDiscordMessages(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/whatnot/upcoming")) return handleWhatnotUpcoming(request, env);
+    if (request.method === "GET"  && url.pathname.endsWith("/whatnot/products")) return handleWhatnotProducts(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/scrape-ebay"))      return handleScrapeEbay(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/tracker/active"))   return handleTrackerActive(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/tracker/ratelimit")) return handleRateLimit(request, env);
@@ -1528,6 +1529,196 @@ function buildWhatnotSearchUrl(query, statuses) {
   const arr = Array.isArray(statuses) ? statuses : [statuses];
   const filter = encodeURIComponent(JSON.stringify([{ field: "status", values: arr }]));
   return `${WHATNOT_BASE}/search?query=${encodeURIComponent(query)}&searchVertical=LIVESTREAM&referringSource=typed&filter=${filter}`;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * WHATNOT PRODUCTS — current active asking listings (Tier 2, PRICING_
+ * PLAYBOOK §4). Same proven mechanism as the shows feed above: fetch the
+ * public search HTML at searchVertical=PRODUCT from the Worker egress
+ * (which passes Whatnot's IP-reputation anti-bot; the api.whatnot.com
+ * GraphQL endpoint is Turnstile-walled, so we never touch it) and extract
+ * the SSR'd product nodes (Apollo pushes + __NEXT_DATA__).
+ *
+ *   GET /whatnot/products?query=...
+ *   → { query, count, summary:{low,average,high,count}, listings:[...],
+ *       challenged?, fetchedAtIso }
+ *
+ * This is an ASKING signal — the client surfaces it in Buy Now only,
+ * never in the sold-comp waterfall (same rule as COMC asking, #034). On a
+ * Cloudflare challenge we soft-fail with challenged:true + empty listings,
+ * mirroring the COMC proxy contract.
+ * ════════════════════════════════════════════════════════════════════ */
+
+const WHATNOT_PRODUCTS_CACHE_TTL = 12 * 60; // 12 min — asks move slowly
+
+async function handleWhatnotProducts(request, _env) {
+  const url   = new URL(request.url);
+  const query = (url.searchParams.get("query") || "").trim();
+  const debug = url.searchParams.get("debug") === "1";
+  if (!query) {
+    return json({ query: "", count: 0, listings: [], error: "query required" }, 400);
+  }
+
+  const cache = caches.default;
+  const cacheKey = new Request(
+    `https://boba-cache.internal/whatnot/products/v1/${encodeURIComponent(query.toLowerCase())}`,
+    { method: "GET" }
+  );
+  if (!debug) {
+    const hit = await cache.match(cacheKey);
+    if (hit) { const body = await hit.json(); return json(body, 200, { "X-Cache": "HIT" }); }
+  }
+
+  const target = buildWhatnotProductSearchUrl(query);
+  let listings = [];
+  let challenged = false;
+  let fetchError;
+  try {
+    const resp = await fetch(target, { headers: WHATNOT_HEADERS, redirect: "follow" });
+    const html = (await resp.text());
+    // Cloudflare managed-challenge detection — back off, don't retry.
+    if (resp.status === 403 || resp.headers.get("cf-mitigated") === "challenge" ||
+        /Just a moment|cf-browser-verification|challenge-platform/i.test(html.slice(0, 4000))) {
+      challenged = true;
+    } else if (resp.ok) {
+      listings = whatnotExtractProducts(html, query);
+    } else {
+      fetchError = `HTTP ${resp.status}`;
+    }
+  } catch (err) {
+    fetchError = err.message;
+  }
+
+  const prices = listings
+    .map(l => l.price)
+    .filter(p => typeof p === "number" && p > 0)
+    .sort((a, b) => a - b);
+  const summary = prices.length ? {
+    low:     prices[0],
+    high:    prices[prices.length - 1],
+    average: prices.reduce((a, b) => a + b, 0) / prices.length,
+    count:   prices.length,
+  } : null;
+
+  const payload = {
+    query,
+    count: listings.length,
+    challenged: challenged || undefined,
+    fetchError,
+    summary,
+    listings,
+    fetchedAtIso: new Date().toISOString(),
+  };
+  const respBody = json(payload, 200, {
+    "Cache-Control": `public, max-age=${WHATNOT_PRODUCTS_CACHE_TTL}`,
+  });
+  // Only cache real successes — never cache a challenge/error.
+  if (!challenged && !fetchError && !debug) {
+    try { await cache.put(cacheKey, respBody.clone()); } catch (_) {}
+  }
+  return respBody;
+}
+
+function buildWhatnotProductSearchUrl(query) {
+  return `${WHATNOT_BASE}/search?query=${encodeURIComponent(query)}` +
+         `&searchVertical=PRODUCT&referringSource=typed`;
+}
+
+function whatnotExtractProducts(html, query) {
+  const byKey = new Map();
+  // Whatnot's search page is Next.js App Router (React Flight stream, no
+  // __NEXT_DATA__), but the listing entities are emitted as raw,
+  // un-escaped JSON objects in the HTML. Scan each ListingNode object
+  // directly and parse it — more robust than chasing the Flight/Apollo
+  // wrapper format, which changes more often than the entity shape.
+  const NEEDLE = '{"__typename":"ListingNode"';
+  let from = 0, guard = 0;
+  while (guard++ < 4000) {
+    const idx = html.indexOf(NEEDLE, from);
+    if (idx < 0) break;
+    from = idx + NEEDLE.length;
+    const end = wnFindMatchingBrace(html, idx);
+    if (end <= idx) continue;
+    const node = wnParseLooseJson(html.slice(idx, end + 1));
+    if (node) wnAbsorbProduct(node, byKey);
+  }
+
+  const fetchedAtIso = new Date().toISOString();
+  const listings = [];
+  for (const p of byKey.values()) listings.push({ ...p, source: "whatnot-search", query, fetchedAtIso });
+  // Cheapest-first, like an active-listing range.
+  listings.sort((a, b) => a.price - b.price);
+  return listings;
+}
+
+function wnAbsorbProduct(node, byKey) {
+  if (!node || typeof node !== "object") return;
+
+  // ACTIVE listings only — skip sold / ended / draft.
+  const status = String(node.listingStatus || "").toUpperCase();
+  if (status && status !== "ACTIVE") return;
+
+  // Price — a `Money` node ({ amount, currency }); `amount` is in CENTS
+  // (calibrated against live data: 699 = $6.99, 199900 = $1,999.00,
+  // 1500000 = $15,000). Auctions carry `currentBid` instead of `price`.
+  const money = (node.price && typeof node.price === "object") ? node.price : null;
+  const bid   = (node.currentBid && typeof node.currentBid === "object") ? node.currentBid : null;
+  const priceObj = money || bid;
+  const cents = (priceObj && typeof priceObj.amount === "number") ? priceObj.amount : null;
+  if (cents == null || cents <= 0) return;
+  const price = cents / 100;
+  const currency = priceObj.currency || "USD";
+
+  const title = (typeof node.title === "string" && node.title.trim()) ? node.title.trim() : "";
+  if (!title) return;
+
+  // Listing id — base64("ListingNode:<num>"); decode for stable de-dupe
+  // (the same listing is inlined ~6× per SSR page).
+  let listingId = "";
+  if (typeof node.id === "string") {
+    try { const m = /:(\d+)$/.exec(atob(node.id)); listingId = m ? m[1] : node.id; }
+    catch (_) { listingId = node.id; }
+  }
+  const key = listingId || `${title.toLowerCase()}::${cents}`;
+  if (byKey.has(key)) return;
+
+  // Seller — `user.username`, else the salesChannel id.
+  let seller = "", sellerUrl = "";
+  const u = (node.user && typeof node.user === "object") ? node.user : (node.seller || null);
+  const handle = u ? wnPickString(u, ["username", "handle"]) : null;
+  if (handle) { seller = handle; }
+  else if (Array.isArray(node.salesChannels) && node.salesChannels[0]?.channelId) {
+    seller = node.salesChannels[0].channelId;
+  }
+  if (seller) sellerUrl = `${WHATNOT_BASE}/user/${seller}`;
+
+  // Image — listing images/media, defensive across shapes.
+  let imageUrl = "";
+  const imgs = node.images || node.media || node.listingImages;
+  if (Array.isArray(imgs) && imgs.length) {
+    const f = imgs[0];
+    imageUrl = (typeof f === "string" ? f : (wnPickImageUrl(f) || f?.url || f?.bucketUrl || "")) || "";
+  }
+  if (!imageUrl) imageUrl = wnPickImageUrl(node) || "";
+
+  const txn = String(node.transactionType || "").toUpperCase();
+  const isAuction = txn === "AUCTION" || !!node.auctionInfo || (!money && !!bid);
+
+  // No slug/permalink is emitted, so tap-through is a Whatnot product
+  // search for the listing title — always resolves to the live listing.
+  byKey.set(key, {
+    title:      wnDecodeHtml(title),
+    price,
+    priceCents: cents,
+    currency,
+    condition:  wnPickString(node, ["conditionName"]) || "",
+    listingId,
+    listingUrl: `${WHATNOT_BASE}/search?query=${encodeURIComponent(title)}&searchVertical=PRODUCT`,
+    seller,
+    sellerUrl,
+    imageUrl,
+    format:     isAuction ? "auction" : "buy_now",
+  });
 }
 
 // ─── Extraction ──────────────────────────────────────────────────────

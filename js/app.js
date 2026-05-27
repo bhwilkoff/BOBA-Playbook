@@ -3710,9 +3710,16 @@
         if (!forceRefresh && card.bobaId) {
           const cached = await fetchCachedPricing(card.bobaId);
           if (cached) {
-            // COMC is still live (it's not in card_prices_history).
-            const comcResp = await fetchComcListings(card.cardNumber);
-            renderPricingData(section, cached, { days, comcListings: comcResp, bobaId: card.bobaId });
+            // COMC + Whatnot are still live (neither is in
+            // card_prices_history). Both soft-fail independently.
+            const [comcResp, whatnotResp] = await Promise.all([
+              fetchComcListings(card.cardNumber),
+              fetchWhatnotProducts(card),
+            ]);
+            renderPricingData(section, cached, {
+              days, comcListings: comcResp, whatnotResp,
+              heroLabel: card.hero, bobaId: card.bobaId,
+            });
             return;
           }
         }
@@ -3730,9 +3737,10 @@
         // Fire eBay-pricing + COMC-listings in parallel. COMC is
         // additive (BUY NOW second source); soft-fails to [] so a
         // failure doesn't block the eBay pricing render.
-        const [res, comcResp] = await Promise.all([
+        const [res, comcResp, whatnotResp] = await Promise.all([
           fetch(`${WORKER_URL}?${params}`),
           fetchComcListings(card.cardNumber),
+          fetchWhatnotProducts(card),
         ]);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -3745,7 +3753,10 @@
           const est = await fetchMarketEstimate(card.bobaId);
           if (est) data.sold = est;
         }
-        renderPricingData(section, data, { days, comcListings: comcResp, bobaId: card.bobaId });
+        renderPricingData(section, data, {
+          days, comcListings: comcResp, whatnotResp,
+          heroLabel: card.hero, bobaId: card.bobaId,
+        });
       } catch {
         const body = section.querySelector('.pricing-body');
         if (body) body.innerHTML = '<p class="pricing-error">Pricing unavailable</p>';
@@ -3893,6 +3904,69 @@
       <div class="pricing-section pricing-section-comc">
         <p class="pricing-items-label pricing-comc-label">COMC ASKING</p>
         <div class="pricing-items">${rows}</div>
+      </div>`;
+  }
+
+  /// Whatnot active product listings (Tier 2 — an ASKING signal, Buy Now
+  /// only; never folded into any sold number per PRICING_PLAYBOOK §4 +
+  /// DECISIONS.md #034). Queries by the distinctive hero token and binds
+  /// to the specific card via cardNumber + weapon (the Worker flags
+  /// matchesCard + sorts best-first). Soft-fails to null so a Whatnot
+  /// hiccup or Cloudflare challenge never blocks the eBay pricing render.
+  async function fetchWhatnotProducts(card) {
+    const heroQuery = (card.hero || card.name || '').trim();
+    if (!heroQuery) return null;
+    try {
+      const params = new URLSearchParams({
+        query:      heroQuery,
+        cardNumber: card.cardNumber || '',
+        weapon:     card.element || '',
+      });
+      const res = await fetch(`${WORKER_URL}/whatnot/products?${params}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data.challenged || !Array.isArray(data.listings) || !data.listings.length) return null;
+      return data;
+    } catch { return null; }
+  }
+
+  /// Whatnot asking-price strip beneath the eBay BUY NOW bucket. Hybrid
+  /// surfacing: this card's matched listings first, then "Other {hero}
+  /// listings" below a divider. Top 3 per group. Each row taps through to
+  /// a Whatnot product search for the listing.
+  function renderWhatnotStrip(resp, heroLabel) {
+    const listings = (resp && Array.isArray(resp.listings)) ? resp.listings : [];
+    if (!listings.length) return '';
+    const fmt = n => Number.isFinite(n) && n > 0 ? `$${n.toFixed(2)}` : '—';
+    const row = (l) => {
+      const pill = l.format === 'auction' ? 'Whatnot bid' : 'Whatnot ask';
+      const sellerStr = l.seller ? ` · @${escHtml(l.seller)}` : '';
+      return `
+        <a href="${escHtml(l.listingUrl)}" target="_blank" rel="noopener" class="pricing-item-row pricing-whatnot-row">
+          <span class="pricing-item-price">${fmt(l.price)}</span>
+          <span class="pricing-item-title">
+            ${escHtml(l.title || '')}
+            <span class="pricing-whatnot-pill">${pill}${sellerStr}</span>
+          </span>
+          <span class="pricing-item-arrow">↗</span>
+        </a>`;
+    };
+    const matched = listings.filter(l => l.matchesCard);
+    const others  = listings.filter(l => !l.matchesCard);
+    const hasMatch = matched.length > 0;
+    const parts = [];
+    // Lead with matched listings when the Worker flagged any; otherwise
+    // show the hero's listings as a single group.
+    const lead = hasMatch ? matched : others;
+    parts.push(`<div class="pricing-items">${lead.slice(0, 3).map(row).join('')}</div>`);
+    if (hasMatch && others.length) {
+      parts.push(`<p class="pricing-whatnot-other-label">Other ${escHtml(heroLabel || 'hero')} listings</p>`);
+      parts.push(`<div class="pricing-items">${others.slice(0, 3).map(row).join('')}</div>`);
+    }
+    return `
+      <div class="pricing-section pricing-section-whatnot">
+        <p class="pricing-items-label pricing-whatnot-label">WHATNOT · ACTIVE ASKS</p>
+        ${parts.join('')}
       </div>`;
   }
 
@@ -4128,6 +4202,12 @@
       // Turnstile on COMC's side: empty array, nothing renders).
       if (Array.isArray(opts.comcListings) && opts.comcListings.length > 0) {
         parts.push(renderComcStrip(opts.comcListings));
+      }
+      // Whatnot active asks — additive Buy Now signal (asks never fold
+      // into any sold number, #034). Renders only when listings exist.
+      if (opts.whatnotResp) {
+        const strip = renderWhatnotStrip(opts.whatnotResp, opts.heroLabel);
+        if (strip) parts.push(strip);
       }
       body.innerHTML = parts.length ? parts.join('') : '<p class="pricing-none">No eBay sales or listings found.</p>';
       if (opts.bobaId) appendCompSubmit(body, opts.bobaId);

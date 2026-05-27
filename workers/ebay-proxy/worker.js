@@ -795,7 +795,7 @@ function normaliseSoldEnriched(items, card) {
  * no full card number in title). Image check can reject these but never force-reject
  * an unreadable image — null AI result = keep the listing.
  */
-async function normaliseActive(items, cardNumber, hero, power, env) {
+async function matchActiveCandidates(items, cardNumber, hero, power, env) {
   // Phase 1: filter with confidence
   const candidates = [];
   for (const item of items) {
@@ -851,14 +851,65 @@ async function normaliseActive(items, cardNumber, hero, power, env) {
     );
   }
 
-  return candidates
-    .filter(c => !rejectedUrls.has(c.item.itemWebUrl ?? ""))
-    .map(c => ({
-      title: c.item.title ?? "",
-      price: c.price,
-      date:  "",
-      url:   c.item.itemWebUrl ?? "",
-    }));
+  return candidates.filter(c => !rejectedUrls.has(c.item.itemWebUrl ?? ""));
+}
+
+/** Slim shape for the live `/` response — output unchanged from before the
+ *  matchActiveCandidates extraction. */
+async function normaliseActive(items, cardNumber, hero, power, env) {
+  const candidates = await matchActiveCandidates(items, cardNumber, hero, power, env);
+  return candidates.map(c => ({
+    title: c.item.title ?? "",
+    price: c.price,
+    date:  "",
+    url:   c.item.itemWebUrl ?? "",
+  }));
+}
+
+/** Rich shape for the Tier 1 vanish-inference tracker (PRICING_PLAYBOOK §3):
+ *  EVERY matched active listing with a stable item id + the signals the
+ *  confidence formula needs. NOT used by the live `/` response. */
+async function normaliseActiveFull(items, cardNumber, hero, power, env) {
+  const candidates = await matchActiveCandidates(items, cardNumber, hero, power, env);
+  return candidates.map(c => ({
+    itemId:       c.item.itemId ?? null,
+    price:        c.price,
+    title:        c.item.title ?? "",
+    url:          c.item.itemWebUrl ?? "",
+    image:        c.item.image?.imageUrl ?? null,
+    buyingOption: (c.item.buyingOptions ?? [])[0] ?? null,
+    endDate:      c.item.itemEndDate ?? null,
+    seller:       c.item.seller?.username ?? null,
+    condition:    c.item.condition ?? null,
+  })).filter(x => x.itemId && x.price > 0);
+}
+
+/** GET /tracker/active — the FULL active-listing set for one card, with stable
+ *  item ids + rich fields, for the Tier 1 pricing-tracker. Marks the response
+ *  `full:true` so the tracker only ingests this endpoint (never the truncated
+ *  top-10 of the main `/` path). Reuses the same Browse fetch + matching as
+ *  `/`; does NOT alter the `/` response. */
+async function handleTrackerActive(request, env) {
+  const { searchParams } = new URL(request.url);
+  const cardNumber = searchParams.get("cardNumber");
+  const hero       = searchParams.get("hero") || "";
+  const powerRaw   = searchParams.get("power");
+  const power      = powerRaw != null ? parseInt(powerRaw, 10) : null;
+  if (!cardNumber) return json({ error: "cardNumber required", full: true, count: 0, items: [] }, 400);
+  if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID)
+    return json({ error: "ebay creds required", full: true, count: 0, items: [] }, 500);
+
+  let token;
+  try { token = await getAppToken(env, caches.default); }
+  catch (e) { return json({ error: String(e?.message ?? e), full: true, count: 0, items: [] }, 502); }
+
+  const powerStr = power != null && !isNaN(power) ? String(power) : null;
+  const keywords = ["bo jackson battle arena", hero, cardNumber, powerStr].filter(Boolean).join(" ");
+  const { items: raw, error } = await searchActive(token, keywords);
+  if (error) return json({ error, full: true, count: 0, items: [] }, 502);
+
+  const items = await normaliseActiveFull(raw, cardNumber, hero, power, env);
+  return json({ full: true, count: items.length, query: keywords, items });
 }
 
 // ── Discord message proxy ─────────────────────────────────────────────────────
@@ -1108,6 +1159,7 @@ export default {
     if (request.method === "GET"  && url.pathname.endsWith("/discord/messages")) return handleDiscordMessages(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/whatnot/upcoming")) return handleWhatnotUpcoming(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/scrape-ebay"))      return handleScrapeEbay(request, env);
+    if (request.method === "GET"  && url.pathname.endsWith("/tracker/active"))   return handleTrackerActive(request, env);
     const { searchParams } = url;
     const cardNumber = searchParams.get("cardNumber");
     const hero       = searchParams.get("hero") || "";

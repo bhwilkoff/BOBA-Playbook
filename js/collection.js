@@ -1706,6 +1706,15 @@ const Collection = (() => {
               </svg>
               <span>Open Mod Panel</span>
             </button>
+            <button class="profile-mod-row" id="profile-comps-review-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+              <span>Review Sold Comps</span>
+              <span class="profile-comps-badge" id="profile-comps-badge" hidden></span>
+            </button>
             ${role === 'admin' ? `
             <button class="profile-admin-row" id="profile-admin-btn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -1861,6 +1870,12 @@ const Collection = (() => {
 
     view.querySelector('#profile-mod-btn')
       ?.addEventListener('click', () => openModSearchPanel());
+
+    view.querySelector('#profile-comps-review-btn')
+      ?.addEventListener('click', () => openCompsReviewPanel());
+    // Best-effort pending-comp count badge so a mod sees there's work
+    // without opening the panel. Silent on error (non-mods get []).
+    updateCompsBadge();
 
     view.querySelector('#profile-admin-btn')
       ?.addEventListener('click', () => openAdminPanel());
@@ -2697,6 +2712,117 @@ const Collection = (() => {
       loadAdminCorrections(overlay),
       loadAdminUsers(overlay),
     ]);
+  }
+
+  /// Mod queue — review pending community sold comps (Tier 3,
+  /// PRICING_PLAYBOOK §5). Available to moderator + admin (RPC-gated).
+  /// Approving flips status to 'approved' so the comp flows through
+  /// get_approved_comps → the price estimator; rejecting records an
+  /// optional reason. Kept low-chrome per DESIGN.md §12 (mod tooling
+  /// favors auditability over density).
+  async function openCompsReviewPanel() {
+    const existing = document.getElementById('comps-review-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'comps-review-overlay';
+    overlay.className = 'mod-edit-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Review Sold Comps');
+    overlay.innerHTML = `
+      <div class="mod-edit-panel admin-panel">
+        <div class="mod-edit-header">
+          <span class="mod-edit-title">Review Sold Comps</span>
+          <button class="mod-edit-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="mod-edit-body admin-panel-body">
+          <div class="admin-section-label">PENDING SUBMISSIONS</div>
+          <div id="comps-review-list" class="admin-user-list">
+            <div class="admin-loading">Loading…</div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('.mod-edit-close').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.addEventListener('keydown', function onEsc(e) {
+      if (e.key === 'Escape' && document.body.contains(overlay)) { overlay.remove(); document.removeEventListener('keydown', onEsc); }
+    });
+
+    await renderCompsReviewList(overlay);
+  }
+
+  async function renderCompsReviewList(overlay) {
+    const list = overlay.querySelector('#comps-review-list');
+    if (!list) return;
+    let comps;
+    try {
+      comps = await API.getPendingCommunityComps();
+    } catch (e) {
+      list.innerHTML = `<div class="admin-loading">Couldn't load — ${esc(e.message || 'error')}</div>`;
+      return;
+    }
+    if (!comps.length) {
+      list.innerHTML = '<div class="admin-loading">No pending comps right now.</div>';
+      return;
+    }
+    const catalog = window.__bobaCatalog || [];
+    list.innerHTML = comps.map(c => {
+      const card = catalog.find(x => x.bobaId === c.boba_id);
+      const label = card
+        ? `${card.cardNumber} · ${card.hero || card.name || ''}`.trim()
+        : c.boba_id;
+      const price = `$${Number(c.price_usd).toFixed(2)}`;
+      const platform = (c.source_platform || '').replace('-', ' ');
+      const notes = c.notes ? `<div class="comp-review-notes">“${esc(c.notes)}”</div>` : '';
+      return `
+        <div class="comp-review-row" data-id="${c.id}">
+          <div class="comp-review-main">
+            <div class="comp-review-card">${esc(label)}</div>
+            <div class="comp-review-meta">${price} · ${esc(c.sold_at || '')} · ${esc(platform)}</div>
+            ${notes}
+          </div>
+          <div class="comp-review-actions">
+            <button class="btn-ghost-sm comp-reject-btn" data-id="${c.id}">Reject</button>
+            <button class="btn-primary comp-approve-btn" data-id="${c.id}">Approve</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    list.querySelectorAll('.comp-approve-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        const res = await API.reviewCommunityComp(btn.dataset.id, true);
+        if (res.error) { btn.disabled = false; window.showToast?.(res.error); return; }
+        window.showToast?.('Comp approved — it now feeds the estimate');
+        await renderCompsReviewList(overlay);
+        updateCompsBadge();
+      });
+    });
+    list.querySelectorAll('.comp-reject-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const reason = window.prompt('Reason for rejecting (optional):') ?? '';
+        btn.disabled = true;
+        const res = await API.reviewCommunityComp(btn.dataset.id, false, reason.trim() || null);
+        if (res.error) { btn.disabled = false; window.showToast?.(res.error); return; }
+        window.showToast?.('Comp rejected');
+        await renderCompsReviewList(overlay);
+        updateCompsBadge();
+      });
+    });
+  }
+
+  /// Refresh the pending-comp count badge in the Profile Moderation
+  /// section. Best-effort + silent (non-mods get an empty list).
+  async function updateCompsBadge() {
+    const badge = document.getElementById('profile-comps-badge');
+    if (!badge) return;
+    try {
+      const comps = await API.getPendingCommunityComps();
+      if (comps.length) { badge.textContent = String(comps.length); badge.hidden = false; }
+      else { badge.hidden = true; }
+    } catch (_) { badge.hidden = true; }
   }
 
   async function loadAdminModRequests(overlay) {

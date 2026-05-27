@@ -194,6 +194,7 @@ When shipping any user-facing feature:
 | Admin panel | ✅ | ✅ | 🔮 | Role-gated; defer to v2 |
 | Mod panel | ✅ | ✅ | 🔮 | Role-gated; defer to v2 |
 | Mod card edits (add / edit) | ✅ | ✅ | 🔮 | Same Worker `boba-mod-merge` |
+| Community comp review queue (mod) | ✅ | 🔮 | 🔮 | PRICING_PLAYBOOK §5 · Tier 3. Web: Profile → Moderation → "Review Sold Comps" (`get_pending_community_comps` / `review_community_comp`, mod+admin). iOS/Android parity is a follow-up — moderation happens on web today. |
 | Sign-in method pill on Profile | ✅ | ✅ | ✅ | Android ProviderPill — Google = #4285F4, Discord = #5865F2, Apple = black, email = unmarked default (matches iOS) |
 
 ---

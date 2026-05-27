@@ -757,6 +757,30 @@ const API = (() => {
     return { ok: true, id: data };
   }
 
+  /// Mod queue — pending community comps awaiting review. RLS + the RPC
+  /// both gate to moderator/admin; a non-mod gets an empty list. Returns
+  /// full community_comps rows (id, boba_id, price_usd, sold_at,
+  /// source_platform, photo_url, notes, created_at, …).
+  async function getPendingCommunityComps() {
+    const { data, error } = await supa().rpc('get_pending_community_comps');
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  /// Approve or reject a pending community comp. Approving flips status to
+  /// 'approved' so it flows through get_approved_comps → the estimator;
+  /// rejecting records the optional reason. Mod/admin only (enforced
+  /// server-side). Returns { ok } or { error }.
+  async function reviewCommunityComp(id, approve, rejectReason) {
+    const { error } = await supa().rpc('review_community_comp', {
+      p_id:            id,
+      p_approve:       approve,
+      p_reject_reason: rejectReason || null,
+    });
+    if (error) return { error: error.message };
+    return { ok: true };
+  }
+
   /// Triggers Supabase's native password-reset email. Mirrors iOS
   /// SupabaseClient.requestPasswordReset.
   async function requestPasswordReset(email) {
@@ -989,6 +1013,8 @@ const API = (() => {
     setPublicCollectionEnabled,
     requestRole,
     submitCommunityComp,
+    getPendingCommunityComps,
+    reviewCommunityComp,
     requestPasswordReset,
     deleteAccount,
     uploadAvatar,

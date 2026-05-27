@@ -694,3 +694,37 @@ siblings/other-hero cards, Whatnot returning non-BoBA junk entirely. All in
   3 real "Bo Jackson Battle Arena" listings; clean "bojax" query unaffected (17).
 
 `/` response shape unchanged; verified intact. Deployed.
+
+### 2026-05-27 — card-match precision round 2 (treatment + ordinal + prefixed-number)
+
+Ben flagged card #1 Maverick Base Set FIRE (bobaId `1-Maverick-Base Set-
+First Edition-FIRE`, set "Griffey Edition") still showing wrong cards.
+Diagnosed three leaks, all in `workers/ebay-proxy/worker.js`:
+
+1. **Card number "1" matched "1st Edition".** The boundary regex treated the
+   "1" in "1st" as the card number → almost any Maverick listing matched #1.
+   Fix: `cardNumberTitleRegex` excludes ordinals (`(?!st|nd|rd|th)`). NOTE the
+   card's *variation* is literally "First Edition" — but a listing saying only
+   "1st Edition" (no separate "#1") is ambiguous (any first-ed Maverick), so
+   excluding it is correct; "#1" listings still match.
+2. **No treatment/parallel gate.** "Inspired Ink", "Colosseum Battlefoil"
+   listings showed for the Base Set card. Fix: `titleHasTreatmentConflict` —
+   a Base Set card rejects any title naming a distinctive special-treatment
+   marker (battlefoil / inspired ink / superfoil / colosseum / linoleum /
+   blizzard / mixtape / logofoil / kanjifoil / chillin). Decisive reject in
+   the sold scorer + active matcher. `treatment` threaded through the active
+   matcher + `/tracker/active`.
+3. **Numeric card number matched a prefixed number's suffix.** "#OHBF-1"
+   (Orange Battlefoil #1) matched card "1" (the "1" after "OHBF-"). Fix: the
+   leading boundary for a numeric card number is start / whitespace / "#"
+   only — not any non-digit — so "1" no longer matches "OHBF-1" / "GGL-1".
+   Alphanumeric cards are unaffected (they use the full-token includes path).
+
+Wrong-edition reject (`wrongEditionInTitle`) now also runs on actives (set
+threaded through). The card's set is "Griffey Edition" so Griffey listings
+correctly stay; the conservative edition-token check doesn't false-reject the
+"2026" listings.
+
+Live result for card #1: Inspired Ink / Colosseum / "#OHBF-1" all gone; the
+10 actives are all exact (#1 · Maverick/Cooper Flagg · Fire · Griffey/First
+Edition); avg $14.36 → $10.63. `/` shape unchanged. Deployed.

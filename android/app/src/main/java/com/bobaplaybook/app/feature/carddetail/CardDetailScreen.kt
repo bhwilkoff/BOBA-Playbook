@@ -1312,12 +1312,14 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
         return
     }
 
-    // Market estimate header — paired with a small refresh affordance
-    // so the user can force a fresh Worker fetch (active listings are
-    // cached for the lifetime of the screen otherwise).
+    val sold = state.ebaySold.distinctBy { it.url }
+    val hasRealSold = sold.isNotEmpty()
+
+    // Provenance-honest pricing header (ANDROID-DESIGN.md §8.7), paired
+    // with a refresh affordance to force a fresh Worker fetch.
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = "MARKET ESTIMATE",
+            text = "MARKET PRICING",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Bold,
@@ -1333,106 +1335,70 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
             }
         }
     }
-    state.marketEstimateUsd?.let { est ->
-        Text(
-            text = "~$${est.formatUsdAmount()}",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 16.dp),
-        )
-        state.marketEstimateBasis?.let { basis ->
+
+    // Only show a headline market number when we have REAL sold data.
+    // The starved boba-price-estimator (state.marketEstimate) is NOT
+    // surfaced as a fabricated "Market Est." — Tier 4 (PRICING_PLAYBOOK.md)
+    // reintroduces a clearly-labeled estimate only when fed real comps.
+    if (hasRealSold) {
+        state.marketEstimateUsd?.let { est ->
             Text(
-                text = basis,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                text = "~$${est.formatUsdAmount()}",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 16.dp),
             )
-        }
-    }
-
-    BOBASectionHeader(title = "Buy Now")
-    if (state.ebayActive.isEmpty()) {
-        Text(
-            text = "No active listings",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        )
-    } else {
-        // First-run hint above the first non-empty tile row —
-        // teaches that price tiles tap-through to the buyer site.
-        // Dismissible per HintsStore.
-        val hintsVm: com.bobaplaybook.app.hints.HintsViewModel =
-            androidx.hilt.navigation.compose.hiltViewModel()
-        val tapHintDismissed by hintsVm
-            .isDismissed(com.bobaplaybook.app.hints.HintsStore.Ids.CARD_DETAIL_TAP_PRICE)
-            .collectAsStateWithLifecycle(initialValue = true)
-        if (!tapHintDismissed) {
-            com.bobaplaybook.core.ui.components.BOBAHintBanner(
-                title = "Tap a price to open",
-                body = "Each tile links straight to the eBay listing — actives + sold comps.",
-                onDismiss = {
-                    hintsVm.dismiss(com.bobaplaybook.app.hints.HintsStore.Ids.CARD_DETAIL_TAP_PRICE)
-                },
-            )
-        }
-        ListingsRow(listings = state.ebayActive)
-    }
-
-    // "Recent Sales" — eBay sold comps (scored + filtered by the Worker).
-    // When no eBay sold comps, fall back to the comparability-derived
-    // Market Est. from `boba-price-estimator` (DECISIONS.md #056).
-    val sold = state.ebaySold.distinctBy { it.url }
-    val estimate = state.marketEstimate
-    if (sold.isEmpty() && estimate != null) {
-        BOBASectionHeader(title = "Market Est.")
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            for ((label, value) in listOf(
-                "EST. LOW" to estimate.low,
-                "EST. MID" to estimate.mid,
-                "EST. HIGH" to estimate.high,
-            )) {
-                Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = "$${value.formatUsdAmount()}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+            state.marketEstimateBasis?.let { basis ->
+                Text(
+                    text = basis,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
             }
         }
-        Text(
-            text = if (estimate.comparableCount > 0)
-                "Estimated from ${estimate.comparableCount} comparable cards"
-            else "Estimated value",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        )
-    } else {
+    }
+
+    if (hasRealSold) {
+        // Real transacted comps lead; active asks follow as "Buy Now".
         BOBASectionHeader(title = "Recent Sales")
-        if (sold.isEmpty()) {
+        ListingsRow(
+            listings = kotlinx.collections.immutable.persistentListOf<PricingListing>().addAll(sold),
+        )
+        BOBASectionHeader(title = "Buy Now")
+        if (state.ebayActive.isEmpty()) {
             Text(
-                text = "No recent sales found",
+                text = "No active listings",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         } else {
-            ListingsRow(
-                listings = kotlinx.collections.immutable.persistentListOf<PricingListing>().addAll(sold),
+            TapPriceHint()
+            ListingsRow(listings = state.ebayActive)
+        }
+    } else {
+        // No real sold data — the active eBay listings ARE the honest
+        // primary signal. Show them as "Listed Range", never a
+        // fabricated estimate (PRICING_PLAYBOOK.md §7).
+        BOBASectionHeader(title = "Listed Range")
+        if (state.ebayActive.isEmpty()) {
+            Text(
+                text = "No active listings or recent sales found",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
+        } else {
+            Text(
+                text = "Active eBay listings · no recent sales data yet",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+            TapPriceHint()
+            ListingsRow(listings = state.ebayActive)
         }
     }
 
@@ -1457,6 +1423,26 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
         ) {
             Text(text = "View on Radish")
         }
+    }
+}
+
+@Composable
+private fun TapPriceHint() {
+    // First-run hint above tappable price tiles — teaches that tiles
+    // tap-through to the buyer site. Dismissible per HintsStore.
+    val hintsVm: com.bobaplaybook.app.hints.HintsViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val dismissed by hintsVm
+        .isDismissed(com.bobaplaybook.app.hints.HintsStore.Ids.CARD_DETAIL_TAP_PRICE)
+        .collectAsStateWithLifecycle(initialValue = true)
+    if (!dismissed) {
+        com.bobaplaybook.core.ui.components.BOBAHintBanner(
+            title = "Tap a price to open",
+            body = "Each tile links straight to the eBay listing — actives + sold comps.",
+            onDismiss = {
+                hintsVm.dismiss(com.bobaplaybook.app.hints.HintsStore.Ids.CARD_DETAIL_TAP_PRICE)
+            },
+        )
     }
 }
 

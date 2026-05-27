@@ -347,6 +347,7 @@ Lives inside `CardDetailScreen` between stats and per-context body. Live-fetched
 - **Estimate** (Tier 4): `boba-price-estimator` surfaces only clearly labeled ("Estimated · based on N comparable cards"), only when fed real comps; suppressed while starved (current state).
 - Per-section: horizontal scroll of `BOBAPriceTile` (M3 `Card` w/ `surfaceContainerLow`, thumb + price + source chip + `CustomTabsIntent` tap-through). Empty = `BOBAEmptyState` w/ refresh. Loading = 3-tile skeleton. A single per-card "View on Radish" external link preserved (`Intent.ACTION_VIEW` with `card.radishUrl ?: homepage`, NOT `CustomTabsIntent`; DECISIONS.md #056).
 - Real-sold header (single line, only with Recent Sales): *"~$24 · based on 8 recent sales"*. Asking NEVER folded in.
+- **Community comps (Tier 3) — quiet + subordinate.** A single low-emphasis `TextButton` at the FOOT of the pricing section ("Saw one sell? Add a price") opens a focused `ModalBottomSheet` (price · sold date · platform · optional photo · notes → `submit_community_comp`). NEVER above the art, NEVER rivalling "Add to Collection"; auth-gated inline via `BOBASignInPrompt` (§6.5). Mod-reviewed before surfacing as "Recent Sales · BoBA Community". Rationale (learning-orientation): invite participation in pricing accuracy without displacing why people open a card.
 
 ### 8.8 Wall view + Price Overlay
 

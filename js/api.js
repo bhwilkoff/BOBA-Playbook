@@ -738,6 +738,25 @@ const API = (() => {
     if (error) throw new Error(error.message);
   }
 
+  /// Submit a community sold-comp (Tier 3, PRICING_PLAYBOOK §5). Auth-gated;
+  /// the RPC enforces rate limits (5/user/day, 1/bobaId/user/week) + field
+  /// validation server-side. Returns { ok, id } or { error } (never throws —
+  /// the caller surfaces res.error via a toast).
+  async function submitCommunityComp({ bobaId, price, soldAt, platform, notes, photoUrl } = {}) {
+    const { data: { session } } = await supa().auth.getSession();
+    if (!session) return { error: 'Sign in to add a price.' };
+    const { data, error } = await supa().rpc('submit_community_comp', {
+      p_boba_id:   bobaId,
+      p_price:     price,
+      p_sold_at:   soldAt,
+      p_platform:  platform,
+      p_photo_url: photoUrl || null,
+      p_notes:     notes || null,
+    });
+    if (error) return { error: error.message };
+    return { ok: true, id: data };
+  }
+
   /// Triggers Supabase's native password-reset email. Mirrors iOS
   /// SupabaseClient.requestPasswordReset.
   async function requestPasswordReset(email) {
@@ -969,6 +988,7 @@ const API = (() => {
     setUsername,
     setPublicCollectionEnabled,
     requestRole,
+    submitCommunityComp,
     requestPasswordReset,
     deleteAccount,
     uploadAvatar,

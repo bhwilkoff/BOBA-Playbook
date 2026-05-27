@@ -264,7 +264,7 @@ Approved-rate over time becomes a per-user trust score. Once ≥10 approved comp
 
 ## 6. Tier 4 — `boba-price-estimator` overhaul
 
-Replace the eBay-proxy fetch inside the estimator (which currently returns nothing useful) with a query against the Tier 1 D1 store. The comparability function (existing) stays — just fed real comp data.
+Replace the eBay-proxy fetch inside the estimator (which currently returns nothing useful) with a query against the Tier 1 comp store — AND re-weight the comparability function, which is wrong for BoBA today (§6.2). The estimator's sophistication is the heart of "accurate pricing"; it gets the most design care.
 
 ### 6.1 Changes
 
@@ -272,11 +272,24 @@ Replace the eBay-proxy fetch inside the estimator (which currently returns nothi
 - The query path: instead of "fetch eBay sold for each comparable," it's "select aggregate from D1 listings where boba_id IN (...) and inferred_sold = 1 and last_seen > now() - 90d."
 - KV cache key changes from `estimate:{bobaId}` → `estimate:v2:{bobaId}` so we don't serve stale v1 entries.
 
-### 6.2 Cross-set hero anchoring
+### 6.2 Rarity-first comparability (REPLACES "cross-set hero anchoring")
 
-Same hero, different set tend to track each other. If Set A "Maverick" has comps but Set B "Maverick Battlefoil" doesn't, anchor Set B's estimate against Set A's median × a learned treatment-multiplier. Multiplier comes from a periodic regression we run nightly across all hero pairs that DO have comps in both sets.
+**The current estimator is weighted wrong.** `workers/price-estimator/worker.js` weights `same_hero` at **0.6** (the dominant axis), `same_weapon_power` 0.3, `same_set`/cardType 0.1. For BoBA that's backwards: price is driven by **rarity**, not hero. Two cards of the same hero — a Base Set common vs a serialized Inspired Ink — sell at wildly different prices; two *different* heroes of the same treatment + serialization + power tier sell close. Hero is a *multiplier on top of* the rarity structure, not the base. (Ben's call, 2026-05-27.)
 
-This is a real win for the long tail of cards that may never get individual comps — Battlefoils especially, since their print runs are small but their hero recognizability tracks the base card.
+**Comparability key, rarity-first.** Nearest neighbors share a **rarity class**, NOT a hero:
+- **treatment family** — the single richest axis (59 distinct treatments; the cardNumber prefix encodes it, e.g. `GGL-` = Great Grandma's Linoleum Battlefoil).
+- **serialization tier** — Inspired Ink is serialized BY WEAPON (Hex /5, Glow /10, Fire /25, Ice /50, DECISIONS.md #028); for serialized cards the weapon IS the print-run, a hard rarity signal.
+- **card class** — `cardType` (Hero/Play/HotDog/Sealed) + parallel flags (`isInspiredInk`, `isBonusPlay`, `isHTD`, `rookieInspired`).
+- **power tier** (gameplay desirability; existing `powerTier` buckets), **weapon**, **set/subSet/release** (era).
+- **hero** — a secondary similarity *bonus* only.
+
+**No stored rarity field exists** (`rarityTier`/`rarityLabel` are empty across all 17,974 cards), so we DERIVE a scarcity index from: (1) serialization print-run where known (Inspired Ink weapon → /5…/50); (2) catalog **population per treatment-family** as a scarcity proxy (e.g. "Battlefoil" 1028 cards vs "Great Grandma's Linoleum Battlefoil" 786 — rarer treatments run smaller); (3) parallel/type flags (parallels + serialized run scarcer than base).
+
+### 6.3 Learn the weights from comps — don't hardcode them
+
+The 0.6/0.3/0.1 weights are a guess, and re-guessing new weights repeats the mistake. Once Tier 1+2+3 produce real sold comps, **fit a hedonic model**: `log(price) ~ treatment_family + serialization_tier + cardType + power_tier + weapon + set + hero`, learning each factor's actual price contribution from observed sales. A comp-less card's estimate = the model's feature-based prediction blended with its nearest-rarity-class comps. Hero enters as one learned coefficient (expected: a modest multiplier), never a 0.6 prior. **This is why Tier 1 must land first — the estimator is only as good as the comp data feeding it.** Until enough comps exist, fall back to the derived-scarcity heuristic (§6.2) with rarity axes dominant + hero a small bonus. Validate any model on a held-out set of cards that DO have comps before shipping; spot-check the long tail (Battlefoils especially).
+
+**Open (Ben's domain call):** how to establish the treatment rarity ORDER pre-comps — derive purely from catalog population + serialization (data-only, no manual ranking), or seed with a canonical treatment-rarity tier list from Ben, or both (his tiers as prior, population/comps as refinement). See build-log.
 
 ---
 
@@ -356,7 +369,7 @@ When Tier 1 starts producing real comps (Week 2+), the "RECENT SALES" section re
 | **D1 cost overrun.** | D1 free tier is 5M reads/day, 100K writes/day. Snapshot writes: 2,400 cards × ~10 listings each = 24K writes/day. Well under free tier. Reads scale with user pricing-detail opens. |
 | **Whatnot anti-bot evolves and blocks us.** | Path B (Browser Rendering) is the fallback. If both paths fail, Whatnot becomes the community-submission case (users tell us about Whatnot sales they witnessed). |
 | **Community comps get gamed.** | Mod approval gate. Rate limits. Photo verification via existing image-fingerprint. No auto-approve in v1. |
-| **Cross-set hero anchoring multiplier overfits.** | Train on cards with comps in BOTH sets, validate on holdout. Skill: invoke a research subagent before adopting the multiplier in production. |
+| **Estimator over-weights hero** (current code: `same_hero` = 0.6) — rarity (treatment / serialization / power / type) is the real price driver. | Re-weight rarity-first (§6.2); learn factor weights from real comps via a hedonic model (§6.3) instead of hardcoding; validate on a held-out comp set; spot-check the long tail (Battlefoils). |
 | **AI image verification (Claude API) cost overrun.** | Only invoked on Whatnot-scraped + community-submitted comps (not on every Browse snapshot). At ~$0.003 per Haiku call × ~100 incoming comps/day = $0.30/day. Reasonable. |
 | **Estimator caches stale during the rollout.** | KV cache key bumped to `estimate:v2:{bobaId}` so v1 entries don't serve. |
 

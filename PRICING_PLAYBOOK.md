@@ -728,3 +728,25 @@ correctly stay; the conservative edition-token check doesn't false-reject the
 Live result for card #1: Inspired Ink / Colosseum / "#OHBF-1" all gone; the
 10 actives are all exact (#1 · Maverick/Cooper Flagg · Fire · Griffey/First
 Edition); avg $14.36 → $10.63. `/` shape unchanged. Deployed.
+
+### 2026-05-27 — Whatnot match made adaptable (card number OR power) + weapon/treatment gates
+
+Ben flagged card #149 J-Cam Base Set STEEL showing wrong Whatnot cards.
+Root cause: BoBA Whatnot sellers title a card by its card NUMBER
+("J-Cam #149") OR its POWER ("J-Cam Steel 110 Power") — often one, not the
+other. The matcher required the card number, so #149 (whose listings are
+power-titled) got bestMatchCount 0 and the old "Other" fallback showed
+wrong cards.
+
+Fix (`/whatnot/products`): `matchesCard = (cardNumberHit OR powerHit)` gated
+by `titleNamesConflictingWeapon` (rejects FIRE/ICE/BRAWL listings for a
+STEEL card — siblings share a cardNumber, #057) and `titleHasTreatmentConflict`
+(rejects Battlefoil/Inspired/Icon listings for a Base Set card). Threaded
+`power` + `treatment` params through the endpoint (cache key v3) and from all
+three clients (web `fetchWhatnotProducts`, iOS `WhatnotProductsService.products`,
+Android `PricingService.fetchWhatnotProducts`).
+
+Live result for J-Cam #149 STEEL (power 110, Base Set): bestMatchCount 1 —
+exactly "J-Cam Steel 110 Power" ($3); Battlefoil/Brawl/Fire/Ice/Icon
+correctly excluded. node --check (web) + :app:compileDebugKotlin (Android)
+clean. iOS v2.383.

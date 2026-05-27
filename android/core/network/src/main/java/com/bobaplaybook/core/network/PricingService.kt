@@ -177,14 +177,20 @@ class PricingService @Inject constructor(
         query: String,
         cardNumber: String,
         weapon: String,
+        treatment: String = "",
+        power: Int? = null,
     ): List<WhatnotListing> = withContext(Dispatchers.IO) {
         val q = query.trim()
         if (q.isEmpty()) return@withContext emptyList()
         runCatching {
+            // BoBA sellers title by card number OR power — send both so the
+            // Worker can match on whichever the listing used.
             val response: WhatnotProductsResponse = httpClient.get("${WorkerConfig.EBAY_PROXY}/whatnot/products") {
                 parameter("query", q)
                 if (cardNumber.isNotBlank()) parameter("cardNumber", cardNumber)
                 if (weapon.isNotBlank()) parameter("weapon", weapon)
+                if (treatment.isNotBlank()) parameter("treatment", treatment)
+                if (power != null) parameter("power", power.toString())
             }.body()
             if (response.challenged == true) emptyList()
             else response.listings.map { it.toDomain() }

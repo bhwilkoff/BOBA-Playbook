@@ -24,13 +24,16 @@ binding = "CURSOR"
 id      = "b44ff8f1197646c2a4ba5563a2a68959"
 
 [vars]
-CATALOG_URL    = "https://bobaplaybook.com/assets/data/cards.json"
-CADENCE_HOURS  = "6"
-PER_RUN_BUDGET = "600"
+CATALOG_URL         = "https://bobaplaybook.com/assets/data/cards.json"
+CADENCE_HOURS       = "6"
+PER_RUN_BUDGET      = "400"
+BROWSE_SAFETY_FLOOR = "1500"
 
-# Cron is DISABLED until the snapshot loop is validated against the enriched
-# eBay-proxy endpoint (README §"two-part build"). Inferring sold from a
-# truncated top-10 listing set would produce false positives. Enable only
-# after the proxy returns the FULL active set + stable item ids:
-# [triggers]
-# crons = ["0 */6 * * *"]
+# Cron ENABLED 2026-05-27 after the enriched /tracker/active endpoint shipped +
+# the pipeline was validated end-to-end. Sized against MEASURED quota: eBay
+# Browse limit is 5,000/day (getRateLimits via /tracker/ratelimit); ~4,850
+# remained mid-day, so organic usage is light. 400 cards x 4 runs/day = 1,600/
+# day. worker.js also runs a pre-run quota check and SKIPS the run if Browse
+# remaining < BROWSE_SAFETY_FLOOR — live pricing's shared quota is never starved.
+[triggers]
+crons = ["0 */6 * * *"]

@@ -57,6 +57,34 @@ const MARKETPLACE  = "EBAY_US";
 const SCORE_CONFIRMED = 0.60;
 const SCORE_PROBABLE  = 0.45;
 
+// ── Card-identity precision gates (2026-05-27) ───────────────────────
+// "One card, one bobaId, one price." A listing must be the EXACT card to
+// count toward a card's price — near-miss siblings and other-hero cards
+// were leaking in. These helpers enforce that.
+
+// BoBA weapon words that are UNAMBIGUOUS in a free-text listing title.
+// Excludes "super" / "alt" / "gum" — they collide with common modifiers
+// ("super rare", "alt art", "Big League Chew gum") and would false-reject.
+const BOBA_WEAPON_WORDS = ["fire", "ice", "hex", "steel", "brawl", "glow", "cyber"];
+
+/** True when the title names a DIFFERENT BoBA weapon than the card's —
+ *  the dominant weapon-variant-sibling mis-match (FIRE P-8 vs GLOW P-8
+ *  share a cardNumber, DECISIONS.md #057). If the card's own weapon also
+ *  appears, treat as ambiguous (no conflict) and keep. */
+function titleNamesConflictingWeapon(titleLower, cardElement) {
+  const cw = String(cardElement || "").toLowerCase();
+  if (!cw || cw === "none" || !BOBA_WEAPON_WORDS.includes(cw)) return false;
+  if (new RegExp(`\\b${cw}\\b`).test(titleLower)) return false;
+  return BOBA_WEAPON_WORDS.some(w => w !== cw && new RegExp(`\\b${w}\\b`).test(titleLower));
+}
+
+/** True when a free-text title carries a BoBA brand marker. Used to drop
+ *  non-BoBA junk that loose marketplace search returns (e.g. Whatnot
+ *  returning "Xbox Day One Edition" for a hero query). */
+function titleLooksLikeBoba(titleLower) {
+  return /battle arena|bo ?jackson|\bbo ?ba\b|bojax/.test(titleLower);
+}
+
 // Base scope for Browse API. Marketplace Insights requires buy.marketplace.insights
 // but requesting it as a combined scope causes a 400 if not approved. Instead we
 // request just the base scope and let the Insights call return 403 (handled as
@@ -355,6 +383,11 @@ function scoreSoldListing(item, card) {
   const asp = extractAspectSignals(aspects, card);
   if (asp.decisiveReject) {
     return { score: 0, reasons: ["aspect_mismatch"] };
+  }
+  // Weapon-variant sibling reject — a title naming a different weapon
+  // than the card is a different print of the same cardNumber (#057).
+  if (titleNamesConflictingWeapon(titleLower, card.element)) {
+    return { score: 0, reasons: ["weapon_conflict"] };
   }
 
   const reasons = [];
@@ -770,6 +803,20 @@ function normaliseSoldEnriched(items, card) {
       matchReasons:     reasons,
     };
 
+    // "One card, one price" gate (2026-05-27): a listing must carry an
+    // EXACT card-number match AND a hero match to be shown OR aggregated.
+    // Partial-number / hero-only matches are a DIFFERENT card (or
+    // unidentifiable) — drop them entirely rather than surface a
+    // wrong-card price. This trades long-tail recall for precision, which
+    // is the right call now that the honest "Listed Range" / "no data"
+    // fallback (Tier 5) covers cards with no exact comps.
+    const identityOk = reasons.includes("card_number_exact") && reasons.includes("hero");
+    if (!identityOk) {
+      if (reasons.includes("lot_penalty")) counters.rejected_lot++;
+      else counters.rejected_score++;
+      continue;
+    }
+
     if (score >= SCORE_CONFIRMED) {
       confirmed.push(enriched);
       counters.confirmed++;
@@ -795,15 +842,19 @@ function normaliseSoldEnriched(items, card) {
  * no full card number in title). Image check can reject these but never force-reject
  * an unreadable image — null AI result = keep the listing.
  */
-async function matchActiveCandidates(items, cardNumber, hero, power, env) {
+async function matchActiveCandidates(items, cardNumber, hero, power, env, element = "") {
   // Phase 1: filter with confidence
   const candidates = [];
   for (const item of items) {
     const title    = item.title ?? "";
+    const titleLower = title.toLowerCase();
     const aspects  = item.localizedAspects ?? [];
     const imageUrl = item.image?.imageUrl ?? "";
     const price    = parseFloat(item.price?.value ?? "0");
     if (price <= 0) continue;
+    // Weapon-variant sibling reject (#057) — a title naming a different
+    // weapon than the card is a different print of the same cardNumber.
+    if (titleNamesConflictingWeapon(titleLower, element)) continue;
 
     const aspectResult = checkAspects(aspects, cardNumber, power);
     let match = false, confidence = "low";
@@ -813,20 +864,26 @@ async function matchActiveCandidates(items, cardNumber, hero, power, env) {
       confidence = "high";
     } else {
       const titleNorm  = norm(title);
-      const titleLower = title.toLowerCase();
       const isNumeric  = /^\d+$/.test(cardNumber);
 
       if (LOT_PATTERNS.some(p => titleLower.includes(p))) {
         match = false;
       } else if (isNumeric) {
-        match      = titleNorm.includes(norm(hero));
+        // Tightened (2026-05-27): hero ALONE matched every card for that
+        // hero. Require the card number as a bounded token in the title
+        // too, so only the exact card matches ("one card, one price").
+        const numRe = new RegExp(`(?:^|\\D)0*${cardNumber}(?:\\D|$)`);
+        match      = titleNorm.includes(norm(hero)) && numRe.test(titleLower);
         confidence = "medium";
       } else {
         if (titleNorm.includes(norm(cardNumber))) {
           match = true; confidence = "high";
         } else {
+          // Loose fallback (numeric part of the card number) — now also
+          // requires the hero in the title so a bare "8" can't pull in an
+          // unrelated card. AI image-verify still gates these.
           const numPart = cardNumber.replace(/\D/g, "");
-          if (numPart) {
+          if (numPart && titleNorm.includes(norm(hero))) {
             const re = new RegExp(`(?:^|\\D)0*${numPart}(?:\\D|$)`);
             if (re.test(titleLower)) { match = true; confidence = "low"; }
           }
@@ -856,8 +913,8 @@ async function matchActiveCandidates(items, cardNumber, hero, power, env) {
 
 /** Slim shape for the live `/` response — output unchanged from before the
  *  matchActiveCandidates extraction. */
-async function normaliseActive(items, cardNumber, hero, power, env) {
-  const candidates = await matchActiveCandidates(items, cardNumber, hero, power, env);
+async function normaliseActive(items, cardNumber, hero, power, env, element = "") {
+  const candidates = await matchActiveCandidates(items, cardNumber, hero, power, env, element);
   return candidates.map(c => ({
     title: c.item.title ?? "",
     price: c.price,
@@ -869,8 +926,8 @@ async function normaliseActive(items, cardNumber, hero, power, env) {
 /** Rich shape for the Tier 1 vanish-inference tracker (PRICING_PLAYBOOK §3):
  *  EVERY matched active listing with a stable item id + the signals the
  *  confidence formula needs. NOT used by the live `/` response. */
-async function normaliseActiveFull(items, cardNumber, hero, power, env) {
-  const candidates = await matchActiveCandidates(items, cardNumber, hero, power, env);
+async function normaliseActiveFull(items, cardNumber, hero, power, env, element = "") {
+  const candidates = await matchActiveCandidates(items, cardNumber, hero, power, env, element);
   return candidates.map(c => ({
     itemId:       c.item.itemId ?? null,
     price:        c.price,
@@ -893,6 +950,7 @@ async function handleTrackerActive(request, env) {
   const { searchParams } = new URL(request.url);
   const cardNumber = searchParams.get("cardNumber");
   const hero       = searchParams.get("hero") || "";
+  const element    = searchParams.get("element") || "";
   const powerRaw   = searchParams.get("power");
   const power      = powerRaw != null ? parseInt(powerRaw, 10) : null;
   if (!cardNumber) return json({ error: "cardNumber required", full: true, count: 0, items: [] }, 400);
@@ -908,7 +966,7 @@ async function handleTrackerActive(request, env) {
   const { items: raw, error } = await searchActive(token, keywords);
   if (error) return json({ error, full: true, count: 0, items: [] }, 502);
 
-  const items = await normaliseActiveFull(raw, cardNumber, hero, power, env);
+  const items = await normaliseActiveFull(raw, cardNumber, hero, power, env, element);
   return json({ full: true, count: items.length, query: keywords, items });
 }
 
@@ -1311,7 +1369,7 @@ export default {
       // exists. Users should always be able to see cards currently for sale.
       const { items: activeRaw, error: activeErr } = await searchActive(token, keywordsSpecific);
       if (!activeErr) {
-        const activeItems = await normaliseActive(activeRaw, cardNumber, hero, power, env);
+        const activeItems = await normaliseActive(activeRaw, cardNumber, hero, power, env, searchParams.get("element") || "");
         if (activeItems.length > 0) {
           const sorted = [...activeItems].sort((a, b) => a.price - b.price);
           const prices = sorted.map(i => i.price);
@@ -1723,6 +1781,11 @@ function wnAbsorbProduct(node, byKey) {
 
   const title = (typeof node.title === "string" && node.title.trim()) ? node.title.trim() : "";
   if (!title) return;
+  // BoBA-relevance gate — Whatnot's search tokenizes loosely and returns
+  // non-BoBA junk for a hero query ("Xbox Day One Edition", "Spider-Man
+  // One More Day"). Require a BoBA brand marker in the title so only real
+  // BoBA listings ever surface.
+  if (!titleLooksLikeBoba(title.toLowerCase())) return;
 
   // Listing id — base64("ListingNode:<num>"); decode for stable de-dupe
   // (the same listing is inlined ~6× per SSR page).

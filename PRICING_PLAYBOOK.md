@@ -665,3 +665,32 @@ weapon tokens (the eBay-scoring approach). Since these render in **Buy Now only*
 (never the Market Est., never the sold waterfall — asks inflate, #034 + §7),
 some fuzziness is tolerable: the user scans titled tiles and taps through, just
 like eBay actives. Client integration (iOS/web/Android Buy Now tiles) is next.
+
+### 2026-05-27 — Card-match PRECISION tightening (eBay + Whatnot) — "one card, one price"
+
+Ben flagged both matchers pulling in the wrong card: eBay surfacing near-miss
+siblings/other-hero cards, Whatnot returning non-BoBA junk entirely. All in
+`workers/ebay-proxy/worker.js`:
+
+- **eBay sold (`normaliseSoldEnriched`):** a listing now must carry an EXACT
+  card-number match AND a hero match to be shown OR aggregated. Partial-number
+  / hero-only matches are a different (or unidentifiable) card → dropped, not
+  even surfaced as "probable". Trades long-tail recall for precision (the
+  honest Tier-5 "Listed Range"/"no data" fallback covers sparse cards).
+- **eBay active (`matchActiveCandidates`):** the numeric-cardNumber path
+  matched on hero ALONE (→ every card for that hero). Now requires the card
+  number as a bounded title token too; the loose numPart fallback also
+  requires the hero. Live check: P-8 Bojax Steel went ~95 → 10 actives, all
+  containing "P-8".
+- **Weapon-variant sibling reject (both paths):** a title naming a different
+  BoBA weapon than the card (FIRE P-8 vs GLOW P-8 — same cardNumber, #057) is
+  rejected. `element` threaded through the active matcher + `/tracker/active`.
+  Conservative weapon word-list (fire/ice/hex/steel/brawl/glow/cyber — excludes
+  "super"/"alt"/"gum" to avoid "super rare"/"alt art" false-rejects). Live
+  check: 0 of 10 Steel actives name a conflicting weapon.
+- **Whatnot BoBA-relevance gate (`wnAbsorbProduct`):** drop any listing whose
+  title lacks a BoBA brand marker (battle arena / bo jackson / boba / bojax).
+  Live check: "bojax day one" went from Xbox/Spider-Man/One-Day-Magnet junk →
+  3 real "Bo Jackson Battle Arena" listings; clean "bojax" query unaffected (17).
+
+`/` response shape unchanged; verified intact. Deployed.

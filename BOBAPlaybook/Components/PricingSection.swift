@@ -22,6 +22,9 @@ struct PricingSection: View {
     /// when COMC's WAF blocks the worker (current state per 2026-04-29).
     /// Soft-fail by design.
     @State private var comcListings: [ComcService.Listing] = []
+    /// Tier 3 community-comp submission sheet (PRICING_PLAYBOOK §5). Opened
+    /// from a quiet foot affordance; the sheet carries the form + auth gate.
+    @State private var showCommunityCompSheet = false
 
     private let dayOptions = [7, 30, 90]
 
@@ -164,6 +167,19 @@ struct PricingSection: View {
                     )
                 }
             }
+
+            // Community comp submission (Tier 3, DESIGN.md §8.7) — a quiet,
+            // subordinate affordance at the FOOT of the pricing section. A
+            // low-emphasis link; the focused sheet carries the form + auth
+            // gate. Never rivals the card art or Add to Collection.
+            Button { showCommunityCompSheet = true } label: {
+                Text("Saw one sell? Add a price")
+                    .font(Design.Fonts.mono(11))
+                    .foregroundStyle(Design.Colors.bobaCyan.opacity(0.85))
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 2)
+            }
+            .buttonStyle(.plain)
         }
         .task(id: PricingPulse.shared.version) {
             // Re-runs when:
@@ -179,6 +195,11 @@ struct PricingSection: View {
         // sheet(item:) ensures the URL is set before the sheet is presented,
         // fixing the blank-on-first-tap bug that sheet(isPresented:) caused.
         .sheet(item: $selectedItemURL) { item in SafariView(url: item.url) }
+        .sheet(isPresented: $showCommunityCompSheet) {
+            SubmitCommunityCompSheet(card: card)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
     }
 
     // MARK: - Items list
@@ -677,4 +698,122 @@ struct PricingSection: View {
 private struct IdentifiableURL: Identifiable {
     let id  = UUID()
     let url: URL
+}
+
+// MARK: - Community comp submission (Tier 3)
+
+/// Quiet, subordinate sheet reached from the foot of the pricing section
+/// (PRICING_PLAYBOOK §5 · DESIGN.md §8.7). Auth-gated; the server RPC
+/// `submit_community_comp` enforces the rate limits (5/day, 1/card/week),
+/// so the client just collects price + date + platform + optional notes.
+/// Inlined here rather than a standalone file per the Xcode
+/// synchronized-group reliability note (DECISIONS.md #031).
+private struct SubmitCommunityCompSheet: View {
+    let card: Card
+    @Environment(\.dismiss) private var dismiss
+    @Environment(AuthManager.self) private var auth
+
+    @State private var priceText  = ""
+    @State private var soldDate   = Date()
+    @State private var platform   = "ebay"
+    @State private var notes      = ""
+    @State private var submitting = false
+    @State private var statusText: String?
+    @State private var done = false
+
+    private let platforms = ["ebay", "whatnot", "mercari", "in-person", "other"]
+    private func platformLabel(_ p: String) -> String {
+        switch p {
+        case "ebay":      return "eBay"
+        case "whatnot":   return "Whatnot"
+        case "mercari":   return "Mercari"
+        case "in-person": return "In person"
+        default:          return "Other"
+        }
+    }
+    private var priceValue: Decimal { Decimal(string: priceText) ?? 0 }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if done {
+                    Section {
+                        Label("Thanks — a moderator will review your comp.",
+                              systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                } else if !auth.isAuthenticated {
+                    Section {
+                        Text("Sign in from the Profile tab to add a sold price, then come back.")
+                            .font(Design.Fonts.mono(12))
+                            .foregroundStyle(Design.Colors.textMuted)
+                    }
+                } else {
+                    Section("Sold price") {
+                        HStack {
+                            Text("Price")
+                            Spacer()
+                            TextField("$0.00", text: $priceText)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(maxWidth: 120)
+                        }
+                        DatePicker("Sold on", selection: $soldDate,
+                                   in: ...Date(), displayedComponents: .date)
+                        Picker("Where", selection: $platform) {
+                            ForEach(platforms, id: \.self) { Text(platformLabel($0)).tag($0) }
+                        }
+                        TextField("Notes (optional)", text: $notes, axis: .vertical)
+                            .lineLimit(1...3)
+                    }
+                    if let statusText {
+                        Section {
+                            Text(statusText)
+                                .font(Design.Fonts.mono(11))
+                                .foregroundStyle(.red)
+                        }
+                    }
+                    Section {
+                        Button {
+                            Task { await submit() }
+                        } label: {
+                            Text(submitting ? "Submitting…" : "Submit comp")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .disabled(submitting || priceValue <= 0)
+                    } footer: {
+                        Text("A moderator reviews each submission before it appears in the estimate.")
+                    }
+                }
+            }
+            .navigationTitle("Add a sold price")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func submit() async {
+        guard priceValue > 0 else { statusText = "Enter a valid price."; return }
+        submitting = true
+        statusText = nil
+        do {
+            try await SupabaseClient.shared.submitCommunityComp(
+                bobaId:   card.bobaId,
+                price:    priceValue,
+                soldAt:   soldDate,
+                platform: platform,
+                notes:    notes.isEmpty ? nil : notes)
+            submitting = false
+            withAnimation { done = true }
+            try? await Task.sleep(for: .seconds(1.6))
+            dismiss()
+        } catch {
+            submitting = false
+            statusText = "Couldn't submit — you may have hit the daily limit, or already added one for this card this week."
+        }
+    }
 }

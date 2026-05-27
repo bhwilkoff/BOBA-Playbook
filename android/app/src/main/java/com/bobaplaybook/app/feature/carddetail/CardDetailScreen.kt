@@ -87,6 +87,7 @@ import com.bobaplaybook.app.R
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.domain.model.CardFormatEligibility
 import com.bobaplaybook.core.network.CDN
+import com.bobaplaybook.core.network.CommunityCompResult
 import com.bobaplaybook.core.network.PricingListing
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
@@ -1422,6 +1423,201 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             Text(text = "View on Radish")
+        }
+    }
+
+    // Community comp submission (Tier 3, ANDROID-DESIGN.md §8.7) — a quiet,
+    // subordinate affordance at the FOOT of the pricing section. A
+    // low-emphasis text link; the focused sheet carries the form + auth
+    // gate. Never rivals the card art or Add to Collection.
+    state.card?.let { card ->
+        var showCompSheet by remember(card.bobaId) { mutableStateOf(false) }
+        TextButton(
+            onClick = { showCompSheet = true },
+            modifier = Modifier.padding(horizontal = 16.dp),
+        ) {
+            Text(
+                text = "Saw one sell? Add a price",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.secondary,
+            )
+        }
+        if (showCompSheet) {
+            SubmitCommunityCompSheet(
+                bobaId = card.bobaId,
+                cardLabel = card.cardNumber,
+                onDismiss = { showCompSheet = false },
+            )
+        }
+    }
+}
+
+/**
+ * Tier 3 community-comp submission sheet (PRICING_PLAYBOOK §5 ·
+ * ANDROID-DESIGN.md §8.7). Quiet, subordinate — reached only from the
+ * foot link. Auth-gated; the server RPC `submit_community_comp` enforces
+ * the rate limits (5/day, 1/card/week), so the sheet just collects price
+ * + sold date + platform + optional notes and surfaces the typed result.
+ */
+@Composable
+private fun SubmitCommunityCompSheet(
+    bobaId: String,
+    cardLabel: String,
+    onDismiss: () -> Unit,
+) {
+    val authViewModel: com.bobaplaybook.app.auth.AuthViewModel = hiltViewModel()
+    val authState by authViewModel.authState.collectAsStateWithLifecycle()
+    val isSignedIn = authState is com.bobaplaybook.app.auth.AuthState.SignedIn
+
+    val cardViewModel: CardDetailViewModel = hiltViewModel()
+    val snackbarHostState = LocalAppSnackbar.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+
+    var priceText by remember { mutableStateOf("") }
+    var platform by remember { mutableStateOf("ebay") }
+    var notes by remember { mutableStateOf("") }
+    var soldMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var submitting by remember { mutableStateOf(false) }
+
+    val platforms = listOf(
+        "ebay" to "eBay", "whatnot" to "Whatnot", "mercari" to "Mercari",
+        "in-person" to "In person", "other" to "Other",
+    )
+    val price = priceText.toDoubleOrNull() ?: 0.0
+    val isoFmt = remember {
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+            .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+    }
+    val labelFmt = remember {
+        java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.US)
+            .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+    }
+
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text("Add a sold price", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "Help build accurate pricing for $cardLabel. A moderator reviews each submission before it appears in the estimate.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (!isSignedIn) {
+                Text(
+                    "Sign in from the Profile tab to add a sold price, then come back.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = onDismiss) { Text("Close") }
+            } else {
+                androidx.compose.material3.OutlinedTextField(
+                    value = priceText,
+                    onValueChange = { input -> priceText = input.filter { it.isDigit() || it == '.' } },
+                    label = { Text("Price (USD)") },
+                    leadingIcon = { Text("$") },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                TextButton(onClick = { showDatePicker = true }) {
+                    Text("Sold on: ${labelFmt.format(java.util.Date(soldMillis))}")
+                }
+
+                Text(
+                    "Where",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    platforms.forEach { (id, label) ->
+                        androidx.compose.material3.FilterChip(
+                            selected = platform == id,
+                            onClick = { platform = id },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+
+                androidx.compose.material3.OutlinedTextField(
+                    value = notes,
+                    onValueChange = { if (it.length <= 280) notes = it },
+                    label = { Text("Notes (optional)") },
+                    minLines = 1,
+                    maxLines = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                androidx.compose.material3.Button(
+                    onClick = {
+                        submitting = true
+                        scope.launch {
+                            val result = cardViewModel.submitCommunityComp(
+                                bobaId = bobaId,
+                                priceUsd = price,
+                                soldAtIso = isoFmt.format(java.util.Date(soldMillis)),
+                                platform = platform,
+                                notes = notes.ifBlank { null },
+                            )
+                            submitting = false
+                            val msg = when (result) {
+                                CommunityCompResult.SUCCESS ->
+                                    "Thanks — a moderator will review your comp."
+                                CommunityCompResult.RATE_LIMITED ->
+                                    "Daily limit reached (5/day). Try again tomorrow."
+                                CommunityCompResult.ALREADY_THIS_WEEK ->
+                                    "You already added a comp for this card this week."
+                                CommunityCompResult.ERROR ->
+                                    "Couldn't submit — please try again."
+                            }
+                            snackbarHostState?.showSnackbar(msg)
+                            if (result == CommunityCompResult.SUCCESS) onDismiss()
+                        }
+                    },
+                    enabled = !submitting && price > 0.0,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (submitting) "Submitting…" else "Submit comp")
+                }
+            }
+        }
+    }
+
+    if (showDatePicker) {
+        val todayMillis = System.currentTimeMillis()
+        val dpState = androidx.compose.material3.rememberDatePickerState(
+            initialSelectedDateMillis = soldMillis,
+            selectableDates = object : androidx.compose.material3.SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= todayMillis
+            },
+        )
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    dpState.selectedDateMillis?.let { soldMillis = it }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            },
+        ) {
+            androidx.compose.material3.DatePicker(state = dpState)
         }
     }
 }

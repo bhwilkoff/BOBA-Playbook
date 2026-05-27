@@ -533,3 +533,36 @@ Design rule ratified in DESIGN.md §8.7 + ANDROID-DESIGN.md §8.7 + WEB-DESIGN.m
 Web shipped: `API.submitCommunityComp` (api.js) → `submit_community_comp` RPC (auth-gated; server enforces the rate limits); `appendCompSubmit` renders the link+form at the foot of `renderPricingData`; toast on submit ("a moderator will review your comp"); CSS understated. `node --check` clean on api.js + app.js. Photo upload deferred (text-only v1; `boba-comp-upload` Worker is the next piece).
 
 **Still remaining:** iOS + Android submission affordance (same quiet pattern, native idiom — `.medium` sheet / `ModalBottomSheet`), `boba-comp-upload` Worker (R2 photo), mod-queue UI.
+
+### 2026-05-27 — Tier 3 iOS + Android submission UI (parity complete)
+
+Same quiet/subordinate pattern as web, native idiom each side. The 95%
+who open a card for art / price / collection see only a low-emphasis cyan
+link at the FOOT of the pricing section; the engaged collector taps in.
+
+- **iOS** (`PricingSection.swift`, v2.380): foot link "Saw one sell? Add a
+  price" → `.medium` `.sheet` hosting an inlined `SubmitCommunityCompSheet`
+  (`Form`: price `.decimalPad` · `DatePicker(in: ...Date())` · platform
+  `Picker` · notes). Auth-gated via `@Environment(AuthManager.self)` —
+  signed-out shows "Sign in from Profile". Submit →
+  `SupabaseClient.submitCommunityComp` (date as `yyyy-MM-dd` UTC); success
+  shows a confirmation then auto-dismisses. Sheet inlined into
+  `PricingSection.swift` (not a new file) per the Xcode synchronized-group
+  reliability note.
+- **Android** (`CardDetailScreen.kt` + `ProfileService.kt` +
+  `CardDetailViewModel.kt`): foot `TextButton` (cyan = `colorScheme.secondary`)
+  → `ModalBottomSheet(skipPartiallyExpanded)` with `OutlinedTextField`
+  (price, `KeyboardType.Decimal`) · M3 `DatePickerDialog` (`SelectableDates`
+  caps at today) · `FilterChip` `FlowRow` for platform · notes (≤280). Auth
+  via `AuthViewModel.authState is SignedIn`. Submit →
+  `CardDetailViewModel.submitCommunityComp` → `ProfileService` RPC, mapped to
+  a typed `CommunityCompResult` (SUCCESS / RATE_LIMITED / ALREADY_THIS_WEEK /
+  ERROR) so the Snackbar copy is specific. `:app:compileDebugKotlin` +
+  `:core:network:compileDebugKotlin` BUILD SUCCESSFUL.
+
+All three platforms send `photo_url = null` for now (text-only v1; mod
+approval is the v1 gate). PARITY.md updated.
+
+**Still remaining (Tier 3):** `boba-comp-upload` Worker (R2 photo, reuse
+`boba-avatar-upload`), mod-queue UI (extend the `card_corrections` admin
+panel with `get_pending_community_comps` / `review_community_comp`).

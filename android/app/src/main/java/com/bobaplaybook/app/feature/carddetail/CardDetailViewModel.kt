@@ -5,9 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bobaplaybook.core.data.catalog.CardRepository
 import com.bobaplaybook.core.domain.model.Card
+import com.bobaplaybook.core.network.CommunityCompResult
 import com.bobaplaybook.core.network.MarketEstimate
 import com.bobaplaybook.core.network.PricingListing
 import com.bobaplaybook.core.network.PricingService
+import com.bobaplaybook.core.network.ProfileService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.collections.immutable.ImmutableList
@@ -100,7 +102,24 @@ data class CardDetailUiState(
 class CardDetailViewModel @Inject constructor(
     private val cardRepository: CardRepository,
     private val pricingService: PricingService,
+    private val profileService: ProfileService,
 ) : ViewModel() {
+
+    /**
+     * Tier 3 community-comp submission (PRICING_PLAYBOOK §5). Suspends
+     * for the RPC round-trip and returns a typed result so the sheet can
+     * show specific copy (rate-limited vs already-this-week vs generic).
+     * The RPC is auth-gated + rate-limited server-side; the sheet only
+     * opens its form for signed-in users.
+     */
+    suspend fun submitCommunityComp(
+        bobaId: String,
+        priceUsd: Double,
+        soldAtIso: String,
+        platform: String,
+        notes: String?,
+    ): CommunityCompResult =
+        profileService.submitCommunityComp(bobaId, priceUsd, soldAtIso, platform, notes)
 
     private val pricingState = MutableStateFlow(PricingState())
 

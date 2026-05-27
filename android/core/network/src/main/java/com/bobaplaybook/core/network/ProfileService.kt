@@ -21,6 +21,13 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 /**
+ * Outcome of a Tier 3 community-comp submission, mapped from the
+ * `submit_community_comp` RPC's success (uuid) / RAISE (rate-limit or
+ * validation) so the UI can show specific copy. (PRICING_PLAYBOOK §5.)
+ */
+enum class CommunityCompResult { SUCCESS, RATE_LIMITED, ALREADY_THIS_WEEK, ERROR }
+
+/**
  * Profile-side RPCs + Worker calls.
  *
  * Mirrors iOS SupabaseClient.swift lines 200-300 (set_username,
@@ -143,6 +150,47 @@ class ProfileService @Inject constructor(
             true
         }.onFailure { Log.e(TAG, "request_role failed", it) }
             .getOrDefault(false)
+
+    /**
+     * Tier 3 community-comp submission (PRICING_PLAYBOOK §5). Calls the
+     * `submit_community_comp` SECURITY DEFINER RPC, which enforces the
+     * rate limits server-side (5/day, 1/card/week) and inserts a pending
+     * row for moderator review. Mirrors iOS
+     * SupabaseClient.submitCommunityComp + web API.submitCommunityComp.
+     *
+     * @param soldAtIso the sold date as "yyyy-MM-dd" (UTC).
+     */
+    suspend fun submitCommunityComp(
+        bobaId: String,
+        priceUsd: Double,
+        soldAtIso: String,
+        platform: String,
+        notes: String?,
+    ): CommunityCompResult =
+        runCatching {
+            supabase.postgrest.rpc(
+                "submit_community_comp",
+                buildJsonObject {
+                    put("p_boba_id", bobaId)
+                    put("p_price", priceUsd)
+                    put("p_sold_at", soldAtIso)
+                    put("p_platform", platform)
+                    put("p_photo_url", kotlinx.serialization.json.JsonNull)
+                    put("p_notes", notes?.takeIf { it.isNotBlank() }
+                        ?.let { kotlinx.serialization.json.JsonPrimitive(it) }
+                        ?: kotlinx.serialization.json.JsonNull)
+                },
+            )
+            CommunityCompResult.SUCCESS
+        }.getOrElse { e ->
+            val msg = e.message?.lowercase().orEmpty()
+            Log.e(TAG, "submit_community_comp failed: $msg", e)
+            when {
+                "this week" in msg || "already submitted" in msg -> CommunityCompResult.ALREADY_THIS_WEEK
+                "limit" in msg || "5/day" in msg -> CommunityCompResult.RATE_LIMITED
+                else -> CommunityCompResult.ERROR
+            }
+        }
 
     /**
      * Account deletion — POST to the boba-account-delete Worker with

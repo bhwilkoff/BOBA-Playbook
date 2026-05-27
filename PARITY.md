@@ -154,9 +154,10 @@ When shipping any user-facing feature:
 |---|---|---|---|---|
 | Canonical 6-cell stats grid | ✅ | ✅ | ✅ | DECISIONS.md #029 |
 | Cost + DBS (Plays only) | ✅ | ✅ | ✅ | Rendered below the canonical 6 |
-| Pricing panels (Buy Now + Sold) | ✅ | ✅ | ✅ | DECISIONS.md #013 |
+| Pricing panels (Buy Now + Sold) | ✅ | ✅ | ✅ | DECISIONS.md #013 + #058. Unified provenance-honest resolver `marketValue()` on all three (web `js/app.js` · iOS `PricingService.marketValue` · Android `marketValue()` in `:core:network`) — ONE place ranks the four signals: Recent Sales → Listed Range → Buy Now → Estimate. |
 | eBay listings | ✅ | ✅ | ✅ | Worker proxy |
-| eBay sold comps | ✅ | ✅ | ✅ | Worker proxy |
+| Recent Sales (transacted comps via `/comps`) | ✅ | ✅ | ✅ | DECISIONS.md #058 + PRICING_PLAYBOOK §3. All three read `boba-pricing-tracker /comps?bobaId=` (vanish-inferred eBay/Whatnot sales + mod-approved community comps) and render them as **Recent Sales** with per-row source pills — distinct from the Tier-4 Estimate. Empty until vanish-inference accrues (~60d). |
+| Listed Range (eBay active + Whatnot matched asks) | ✅ | ✅ | ✅ | DECISIONS.md #058 + PRICING_PLAYBOOK §4.3 — the (A) fold. When no sales exist, eBay active + Whatnot **matched** asks combine into one honest aggregate ("N active eBay + Whatnot listings · no recent sales yet"); never a fabricated Market Est. iOS Collection value (`recalculateAllValues`) writes the resolved headline (comps > listed avg). |
 | Radish recent sales | 🚫 | 🚫 | 🚫 | Removed 2026-05-23 per DECISIONS.md #056 + RADISH_REMOVAL_LOOP.md. Per-card "View on Radish" external link retained on all three platforms (homepage fallback when `card.radishUrl` is null). |
 | COMC asking (separate, NOT in waterfall) | ✅ | ✅ | 🚫 | DECISIONS.md #034 — Android skipping per `feedback_comc_blocked_all_platforms` Turnstile gate |
 | Whatnot active asks (Buy Now, NOT in waterfall) | ✅ | ✅ | ✅ | PRICING_PLAYBOOK §4 (Tier 2). `boba-ebay-proxy /whatnot/products` returns current active listings; the card view shows ONLY this card's matched listings (the "Other {hero}" group was removed 2026-05-27 — other-card listings distract from the viewed card; non-matched stay in the Worker response for the pricing pipeline). Asking signal only — never the sold waterfall/Market Est. Shipped all three (web `renderWhatnotStrip` · iOS `whatnotStrip` · Android `WhatnotAsksSection`). |

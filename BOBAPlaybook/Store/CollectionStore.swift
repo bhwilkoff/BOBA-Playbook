@@ -380,6 +380,14 @@ final class CollectionStore {
     private func fetchAndStorePricing(for cardNumber: String, card: Card, forceRefresh: Bool = false) async {
         guard !WorkerConfig.ebayProxyURL.isEmpty else { return }
         do {
+            // Fetch eBay pricing + our own transacted comps in parallel, then
+            // run the SAME provenance-honest resolver the card-detail view
+            // uses (#058). The persisted Collection value prefers real Recent
+            // Sales (comps) over the listed-asking average — asks never
+            // inflate stored value (#034). Whatnot isn't fetched per-card in
+            // the refresh loop (hundreds of cards); its asks only matter for
+            // the live Listed Range on the detail view.
+            async let compsTask = PricingService.shared.comps(bobaId: card.bobaId)
             let pricing = try await PricingService.shared.pricing(
                 for: card.cardNumber,
                 hero: card.hero,
@@ -391,8 +399,9 @@ final class CollectionStore {
                 variation: card.variation,
                 forceRefresh: forceRefresh
             )
+            let resolved = PricingService.marketValue(ebay: pricing, comps: await compsTask, whatnotMatched: [])
             let fields = UpdateUserCard(
-                estimatedValue: pricing.average,
+                estimatedValue: resolved.headlineValue ?? pricing.average,
                 lastPriceCheck: Date()
             )
             // Only stamp estimated_value on entries the user owns. Wanted

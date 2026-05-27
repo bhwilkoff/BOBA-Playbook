@@ -19,6 +19,12 @@ enum WorkerConfig {
     /// Replaces what Radish's `/api/boba/estimated-value` previously
     /// provided. See workers/price-estimator/README.md + DECISIONS.md #056.
     static let priceEstimatorURL = "https://boba-price-estimator.benwilkoff.workers.dev"
+    /// boba-pricing-tracker — the sold-history we generate ourselves
+    /// (DECISIONS.md #058). `/comps?bobaId=…` returns vanish-inferred
+    /// eBay/Whatnot sales + mod-approved community comps as the REAL
+    /// "Recent Sales" signal. `PricingService.comps(...)` reads it so
+    /// transacted comps surface distinctly from the Tier-4 Estimate.
+    static let pricingTrackerURL = "https://boba-pricing-tracker.benwilkoff.workers.dev"
     /// boba-youtube-feed — aggregates BoBA YouTube content into 3
     /// categorized feeds (live / short / regular) refreshed every 4h.
     /// See workers/youtube-feed/README.md.

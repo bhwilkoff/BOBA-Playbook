@@ -6,11 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.bobaplaybook.core.data.catalog.CardRepository
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.network.CommunityCompResult
+import com.bobaplaybook.core.network.CompsResult
 import com.bobaplaybook.core.network.MarketEstimate
 import com.bobaplaybook.core.network.PricingListing
 import com.bobaplaybook.core.network.PricingService
 import com.bobaplaybook.core.network.ProfileService
+import com.bobaplaybook.core.network.ResolvedPricing
 import com.bobaplaybook.core.network.WhatnotListing
+import com.bobaplaybook.core.network.marketValue
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.collections.immutable.ImmutableList
@@ -60,40 +63,26 @@ data class CardDetailUiState(
      * the ones the Worker bound to this card; UI shows those first.
      */
     val whatnotListings: ImmutableList<WhatnotListing> = persistentListOf(),
+    /**
+     * Real transacted comps (Tier 1+3 — vanish-inferred eBay/Whatnot sales +
+     * mod-approved community comps) from boba-pricing-tracker /comps. The REAL
+     * "Recent Sales" signal; the resolver ranks it above Listed Range (#058).
+     */
+    val marketComps: CompsResult? = null,
 ) {
     /**
-     * Prefer the Worker's pre-computed canonical average; fall back to
-     * a local median over sold-then-active so the UI still shows a
-     * number when the Worker hasn't filled the top-level field (legacy
-     * response shape, or older cached entries).
+     * Provenance-honest resolution (DECISIONS.md #058) — the ONE place the
+     * four-signal hierarchy is applied for the render. Recent Sales (comps +
+     * real eBay sold) → Listed Range (eBay active + Whatnot matched asks).
      */
-    val marketEstimateUsd: Double?
-        get() {
-            workerMarketAverageUsd?.let { return it }
-            val sales = if (ebaySold.isNotEmpty()) ebaySold else ebayActive
-            if (sales.isEmpty()) return null
-            return sales.map { it.priceUsd }.sorted().let { sorted ->
-                val n = sorted.size
-                if (n % 2 == 1) sorted[n / 2] else (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
-            }
-        }
+    val resolved: ResolvedPricing
+        get() = marketValue(
+            ebayActive = ebayActive,
+            ebaySold = ebaySold,
+            comps = marketComps,
+            whatnotMatched = whatnotListings.filter { it.matchesCard },
+        )
 
-    val marketEstimateBasis: String?
-        get() {
-            // Worker-derived basis when available — names the source
-            // the Worker actually used (eBay sold vs active fallback)
-            // and the exact count it averaged over.
-            if (workerMarketAverageUsd != null) {
-                val srcLabel = if (workerMarketSource == "sold") "recent sold comps"
-                               else "active listings"
-                return "based on $workerMarketCount $srcLabel"
-            }
-            return when {
-                ebaySold.isNotEmpty() -> "based on ${ebaySold.size} recent eBay sold comps"
-                ebayActive.isNotEmpty() -> "based on ${ebayActive.size} active listings (no sold comps yet)"
-                else -> null
-            }
-        }
 }
 
 /**
@@ -186,6 +175,7 @@ class CardDetailViewModel @Inject constructor(
                 workerMarketSource = pricing.marketSource[bobaId],
                 workerMarketCount = pricing.marketCount[bobaId] ?: 0,
                 whatnotListings = pricing.whatnot[bobaId].orEmpty().toPersistentList(),
+                marketComps = pricing.comps[bobaId],
             )
         }.stateIn(
             scope = viewModelScope,
@@ -233,6 +223,10 @@ class CardDetailViewModel @Inject constructor(
                 power = card.power,
                 bobaId = bobaId,
             )
+            // Real transacted comps (Recent Sales) — vanish-inferred eBay/
+            // Whatnot sales + community comps. The resolver ranks these above
+            // the Listed Range (#058). Runs on both cached + live paths.
+            val comps = pricingService.fetchComps(bobaId)
             pricingState.value = pricingState.value.copy(
                 isLoading = false,
                 ebayActive = pricingState.value.ebayActive + (bobaId to bundle.ebayActive),
@@ -242,6 +236,7 @@ class CardDetailViewModel @Inject constructor(
                 marketSource = pricingState.value.marketSource + (bobaId to bundle.marketSource),
                 marketCount = pricingState.value.marketCount + (bobaId to bundle.marketCount),
                 whatnot = pricingState.value.whatnot + (bobaId to whatnot),
+                comps = pricingState.value.comps + (bobaId to comps),
             )
         }
     }
@@ -273,4 +268,6 @@ private data class PricingState(
     val marketCount: Map<String, Int> = emptyMap(),
     /** Whatnot active listings — per-bobaId (asking signal, Buy Now only). */
     val whatnot: Map<String, List<WhatnotListing>> = emptyMap(),
+    /** Transacted comps (Recent Sales) — per-bobaId; null when none yet. */
+    val comps: Map<String, CompsResult?> = emptyMap(),
 )

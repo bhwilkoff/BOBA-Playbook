@@ -23,6 +23,15 @@ object WorkerConfig {
      */
     const val PRICE_ESTIMATOR = "https://boba-price-estimator.benwilkoff.workers.dev"
 
+    /**
+     * boba-pricing-tracker — the sold-history we generate ourselves
+     * (DECISIONS.md #058). `/comps?bobaId=…` returns vanish-inferred
+     * eBay/Whatnot sales + mod-approved community comps as the REAL
+     * "Recent Sales" signal. `PricingService.fetchComps(...)` reads it so
+     * transacted comps surface distinctly from the Tier-4 Estimate.
+     */
+    const val PRICING_TRACKER = "https://boba-pricing-tracker.benwilkoff.workers.dev"
+
     /** COMC asking-price proxy. Soft-fails when Turnstile is up (DECISIONS.md #034). */
     const val COMC_PROXY = "https://boba-comc-proxy.benwilkoff.workers.dev"
 

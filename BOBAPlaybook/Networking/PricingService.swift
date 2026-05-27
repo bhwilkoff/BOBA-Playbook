@@ -31,9 +31,14 @@ actor PricingService {
         /// e.g. ["card_number_exact", "hero", "trusted_seller"]. Used to
         /// render the "Probable match" tooltip reasons.
         let matchReasons: [String]?
+        /// Transacted-comp provenance (Recent Sales rows only, #058):
+        /// "ebay-inferred" / "whatnot-inferred" / "community-…". nil for
+        /// eBay listings. When set, the row renders a source pill + no
+        /// tap-through (these are synthesized from the tracker, not live URLs).
+        let source: String?
 
         enum CodingKeys: String, CodingKey {
-            case title, price, date, url, matchConfidence, matchReasons
+            case title, price, date, url, matchConfidence, matchReasons, source
         }
 
         init(from decoder: Decoder) throws {
@@ -44,6 +49,14 @@ actor PricingService {
             url   = try c.decodeIfPresent(String.self, forKey: .url)   ?? ""
             matchConfidence = try c.decodeIfPresent(Double.self,   forKey: .matchConfidence)
             matchReasons    = try c.decodeIfPresent([String].self, forKey: .matchReasons)
+            source          = try c.decodeIfPresent(String.self, forKey: .source)
+        }
+
+        /// Synthesize a row (used for Recent Sales comps, which come from
+        /// the tracker `/comps` endpoint, not the eBay item shape).
+        init(title: String, price: Decimal, date: String, url: String, source: String?) {
+            self.title = title; self.price = price; self.date = date; self.url = url
+            self.matchConfidence = nil; self.matchReasons = nil; self.source = source
         }
 
         var isProbableMatch: Bool {
@@ -97,6 +110,39 @@ actor PricingService {
         let active:    PricingBucket?
 
         var isSold: Bool { priceType == "sold" }
+    }
+
+    // MARK: - Recent Sales (transacted comps) — boba-pricing-tracker /comps
+
+    /// One transacted comp from the sold-history we generate ourselves
+    /// (vanish-inferred eBay/Whatnot sales + mod-approved community comps,
+    /// DECISIONS.md #058). The real "Recent Sales" signal.
+    struct Comp: Decodable, Sendable {
+        let price:      Decimal
+        let soldAt:     String?
+        let confidence: Double?
+        let source:     String?    // "ebay-inferred" | "whatnot-inferred" | "community-…"
+    }
+    struct CompsResult: Decodable, Sendable {
+        struct Summary: Decodable, Sendable {
+            let low: Decimal; let median: Decimal; let high: Decimal; let count: Int
+        }
+        let comps:   [Comp]
+        let summary: Summary
+    }
+
+    /// Provenance-honest resolution (#058) — the ONE place the four-signal
+    /// hierarchy is encoded. Built by `marketValue(...)`; consumed by the
+    /// card-detail render AND the Collection value writer.
+    struct ResolvedPricing: Sendable {
+        var recentSales:      PricingBucket?   // transacted comps (+ real eBay sold)
+        var listedRange:      PricingBucket?   // eBay active + Whatnot matched asks
+        var listedHasEbay:    Bool = false
+        var listedHasWhatnot: Bool = false
+        var estimate:         PricingBucket?   // labeled estimator (last resort)
+        var headlineValue:    Decimal?
+        var headlineSource:   String?          // "recent_sales" | "listed_range" | "estimate"
+        var headlineBasis:    String?
     }
 
     enum PricingError: LocalizedError {
@@ -429,6 +475,138 @@ actor PricingService {
         } catch {
             return nil
         }
+    }
+
+    // MARK: - Recent Sales fetch + provenance-honest resolver (#058)
+
+    /// Read transacted comps (vanish-inferred eBay/Whatnot + community) for
+    /// a card from `boba-pricing-tracker /comps`. nil when none exist yet —
+    /// the resolver then falls through to Listed Range. Soft-fails; this is
+    /// an additive real-sold signal, never blocks the pricing render.
+    func comps(bobaId: String, days: Int = 90) async -> CompsResult? {
+        let base = await MainActor.run { WorkerConfig.pricingTrackerURL }
+        guard !base.isEmpty,
+              var comp = URLComponents(string: "\(base)/comps") else { return nil }
+        comp.queryItems = [
+            URLQueryItem(name: "bobaId", value: bobaId),
+            URLQueryItem(name: "days",   value: "\(days)"),
+        ]
+        guard let url = comp.url else { return nil }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 5
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { return nil }
+            let result = try JSONDecoder().decode(CompsResult.self, from: data)
+            guard result.summary.count > 0, !result.comps.isEmpty else { return nil }
+            return result
+        } catch {
+            return nil
+        }
+    }
+
+    /// Human-readable pill for a comp `source` — names the marketplace + that
+    /// the sale was vanish-inferred or community-attested (provenance IS the
+    /// trust mechanism, DESIGN.md §8.7).
+    nonisolated static func compSourcePill(_ source: String?) -> String {
+        guard let s = source else { return "sale" }
+        if s == "ebay-inferred"    { return "eBay sale" }
+        if s == "whatnot-inferred" { return "Whatnot sale" }
+        if s.hasPrefix("community") {
+            let parts = s.split(separator: "-")
+            return parts.count > 1 ? "BoBA Community · \(parts[1])" : "BoBA Community"
+        }
+        return "sale"
+    }
+
+    /// Provenance-honest market-value resolver (DECISIONS.md #058) — the ONE
+    /// place the four-signal hierarchy lives. Pure + synchronous so the view
+    /// can call it without `await`. Most-specific honestly-labeled signal wins:
+    ///   1. Recent Sales — `comps` (vanish-inferred + community) merged with
+    ///      any real eBay sold. Transacted = "what it's worth".
+    ///   2. Listed Range — eBay active + Whatnot **matched** asks combined
+    ///      (the (A) fold, PRICING_PLAYBOOK §4.3). Honest when no sales yet.
+    ///   3. Estimate — comparability estimator, only labeled + fed real comps.
+    /// Buy Now (eBay actives + COMC + Whatnot tiles) is additive; asks NEVER
+    /// enter a sold/value number (#034).
+    nonisolated static func marketValue(
+        ebay: PricingResult?,
+        comps: CompsResult?,
+        whatnotMatched: [WhatnotProductsService.Listing]
+    ) -> ResolvedPricing {
+        var out = ResolvedPricing()
+
+        // ── 1. Recent Sales ────────────────────────────────────────────
+        let ebaySoldReal: PricingBucket? = {
+            guard let s = ebay?.sold, !(s.estimated ?? false), s.count > 0 else { return nil }
+            return s
+        }()
+        let compList = comps?.comps ?? []
+        if !compList.isEmpty || ebaySoldReal != nil {
+            var rows: [PricingItem] = compList.map {
+                PricingItem(title: compSourcePill($0.source), price: $0.price,
+                            date: $0.soldAt ?? "", url: "", source: $0.source)
+            }
+            if let sold = ebaySoldReal { rows.append(contentsOf: sold.items) }
+            let prices = rows.map { $0.price }.filter { $0 > 0 }.sorted()
+            let low    = prices.first ?? (comps?.summary.low ?? 0)
+            let high   = prices.last  ?? (comps?.summary.high ?? 0)
+            let median = prices.isEmpty ? (comps?.summary.median ?? 0)
+                                        : prices[(prices.count - 1) / 2]
+            out.recentSales = PricingBucket(
+                low: low, average: median, high: high, count: prices.count,
+                items: rows, countProbable: nil, stale: nil, estimated: nil, estimatedSource: nil)
+            out.headlineValue  = median
+            out.headlineSource = "recent_sales"
+            let n = prices.count
+            out.headlineBasis  = "based on \(n) recent sale\(n != 1 ? "s" : "")"
+        }
+
+        // ── 2. Listed Range (eBay active + Whatnot matched asks) ───────
+        let active = ebay?.active
+        let wnPrices = whatnotMatched.map { $0.price }.filter { $0 > 0 }
+        if active != nil || !wnPrices.isEmpty {
+            let ebayCount = active?.count ?? 0
+            let wnCount   = wnPrices.count
+            var lows  = [Decimal]()
+            var highs = [Decimal]()
+            if let a = active, a.count > 0 { lows.append(a.low); highs.append(a.high) }
+            if let mn = wnPrices.min() { lows.append(mn) }
+            if let mx = wnPrices.max() { highs.append(mx) }
+            // Count-weighted blend of the two averages (no raw eBay prices
+            // on the cached path, so blend at the summary level).
+            let wnSum = wnPrices.reduce(Decimal(0), +)
+            let wnAvg = wnCount > 0 ? wnSum / Decimal(wnCount) : 0
+            let total = ebayCount + wnCount
+            let ebayAvgContribution = (active?.average ?? 0) * Decimal(ebayCount)
+            let blended = total > 0 ? (ebayAvgContribution + wnAvg * Decimal(wnCount)) / Decimal(total) : 0
+            out.listedHasEbay    = ebayCount > 0
+            out.listedHasWhatnot = wnCount > 0
+            out.listedRange = PricingBucket(
+                low: lows.min() ?? 0, average: blended, high: highs.max() ?? 0, count: total,
+                // Keep eBay's individual rows so they still render under the
+                // aggregate; Whatnot listings get their own tap-through strip.
+                items: active?.items ?? [], countProbable: nil, stale: nil,
+                estimated: nil, estimatedSource: nil)
+            if out.recentSales == nil {
+                out.headlineValue  = blended
+                out.headlineSource = "listed_range"
+                let where_ = (out.listedHasWhatnot && out.listedHasEbay) ? "eBay + Whatnot"
+                           : out.listedHasWhatnot ? "Whatnot" : "eBay"
+                out.headlineBasis = "\(total) active \(where_) listing\(total != 1 ? "s" : "") · no recent sales yet"
+            }
+        }
+
+        // ── 3. Estimate (labeled, last resort) ─────────────────────────
+        if let s = ebay?.sold, (s.estimated ?? false), s.average > 0 {
+            out.estimate = s
+            if out.recentSales == nil && out.listedRange == nil {
+                out.headlineValue  = s.average
+                out.headlineSource = "estimate"
+                out.headlineBasis  = "estimated from comparable cards"
+            }
+        }
+        return out
     }
 
     // MARK: - Private response model

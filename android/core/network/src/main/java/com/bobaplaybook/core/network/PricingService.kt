@@ -163,6 +163,34 @@ class PricingService @Inject constructor(
             Log.e(TAG, "fetchAll($cardNumber) failed", e)
         }.getOrDefault(PricingBundle())
     }
+
+    /**
+     * Whatnot active product listings (Tier 2 — an ASKING signal for the
+     * Buy Now area only; NEVER folded into any sold/value number, #034).
+     * Queries by the distinctive hero token; the Worker binds to the card
+     * via cardNumber + weapon and flags matchesCard (best-first). Soft-
+     * fails to empty on any error or a Cloudflare challenge, so a Whatnot
+     * hiccup never blocks the eBay pricing render. Matches iOS
+     * WhatnotProductsService + web fetchWhatnotProducts.
+     */
+    suspend fun fetchWhatnotProducts(
+        query: String,
+        cardNumber: String,
+        weapon: String,
+    ): List<WhatnotListing> = withContext(Dispatchers.IO) {
+        val q = query.trim()
+        if (q.isEmpty()) return@withContext emptyList()
+        runCatching {
+            val response: WhatnotProductsResponse = httpClient.get("${WorkerConfig.EBAY_PROXY}/whatnot/products") {
+                parameter("query", q)
+                if (cardNumber.isNotBlank()) parameter("cardNumber", cardNumber)
+                if (weapon.isNotBlank()) parameter("weapon", weapon)
+            }.body()
+            if (response.challenged == true) emptyList()
+            else response.listings.map { it.toDomain() }
+        }.onFailure { e -> Log.e(TAG, "fetchWhatnotProducts failed", e) }
+            .getOrDefault(emptyList())
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -195,6 +223,20 @@ data class PricingListing(
 )
 
 enum class PricingSource { EBAY }
+
+/**
+ * A current Whatnot active listing (asking signal). matchesCard is true
+ * when the Worker bound it to the viewed card (cardNumber + weapon);
+ * the UI shows matched listings first, then "Other {hero}".
+ */
+data class WhatnotListing(
+    val title: String,
+    val priceUsd: Double,
+    val listingUrl: String,
+    val seller: String?,
+    val format: String?,    // "buy_now" | "auction"
+    val matchesCard: Boolean,
+)
 
 /**
  * Comparability-derived Market Est. range from `boba-price-estimator`.
@@ -271,5 +313,32 @@ private data class PricingItem(
         url = url.orEmpty(),
         date = date?.takeIf { it.isNotBlank() },
         source = source,
+    )
+}
+
+@Serializable
+private data class WhatnotProductsResponse(
+    val count: Int = 0,
+    val bestMatchCount: Int? = null,
+    val challenged: Boolean? = null,
+    val listings: List<WhatnotProductItem> = emptyList(),
+)
+
+@Serializable
+private data class WhatnotProductItem(
+    val title: String? = null,
+    val price: Double? = null,
+    val listingUrl: String? = null,
+    val seller: String? = null,
+    val format: String? = null,
+    val matchesCard: Boolean? = null,
+) {
+    fun toDomain() = WhatnotListing(
+        title = title.orEmpty(),
+        priceUsd = price ?: 0.0,
+        listingUrl = listingUrl.orEmpty(),
+        seller = seller,
+        format = format,
+        matchesCard = matchesCard == true,
     )
 }

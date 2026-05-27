@@ -335,14 +335,18 @@ Pushed from Find / Decks / Collection. Three composables (`CardDetailScreen`, `B
 
 Hero-zoom rules: `SharedTransitionLayout` wraps the nav graph; source + destination share key `card.bobaId` + the same `animatedVisibilityScope` from `AnimatedContent`. Push via `navController.navigate(CardDetailRoute(bobaId))`. Compact-only branch.
 
-### 8.7 Pricing panels — Buy Now + Sold history
+### 8.7 Pricing panels — provenance-honest (Recent Sales · Listed Range)
 
-Lives inside `CardDetailScreen` between stats and per-context body. Live-fetched (DECISIONS.md #013). COMC asking stays OUT of sold-comp waterfall (#034).
+Lives inside `CardDetailScreen` between stats and per-context body. Live-fetched (DECISIONS.md #013). COMC asking stays OUT of any sold-comp number (#034). Mirrors iOS DESIGN.md §8.7.
 
-- **Buy Now:** eBay actives + COMC asking with *"COMC asking · Ungraded NM"* `AssistChip` (soft-fail on `challenged: true`).
-- **Sold history:** eBay sold (Marketplace Insights, 90-day window, tuned `normaliseSoldEnriched` scorer). Market est for cards with no eBay sold activity falls through to the `boba-price-estimator` Worker. Radish removed 2026-05-23 — see DECISIONS.md #056. A single per-card "View on Radish" external-browser link is preserved on every card detail (`Intent.ACTION_VIEW` with `card.radishUrl ?: homepage`, NOT `CustomTabsIntent` — user fully leaves the app).
-- Per-section: horizontal scroll of `BOBAPriceTile` (M3 `Card` w/ `surfaceContainerLow`, thumb + price + source chip + `CustomTabsIntent` tap-through). Empty = `BOBAEmptyState` w/ refresh. Loading = 3-tile skeleton.
-- Market header (single line): *"~$24 · based on 8 recent eBay sold comps"*. Asking NEVER folded in.
+**Provenance is the contract.** Every number states its data type; never present a derived guess as a "Market Est." when no real sold data backs it (PRICING_PLAYBOOK.md + DECISIONS.md #058). Most-specific honestly-labeled signal, in order:
+
+- **Recent Sales** (transacted): real sold comps, each row a source chip (eBay-inferred / Whatnot / "BoBA Community · @user"). Shown only when real sold data exists.
+- **Listed Range** (asking): when there is NO real sold data, active eBay listings are the honest primary signal — header "LISTED RANGE", range + count, line "Active eBay listings · no recent sales data yet", chip "eBay listed". Replaces the old fabricated-Market-Est. fallback.
+- **Buy Now**: when Recent Sales exists, active eBay listings + COMC asking ("COMC asking · Ungraded NM" `AssistChip`, soft-fail on `challenged: true`) as a separate section. No Recent Sales → active data is the Listed Range, not a duplicate Buy Now.
+- **Estimate** (Tier 4): `boba-price-estimator` surfaces only clearly labeled ("Estimated · based on N comparable cards"), only when fed real comps; suppressed while starved (current state).
+- Per-section: horizontal scroll of `BOBAPriceTile` (M3 `Card` w/ `surfaceContainerLow`, thumb + price + source chip + `CustomTabsIntent` tap-through). Empty = `BOBAEmptyState` w/ refresh. Loading = 3-tile skeleton. A single per-card "View on Radish" external link preserved (`Intent.ACTION_VIEW` with `card.radishUrl ?: homepage`, NOT `CustomTabsIntent`; DECISIONS.md #056).
+- Real-sold header (single line, only with Recent Sales): *"~$24 · based on 8 recent sales"*. Asking NEVER folded in.
 
 ### 8.8 Wall view + Price Overlay
 

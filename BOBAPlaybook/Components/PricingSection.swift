@@ -69,8 +69,18 @@ struct PricingSection: View {
                         // Walkthrough anchors point at each bucket so the
                         // .pricingPanels script teaches the asking-vs-sold
                         // distinction.
+                        // Provenance-honest (DESIGN.md §8.7): with no
+                        // real sold data the active listings ARE the
+                        // signal — show them as "LISTED RANGE" (range +
+                        // honest "no recent sales" provenance), never a
+                        // fabricated Market Est. With real sold data the
+                        // dual "BUY NOW" + "RECENT SALES" framing holds.
+                        let noSold = result.sold == nil
                         if showActiveListings, let active = result.active {
-                            bucketView(active, label: "BUY NOW", isActive: true)
+                            bucketView(active,
+                                       label: noSold ? "LISTED RANGE" : "BUY NOW",
+                                       isActive: true,
+                                       listedRange: noSold)
                                 .walkthroughAnchor("pricing.buyNow")
                         }
                         if let sold = result.sold {
@@ -279,7 +289,7 @@ struct PricingSection: View {
 
     // MARK: - Helpers
 
-    private func bucketView(_ bucket: PricingService.PricingBucket, label: String, isActive: Bool) -> some View {
+    private func bucketView(_ bucket: PricingService.PricingBucket, label: String, isActive: Bool, listedRange: Bool = false) -> some View {
         // Three sold-bucket modes:
         //   - estimated: Market Est. range (no real sales). Show as
         //     "MARKET EST." with low/avg/high tri-grid, no items list.
@@ -355,7 +365,7 @@ struct PricingSection: View {
                 // tri-grid is redundant. For SOLD, the tri-grid
                 // adds signal only when count > 1; a single sale
                 // gets a single "Last sold" cell.
-                let showsTriGrid = isEstimated || (!isActive && bucket.count > 1)
+                let showsTriGrid = isEstimated || (!isActive && bucket.count > 1) || (listedRange && bucket.count > 1)
                 if showsTriGrid {
                     HStack(spacing: 0) {
                         priceCell(label: isEstimated ? "EST. LOW"  : "LOW",  value: bucket.low,     isActive: isActive)
@@ -387,6 +397,13 @@ struct PricingSection: View {
 
                 if isEstimated {
                     Text(estimatedCaption(source: bucket.estimatedSource))
+                        .font(Design.Fonts.mono(10))
+                        .foregroundStyle(Design.Colors.textMuted)
+                } else if listedRange {
+                    // Honest provenance: these are active asks, and we
+                    // have no recent sales to anchor a value yet.
+                    let plural = bucket.count != 1 ? "s" : ""
+                    Text("\(bucket.count) active eBay listing\(plural) · no recent sales data yet")
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
                 } else {

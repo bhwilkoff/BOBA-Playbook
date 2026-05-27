@@ -785,7 +785,33 @@ diff correctly flagged the disappeared listing (vanished:1). `/comps` serves
 it as it accumulates. The catalog-grinding cron + its KV cursor / quota-floor
 machinery are retired (DECISIONS.md #058).
 
-### NEXT UNIT (post-compaction 2026-05-27) — unify into marketValue() + fold Whatnot asks into Listed Range
+### ✅ SHIPPED 2026-05-27 — unified marketValue() + Recent Sales `/comps` read + Whatnot asks folded into Listed Range
+
+One provenance-honest resolver now lives on each platform and is the single
+place the #058 four-signal hierarchy is applied:
+- **Web** `js/app.js::marketValue({ ebay, comps, whatnotResp })` + `fetchComps()`
+  + `compSourcePill()`; `renderPricingData` drives off it; source pills + the
+  merged-source Listed Range caption added to `renderPricingSection`.
+- **iOS** `PricingService.marketValue(ebay:comps:whatnotMatched:)` (nonisolated
+  static) + `comps(bobaId:)` + `compSourcePill`; `PricingSection` renders from
+  the resolver (comps-only cards now render even with no live eBay); the
+  Collection "Refresh Market Values" writer (`CollectionStore`) persists the
+  resolved headline (comps > listed avg, never asks). `PricingItem` gained a
+  `source` field for per-row provenance pills.
+- **Android** `marketValue(...)` in `:core:network` + `PricingService.fetchComps`
+  + `CompsResult`/`RecentSaleRow`/`ResolvedPricing`; `CardDetailUiState.resolved`
+  feeds `PricingPanels` (`RecentSalesRows` with cyan source pills); dead
+  `marketEstimateUsd`/`Basis` getters removed.
+
+Recent Sales (vanish-inferred eBay/Whatnot + community) now surface with their
+own source pills, distinct from the Estimate; active Whatnot **matched** asks
+fold into the honest Listed Range (eBay + Whatnot). Validated: `:core:network`
++ `:app` compile green; web `node --check` clean; live `/comps` shape confirmed.
+iOS build validated via Xcode Cloud on push (no local full Xcode).
+
+Original spec (for reference):
+
+#### NEXT UNIT (post-compaction 2026-05-27) — unify into marketValue() + fold Whatnot asks into Listed Range
 
 The pricing data plumbing is DONE (Tiers 1–5 + Whatnot products + vanish-
 inference push model + community comps + #058 ADR). The remaining work is a

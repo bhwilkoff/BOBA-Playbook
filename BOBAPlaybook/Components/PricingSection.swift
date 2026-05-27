@@ -24,6 +24,10 @@ struct PricingSection: View {
     @State private var comcListings: [ComcService.Listing] = []
     /// Whatnot active asks (Tier 2) — additive BUY NOW source, matched-first.
     @State private var whatnotListings: [WhatnotProductsService.Listing] = []
+    /// Transacted comps (Tier 1+3 — vanish-inferred eBay/Whatnot sales +
+    /// mod-approved community comps) from boba-pricing-tracker. The REAL
+    /// "Recent Sales" signal; the resolver ranks it above Listed Range (#058).
+    @State private var comps: PricingService.CompsResult?
     /// Tier 3 community-comp submission sheet (PRICING_PLAYBOOK §5). Opened
     /// from a quiet foot affordance; the sheet carries the form + auth gate.
     @State private var showCommunityCompSheet = false
@@ -55,58 +59,61 @@ struct PricingSection: View {
                 if isLoading {
                     HStack { Spacer(); ProgressView().tint(Design.Colors.bobaOrange); Spacer() }
                         .frame(height: 64)
-                } else if let result {
-                    if result.sold != nil || result.active != nil {
-                        // Market-estimate caption per DESIGN.md §8.7 — single
-                        // line above the two sections. Per DECISIONS.md #034,
-                        // asking prices are NEVER folded into this number;
-                        // the basis is exposed so users can audit.
-                        if let sold = result.sold,
-                           let caption = marketEstimateCaption(sold: sold) {
-                            Text(caption)
+                } else {
+                    // Provenance-honest resolution (DECISIONS.md #058) — ONE
+                    // resolver ranks the four signals (comps + eBay + Whatnot
+                    // matched); the render mirrors that order. Computed
+                    // reactively so comps-only cards (real sales, no live
+                    // eBay listings) still render even when `result` is nil.
+                    let matched  = whatnotListings.filter { $0.matchesCard == true }
+                    let resolved = PricingService.marketValue(ebay: result, comps: comps, whatnotMatched: matched)
+                    let hasResolved = resolved.recentSales != nil || resolved.listedRange != nil || resolved.estimate != nil
+                    if hasResolved {
+                        // Headline — single line above the sections. Asks are
+                        // NEVER folded into it (#034); the resolver picks the
+                        // most-specific honestly-labeled signal + its basis.
+                        if let val = resolved.headlineValue, let basis = resolved.headlineBasis {
+                            Text("\(val, format: .currency(code: "USD")) · \(basis)")
                                 .font(Design.Fonts.mono(11, weight: .bold))
                                 .foregroundStyle(Design.Colors.textPrimary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        // Dual-section layout per DESIGN.md §8.7 — order is
-                        // BUY NOW (asking, "where can I buy") on top, then
-                        // RECENT SALES (transacted, "what's it worth") below.
-                        // Walkthrough anchors point at each bucket so the
-                        // .pricingPanels script teaches the asking-vs-sold
-                        // distinction.
-                        // Provenance-honest (DESIGN.md §8.7): with no
-                        // real sold data the active listings ARE the
-                        // signal — show them as "LISTED RANGE" (range +
-                        // honest "no recent sales" provenance), never a
-                        // fabricated Market Est. With real sold data the
-                        // dual "BUY NOW" + "RECENT SALES" framing holds.
-                        let noSold = result.sold == nil
-                        if showActiveListings, let active = result.active {
-                            bucketView(active,
-                                       label: noSold ? "LISTED RANGE" : "BUY NOW",
-                                       isActive: true,
-                                       listedRange: noSold)
+                        if let rs = resolved.recentSales {
+                            // 1. RECENT SALES (transacted) — then BUY NOW (eBay
+                            // actives) beneath as the "where to buy" affordance.
+                            bucketView(rs, label: "RECENT SALES", isActive: false)
+                                .walkthroughAnchor("pricing.sold")
+                            if showActiveListings, let active = result?.active {
+                                bucketView(active, label: "BUY NOW", isActive: true)
+                                    .walkthroughAnchor("pricing.buyNow")
+                            }
+                        } else if let lr = resolved.listedRange {
+                            // 2. LISTED RANGE — eBay active + Whatnot matched
+                            // asks folded into one honest aggregate (the (A)
+                            // fold); NOT a duplicate Buy Now (DESIGN.md §8.7).
+                            bucketView(lr, label: "LISTED RANGE", isActive: true, listedRange: true,
+                                       listedHasWhatnot: resolved.listedHasWhatnot,
+                                       listedHasEbay: resolved.listedHasEbay)
                                 .walkthroughAnchor("pricing.buyNow")
-                        }
-                        if let sold = result.sold {
-                            bucketView(sold, label: "RECENT SALES", isActive: false)
+                        } else if let est = resolved.estimate {
+                            // 4. MARKET EST. — labeled, last resort (suppressed
+                            // while the estimator is starved).
+                            bucketView(est, label: "MARKET EST.", isActive: false)
                                 .walkthroughAnchor("pricing.sold")
                         }
-                        // COMC asking-price strip lives below the eBay
-                        // BUY NOW bucket. Renders only when COMC has
-                        // listings; absent (Turnstile blocked, no
-                        // inventory) means nothing shows.
+                        // COMC + Whatnot tap-through strips — the "where to
+                        // buy" affordance. Additive; the Whatnot aggregate
+                        // already folded into Listed Range, but the strip gives
+                        // tappable per-listing links (asks never enter a sold
+                        // number, #034). COMC empty (Turnstile) → nothing shows.
                         if showActiveListings, !comcListings.isEmpty {
                             comcStrip(comcListings)
                         }
-                        // Whatnot active asks — additive BUY NOW source,
-                        // matched-first then "Other {hero}" (Hybrid). Asks
-                        // never fold into any sold number (#034).
                         if showActiveListings, !whatnotListings.isEmpty {
                             whatnotStrip(whatnotListings)
                         }
-                    } else {
-                        // Legacy single-section layout
+                    } else if let result, result.count > 0 {
+                        // Legacy single-section layout (old cached/Worker shape)
                         HStack(spacing: 0) {
                             priceCell(label: "LOW",  value: result.low,     isActive: false)
                             Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
@@ -125,13 +132,13 @@ struct PricingSection: View {
                         if !result.items.isEmpty {
                             itemsList(result.items, isSold: result.isSold)
                         }
+                    } else if let err = fetchError {
+                        Text(err)
+                            .font(Design.Fonts.mono(11))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, Design.Spacing.md)
                     }
-                } else if let err = fetchError {
-                    Text(err)
-                        .font(Design.Fonts.mono(11))
-                        .foregroundStyle(Design.Colors.textMuted)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.vertical, Design.Spacing.md)
                 }
             }
 
@@ -245,10 +252,17 @@ struct PricingSection: View {
                 .frame(width: 64, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(Design.Fonts.mono(11))
-                    .foregroundStyle(Design.Colors.textSecondary)
-                    .lineLimit(1)
+                // Recent-Sales comp rows carry a `source` — render its
+                // provenance pill (eBay/Whatnot vanish-inferred · BoBA
+                // Community) instead of a listing title (DESIGN.md §8.7).
+                if item.source != nil {
+                    sourcePill(item.title)
+                } else {
+                    Text(item.title)
+                        .font(Design.Fonts.mono(11))
+                        .foregroundStyle(Design.Colors.textSecondary)
+                        .lineLimit(1)
+                }
                 // "Probable match" amber pill + tooltip when the Worker's
                 // enriched matcher reports confidence below the confirmed
                 // threshold (0.70). Tap to reveal the reasons that drove
@@ -264,7 +278,7 @@ struct PricingSection: View {
                     .font(Design.Fonts.mono(10))
                     .foregroundStyle(Design.Colors.textMuted)
                     .frame(width: 52, alignment: .trailing)
-            } else {
+            } else if item.source == nil {
                 Image(systemName: "arrow.up.right")
                     .font(.system(size: 10))
                     .foregroundStyle(Design.Colors.textMuted)
@@ -273,6 +287,18 @@ struct PricingSection: View {
         .padding(.horizontal, Design.Spacing.md)
         .padding(.vertical, Design.Spacing.sm)
         .background(Design.Colors.surface2)
+    }
+
+    /// Cyan provenance pill on each Recent-Sales row — names where the
+    /// transacted comp came from (vanish-inferred eBay/Whatnot · community).
+    private func sourcePill(_ label: String) -> some View {
+        Text(label)
+            .font(Design.Fonts.mono(9, weight: .bold))
+            .foregroundStyle(Design.Colors.bobaCyan)
+            .tracking(0.5)
+            .padding(.horizontal, 5).padding(.vertical, 2)
+            .background(Capsule().fill(Design.Colors.bobaCyan.opacity(0.10))
+                .overlay(Capsule().strokeBorder(Design.Colors.bobaCyan.opacity(0.40), lineWidth: 0.7)))
     }
 
     private func probableMatchBadge(reasons: [String]) -> some View {
@@ -318,7 +344,7 @@ struct PricingSection: View {
 
     // MARK: - Helpers
 
-    private func bucketView(_ bucket: PricingService.PricingBucket, label: String, isActive: Bool, listedRange: Bool = false) -> some View {
+    private func bucketView(_ bucket: PricingService.PricingBucket, label: String, isActive: Bool, listedRange: Bool = false, listedHasWhatnot: Bool = false, listedHasEbay: Bool = true) -> some View {
         // Three sold-bucket modes:
         //   - estimated: Market Est. range (no real sales). Show as
         //     "MARKET EST." with low/avg/high tri-grid, no items list.
@@ -429,10 +455,13 @@ struct PricingSection: View {
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
                 } else if listedRange {
-                    // Honest provenance: these are active asks, and we
-                    // have no recent sales to anchor a value yet.
+                    // Honest provenance: these are active asks (eBay +
+                    // Whatnot matched, the (A) fold), and we have no recent
+                    // sales to anchor a value yet (PRICING_PLAYBOOK §4.3).
                     let plural = bucket.count != 1 ? "s" : ""
-                    Text("\(bucket.count) active eBay listing\(plural) · no recent sales data yet")
+                    let whereStr = (listedHasWhatnot && listedHasEbay) ? "eBay + Whatnot"
+                                 : listedHasWhatnot ? "Whatnot" : "eBay"
+                    Text("\(bucket.count) active \(whereStr) listing\(plural) · no recent sales data yet")
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
                 } else {
@@ -647,28 +676,6 @@ struct PricingSection: View {
         }
     }
 
-    /// Single-line market-estimate caption above the dual price sections
-    /// per DESIGN.md §8.7 — "$24 · based on 8 recent sales". The number
-    /// reflects ONLY transacted prices (sold bucket) per DECISIONS.md
-    /// #034; asking prices are never folded in.
-    private func marketEstimateCaption(sold: PricingService.PricingBucket) -> String? {
-        let est = sold.average
-        guard est > 0 else { return nil }
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        formatter.maximumFractionDigits = est >= 100 ? 0 : 2
-        guard let priceStr = formatter.string(from: est as NSDecimalNumber) else { return nil }
-        let isEstimated = sold.estimated ?? false
-        if isEstimated {
-            return "Market est. \(priceStr) · \(estimatedCaption(source: sold.estimatedSource))"
-        }
-        let n = sold.count
-        guard n > 0 else { return "Market est. \(priceStr)" }
-        let plural = n != 1 ? "sales" : "sale"
-        return "~\(priceStr) · based on \(n) recent \(plural)"
-    }
-
     /// Human-readable age string for a stale sale. Used on the
     /// "Sale {age} · older than {days}d window" caption. Falls back
     /// to nil when the date can't be parsed (UI then drops the age
@@ -745,6 +752,7 @@ struct PricingSection: View {
         result     = nil
         comcListings = []
         whatnotListings = []
+        comps = nil
         // COMC + Whatnot fire in parallel with the pricing waterfall —
         // additive asking sources on the BUY NOW panel, never block the
         // primary fetch. Both soft-fail to [] when their Worker is blocked
@@ -767,6 +775,12 @@ struct PricingSection: View {
             }
         }
         Task {
+            // Real transacted comps (Recent Sales) — vanish-inferred eBay/
+            // Whatnot sales + community comps. Fetched alongside the eBay
+            // waterfall so the resolver can rank them above Listed Range
+            // (#058). A card can have comps with NO live eBay listings, so
+            // these are awaited before deciding the empty state.
+            async let compsTask = PricingService.shared.comps(bobaId: card.bobaId)
             do {
                 let pricingResult = try await PricingService.shared.pricing(
                     for: card.cardNumber,
@@ -780,12 +794,20 @@ struct PricingSection: View {
                 )
                 result = pricingResult
             } catch PricingService.PricingError.noData {
+                // Don't surface an error yet — comps (below) may carry real
+                // sales even when there are no live eBay listings. The
+                // resolver decides the true empty state.
                 fetchError = "No eBay listings found for the last \(selectedDays) days."
             } catch PricingService.PricingError.notConfigured {
+                _ = await compsTask
                 return
             } catch {
                 fetchError = "Pricing unavailable"
             }
+            comps = await compsTask
+            // Transacted comps trump the eBay no-data error — clear it so
+            // the Recent Sales section renders instead of the empty state.
+            if comps != nil { fetchError = nil }
             isLoading = false
         }
     }

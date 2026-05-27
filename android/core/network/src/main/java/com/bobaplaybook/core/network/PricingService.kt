@@ -203,6 +203,30 @@ class PricingService @Inject constructor(
         }.onFailure { e -> Log.e(TAG, "fetchWhatnotProducts failed", e) }
             .getOrDefault(emptyList())
     }
+
+    /**
+     * Real transacted comps (Recent Sales) from `boba-pricing-tracker
+     * /comps` — vanish-inferred eBay/Whatnot sales + mod-approved community
+     * comps (DECISIONS.md #058). The REAL sold signal we generate ourselves;
+     * the resolver ranks it above Listed Range. Returns null when no comps
+     * exist yet so the caller falls through to Listed Range. Soft-fails.
+     */
+    suspend fun fetchComps(bobaId: String, days: Int = 90): CompsResult? = withContext(Dispatchers.IO) {
+        if (bobaId.isBlank()) return@withContext null
+        runCatching {
+            val resp: CompsResponse = httpClient.get("${WorkerConfig.PRICING_TRACKER}/comps") {
+                parameter("bobaId", bobaId)
+                parameter("days", days)
+            }.body()
+            val summary = resp.summary
+            if (summary == null || summary.count <= 0 || resp.comps.isEmpty()) null
+            else CompsResult(
+                comps = resp.comps.map { Comp(it.price ?: 0.0, it.soldAt, it.confidence, it.source) },
+                low = summary.low, median = summary.median, high = summary.high, count = summary.count,
+            )
+        }.onFailure { e -> Log.d(TAG, "fetchComps($bobaId) — none yet: ${e.message}") }
+            .getOrNull()
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -262,6 +286,134 @@ data class MarketEstimate(
     val comparableCount: Int = 0,
     val comparableSources: List<String> = emptyList(),
 )
+
+/**
+ * One transacted comp from boba-pricing-tracker /comps (#058) — the real
+ * "Recent Sales" signal we generate ourselves (vanish-inferred eBay/Whatnot
+ * sales + mod-approved community comps).
+ */
+data class Comp(
+    val priceUsd: Double,
+    val soldAt: String?,
+    val confidence: Double?,
+    val source: String?,    // "ebay-inferred" | "whatnot-inferred" | "community-…"
+)
+
+/** Aggregated comps for one card. */
+data class CompsResult(
+    val comps: List<Comp>,
+    val low: Double,
+    val median: Double,
+    val high: Double,
+    val count: Int,
+)
+
+/** A Recent Sales row — carries its provenance pill (no tap-through for
+ *  vanish-inferred/community rows; eBay sold rows keep their URL). */
+data class RecentSaleRow(
+    val priceUsd: Double,
+    val date: String?,
+    val sourcePill: String,
+    val url: String? = null,
+)
+
+/**
+ * Provenance-honest resolution (DECISIONS.md #058) — the ONE place the
+ * four-signal hierarchy lives on Android, shared by card detail + (future)
+ * Collection value. Built by [marketValue]; consumed by `PricingPanels`.
+ */
+data class ResolvedPricing(
+    val recentSales: List<RecentSaleRow> = emptyList(),
+    val recentLow: Double = 0.0,
+    val recentAvg: Double = 0.0,
+    val recentHigh: Double = 0.0,
+    val listedLow: Double = 0.0,
+    val listedAvg: Double = 0.0,
+    val listedHigh: Double = 0.0,
+    val listedCount: Int = 0,
+    val listedHasEbay: Boolean = false,
+    val listedHasWhatnot: Boolean = false,
+    val headlineValue: Double? = null,
+    val headlineSource: String? = null,   // "recent_sales" | "listed_range" | "estimate"
+    val headlineBasis: String? = null,
+) {
+    val hasRecentSales: Boolean get() = recentSales.isNotEmpty()
+    val hasListedRange: Boolean get() = listedCount > 0
+    val hasAnySignal: Boolean get() = hasRecentSales || hasListedRange
+}
+
+/** Human-readable provenance pill for a comp `source` (#058). */
+fun compSourcePill(source: String?): String = when {
+    source == null -> "sale"
+    source == "ebay-inferred" -> "eBay sale"
+    source == "whatnot-inferred" -> "Whatnot sale"
+    source.startsWith("community") ->
+        source.split("-").getOrNull(1)?.let { "BoBA Community · $it" } ?: "BoBA Community"
+    else -> "sale"
+}
+
+/**
+ * Provenance-honest market-value resolver (DECISIONS.md #058) — most-specific
+ * honestly-labeled signal wins:
+ *   1. Recent Sales — `comps` (vanish-inferred + community) + real eBay sold.
+ *   2. Listed Range — eBay active + Whatnot **matched** asks combined (the (A)
+ *      fold, PRICING_PLAYBOOK §4.3). The honest signal when there are no sales.
+ * Buy Now (eBay actives + Whatnot tiles) is additive; asks NEVER enter a
+ * sold/value number (#034). The estimator (Tier 4) is suppressed while starved
+ * and handled by the caller's existing fallback.
+ */
+fun marketValue(
+    ebayActive: List<PricingListing>,
+    ebaySold: List<PricingListing>,
+    comps: CompsResult?,
+    whatnotMatched: List<WhatnotListing>,
+): ResolvedPricing {
+    var out = ResolvedPricing()
+
+    // 1. Recent Sales (transacted) — comps first, then any real eBay sold.
+    val compRows = comps?.comps.orEmpty().map {
+        RecentSaleRow(priceUsd = it.priceUsd, date = it.soldAt, sourcePill = compSourcePill(it.source))
+    }
+    val soldRows = ebaySold.map {
+        RecentSaleRow(priceUsd = it.priceUsd, date = it.date, sourcePill = "eBay sale",
+            url = it.url.takeIf { u -> u.isNotBlank() })
+    }
+    val recentRows = compRows + soldRows
+    if (recentRows.isNotEmpty()) {
+        val prices = recentRows.map { it.priceUsd }.filter { it > 0 }.sorted()
+        val low = prices.firstOrNull() ?: comps?.low ?: 0.0
+        val high = prices.lastOrNull() ?: comps?.high ?: 0.0
+        val median = if (prices.isNotEmpty()) prices[(prices.size - 1) / 2] else (comps?.median ?: 0.0)
+        out = out.copy(
+            recentSales = recentRows,
+            recentLow = low, recentAvg = median, recentHigh = high,
+            headlineValue = median, headlineSource = "recent_sales",
+            headlineBasis = "based on ${prices.size} recent sale${if (prices.size != 1) "s" else ""}",
+        )
+    }
+
+    // 2. Listed Range (eBay active + Whatnot matched asks).
+    val ebayPrices = ebayActive.map { it.priceUsd }.filter { it > 0 }
+    val wnPrices = whatnotMatched.map { it.priceUsd }.filter { it > 0 }
+    val all = ebayPrices + wnPrices
+    if (all.isNotEmpty()) {
+        val hasEbay = ebayPrices.isNotEmpty()
+        val hasWhatnot = wnPrices.isNotEmpty()
+        val avg = all.average()
+        out = out.copy(
+            listedLow = all.min(), listedAvg = avg, listedHigh = all.max(), listedCount = all.size,
+            listedHasEbay = hasEbay, listedHasWhatnot = hasWhatnot,
+        )
+        if (!out.hasRecentSales) {
+            val where = if (hasWhatnot && hasEbay) "eBay + Whatnot" else if (hasWhatnot) "Whatnot" else "eBay"
+            out = out.copy(
+                headlineValue = avg, headlineSource = "listed_range",
+                headlineBasis = "${all.size} active $where listing${if (all.size != 1) "s" else ""} · no recent sales yet",
+            )
+        }
+    }
+    return out
+}
 
 // ─────────────────────────────────────────────────────────────────
 // Worker response wire shapes
@@ -354,3 +506,25 @@ private data class WhatnotProductItem(
         matchesCard = matchesCard == true,
     )
 }
+
+@Serializable
+private data class CompsResponse(
+    val comps: List<CompItem> = emptyList(),
+    val summary: CompsSummary? = null,
+)
+
+@Serializable
+private data class CompItem(
+    val price: Double? = null,
+    val soldAt: String? = null,
+    val confidence: Double? = null,
+    val source: String? = null,
+)
+
+@Serializable
+private data class CompsSummary(
+    val low: Double = 0.0,
+    val median: Double = 0.0,
+    val high: Double = 0.0,
+    val count: Int = 0,
+)

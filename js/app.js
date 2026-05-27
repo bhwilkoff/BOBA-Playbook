@@ -1414,6 +1414,13 @@
   // Soft-fails to "no COMC items" when blocked by Cloudflare Turnstile
   // (current state per 2026-04-29 — see workers/comc-proxy/src/index.ts).
   const COMC_PROXY_URL = 'https://boba-comc-proxy.benwilkoff.workers.dev';
+  // boba-pricing-tracker — the sold-history we generate ourselves
+  // (DECISIONS.md #058). `/comps?bobaId=…` returns vanish-inferred eBay/
+  // Whatnot sales + mod-approved community comps as the REAL "Recent
+  // Sales" signal. Read directly here so transacted comps surface as
+  // Recent Sales (with per-row source pills), distinct from the Tier-4
+  // Estimate. Soft-fails to null.
+  const TRACKER_URL = 'https://boba-pricing-tracker.benwilkoff.workers.dev';
   let scanStream      = null;
   let _scanQRInterval = null;  // regenerate QR every 30s to track refresh token rotation
 
@@ -3716,14 +3723,15 @@
         if (!forceRefresh && card.bobaId) {
           const cached = await fetchCachedPricing(card.bobaId);
           if (cached) {
-            // COMC + Whatnot are still live (neither is in
-            // card_prices_history). Both soft-fail independently.
-            const [comcResp, whatnotResp] = await Promise.all([
+            // COMC + Whatnot + comps are all live (none is in
+            // card_prices_history). Each soft-fails independently.
+            const [comcResp, whatnotResp, comps] = await Promise.all([
               fetchComcListings(card.cardNumber),
               fetchWhatnotProducts(card),
+              fetchComps(card.bobaId, days),
             ]);
             renderPricingData(section, cached, {
-              days, comcListings: comcResp, whatnotResp,
+              days, comcListings: comcResp, whatnotResp, comps,
               heroLabel: card.hero, bobaId: card.bobaId,
             });
             return;
@@ -3746,24 +3754,27 @@
         // Fire eBay-pricing + COMC-listings in parallel. COMC is
         // additive (BUY NOW second source); soft-fails to [] so a
         // failure doesn't block the eBay pricing render.
-        const [res, comcResp, whatnotResp] = await Promise.all([
+        const [res, comcResp, whatnotResp, comps] = await Promise.all([
           fetch(`${WORKER_URL}?${params}`),
           fetchComcListings(card.cardNumber),
           fetchWhatnotProducts(card),
+          // Real transacted comps we generate ourselves (#058). Surfaces
+          // as "Recent Sales", ranking above the Listed Range / Estimate.
+          fetchComps(card.bobaId, days),
         ]);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        // Market Est. fallback — when the eBay-proxy Worker returned
-        // no sold section, query boba-price-estimator for a
-        // comparability-derived estimate. Injects an `estimated: true`
-        // sold bucket which the renderer surfaces as "MARKET EST."
-        // instead of "RECENT SALES" (see renderPricingSection).
-        if (!data.sold && card.bobaId) {
+        // Estimate (Tier 4, lowest priority) — only when there's no sold
+        // section, no transacted comps, AND no active listings. Listed
+        // Range (active eBay/Whatnot asks) outranks the estimate per #058,
+        // so skip the fetch entirely when actives exist. Never a fabricated
+        // "Market Est." over real asks.
+        if (!data.sold && !comps && !data.active && card.bobaId) {
           const est = await fetchMarketEstimate(card.bobaId);
           if (est) data.sold = est;
         }
         renderPricingData(section, data, {
-          days, comcListings: comcResp, whatnotResp,
+          days, comcListings: comcResp, whatnotResp, comps,
           heroLabel: card.hero, bobaId: card.bobaId,
         });
       } catch {
@@ -3860,6 +3871,131 @@
     } catch {
       return null;
     }
+  }
+
+  /// Recent Sales (transacted) — `boba-pricing-tracker /comps`. The REAL
+  /// sold signal we generate ourselves: vanish-inferred eBay/Whatnot sales
+  /// + mod-approved community comps (DECISIONS.md #058). Returns
+  /// `{ items, summary }` where each item carries a `source`
+  /// ("ebay-inferred" / "whatnot-inferred" / "community-…") for its pill,
+  /// or null when no comps exist for this card yet (graceful no-data).
+  async function fetchComps(bobaId, days = 90) {
+    if (!bobaId) return null;
+    try {
+      const res = await fetch(`${TRACKER_URL}/comps?bobaId=${encodeURIComponent(bobaId)}&days=${days}`);
+      if (!res.ok) return null;
+      const body = await res.json();
+      const comps = Array.isArray(body && body.comps) ? body.comps : [];
+      if (!comps.length || !body.summary || !(body.summary.count > 0)) return null;
+      return { items: comps, summary: body.summary };
+    } catch {
+      return null;
+    }
+  }
+
+  /// Human-readable pill for a comp/listing `source` string. Recent-Sales
+  /// rows are transacted, so the pill names the marketplace + that it was
+  /// vanish-inferred or community-attested (the provenance IS the trust
+  /// mechanism per DESIGN.md §8.7).
+  function compSourcePill(source) {
+    if (!source) return 'sale';
+    if (source === 'ebay-inferred')    return 'eBay sale';
+    if (source === 'whatnot-inferred') return 'Whatnot sale';
+    if (source.startsWith('community')) {
+      const plat = source.split('-')[1];
+      return plat ? `BoBA Community · ${plat}` : 'BoBA Community';
+    }
+    return 'sale';
+  }
+
+  /// Provenance-honest market-value resolver (DECISIONS.md #058) — the ONE
+  /// place the four-signal hierarchy is encoded. Takes the already-fetched
+  /// inputs and returns both the section model the detail render consumes
+  /// AND a single headline { value, confidence, source, basis } (the number
+  /// the Collection value summary and any "what's it worth" caption use).
+  ///
+  /// Order, most-specific honestly-labeled signal first:
+  ///   1. Recent Sales — `comps` (vanish-inferred + community) merged with
+  ///      any real eBay sold the proxy returned. Transacted = "what it's worth".
+  ///   2. Listed Range — eBay active + Whatnot **matched** asks combined
+  ///      (THE fold). The honest signal when there are no sales yet.
+  ///   3. Estimate — comparability estimator, only when labeled + fed comps.
+  /// Buy Now (eBay actives + COMC + Whatnot tiles) is additive and rendered
+  /// separately; asks NEVER enter a sold/value number (#034).
+  function marketValue({ ebay, comps, whatnotResp } = {}) {
+    const num = v => (typeof v === 'number' && isFinite(v) ? v : 0);
+    // ── 1. Recent Sales ───────────────────────────────────────────────
+    const compItems = (comps && comps.items) || [];
+    const ebaySoldReal = ebay && ebay.sold && !ebay.sold.estimated && (ebay.sold.count || 0) > 0
+      ? ebay.sold : null;
+    let recentSales = null;
+    if (compItems.length || ebaySoldReal) {
+      // Build the row list: tracker comps (with source pills) first, then
+      // any eBay sold items the proxy already had. All transacted.
+      const rows = compItems.map(c => ({
+        price: num(c.price), title: compSourcePill(c.source),
+        url: null, date: c.soldAt || null, source: c.source,
+      }));
+      if (ebaySoldReal) {
+        for (const it of (ebaySoldReal.items || [])) {
+          rows.push({ price: num(it.price), title: it.title || 'eBay sold', url: it.url || null, date: it.date || null, source: 'ebay-sold' });
+        }
+      }
+      const prices = rows.map(r => r.price).filter(p => p > 0).sort((a, b) => a - b);
+      // Prefer the tracker's own summary when it's the only source.
+      const sum = (comps && comps.summary) || null;
+      const low = ebaySoldReal ? Math.min(...prices) : num(sum && sum.low);
+      const high = ebaySoldReal ? Math.max(...prices) : num(sum && sum.high);
+      const median = prices.length ? prices[(prices.length - 1) >> 1] : num(sum && sum.median);
+      recentSales = { low, average: median, high, count: prices.length, items: rows };
+    }
+    // ── 2. Listed Range (eBay active + Whatnot matched asks) ──────────
+    const active = ebay && ebay.active ? ebay.active : null;
+    const wnMatched = (whatnotResp && Array.isArray(whatnotResp.listings))
+      ? whatnotResp.listings.filter(l => l.matchesCard && num(l.price) > 0) : [];
+    let listedRange = null;
+    if (active || wnMatched.length) {
+      const ebayCount = active ? (active.count || 0) : 0;
+      const wnCount = wnMatched.length;
+      const wnPrices = wnMatched.map(l => num(l.price));
+      const lows  = [active ? num(active.low) : Infinity, ...(wnPrices.length ? [Math.min(...wnPrices)] : [])].filter(isFinite);
+      const highs = [active ? num(active.high) : -Infinity, ...(wnPrices.length ? [Math.max(...wnPrices)] : [])].filter(isFinite);
+      // Count-weighted blend of the two averages (we don't have eBay's raw
+      // prices on the cached path, so blend at the summary level).
+      const wnAvg = wnPrices.length ? wnPrices.reduce((a, b) => a + b, 0) / wnPrices.length : 0;
+      const total = ebayCount + wnCount;
+      const avg = total ? ((active ? num(active.average) * ebayCount : 0) + wnAvg * wnCount) / total : 0;
+      listedRange = {
+        low: lows.length ? Math.min(...lows) : 0,
+        average: avg,
+        high: highs.length ? Math.max(...highs) : 0,
+        count: total,
+        hasEbay: ebayCount > 0, hasWhatnot: wnCount > 0,
+      };
+    }
+    // ── 3. Estimate (labeled, last resort) ────────────────────────────
+    const estimate = (ebay && ebay.sold && ebay.sold.estimated && num(ebay.sold.average) > 0)
+      ? { low: num(ebay.sold.low), average: num(ebay.sold.average), high: num(ebay.sold.high), source: ebay.sold.estimatedSource || 'comps' }
+      : null;
+    // ── Headline (Collection value + "what's it worth" caption) ───────
+    let headline = { value: null, confidence: null, source: null, basis: null };
+    if (recentSales) {
+      headline = {
+        value: recentSales.average, source: 'recent_sales',
+        confidence: recentSales.count >= 3 ? 'high' : 'medium',
+        basis: `based on ${recentSales.count} recent sale${recentSales.count !== 1 ? 's' : ''}`,
+      };
+    } else if (listedRange) {
+      const where = listedRange.hasWhatnot && listedRange.hasEbay ? 'eBay + Whatnot'
+                  : listedRange.hasWhatnot ? 'Whatnot' : 'eBay';
+      headline = {
+        value: listedRange.average, source: 'listed_range', confidence: 'low',
+        basis: `${listedRange.count} active ${where} listing${listedRange.count !== 1 ? 's' : ''} · no recent sales yet`,
+      };
+    } else if (estimate) {
+      headline = { value: estimate.average, source: 'estimate', confidence: 'low', basis: 'estimated from comparable cards' };
+    }
+    return { recentSales, listedRange, estimate, headline };
   }
 
   /// COMC.com asking-price listings, fetched alongside the eBay pricing
@@ -4061,12 +4197,19 @@
           const badge      = isProbable
             ? `<span class="sold-item-probable" title="${escHtml(tooltip)}">Probable match</span>`
             : '';
-          return `
-            <a href="${escHtml(item.url)}" target="_blank" rel="noopener" class="pricing-item-row${isProbable ? ' sold-item--probable' : ''}">
+          // Recent-Sales comp rows carry a `source` (eBay/Whatnot vanish-
+          // inferred or community) — render its pill so provenance is on
+          // every row (DESIGN.md §8.7). These rows have no tap-through URL.
+          const srcPill = item.source && item.title === compSourcePill(item.source)
+            ? `<span class="pricing-source-pill">${escHtml(item.title)}</span>`
+            : `${escHtml(item.title || '')}${badge}`;
+          const inner = `
               <span class="pricing-item-price">${fmt(item.price)}</span>
-              <span class="pricing-item-title">${escHtml(item.title)}${badge}</span>
-              ${dateStr ? `<span class="pricing-item-date">${escHtml(dateStr)}</span>` : '<span class="pricing-item-arrow">↗</span>'}
-            </a>`;
+              <span class="pricing-item-title">${srcPill}</span>
+              ${dateStr ? `<span class="pricing-item-date">${escHtml(dateStr)}</span>` : (item.url ? '<span class="pricing-item-arrow">↗</span>' : '')}`;
+          return item.url
+            ? `<a href="${escHtml(item.url)}" target="_blank" rel="noopener" class="pricing-item-row${isProbable ? ' sold-item--probable' : ''}">${inner}</a>`
+            : `<div class="pricing-item-row">${inner}</div>`;
         }).join('')}
       </div>`;
 
@@ -4099,12 +4242,20 @@
       ? ` · ${count_probable} probable`
       : '';
 
-    // Listed Range (no real sold data): the active listings ARE the
-    // honest signal. The caption states provenance plainly so the user
-    // knows these are asking prices, not sales (WEB-DESIGN.md §14.6).
-    const countCaption = opts.listedRange
-      ? `${count} active eBay listing${count !== 1 ? 's' : ''} · no recent sales data yet`
-      : `${count} ${typeStr}${count !== 1 ? 's' : ''}${probableNote}`;
+    // Caption states provenance plainly (WEB-DESIGN.md §14.6).
+    //  • Listed Range: asking prices, named by source (eBay / Whatnot /
+    //    both) — these are NOT sales (the (A) fold, PRICING_PLAYBOOK §4.3).
+    //  • Recent Sales: transacted comps — "N recent sales".
+    let countCaption;
+    if (opts.listedRange) {
+      const where = (sectionData.hasWhatnot && sectionData.hasEbay) ? 'eBay + Whatnot'
+                  : sectionData.hasWhatnot ? 'Whatnot' : 'eBay';
+      countCaption = `${count} active ${where} listing${count !== 1 ? 's' : ''} · no recent sales data yet`;
+    } else if (opts.recentSales) {
+      countCaption = `${count} recent sale${count !== 1 ? 's' : ''}`;
+    } else {
+      countCaption = `${count} ${typeStr}${count !== 1 ? 's' : ''}${probableNote}`;
+    }
 
     return `
       <div class="pricing-section${isSold ? '' : ' pricing-section-active'}">
@@ -4190,30 +4341,37 @@
     if (!body) return;
     const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
 
-    // New dual-section format — provenance-honest per WEB-DESIGN.md §14.6.
-    if (data.sold || data.active) {
+    // Provenance-honest resolution (DECISIONS.md #058) — ONE resolver ranks
+    // the four signals; the render mirrors that order exactly.
+    const mv = marketValue({ ebay: data, comps: opts.comps, whatnotResp: opts.whatnotResp });
+
+    if (mv.recentSales || mv.listedRange || mv.estimate || data.sold || data.active) {
       const parts = [];
-      // Real sold data = transacted comps, NOT an estimator-derived
-      // bucket (which carries estimated:true / count 0). Only then do
-      // we show "RECENT SALES" + a separate "BUY NOW" asking panel.
-      const realSold = !!(data.sold && !data.sold.estimated && (data.sold.count || 0) > 0);
-      if (realSold) {
-        parts.push(renderPricingSection('RECENT SALES', data.sold, true, opts));
+      if (mv.recentSales) {
+        // 1. RECENT SALES — transacted comps (vanish-inferred eBay/Whatnot +
+        // mod-approved community), each row carrying its own source pill.
+        // eBay actives sit beneath as the "where to buy" Buy Now affordance.
+        parts.push(renderPricingSection('RECENT SALES', mv.recentSales, true, { ...opts, recentSales: true }));
         if (data.active) parts.push(renderPricingSection('BUY NOW', data.active, false, opts));
-      } else if (data.active) {
-        // No real sold data — the active eBay listings ARE the honest
-        // primary signal. Show them as "LISTED RANGE", never a
-        // fabricated "Market Est." (PRICING_PLAYBOOK.md §7).
-        parts.push(renderPricingSection('LISTED RANGE', data.active, false, { ...opts, listedRange: true }));
+      } else if (mv.listedRange) {
+        // 2. LISTED RANGE — no sales yet, so the active eBay + Whatnot asks
+        // ARE the honest signal (the (A) fold, PRICING_PLAYBOOK §4.3). The
+        // eBay active box is folded into this aggregate, NOT shown as a
+        // duplicate Buy Now (DESIGN.md §8.7). Never a fabricated Market Est.
+        parts.push(renderPricingSection('LISTED RANGE', mv.listedRange, false, { ...opts, listedRange: true }));
+      } else if (mv.estimate) {
+        // 4. MARKET EST. — lowest priority, clearly labeled, only when the
+        // estimator was fed real comps (suppressed while starved).
+        parts.push(renderPricingSection('MARKET EST.',
+          { ...mv.estimate, count: 0, items: [], estimated: true, estimatedSource: mv.estimate.source }, true, opts));
       }
-      // COMC asking-price strip — additive, only renders when we
-      // actually have listings (current state with Cloudflare
-      // Turnstile on COMC's side: empty array, nothing renders).
+      // COMC + Whatnot tap-through strips — the "where to buy" affordance.
+      // Additive; the Whatnot aggregate already folded into Listed Range,
+      // but the strip gives tappable per-listing links. Asks never enter a
+      // sold number (#034); COMC empty (Turnstile) means nothing renders.
       if (Array.isArray(opts.comcListings) && opts.comcListings.length > 0) {
         parts.push(renderComcStrip(opts.comcListings));
       }
-      // Whatnot active asks — additive Buy Now signal (asks never fold
-      // into any sold number, #034). Renders only when listings exist.
       if (opts.whatnotResp) {
         const strip = renderWhatnotStrip(opts.whatnotResp, opts.heroLabel);
         if (strip) parts.push(strip);

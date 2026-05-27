@@ -89,6 +89,7 @@ import com.bobaplaybook.core.domain.model.CardFormatEligibility
 import com.bobaplaybook.core.network.CDN
 import com.bobaplaybook.core.network.CommunityCompResult
 import com.bobaplaybook.core.network.PricingListing
+import com.bobaplaybook.core.network.RecentSaleRow
 import com.bobaplaybook.core.network.WhatnotListing
 import com.bobaplaybook.core.ui.components.BOBACardCell
 import com.bobaplaybook.core.ui.components.BOBAEmptyState
@@ -1314,8 +1315,10 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
         return
     }
 
-    val sold = state.ebaySold.distinctBy { it.url }
-    val hasRealSold = sold.isNotEmpty()
+    // Provenance-honest resolution (DECISIONS.md #058) — ONE resolver ranks
+    // the four signals (comps + eBay + Whatnot matched); the render mirrors
+    // that order. Recent Sales (transacted) → Listed Range (asking) → empty.
+    val resolved = state.resolved
 
     // Provenance-honest pricing header (ANDROID-DESIGN.md §8.7), paired
     // with a refresh affordance to force a fresh Worker fetch.
@@ -1338,69 +1341,73 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
         }
     }
 
-    // Only show a headline market number when we have REAL sold data.
-    // The starved boba-price-estimator (state.marketEstimate) is NOT
-    // surfaced as a fabricated "Market Est." — Tier 4 (PRICING_PLAYBOOK.md)
-    // reintroduces a clearly-labeled estimate only when fed real comps.
-    if (hasRealSold) {
-        state.marketEstimateUsd?.let { est ->
-            Text(
-                text = "~$${est.formatUsdAmount()}",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-            state.marketEstimateBasis?.let { basis ->
+    when {
+        resolved.hasRecentSales -> {
+            // 1. RECENT SALES (transacted) — the honest "what's it worth"
+            // number, from our own comps (+ real eBay sold). Asks are NEVER
+            // folded in (#034). Active eBay listings follow as Buy Now.
+            resolved.headlineValue?.let { est ->
                 Text(
-                    text = basis,
-                    style = MaterialTheme.typography.labelMedium,
+                    text = "~$${est.formatUsdAmount()}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                resolved.headlineBasis?.let { basis ->
+                    Text(
+                        text = basis,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
+            }
+            BOBASectionHeader(title = "Recent Sales")
+            RecentSalesRows(resolved.recentSales)
+            BOBASectionHeader(title = "Buy Now")
+            if (state.ebayActive.isEmpty()) {
+                Text(
+                    text = "No active listings",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
+            } else {
+                TapPriceHint()
+                ListingsRow(listings = state.ebayActive)
             }
         }
-    }
-
-    if (hasRealSold) {
-        // Real transacted comps lead; active asks follow as "Buy Now".
-        BOBASectionHeader(title = "Recent Sales")
-        ListingsRow(
-            listings = kotlinx.collections.immutable.persistentListOf<PricingListing>().addAll(sold),
-        )
-        BOBASectionHeader(title = "Buy Now")
-        if (state.ebayActive.isEmpty()) {
+        resolved.hasListedRange -> {
+            // 2. LISTED RANGE — no sales yet, so the active eBay + Whatnot
+            // matched asks ARE the honest signal (the (A) fold, PRICING_
+            // PLAYBOOK §4.3). Never a fabricated estimate (PRICING_PLAYBOOK §7).
+            BOBASectionHeader(title = "Listed Range")
+            val where = when {
+                resolved.listedHasWhatnot && resolved.listedHasEbay -> "eBay + Whatnot"
+                resolved.listedHasWhatnot -> "Whatnot"
+                else -> "eBay"
+            }
+            val plural = if (resolved.listedCount != 1) "s" else ""
             Text(
-                text = "No active listings",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "${resolved.listedCount} active $where listing$plural · no recent sales data yet",
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
-        } else {
-            TapPriceHint()
-            ListingsRow(listings = state.ebayActive)
+            if (state.ebayActive.isNotEmpty()) {
+                TapPriceHint()
+                ListingsRow(listings = state.ebayActive)
+            }
         }
-    } else {
-        // No real sold data — the active eBay listings ARE the honest
-        // primary signal. Show them as "Listed Range", never a
-        // fabricated estimate (PRICING_PLAYBOOK.md §7).
-        BOBASectionHeader(title = "Listed Range")
-        if (state.ebayActive.isEmpty()) {
+        else -> {
+            BOBASectionHeader(title = "Listed Range")
             Text(
                 text = "No active listings or recent sales found",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
-        } else {
-            Text(
-                text = "Active eBay listings · no recent sales data yet",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-            TapPriceHint()
-            ListingsRow(listings = state.ebayActive)
         }
     }
 
@@ -1637,6 +1644,62 @@ private fun SubmitCommunityCompSheet(
  * out to the Whatnot listing. Asking prices, NEVER a sold/value number
  * (#034). Top 3 per group. Mirrors web/iOS.
  */
+@Composable
+private fun RecentSalesRows(rows: List<RecentSaleRow>) {
+    // Transacted comps (vanish-inferred eBay/Whatnot + community, #058). Each
+    // row carries a cyan provenance pill so the source is on every sale
+    // (DESIGN.md §8.7). Vanish-inferred/community rows have no tap-through;
+    // eBay-sold rows keep their listing URL.
+    val ctx = LocalContext.current
+    val cyan = Color(0xFF00F5FF)
+    Column {
+        rows.take(8).forEach { row ->
+            // Local copy — `row.url` is a cross-module property and can't be
+            // smart-cast inside the click lambda otherwise.
+            val url = row.url
+            val hasUrl = !url.isNullOrBlank()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (hasUrl) {
+                            Modifier.clickable {
+                                runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
+                            }
+                        } else Modifier,
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = row.priceUsd.formatUsdAmount(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.width(72.dp),
+                )
+                Box(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                    Text(
+                        text = row.sourcePill,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = cyan,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                }
+                if (hasUrl) {
+                    Text(
+                        text = "↗",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun WhatnotAsksSection(listings: List<WhatnotListing>) {
     // Show ONLY this card's listings — never other cards for the hero

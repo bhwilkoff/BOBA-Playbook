@@ -1,0 +1,440 @@
+{
+  "_generator": "scripts/build_rarity_model.py",
+  "_source": "promo.bobattlearena.com Alpha-Update + 2026-Edition Parallels/Rarity/Checklist guides; catalog printRun field",
+  "_doc": "PRICING_PLAYBOOK.md §6.2-§6.4. FACTUAL reference table for the Tier 4 estimator. Weights are LEARNED from comps; coldStart is only the pre-comp fallback.",
+  "weaponTier": {
+    "BRAWL": {
+      "ordinal": 1,
+      "label": "common"
+    },
+    "STEEL": {
+      "ordinal": 1,
+      "label": "common"
+    },
+    "FIRE": {
+      "ordinal": 2,
+      "label": "rare"
+    },
+    "ICE": {
+      "ordinal": 2,
+      "label": "rare"
+    },
+    "GLOW": {
+      "ordinal": 3,
+      "label": "ultra_rare"
+    },
+    "HEX": {
+      "ordinal": 4,
+      "label": "secret_rare"
+    },
+    "GUM": {
+      "ordinal": 4,
+      "label": "secret_rare"
+    },
+    "SUPER": {
+      "ordinal": 5,
+      "label": "one_of_one"
+    }
+  },
+  "foilOnlyWeapons": [
+    "GLOW",
+    "HEX",
+    "GUM",
+    "SUPER"
+  ],
+  "distributionTierLabels": {
+    "0": "base",
+    "1": "all_sku",
+    "2": "hobby_jumbo",
+    "3": "mega_blaster",
+    "4": "single_sku",
+    "5": "superfoil_1of1"
+  },
+  "treatments": {
+    "Grandma's Linoleum Battlefoil": {
+      "population": 1690,
+      "distributionTier": 2,
+      "distributionLabel": "hobby_jumbo",
+      "mappedFromGuide": true
+    },
+    "80's Rad Battlefoil": {
+      "population": 1690,
+      "distributionTier": 1,
+      "distributionLabel": "all_sku",
+      "mappedFromGuide": true
+    },
+    "Blizzard Battlefoil": {
+      "population": 1311,
+      "distributionTier": 1,
+      "distributionLabel": "all_sku",
+      "mappedFromGuide": true
+    },
+    "Mixtape Battlefoil": {
+      "population": 1310,
+      "distributionTier": 1,
+      "distributionLabel": "all_sku",
+      "mappedFromGuide": true
+    },
+    "Battlefoil": {
+      "population": 1028,
+      "distributionTier": 1,
+      "distributionLabel": "all_sku",
+      "mappedFromGuide": true
+    },
+    "Alpha Battlefoil": {
+      "population": 786,
+      "distributionTier": 1,
+      "distributionLabel": "all_sku",
+      "mappedFromGuide": true
+    },
+    "Colosseum Battlefoil": {
+      "population": 786,
+      "distributionTier": 1,
+      "distributionLabel": "all_sku",
+      "mappedFromGuide": true
+    },
+    "Great Grandma's Linoleum Battlefoil": {
+      "population": 786,
+      "distributionTier": 3,
+      "distributionLabel": "mega_blaster",
+      "mappedFromGuide": true
+    },
+    "Logofoil": {
+      "population": 786,
+      "distributionTier": 1,
+      "distributionLabel": "all_sku",
+      "mappedFromGuide": true
+    },
+    "Inspired Ink Battlefoil": {
+      "population": 756,
+      "distributionTier": 1,
+      "distributionLabel": "all_sku",
+      "mappedFromGuide": true
+    },
+    "Base Set": {
+      "population": 555,
+      "distributionTier": 0,
+      "distributionLabel": "base",
+      "mappedFromGuide": true
+    },
+    "Plays": {
+      "population": 405,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Silver Blast": {
+      "population": 391,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Icon Battlefoil": {
+      "population": 390,
+      "distributionTier": 3,
+      "distributionLabel": "mega_blaster",
+      "mappedFromGuide": true
+    },
+    "Superfoil": {
+      "population": 309,
+      "distributionTier": 5,
+      "distributionLabel": "superfoil_1of1",
+      "mappedFromGuide": true
+    },
+    "Blue Battlefoil": {
+      "population": 308,
+      "distributionTier": 2,
+      "distributionLabel": "hobby_jumbo",
+      "mappedFromGuide": true
+    },
+    "Green Battlefoil": {
+      "population": 308,
+      "distributionTier": 2,
+      "distributionLabel": "hobby_jumbo",
+      "mappedFromGuide": true
+    },
+    "Orange Battlefoil": {
+      "population": 308,
+      "distributionTier": 2,
+      "distributionLabel": "hobby_jumbo",
+      "mappedFromGuide": true
+    },
+    "Pink Battlefoil": {
+      "population": 308,
+      "distributionTier": 2,
+      "distributionLabel": "hobby_jumbo",
+      "mappedFromGuide": true
+    },
+    "Silver Battlefoil": {
+      "population": 236,
+      "distributionTier": 2,
+      "distributionLabel": "hobby_jumbo",
+      "mappedFromGuide": true
+    },
+    "Fire Tracks Battlefoil": {
+      "population": 232,
+      "distributionTier": 1,
+      "distributionLabel": "all_sku",
+      "mappedFromGuide": true
+    },
+    "Miami Ice Battlefoil": {
+      "population": 232,
+      "distributionTier": 1,
+      "distributionLabel": "all_sku",
+      "mappedFromGuide": true
+    },
+    "Pink Blast": {
+      "population": 181,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Bubble Gum Blast": {
+      "population": 181,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Green Blast": {
+      "population": 181,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Blue Blast": {
+      "population": 181,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Orange Blast": {
+      "population": 181,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Headlines Battlefoil": {
+      "population": 165,
+      "distributionTier": 4,
+      "distributionLabel": "single_sku",
+      "mappedFromGuide": true
+    },
+    "Hot Dog": {
+      "population": 137,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Inspired Ink Superfoil": {
+      "population": 134,
+      "distributionTier": 1,
+      "distributionLabel": "all_sku",
+      "mappedFromGuide": true
+    },
+    "Chillin' Battlefoil": {
+      "population": 131,
+      "distributionTier": 3,
+      "distributionLabel": "mega_blaster",
+      "mappedFromGuide": true
+    },
+    "Grillin' Battlefoil": {
+      "population": 131,
+      "distributionTier": 3,
+      "distributionLabel": "mega_blaster",
+      "mappedFromGuide": true
+    },
+    "Power Glove Battlefoil": {
+      "population": 131,
+      "distributionTier": 4,
+      "distributionLabel": "single_sku",
+      "mappedFromGuide": true
+    },
+    "Red Battlefoil": {
+      "population": 131,
+      "distributionTier": 2,
+      "distributionLabel": "hobby_jumbo",
+      "mappedFromGuide": true
+    },
+    "Slime Battlefoil": {
+      "population": 131,
+      "distributionTier": 3,
+      "distributionLabel": "mega_blaster",
+      "mappedFromGuide": true
+    },
+    "Inspired Ink Metallic Battlefoil": {
+      "population": 130,
+      "distributionTier": 2,
+      "distributionLabel": "hobby_jumbo",
+      "mappedFromGuide": true
+    },
+    "Bubble Gum Battlefoil": {
+      "population": 128,
+      "distributionTier": 2,
+      "distributionLabel": "hobby_jumbo",
+      "mappedFromGuide": true
+    },
+    "Blue Headlines Battlefoil": {
+      "population": 120,
+      "distributionTier": 4,
+      "distributionLabel": "single_sku",
+      "mappedFromGuide": true
+    },
+    "Red Headlines Battlefoil": {
+      "population": 120,
+      "distributionTier": 4,
+      "distributionLabel": "single_sku",
+      "mappedFromGuide": true
+    },
+    "Inspired Ink Bubble Gum Battlefoil": {
+      "population": 102,
+      "distributionTier": 1,
+      "distributionLabel": "all_sku",
+      "mappedFromGuide": true
+    },
+    "Paper": {
+      "population": 97,
+      "distributionTier": 0,
+      "distributionLabel": "base",
+      "mappedFromGuide": true
+    },
+    "Home Team Discount": {
+      "population": 60,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Orange Headlines Battlefoil": {
+      "population": 60,
+      "distributionTier": 4,
+      "distributionLabel": "single_sku",
+      "mappedFromGuide": true
+    },
+    "Bonus Plays": {
+      "population": 50,
+      "distributionTier": 4,
+      "distributionLabel": "single_sku",
+      "mappedFromGuide": true
+    },
+    "(none)": {
+      "population": 45,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Paper & Battlefoil": {
+      "population": 30,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Cyber": {
+      "population": 28,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Prize & Promos": {
+      "population": 26,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Sidekicks": {
+      "population": 17,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Rookie Power Up": {
+      "population": 12,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Serialized Battlefoil": {
+      "population": 7,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Kanjifoil": {
+      "population": 6,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Billy Cameo Alt Arts": {
+      "population": 5,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Grape": {
+      "population": 5,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Sour Apple": {
+      "population": 5,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Blue Raspberry": {
+      "population": 5,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Exclusive Battlefoil": {
+      "population": 5,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Paper Serialized": {
+      "population": 3,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    },
+    "Alt Art Battlefoil": {
+      "population": 1,
+      "distributionTier": null,
+      "distributionLabel": null,
+      "mappedFromGuide": false
+    }
+  },
+  "coldStartWeights": {
+    "_note": "Cold-start heuristic ONLY. Replaced by learned weights once comps exist (PRICING_PLAYBOOK §6.3). printRun is the dominant factual signal; the rest are ordinal priors.",
+    "printRun_score": {
+      "5": 58,
+      "10": 50,
+      "25": 42,
+      "50": 34
+    },
+    "printRun_default_cap": [
+      20,
+      60
+    ],
+    "weapon_tier_score": {
+      "1": 2,
+      "2": 10,
+      "3": 18,
+      "4": 26,
+      "5": 45
+    },
+    "dist_tier_score": {
+      "0": 0,
+      "1": 3,
+      "2": 10,
+      "3": 14,
+      "4": 18,
+      "5": 45
+    },
+    "foil_only_bonus": 5,
+    "power_lift_div": 12,
+    "one_of_one_score": 100
+  }
+}

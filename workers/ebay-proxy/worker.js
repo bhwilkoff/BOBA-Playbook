@@ -1682,40 +1682,15 @@ async function handleWhatnotProducts(request, _env) {
     return json({ query: "", count: 0, listings: [], error: "query required" }, 400);
   }
 
-  const cache = caches.default;
-  const cacheKey = new Request(
-    `https://boba-cache.internal/whatnot/products/v3/` +
-      `${encodeURIComponent(query.toLowerCase())}|` +
-      `${encodeURIComponent(cardNumber.toLowerCase())}|` +
-      `${encodeURIComponent(weapon.toLowerCase())}|` +
-      `${encodeURIComponent(treatment.toLowerCase())}|` +
-      `${encodeURIComponent(powerStr)}`,
-    { method: "GET" }
-  );
-  if (!debug) {
-    const hit = await cache.match(cacheKey);
-    if (hit) { const body = await hit.json(); return json(body, 200, { "X-Cache": "HIT" }); }
-  }
-
-  const target = buildWhatnotProductSearchUrl(query);
-  let listings = [];
-  let challenged = false;
-  let fetchError;
-  try {
-    const resp = await fetch(target, { headers: WHATNOT_HEADERS, redirect: "follow" });
-    const html = (await resp.text());
-    // Cloudflare managed-challenge detection — back off, don't retry.
-    if (resp.status === 403 || resp.headers.get("cf-mitigated") === "challenge" ||
-        /Just a moment|cf-browser-verification|challenge-platform/i.test(html.slice(0, 4000))) {
-      challenged = true;
-    } else if (resp.ok) {
-      listings = whatnotExtractProducts(html, query);
-    } else {
-      fetchError = `HTTP ${resp.status}`;
-    }
-  } catch (err) {
-    fetchError = err.message;
-  }
+  // The expensive part (fetch + extract the ~2 MB search HTML) is cached by
+  // HERO/query only, so many cards of the same hero (the tracker iterates
+  // the whole catalog) share ONE scrape. The per-card matchesCard scoring
+  // below runs per-request on a copy — the tight matching is never cached
+  // into the shared hero set.
+  const raw = await whatnotRawListings(query, debug);
+  const challenged = raw.challenged;
+  const fetchError = raw.fetchError;
+  let listings = (raw.listings || []).map(l => ({ ...l }));
 
   // Card-match scoring. A listing matches THIS card when its title carries
   // either the exact card number OR the exact power — BoBA sellers use one
@@ -1777,14 +1752,50 @@ async function handleWhatnotProducts(request, _env) {
     listings,
     fetchedAtIso: new Date().toISOString(),
   };
-  const respBody = json(payload, 200, {
+  return json(payload, 200, {
     "Cache-Control": `public, max-age=${WHATNOT_PRODUCTS_CACHE_TTL}`,
   });
-  // Only cache real successes — never cache a challenge/error.
-  if (!challenged && !fetchError && !debug) {
-    try { await cache.put(cacheKey, respBody.clone()); } catch (_) {}
+}
+
+/**
+ * Fetch + extract Whatnot product listings for a hero/query, cached by
+ * query ALONE (the scrape is the expensive part; per-card scoring is cheap
+ * and runs downstream). Returns { listings, challenged, fetchError }.
+ * Caches only real successes — never a Cloudflare challenge or error.
+ */
+async function whatnotRawListings(query, debug) {
+  const cache = caches.default;
+  const cacheKey = new Request(
+    `https://boba-cache.internal/whatnot/raw/v4/${encodeURIComponent(query.toLowerCase())}`,
+    { method: "GET" }
+  );
+  if (!debug) {
+    const hit = await cache.match(cacheKey);
+    if (hit) return await hit.json();
   }
-  return respBody;
+  const result = { listings: [], challenged: false, fetchError: undefined };
+  try {
+    const resp = await fetch(buildWhatnotProductSearchUrl(query), { headers: WHATNOT_HEADERS, redirect: "follow" });
+    const html = await resp.text();
+    if (resp.status === 403 || resp.headers.get("cf-mitigated") === "challenge" ||
+        /Just a moment|cf-browser-verification|challenge-platform/i.test(html.slice(0, 4000))) {
+      result.challenged = true;
+    } else if (resp.ok) {
+      result.listings = whatnotExtractProducts(html, query);
+    } else {
+      result.fetchError = `HTTP ${resp.status}`;
+    }
+  } catch (err) {
+    result.fetchError = err.message;
+  }
+  if (!result.challenged && !result.fetchError && !debug) {
+    try {
+      await cache.put(cacheKey, new Response(JSON.stringify(result), {
+        headers: { "content-type": "application/json", "Cache-Control": `public, max-age=${WHATNOT_PRODUCTS_CACHE_TTL}` },
+      }));
+    } catch (_) { /* edge cache write failures are non-fatal */ }
+  }
+  return result;
 }
 
 function buildWhatnotProductSearchUrl(query) {

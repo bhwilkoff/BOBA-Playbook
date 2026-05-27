@@ -6,8 +6,9 @@
 -- Apply:  wrangler d1 execute boba-pricing --remote --file=workers/pricing-tracker/schema.sql
 
 CREATE TABLE IF NOT EXISTS listings (
-  item_id         TEXT    PRIMARY KEY,   -- eBay listing id (parsed from /itm/{id})
+  item_id         TEXT    PRIMARY KEY,   -- eBay /itm/{id}, or "wn-{id}" for Whatnot
   boba_id         TEXT    NOT NULL,      -- our card identifier
+  source          TEXT    DEFAULT 'ebay',-- 'ebay' | 'whatnot' (marketplace the listing came from)
   price_usd       REAL    NOT NULL,      -- current asking
   shipping_usd    REAL,                  -- separated when known
   condition       TEXT,                  -- e.g. "Near Mint" (when proxy exposes it)

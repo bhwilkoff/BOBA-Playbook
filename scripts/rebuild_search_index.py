@@ -12,6 +12,7 @@ from each row's structured fields.
 """
 from __future__ import annotations
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -64,8 +65,20 @@ def main():
             if not alias:
                 continue
             # Match CardSearch.wordSplit: lowercase + split on non-alnum.
-            import re
             for tok in re.split(r"[^a-z0-9]+", str(alias).lower()):
+                if tok:
+                    token_index[tok].append(bid)
+        # Card number — index the dash-joined form ("P-8" -> "p8") AND each
+        # word-split token ("p", "8") so the search box finds a card by its
+        # number however the user types the dash. Without this the card
+        # number wasn't in the token index at all, so searching "P-8"
+        # returned nothing (2026-05-27).
+        cn = str(c.get("cardNumber") or "").lower().strip()
+        if cn:
+            joined = re.sub(r"[^a-z0-9]+", "", cn)
+            if joined:
+                token_index[joined].append(bid)
+            for tok in re.split(r"[^a-z0-9]+", cn):
                 if tok:
                     token_index[tok].append(bid)
         # Facet indexes — drive the filter dropdowns.

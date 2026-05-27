@@ -297,6 +297,34 @@ final class SupabaseClient {
         try checkStatus(data: data, response: response)
     }
 
+    /// Submit a community sold-comp (Tier 3, PRICING_PLAYBOOK.md §5). The SQL
+    /// function `submit_community_comp` is SECURITY DEFINER and enforces the
+    /// rate limits (5/user/day, 1/bobaId/user/week) + validation server-side,
+    /// raising (→ non-2xx) on violation. `soldAt` is sent as a `yyyy-MM-dd`
+    /// date string for the Postgres `date` column.
+    func submitCommunityComp(bobaId: String, price: Decimal, soldAt: Date,
+                             platform: String, notes: String?) async throws {
+        let url = try makeURL(path: "/rest/v1/rpc/submit_community_comp")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        addHeaders(&request, authenticated: true)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = TimeZone(identifier: "UTC")
+        var body: [String: Any] = [
+            "p_boba_id":   bobaId,
+            "p_price":     NSDecimalNumber(decimal: price),
+            "p_sold_at":   fmt.string(from: soldAt),
+            "p_platform":  platform,
+            "p_photo_url": NSNull()
+        ]
+        body["p_notes"] = (notes?.isEmpty == false) ? notes! : NSNull()
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try checkStatus(data: data, response: response)
+    }
+
     /// Triggers Supabase's native password reset email. Recipient
     /// gets a deep link back into bobaplaybook:// with a recovery
     /// token; AuthManager.handleDeepLink already routes those.

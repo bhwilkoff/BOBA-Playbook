@@ -159,6 +159,7 @@ When shipping any user-facing feature:
 | eBay sold comps | ✅ | ✅ | ✅ | Worker proxy |
 | Radish recent sales | 🚫 | 🚫 | 🚫 | Removed 2026-05-23 per DECISIONS.md #056 + RADISH_REMOVAL_LOOP.md. Per-card "View on Radish" external link retained on all three platforms (homepage fallback when `card.radishUrl` is null). |
 | COMC asking (separate, NOT in waterfall) | ✅ | ✅ | 🚫 | DECISIONS.md #034 — Android skipping per `feedback_comc_blocked_all_platforms` Turnstile gate |
+| Community comp submission (Tier 3) | ✅ | ✅ | ✅ | PRICING_PLAYBOOK §5 · DESIGN/ANDROID/WEB-DESIGN §8.7/§14.6. Quiet foot link → focused sheet/form (price/date/platform/notes); `submit_community_comp` RPC enforces rate limits (5/day, 1/card/week) + mod review. Text-only v1 (photo upload + mod-queue UI pending). |
 | Add to Collection / Deck / Show | ✅ | ✅ | ✅ | Auth-required |
 | Edit Designation | ✅ | ✅ | ✅ | Collection context — Android Edit Copy sheet shipped |
 | Share (deep link + image) | ✅ | ✅ | ✅ | iOS share sheet · Web Share API · Android `Intent.ACTION_SEND` w/ FileProvider |

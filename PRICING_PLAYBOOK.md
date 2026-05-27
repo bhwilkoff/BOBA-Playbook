@@ -566,3 +566,36 @@ approval is the v1 gate). PARITY.md updated.
 **Still remaining (Tier 3):** `boba-comp-upload` Worker (R2 photo, reuse
 `boba-avatar-upload`), mod-queue UI (extend the `card_corrections` admin
 panel with `get_pending_community_comps` / `review_community_comp`).
+
+### 2026-05-27 — Tier 3 mod-queue review UI (web) — comps now reach the estimator
+
+The submission flow was inert without a review surface (comps sit
+`status='pending'` until a mod approves; only approved comps flow through
+`get_approved_comps` → the estimator). Built the review queue on **web** —
+the most ergonomic surface for the sole admin (desktop, and where photo
+review will live). Mod workflows are intentionally low-chrome per DESIGN.md
+§12, so this reuses the existing admin-panel overlay shell rather than
+inventing new design language.
+
+- **api.js:** `getPendingCommunityComps()` (→ `get_pending_community_comps`,
+  SETOF rows; RLS + RPC both gate to mod/admin) + `reviewCommunityComp(id,
+  approve, rejectReason)` (→ `review_community_comp`). Both registered in the
+  API export.
+- **collection.js:** a "Review Sold Comps" row in the Profile → Moderation
+  section (visible to moderator + admin, alongside "Open Mod Panel"), with a
+  best-effort pending-count badge. Opens `openCompsReviewPanel()` — a
+  `.mod-edit-overlay` dialog listing each pending comp (card label resolved
+  via `window.__bobaCatalog`, price · sold date · platform · notes) with
+  per-row Approve / Reject (reject prompts an optional reason). Re-renders +
+  refreshes the badge after each action.
+- **styles.css:** `.comp-review-*` rows + `.profile-comps-badge` (low-chrome).
+- `node --check` clean on api.js + collection.js + app.js.
+
+End-to-end now closed: a user submits a comp on any platform → Ben approves
+on web → the approved comp flows through `boba-pricing-tracker /comps` into
+the estimator on all platforms. iOS/Android mod-queue parity is a follow-up
+(mobile mod panels are lower priority; moderation happens on web).
+
+**Still remaining (Tier 3):** `boba-comp-upload` Worker (R2 photo, reuse
+`boba-avatar-upload`); iOS/Android mod-queue parity (optional — web covers
+the sole-admin case today). Photo fingerprint-verify stays v2.

@@ -11799,3 +11799,33 @@ body.watch-player-open { overflow: hidden; }
 .pcc-notes { width: 100%; }
 .pcc-hint, .pcc-thanks { font-size: 0.72rem; color: var(--text-muted, #8a8aa0); margin: 2px 0 0; }
 .pcc-thanks { color: var(--boba-cyan, #00F5FF); }
+
+/* Mod queue — community-comp review rows (Tier 3). Low-chrome per
+   DESIGN.md §12 (mod tooling). Reuses the admin-panel overlay shell. */
+.profile-comps-badge {
+  margin-left: auto;
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 9px;
+  background: var(--boba-cyan, #00F5FF);
+  color: #061018;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+}
+.comp-review-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: var(--boba-surface, #0D0D1A);
+}
+.comp-review-main { flex: 1 1 auto; min-width: 0; }
+.comp-review-card { font-weight: 600; font-size: 0.85rem; }
+.comp-review-meta { font-size: 0.74rem; color: var(--text-muted, #8a8aa0); margin-top: 1px; }
+.comp-review-notes { font-size: 0.74rem; color: var(--text-muted, #8a8aa0); margin-top: 3px; font-style: italic; }
+.comp-review-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+.comp-review-actions .btn-primary,
+.comp-review-actions .btn-ghost-sm { padding: 5px 10px; font-size: 0.78rem; }

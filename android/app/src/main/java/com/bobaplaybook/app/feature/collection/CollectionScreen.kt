@@ -316,19 +316,32 @@ fun CollectionScreen(
                                 leadingIcon = { Icon(Icons.Default.QrCodeScanner, contentDescription = null) },
                                 onClick = { menuOpen = false; onScanClick() },
                             )
-                            // Refresh market values — Android previously
-                            // routed this through pull-to-refresh only,
-                            // but iOS exposes it in the overflow menu
-                            // too. Hidden behind PTR alone is hard for
-                            // a coach who just wants the latest pricing
-                            // without scrolling to the top.
+                            // "Refresh market values" — calls the proper
+                            // recompute loop now. Previously routed to
+                            // `refreshFromServer()` which only re-pulled
+                            // user_cards from Supabase, NOT the per-card
+                            // pricing recompute the label implies. Disabled
+                            // while a recompute is in flight (idempotent at
+                            // the VM layer too, but visible disable matches
+                            // iOS's "Refreshing prices…" labelled state).
+                            val isRecalculating by viewModel.isRecalculating.collectAsStateWithLifecycle()
+                            val recalcProgress by viewModel.recalcProgress.collectAsStateWithLifecycle()
                             DropdownMenuItem(
-                                text = { Text("Refresh market values") },
+                                text = {
+                                    Text(
+                                        if (isRecalculating) {
+                                            val (current, total) = recalcProgress ?: (0 to 0)
+                                            if (total > 0) "Refreshing prices… ($current/$total)"
+                                            else "Refreshing prices…"
+                                        } else "Refresh market values",
+                                    )
+                                },
                                 leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
                                 onClick = {
                                     menuOpen = false
-                                    viewModel.refreshFromServer()
+                                    viewModel.recalculateAll()
                                 },
+                                enabled = !isRecalculating,
                             )
                             HorizontalDivider()
                             // Share moved into the overflow menu — was a
@@ -607,24 +620,18 @@ fun CollectionScreen(
                 )
             }
 
-            // Pull-to-refresh re-pulls user_cards from Supabase via
-            // CollectionRepository.refresh(). Wall-mode wraps the
-            // same way; refreshing then re-renders with whatever the
-            // server returned (e.g. picks up writes from another
-            // device on the same account).
-            var isRefreshing by remember { mutableStateOf(false) }
+            // Pull-to-refresh fires the SAME market-value recompute the
+            // toolbar Menu uses (parity with iOS — both PTR and the
+            // overflow item call `recalculateAll`). Previously it just
+            // re-pulled user_cards from Supabase, so a user pulling down
+            // expecting fresh prices got fresh ROWS but stale values.
+            // The PullToRefreshBox indicator is bound to the VM's
+            // isRecalculating StateFlow so it stays visible for the full
+            // multi-card walk (could be minutes for large collections).
+            val isRecalculatingPtr by viewModel.isRecalculating.collectAsStateWithLifecycle()
             PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = {
-                    isRefreshing = true
-                    viewModel.refreshFromServer()
-                    // The repo refresh is fire-and-forget against
-                    // Flow; clear the indicator after a short tick.
-                    scope.launch {
-                        kotlinx.coroutines.delay(800)
-                        isRefreshing = false
-                    }
-                },
+                isRefreshing = isRecalculatingPtr,
+                onRefresh = { viewModel.recalculateAll() },
                 modifier = Modifier.fillMaxSize(),
             ) {
                 when (displayMode) {

@@ -12,13 +12,18 @@ import com.bobaplaybook.core.data.decks.SavedDeck
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.domain.model.Designation
 import com.bobaplaybook.core.domain.model.UserCard
+import com.bobaplaybook.core.network.PricingService
+import com.bobaplaybook.core.network.marketValue
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
@@ -41,6 +46,7 @@ class CollectionViewModel @Inject constructor(
     private val cardRepository: CardRepository,
     private val deckRepository: DeckRepository,
     private val authManager: AuthManager,
+    private val pricingService: PricingService,
 ) : ViewModel() {
 
     /**
@@ -121,11 +127,117 @@ class CollectionViewModel @Inject constructor(
     }
 
     /**
-     * Force a fresh refetch of user_cards from Supabase. Wired to
-     * pull-to-refresh on the Collection grid + list.
+     * Force a fresh refetch of user_cards from Supabase. Used by callers
+     * that just need the rows resynced (rare on Android; pull-to-refresh
+     * + Menu "Refresh market values" both call [recalculateAll] now).
      */
     fun refreshFromServer() {
         viewModelScope.launch { collectionRepository.refresh() }
+    }
+
+    // Market-value recompute state. Mirrors iOS `CollectionStore`
+    // `refreshSource` + `recalcProgress`. UI binds to these so the
+    // toolbar Menu shows "Refreshing… (N/M)" instead of stalling silently
+    // through a multi-minute Worker walk.
+    private val _isRecalculating = MutableStateFlow(false)
+    val isRecalculating: StateFlow<Boolean> = _isRecalculating.asStateFlow()
+
+    private val _recalcProgress = MutableStateFlow<Pair<Int, Int>?>(null)
+    val recalcProgress: StateFlow<Pair<Int, Int>?> = _recalcProgress.asStateFlow()
+
+    /**
+     * Force-refresh `estimated_value` for every owned UNIQUE bobaId
+     * (parity with iOS `CollectionStore.recalculateAllValues`). Wired to
+     * both the toolbar Menu's "Refresh market values" item AND pull-to-
+     * refresh on the Collection grid so the affordances do what their
+     * labels say. The previous Android wiring on both was a no-op for
+     * pricing — `refreshFromServer()` only re-pulled user_cards from
+     * Supabase, so the label "Refresh market values" silently lied.
+     *
+     * Iterates by bobaId — NOT by cardNumber — so weapon-variant
+     * siblings (DECISIONS.md #057) get distinct pricing. The fetch shape
+     * mirrors [CardDetailViewModel.loadPricing] minus Whatnot (matches
+     * iOS — at 100+ card scale Whatnot per-card is too expensive, and
+     * asks shouldn't move stored value anyway, #034).
+     *
+     * Idempotent: re-entries while a recompute is in flight no-op so
+     * the user can mash the button without forking the loop.
+     */
+    fun recalculateAll() {
+        if (_isRecalculating.value) return
+        viewModelScope.launch {
+            _isRecalculating.value = true
+            _recalcProgress.value = 0 to 0
+            try {
+                // "Owned" = anything except Wanted + Grails (wishlist
+                // rows aren't physical copies yet — DECISIONS.md #039 +
+                // iOS `Designation.isOwned`). Android has no enum helper
+                // yet so it's inlined here.
+                val owned = collectionRepository.ownedCards.value.filter {
+                    it.designation != Designation.WANTED && it.designation != Designation.GRAILS
+                }
+                val ownedBobaIds = owned.map { it.cardBobaId }.distinct()
+                val total = ownedBobaIds.size
+                val catalog = cardRepository.cards.value.associateBy { it.bobaId }
+                var failed = 0
+                ownedBobaIds.forEachIndexed { index, bobaId ->
+                    _recalcProgress.value = (index + 1) to total
+                    val card = catalog[bobaId]
+                    if (card == null) {
+                        failed++
+                        return@forEachIndexed
+                    }
+                    runCatching {
+                        val bundle = pricingService.fetchAll(
+                            cardNumber = card.cardNumber,
+                            hero = card.hero,
+                            set = card.set,
+                            element = card.element.takeIf { !card.isSealed },
+                            bobaId = bobaId,
+                        )
+                        val comps = pricingService.fetchComps(bobaId)
+                        val resolved = marketValue(
+                            ebayActive = bundle.ebayActive,
+                            ebaySold = bundle.ebaySold,
+                            comps = comps,
+                            whatnotMatched = emptyList(),
+                        )
+                        var value: Double? = resolved.headlineValue
+                        if (value == null || value == 0.0) {
+                            // Tier 4 fallback to the static estimator artifact
+                            // (PRICING_PLAYBOOK §6.5) — long-tail cards with no
+                            // live activity still get a stored value.
+                            val est = pricingService.fetchMarketEstimate(bobaId)
+                            if (est != null && est.mid > 0) value = est.mid
+                        }
+                        val v = value ?: bundle.marketAverageUsd ?: 0.0
+                        if (v > 0) {
+                            collectionRepository.updateEstimatedValue(bobaId, v)
+                        }
+                    }.onFailure { e ->
+                        android.util.Log.w(
+                            "CollectionViewModel",
+                            "recalculateAll($bobaId) failed: ${e.javaClass.simpleName}: ${e.message}",
+                        )
+                        failed++
+                    }
+                    // Light throttle so we don't flood the Worker (mirrors iOS).
+                    delay(400)
+                }
+                if (failed > 0) {
+                    android.util.Log.w(
+                        "CollectionViewModel",
+                        "recalculateAll done — $failed of $total bobaIds failed (catalog mismatch or Worker error)",
+                    )
+                }
+                // Resync from server so any rows updated by another device
+                // (or by this recompute) reach the cache.
+                collectionRepository.refresh()
+            } finally {
+                _recalcProgress.value = null
+                _isRecalculating.value = false
+            }
+        }
     }
 
     /**

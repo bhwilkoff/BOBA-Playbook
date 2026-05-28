@@ -423,11 +423,15 @@ struct PricingSection: View {
                 let showsTriGrid = isEstimated || (!isActive && bucket.count > 1) || (listedRange && bucket.count > 1)
                 if showsTriGrid {
                     HStack(spacing: 0) {
-                        priceCell(label: isEstimated ? "EST. LOW"  : "LOW",  value: bucket.low,     isActive: isActive)
+                        // Unified LOW / AVG / HIGH labels across all three
+                        // sections + all three platforms (DECISIONS.md #059).
+                        // The "MARKET EST." framing lives in the section
+                        // header (`displayLabel` above) — cells stay clean.
+                        priceCell(label: "LOW",  value: bucket.low,     isActive: isActive)
                         Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
-                        priceCell(label: isEstimated ? "EST. MID"  : "AVG",  value: bucket.average, isActive: isActive)
+                        priceCell(label: "AVG",  value: bucket.average, isActive: isActive)
                         Divider().frame(maxHeight: 48).overlay(Design.Colors.glassBorder)
-                        priceCell(label: isEstimated ? "EST. HIGH" : "HIGH", value: bucket.high,    isActive: isActive)
+                        priceCell(label: "HIGH", value: bucket.high,    isActive: isActive)
                     }
                     .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
                 } else {

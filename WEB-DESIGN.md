@@ -604,7 +604,10 @@ preserved (DECISIONS.md #056).
 
 **Anti-patterns to avoid:** rendering `MARKET EST.` from an empty or
 derived estimate; folding COMC asking into a sold number (#034);
-hiding the source pill (provenance is the trust mechanism).
+hiding the source pill (provenance is the trust mechanism); labels
+other than `LOW / AVG / HIGH` inside any tri-grid (DECISIONS.md #059
+cross-platform vocabulary lock — the section header carries every
+other framing).
 
 **Community comps (Tier 3) — quiet + subordinate.** A single low-emphasis
 `.pricing-comp-link` at the FOOT of the pricing body ("Saw one sell? Add a

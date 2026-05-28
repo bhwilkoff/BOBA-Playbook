@@ -137,6 +137,18 @@ def main() -> int:
             bundle_keys = [k for k in bundle_keys if k != "printedSerial"]
             bundle_keys_set.discard("printedSerial")
 
+        # NEW FIELD: radishUrl — needed by every client's "View on Radish"
+        # button (DECISIONS.md #056 + #059 pricing parity). The slim
+        # bundle dropped it pre-2026-05-28, which silently broke the
+        # Radish link on Android (Android's cards.json is generated from
+        # the slim, so 17,655 cards landed with radishUrl=null and the
+        # button always fell back to the homepage). Ship it everywhere.
+        if "radishUrl" not in bundle_keys_set and any(
+            c.get("radishUrl") for c in master
+        ):
+            bundle_keys.append("radishUrl")
+            bundle_keys_set.add("radishUrl")
+
         # Project ALL master cards through this bundle's key-set.
         # Previously Android dropped 77 cards (HotDog Griffey Edition +
         # Alpha Blast subsets) from a stale sync — this regen heals

@@ -11,13 +11,10 @@ import javax.inject.Inject
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -33,7 +30,7 @@ import kotlinx.coroutines.flow.update
  *  - Featured shelves precomputed once the catalog lands
  *  - Live suggestions inside the SearchBar expanded content
  */
-@OptIn(FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class FindViewModel @Inject constructor(
     private val cardRepository: CardRepository,
@@ -79,8 +76,23 @@ class FindViewModel @Inject constructor(
         val sort: SortOrder,
     )
 
+    // DO NOT add `.debounce(...)` on `query` here. The M3 SearchBar is a
+    // CONTROLLED text field — the displayed text is forced to whatever
+    // `query` prop says on every composition. If `state.query` lags the
+    // user's keystrokes (because a debounced source upstream waits 100ms
+    // before emitting), the TextField's prop reads the stale empty value
+    // while the user types, the IME edit gets rolled back, and every
+    // keystroke is silently eaten. This bug shipped from M1 (carry-over
+    // from the earlier OutlinedTextField era where debounce was fine)
+    // and is the "cannot type anything into the search bar" Ben reported
+    // 2026-05-28. The user-visible query MUST be immediate; the filter
+    // logic is cheap enough at 17,974 cards to run per keystroke (word-
+    // prefix matching via `CardSearch.matches`, microseconds per card).
     private val filtersFlow = combine(
-        query.debounce(100L).distinctUntilChanged(),
+        // StateFlow coalesces equal emissions automatically (Operator
+        // Fusion) — no `.distinctUntilChanged()` needed, no `.debounce()`
+        // allowed (see comment above).
+        query,
         combine(activeWeapons, activeTreatment, activeSet, activeRelease) { w, t, s, r ->
             arrayOf(w, t, s, r)
         },

@@ -3302,8 +3302,31 @@ const Collection = (() => {
           </div>
           ${copiesHtml}
         </div>
+        ${catalogCard ? `
+        <div class="cdetail-section">
+          <!-- Pricing — same panel the Find modal renders. js/app.js exposes
+               loadPricing(card, sectionId) so both surfaces share the
+               eBay + comps + Whatnot + estimator pipeline + renderPricingData.
+               Pre-fix the Collection detail had no pricing at all
+               (DECISIONS.md #062 sweep, 2026-05-28). -->
+          <section id="cdetail-pricing">
+            <div class="pricing-body">
+              <div class="pricing-loading">
+                <div class="loading-spinner-sm" aria-hidden="true"></div>
+                <span>Loading…</span>
+              </div>
+            </div>
+          </section>
+        </div>` : ''}
         ${variationsHtml}
       </div>`;
+
+    // Kick off the pricing fetch + render against the cdetail-pricing
+    // section. Soft-fail if app.js hasn't initialized yet (rare race —
+    // the Collection tab won't have data to render until app.js loads).
+    if (catalogCard && typeof window.bobaLoadPricing === 'function') {
+      window.bobaLoadPricing(catalogCard, 'cdetail-pricing');
+    }
 
     box.querySelector('#cdetail-close-btn')
       .addEventListener('click', closeCollectionDetail);

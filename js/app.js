@@ -582,6 +582,12 @@
   }
   // Expose globally for collection.js / other modules.
   window.bobaShowPopoverMenu = showPopoverMenu;
+  // Expose `loadPricing` so js/collection.js can render the SAME
+  // pricing panel on its card-detail overlay (parity with Find modal).
+  // Caller passes (card, sectionId) — the function targets that section
+  // and runs the full eBay + comps + Whatnot + estimator pipeline +
+  // renderPricingData. See DECISIONS.md #062.
+  window.bobaLoadPricing = loadPricing;
 
   function showView(name, fromHistory = false) {
     // Practice is gated to admin only — bounce non-admins back to
@@ -3656,8 +3662,14 @@
     return (card && card.radishUrl) ? card.radishUrl : RADISH_HOMEPAGE;
   }
 
-  function loadPricing(card) {
-    const section = $('modal-pricing');
+  // `sectionId` defaults to 'modal-pricing' for the Find modal. The
+  // Collection card-detail overlay (js/collection.js) passes its own
+  // 'cdetail-pricing' so both surfaces share the SAME pricing pipeline
+  // verbatim — eBay + comps + Whatnot + estimator → renderPricingData.
+  // Pre-fix the Collection detail had no pricing at all (DECISIONS.md
+  // #062 sweep, 2026-05-28).
+  function loadPricing(card, sectionId = 'modal-pricing') {
+    const section = $(sectionId);
     if (!section) return;
 
     const ebayUrl   = buildEbayUrl(card);

@@ -507,12 +507,18 @@ object LearnCorpus {
         ),
         LearnSection.Bullets(
             heading = "Inspired Ink (Serialized) — hand-numbered runs",
+            // Prior copy listed a fixed Hex/Glow/Fire/Ice → /5/10/25/50
+            // ladder. Retired by DECISIONS.md #061: card-art OCR shows
+            // the mapping is wrong — FIRE + ICE each appear at BOTH /5
+            // AND /50, and 174 FIRE cards have a real printRun ≠ 25.
+            // The exact count lives on the card art and in the catalog's
+            // per-card `printRun` field; the Learn copy explains the
+            // convention without inferring count from weapon.
             items = listOf(
-                "Hex /5 — rarest serialized variant available",
-                "Glow /10",
-                "Fire /25",
-                "Ice /50",
-                "Steel / Brawl — base set only; no serialized run",
+                "Hand-stamped serial numbers — typically /5, /10, /25, or /50",
+                "The exact print run is stamped on the card art itself; it varies by individual card, not by weapon type",
+                "Open a card's detail view to see its actual count — we OCR it off the art for the 464 numbered cards in the catalog",
+                "Most cards (the other 17,510) are un-numbered and have no Inspired Ink serial",
             ),
         ),
         LearnSection.Bullets(
@@ -534,7 +540,7 @@ object LearnCorpus {
         LearnSection.Bullets(
             heading = "Treatments — premium",
             items = listOf(
-                "Inspired Ink (Serialized) — Hex /5, Glow /10, Fire /25, Ice /50",
+                "Inspired Ink (Serialized) — hand-stamped print runs (typically /5–/50); exact count is OCR'd from the card art per card, not inferred from weapon",
                 "Superfoil — premium variant, rare across most sets",
             ),
         ),
@@ -652,7 +658,7 @@ object LearnCorpus {
         LearnSection.Term(term = "raw", definition = "Ungraded. The opposite of PSA/BGS/CGC/TAG graded."),
         LearnSection.Term(term = "graded", definition = "Encapsulated and scored by a third-party grader (PSA, BGS, CGC, TAG). 'PSA 10' is the top grade at PSA."),
         LearnSection.Term(term = "TAG", definition = "TAG Grading — an emerging alternative grader using laser-scored analysis. Ask your event organizer whether TAG slabs are accepted as proxies."),
-        LearnSection.Term(term = "comps", definition = "Comparable recent sales — used to sanity-check a price. The card detail view's pricing panel pulls comps from eBay's Marketplace Insights API."),
+        LearnSection.Term(term = "comps", definition = "Comparable recent sales — actual sold transactions used to gauge a card's value. The pricing panel surfaces sales we generate ourselves: eBay (inferred when active listings disappear, ~14–60d window), Whatnot, and community-submitted comps. Each row carries a source pill so you can see where it came from."),
         LearnSection.Term(term = "dumper", definition = "A card sold cheaply — often the lower-value hit in a break-day liquidation."),
         LearnSection.Term(term = "banger", definition = "An impressive or high-value pull. Affectionate."),
         LearnSection.Term(term = "scam / scammer", definition = "Don't engage, report to moderators, and check the vouch history before any trade with a new account."),

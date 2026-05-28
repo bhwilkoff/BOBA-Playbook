@@ -832,10 +832,10 @@ struct CardDetailView: View {
                         let explanation: String = {
                             switch label {
                             case "SSP":    return "Superfoil — Super-Short-Print, BoBA's rarest non-numbered treatment."
-                            case "/5":     return "Inspired Ink Hex — limited run of 5 copies (BoBA's rarest serialized treatment)."
-                            case "/10":    return "Inspired Ink Glow — limited run of 10 copies."
-                            case "/25":    return "Inspired Ink Fire — limited run of 25 copies."
-                            case "/50":    return "Inspired Ink Ice — limited run of 50 copies."
+                            case "/5":     return "Hand-stamped Inspired Ink — print run of 5. Among the rarest serialized counts in any product run."
+                            case "/10":    return "Hand-stamped Inspired Ink — print run of 10."
+                            case "/25":    return "Hand-stamped Inspired Ink — print run of 25."
+                            case "/50":    return "Hand-stamped Inspired Ink — print run of 50. The highest standard Inspired Ink count."
                             case "Serial": return "Inspired Ink — serialized run; print number not publicly disclosed."
                             default:       return "\(label) print run."
                             }

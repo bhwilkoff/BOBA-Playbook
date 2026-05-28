@@ -58,6 +58,8 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.bobaplaybook.app.feature.carddetail.CardDetailViewModel
+import com.bobaplaybook.app.feature.carddetail.PricingPanelsPublic
 import com.bobaplaybook.core.domain.model.Card
 import com.bobaplaybook.core.domain.model.CardFormatEligibility
 import com.bobaplaybook.core.domain.model.Designation
@@ -92,6 +94,15 @@ fun CollectionCardDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val savedDecks by viewModel.savedDecks.collectAsStateWithLifecycle()
     val catalog by viewModel.catalogCards.collectAsStateWithLifecycle()
+    // Pricing surface — parity with iOS PricingSection on Collection.
+    // CardDetailViewModel owns the fetch pipeline (eBay / comps / Whatnot /
+    // estimator); `uiStateFor(bobaId)` auto-triggers `loadPricing` on first
+    // observation, so just collecting the state kicks off the round-trip.
+    // Pre-fix the Android Collection card detail had NO pricing at all —
+    // CollectionCardDetailScreen instantiated CollectionViewModel only and
+    // never touched the pricing flow (DECISIONS.md #062 sweep, 2026-05-28).
+    val cardDetailViewModel: CardDetailViewModel = hiltViewModel()
+    val cardDetailState by cardDetailViewModel.uiStateFor(bobaId).collectAsStateWithLifecycle()
     // Snackbar context for the per-copy "Removed · Undo" flow (tick 119).
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val appSnackbar = com.bobaplaybook.core.ui.snackbar.LocalAppSnackbar.current
@@ -273,6 +284,24 @@ fun CollectionCardDetailScreen(
                     }
                 }
             }
+
+            // Pricing — provenance-honest panel (Recent Sales / Listed
+            // Range / Market Est. + Whatnot strip + community comp link +
+            // eBay Sales + View on Radish) per DECISIONS.md #058 / #059 /
+            // #062. Reuses CardDetailScreen.PricingPanels verbatim so the
+            // Collection surface and the Find surface render identically
+            // for the same card. Buy Now is included by default — coaches
+            // appreciate seeing "current asking" on a card they already
+            // own (e.g., comparing to their own asking_price), and the
+            // PricingSection's Tier 2 fold honors #034.
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+            PricingPanelsPublic(
+                state = cardDetailState,
+                onRefresh = { cardDetailViewModel.refreshPricing(bobaId) },
+            )
 
             // "Other versions" — same hero, different treatment. Tap an
             // alt to push that variant's detail onto the back stack

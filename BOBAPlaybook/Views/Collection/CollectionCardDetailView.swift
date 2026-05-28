@@ -142,12 +142,16 @@ struct CollectionCardDetailView: View {
                         // earlier `!card.isSealed` gate hid pricing from
                         // sealed entries in Collection only — fixed per
                         // beta feedback 2026-05-20.
+                        //
+                        // `externalLinksRow` removed 2026-05-28 per Ben's
+                        // audit: PricingSection already renders both the
+                        // "eBay Sales" and "View on Radish" footer buttons
+                        // (PricingSection.swift §"External links"). Calling
+                        // externalLinksRow alongside duplicated both, so
+                        // Collection rendered each twice. The duplicates
+                        // are gone; PricingSection is the single source.
                         if let card = catalogCard {
                             PricingSection(card: card, showActiveListings: false)
-                        }
-
-                        if let card = catalogCard {
-                            externalLinksRow(card: card)
                         }
 
                         if !variations.isEmpty {

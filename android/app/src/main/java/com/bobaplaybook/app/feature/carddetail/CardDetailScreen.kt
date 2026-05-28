@@ -1424,6 +1424,14 @@ private fun buildEbaySoldSearchUrl(hero: String?, cardNumber: String?): String {
         "&LH_Sold=1&LH_Complete=1&_sacat=0&_from=R40&_trksid=m570.l1313&_osacat=0"
 }
 
+// `internal` so CollectionCardDetailScreen can render the same pricing
+// panel (parity with iOS — both surfaces share PricingSection verbatim).
+// Inner composables stay `private` since they're only called from this file.
+@Composable
+internal fun PricingPanelsPublic(state: CardDetailUiState, onRefresh: () -> Unit) {
+    PricingPanels(state = state, onRefresh = onRefresh)
+}
+
 @Composable
 private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
     if (state.isLoadingPricing) {

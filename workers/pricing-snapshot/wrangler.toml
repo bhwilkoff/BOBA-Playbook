@@ -8,11 +8,16 @@ compatibility_date = "2024-01-01"
 binding = "SNAPSHOT_KV"
 id      = "6380f365d13247e28f978b7d76c8e4a9"
 
-# Cron — nightly at 04:00 UTC (one hour after the estimator). Cron
-# walks a rotating slice of the catalog each night and writes the
-# latest snapshot to the Supabase `card_prices_history` table.
+# Cron DISABLED — the snapshot walk makes per-card service-binding fetches
+# to boba-ebay-proxy, blowing Cloudflare's free-plan 50-subrequest/invocation
+# cap (same wall as DECISIONS.md #058). It's also redundant now: the push
+# model records active listings on every card view, and clients fall back to
+# a live eBay-proxy fetch when the card_prices_history cache is cold — a
+# graceful degradation, not an outage. Worth reviving ONLY on a paid plan or
+# as an offline local job (cf. scripts/crawl_active_listings.py). The Worker
+# still serves its manual /refresh + /explain endpoints.
 [triggers]
-crons = ["0 4 * * *"]
+crons = []
 
 # Service bindings — Worker-to-Worker fetch via public URLs gets
 # 404'd by Cloudflare's edge router. Service bindings call the

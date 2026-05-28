@@ -54,7 +54,13 @@ from collections import defaultdict
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CATALOG = os.path.join(REPO, "assets", "data", "cards.json")
-CURSOR = os.path.join(REPO, "scripts", ".active_crawl_cursor.json")
+# One cursor per --source so eBay and Whatnot don't share state — different
+# marketplaces have different inventory, so what's "covered" on one isn't on
+# the other. Both cursors live in scripts/ (gitignored).
+CURSOR_BY_SOURCE = {
+    "ebay":    os.path.join(REPO, "scripts", ".active_crawl_cursor.json"),
+    "whatnot": os.path.join(REPO, "scripts", ".active_crawl_cursor_whatnot.json"),
+}
 PROXY = "https://boba-ebay-proxy.benwilkoff.workers.dev"
 
 
@@ -72,17 +78,18 @@ def treatment_family(t):
               .replace(" ", "_"))
 
 
-def load_cursor():
-    if os.path.exists(CURSOR):
+def load_cursor(source):
+    path = CURSOR_BY_SOURCE[source]
+    if os.path.exists(path):
         try:
-            return set(json.load(open(CURSOR)).get("done", []))
+            return set(json.load(open(path)).get("done", []))
         except Exception:
             return set()
     return set()
 
 
-def save_cursor(done):
-    json.dump({"done": sorted(done)}, open(CURSOR, "w"))
+def save_cursor(done, source):
+    json.dump({"done": sorted(done)}, open(CURSOR_BY_SOURCE[source], "w"))
 
 
 def stratified_order(cards, done):
@@ -114,6 +121,9 @@ def stratified_order(cards, done):
 
 
 def crawl_one(card, timeout):
+    """Hit eBay via the proxy root — the proxy fetches active listings AND
+    push-ingests them into the tracker (DECISIONS.md #058). Counts toward
+    eBay's daily Browse quota (~5000/day)."""
     params = {
         "cardNumber": card.get("cardNumber", ""),
         "hero": card.get("hero", "") or "",
@@ -130,6 +140,29 @@ def crawl_one(card, timeout):
     return active
 
 
+def crawl_one_whatnot(card, timeout):
+    """Hit Whatnot via the proxy — the proxy scrapes Whatnot listings, matches
+    by (cardNumber, weapon, treatment, power), and push-ingests matched ones
+    into the tracker. Costs ZERO eBay quota — the right channel for treatments
+    that trade on Whatnot more than eBay (mainstream battlefoils, color blasts,
+    Inspired Ink series). Returns the matchesCard count."""
+    params = {
+        "query":      card.get("hero", "") or "",
+        "cardNumber": card.get("cardNumber", ""),
+        "weapon":     card.get("element", "") or "",
+        "treatment":  card.get("treatment", "") or "",
+        "bobaId":     card.get("bobaId", ""),
+    }
+    if card.get("power") is not None:
+        params["power"] = str(card["power"])
+    url = f"{PROXY}/whatnot/products?{urllib.parse.urlencode(params)}"
+    req = urllib.request.Request(url, headers={"User-Agent": "boba-active-crawl/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        data = json.loads(r.read().decode())
+    listings = data.get("listings") or []
+    return sum(1 for l in listings if l.get("matchesCard"))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=800, help="max cards this run (eBay-quota guard)")
@@ -139,17 +172,26 @@ def main():
                     help="CSV of exact treatment strings to focus this run on; "
                          "all other treatments are skipped. Used to fill empty "
                          "rarity buckets identified by the builder's coverage audit.")
+    ap.add_argument("--source", choices=("ebay", "whatnot"), default="ebay",
+                    help="which marketplace to crawl per card. ebay (default) "
+                         "burns eBay Browse quota; whatnot costs zero eBay quota "
+                         "and is the right channel for treatments that trade more "
+                         "on Whatnot than eBay (mainstream battlefoils, blasts, "
+                         "Inspired Ink). Uses a separate cursor per source.")
     ap.add_argument("--reset", action="store_true", help="clear the resume cursor and exit")
     args = ap.parse_args()
 
     if args.reset:
-        if os.path.exists(CURSOR):
-            os.remove(CURSOR)
-        print("cursor cleared")
+        path = CURSOR_BY_SOURCE[args.source]
+        if os.path.exists(path):
+            os.remove(path)
+        print(f"{args.source} cursor cleared")
         return
 
     cards = json.load(open(CATALOG))
-    done = load_cursor()
+    done = load_cursor(args.source)
+    crawl_fn = crawl_one_whatnot if args.source == "whatnot" else crawl_one
+    print(f"source={args.source}")
     # Targeted-fill mode: restrict the queue to cards in specific treatments
     # (e.g., to fill rarity-buckets the coverage audit flagged as empty).
     if args.treatments:
@@ -168,12 +210,12 @@ def main():
             break
         bid = card["bobaId"]
         try:
-            n = crawl_one(card, args.timeout)
+            n = crawl_fn(card, args.timeout)
             with_listings += 1 if n > 0 else 0
             done.add(bid)
             crawled += 1
             if crawled % 25 == 0:
-                save_cursor(done)
+                save_cursor(done, args.source)
                 print(f"  {crawled}/{args.limit}  listings_found={with_listings}  last={bid[:40]} (n={n})")
         except KeyboardInterrupt:
             break
@@ -185,8 +227,8 @@ def main():
             print(f"  skip {bid[:40]}: {e}", file=sys.stderr)
         time.sleep(args.delay)
 
-    save_cursor(done)
-    print(f"DONE this run: crawled={crawled} with_listings={with_listings} total_done={len(done)}")
+    save_cursor(done, args.source)
+    print(f"DONE this run: source={args.source} crawled={crawled} with_listings={with_listings} total_done={len(done)}")
 
 
 if __name__ == "__main__":

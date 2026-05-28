@@ -53,9 +53,13 @@ USAGE
 import argparse
 import json
 import os
+import re
 import statistics
 import subprocess
 import sys
+import time
+import urllib.parse
+import urllib.request
 from collections import defaultdict
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -66,6 +70,49 @@ TRACKER_DIR = os.path.join(REPO, "workers", "pricing-tracker")
 SOLD_HAIRCUT = 0.82     # asking → estimated-sold (asks run ~10-25% above sold)
 MIN_CARDS = 3           # confidence floor: a bucket needs this many OTHER priced cards
 CONF_HIGH = 8
+PROXY = "https://boba-ebay-proxy.benwilkoff.workers.dev"
+
+# Weapon names that appear in Whatnot listing titles. Matched case-insensitive
+# with word boundaries so "Steel" matches but "steelhead" doesn't. The catalog
+# also has ALT/CYBER/NONE which rarely appear in titles; if a title lacks a
+# weapon word the listing is dropped from the treatment-Whatnot aggregate
+# (we'd otherwise dump it into a wrong bucket).
+WEAPONS_IN_TITLE = ["FIRE", "ICE", "STEEL", "GLOW", "HEX", "GUM", "SUPER", "BRAWL"]
+WEAPON_RE = re.compile(r"\b(" + "|".join(WEAPONS_IN_TITLE) + r")\b", re.IGNORECASE)
+
+
+def parse_weapon_from_title(title):
+    """Return the BoBA weapon string mentioned in a Whatnot/eBay listing
+    title, or None when no weapon word is present (drop the listing then —
+    putting it into a wrong bucket would be worse than missing it)."""
+    if not title:
+        return None
+    m = WEAPON_RE.search(title)
+    return m.group(1).upper() if m else None
+
+
+def fetch_whatnot_aggregate(treatment, timeout=12):
+    """Query the eBay proxy's Whatnot endpoint with just the treatment name
+    (no per-card filter) and return [(weapon, price), …] for listings whose
+    title cleanly identifies a weapon. The proxy's anti-bot already passes;
+    its 12-min edge cache amortizes the scrape across multiple build runs."""
+    url = f"{PROXY}/whatnot/products?{urllib.parse.urlencode({'query': treatment})}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "boba-baseline-builder/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            data = json.loads(r.read().decode())
+    except Exception as e:
+        print(f"  ! whatnot fetch failed for {treatment!r}: {e}", file=sys.stderr)
+        return []
+    out = []
+    for li in (data.get("listings") or []):
+        price = li.get("price")
+        if not (isinstance(price, (int, float)) and price > 0):
+            continue
+        w = parse_weapon_from_title(li.get("title") or "")
+        if w:
+            out.append((w, float(price)))
+    return out
 
 
 def treatment_family(t):
@@ -163,6 +210,49 @@ def main():
             price = prices[bid][0]
             for lv, k in keys_for(c).items():
                 buckets[lv][k].append((bid, price))
+
+    # ── Whatnot treatment-level augmentation ──────────────────────────────
+    # Many catalog treatments (mainstream battlefoils, color blasts, Inspired
+    # Ink series) trade more on Whatnot than eBay. The proxy's per-card
+    # matchesCard filter is necessarily strict — it requires cardNumber+weapon
+    # in the listing title — but Whatnot titles rarely include catalog
+    # cardNumber prefixes (GLBF, RAD, BLBF). So we query Whatnot ONCE per
+    # treatment (treatment-level, no per-card filter), parse the weapon out
+    # of each title, and inject those prices into the L3 (treatment × weapon)
+    # buckets. These are treatment-level signals, not per-card, so they carry
+    # a sentinel bobaId that never matches the self-exclusion check.
+    # Cost: zero eBay quota. Whatnot scrapes cached 12 min by the proxy.
+    print("\nWhatnot treatment-level augmentation:")
+    distinct_treatments = sorted({(c.get("treatment") or "") for c in cards if c.get("treatment")})
+    # Only query treatments where AT LEAST one (treatment × weapon) bucket
+    # is under-filled — no point hammering Whatnot for treatments already
+    # covered by per-card data.
+    treatments_to_query = []
+    for t_str in distinct_treatments:
+        fam = treatment_family(t_str)
+        # Does any weapon in this treatment-family have under-MIN_CARDS data?
+        weapons_used = {(c.get("element") or "NONE") for c in cards
+                        if c.get("bobaId") and (c.get("treatment") or "") == t_str}
+        if any(len(buckets["l3"][f"{fam}|{w}"]) < MIN_CARDS for w in weapons_used):
+            treatments_to_query.append(t_str)
+    print(f"  under-filled treatments to query: {len(treatments_to_query)}")
+    WN_SENTINEL = "_whatnot_treatment_aggregate_"
+    wn_added = defaultdict(int)
+    for i, t_str in enumerate(treatments_to_query, 1):
+        items = fetch_whatnot_aggregate(t_str)
+        if items:
+            fam = treatment_family(t_str)
+            for weapon, price in items:
+                l3_key = f"{fam}|{weapon}"
+                # Asking → estimated-sold via SOLD_HAIRCUT, same rule as
+                # per-card asks. Sentinel bobaId so self-exclusion is a no-op.
+                buckets["l3"][l3_key].append((WN_SENTINEL, price * SOLD_HAIRCUT))
+                wn_added[l3_key] += 1
+        if i % 10 == 0:
+            print(f"  ... {i}/{len(treatments_to_query)} treatments queried")
+        time.sleep(0.6)  # gentle pacing — proxy caches per-query, this is per-treatment
+    print(f"  Whatnot prices added across {len(wn_added)} (treatment×weapon) buckets: "
+          f"{sum(wn_added.values())} prices total")
 
     LEVEL_BASIS = {
         "l1": "treatment + weapon + power + type",

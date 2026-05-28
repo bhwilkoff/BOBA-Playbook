@@ -3218,27 +3218,20 @@
            <span class="placeholder-status">Image Pending</span>
          </div>`;
 
-    // Only show treatment ribbon for non-base treatments
-    const ribbonHtml = (treatmentClass !== 'tf-base')
-      ? `<div class="card-treatment-ribbon" aria-hidden="true">${escHtml(displayTreatment(card.treatment))}</div>`
-      : '';
-
-    // Tick 458 — Print-run badge top-trailing on the image (Android
-    // tick 456 + iOS tick 457 parity / Discord backlog #7 per-cell).
-    // Container query hides this at the 'S' density (≤130px cell).
-    const printRunCell = printRunLabelFor(card);
-    const printRunBadgeHtml = printRunCell
-      ? `<span class="print-run-cell-badge${printRunCell === 'SSP' ? ' print-run-cell-badge--ssp' : ''}" aria-hidden="true">${escHtml(printRunCell)}</span>`
-      : '';
-
-    // No format-legality ("S+ C") overlay on the card art — card art stays
-    // clean (the only on-grid overlay is Collection's price overlay). The
-    // legality detail lives in the card-detail modal, not over the art.
+    // Per DECISIONS.md #061 (2026-05-28): no card-image overlays of
+    // any kind except Collection's price-overlay chip (DESIGN.md §8.8
+    // + DECISIONS.md #036). The treatment ribbon + print-run badge
+    // were both removed because (a) the print-run inference was
+    // hardcoded from weapon (#028 stale assumption — FIRE/ICE actually
+    // appear at BOTH /5 AND /50 in the real per-card OCR data, so the
+    // weapon→count mapping shipped wrong values on 174+ FIRE cards
+    // alone; cf. PRICING_PLAYBOOK §6.4 Feature 0); (b) the treatment
+    // is already named in the card-detail stats grid (DECISIONS.md
+    // #029) so the ribbon was redundant decoration over the art. Card
+    // art stays clean; identity metadata lives in the info row below.
     el.innerHTML = `
       <div class="card-img-wrap">
         ${imgHtml}
-        ${ribbonHtml}
-        ${printRunBadgeHtml}
       </div>
       <div class="card-info">
         <div class="card-number">${escHtml(card.cardType === 'Sealed Product' ? card.set : card.cardNumber)}</div>
@@ -4514,21 +4507,14 @@
       const thumb = thumbSrc
         ? `<img class="version-thumb" src="${escHtml(thumbSrc)}" alt="${escHtml(v.name)}" loading="lazy">`
         : `<div class="version-thumb-placeholder" aria-hidden="true">NO IMG</div>`;
-      // Tick 463 — print-run badge for Other Versions (iOS tick 462 +
-      // Android tick 461 parity). Positioned top-right on the thumb;
-      // no treatment ribbon to dodge here so the orientation differs
-      // from the main .card-item grid badge (which is top-left).
-      const printRun = printRunLabelFor(v);
-      const printRunBadge = printRun
-        ? `<span class="version-print-run${printRun === 'SSP' ? ' version-print-run--ssp' : ''}" aria-hidden="true">${escHtml(printRun)}</span>`
-        : '';
-      // No format-legality ("S+ C") overlay on the version art — kept off
-      // the card art to match the grid (legality lives in the modal).
-      const ariaHints = [label, printRun].filter(Boolean).join(' — ');
+      // No card-image overlays per DECISIONS.md #061 — applies here too,
+      // not just the main grid. Other Versions tiles are just thumb +
+      // label; the treatment is named in the label so the user can
+      // disambiguate without an overlay over the art.
       return `
         <button class="version-tile" data-version-card="${escHtml(String(v.cardNumber))}"
-                aria-label="${escHtml(v.name)} — ${ariaHints}">
-          <span class="version-thumb-wrap">${thumb}${printRunBadge}</span>
+                aria-label="${escHtml(v.name)} — ${escHtml(label)}">
+          <span class="version-thumb-wrap">${thumb}</span>
           <span class="version-label">${label}</span>
         </button>`;
     }).join('');
@@ -4540,21 +4526,19 @@
       </div>`;
   }
 
-  /// Tick 198 — Discord backlog #7. Print-run / SSP label for cards.
-  /// Mirrors iOS Card.printRunLabel + Android CardFormatEligibility.
-  /// Returns null for the typical 99% card.
+  /// Print-run label for cards — reads the catalog's real `printRun`
+  /// field (populated for 464 cards via card-art OCR; PRICING_PLAYBOOK
+  /// §6.4 Feature 0). Returns null when there's no OCR'd value, which
+  /// is most cards. The prior weapon→count switch (FIRE→/25, ICE→/50,
+  /// etc.) was the DECISIONS.md #028 hardcoded assumption now retired
+  /// by #061: the OCR data shows FIRE + ICE each appear at BOTH /5
+  /// AND /50, so the weapon→count mapping shipped wrong values on
+  /// 174+ FIRE cards alone. Anything not on the card art itself is a
+  /// guess, and we ship the truth or nothing.
   function printRunLabelFor(card) {
-    if (card.isInspiredInk) {
-      switch ((card.element || '').toUpperCase()) {
-        case 'HEX':  return '/5';
-        case 'GLOW': return '/10';
-        case 'FIRE': return '/25';
-        case 'ICE':  return '/50';
-        default:     return 'Serial';
-      }
-    }
-    if ((card.treatment || '').toLowerCase().includes('superfoil')) return 'SSP';
-    return null;
+    return typeof card.printRun === 'number' && card.printRun > 0
+      ? `/${card.printRun}`
+      : null;
   }
 
   /// Tick 383 — explanation copy for the print-run / SSP chip.
@@ -4600,15 +4584,14 @@
     return [spec, specPlus, brawl, checklist];
   }
 
-  function getCardRarity(card) {
-    const t = (card.treatment || '').toLowerCase();
-    if (t.includes('kanji'))      return { label: 'Kanjifoil',    tier: 5 };
-    if (t.includes('superfoil') || card.isInspiredInk) return { label: card.isInspiredInk ? 'Inspired Ink' : 'Superfoil', tier: 4 };
-    if (t.includes('blizzard'))   return { label: 'Blizzard',     tier: 3 };
-    if (t.includes('battlefoil') || t.includes('logofoil')) return { label: t.includes('logofoil') ? 'Logofoil' : 'Battlefoil', tier: 2 };
-    if (t.includes('blast') || t.includes('paper')) return { label: t.includes('blast') ? 'Blast' : 'Paper', tier: 1 };
-    return { label: 'Base Set', tier: 0 };
-  }
+  // `getCardRarity` removed 2026-05-28 (DECISIONS.md #061). The
+  // function was dead code (no call sites) and embodied the exact
+  // hardcoded-rarity-derivation pattern this entry retires: it
+  // synthesized a rarity tier + label from treatment string matches
+  // (kanji / superfoil / blizzard / battlefoil / blast / paper).
+  // The catalog's own `treatment` field is the user-facing display;
+  // the `printRun` field (populated for 464 cards via card-art OCR)
+  // is the only valid scarcity number. Anything else is a guess.
 
   function buildModalContent(card) {
     const imgSrc = card.imageFile ? API.cardFullUrl(card) : null;

@@ -940,10 +940,12 @@ struct CardDetailView: View {
                     ForEach(variations, id: \.id) { variant in
                         NavigationLink(value: variant) {
                             VStack(spacing: Design.Spacing.xs) {
+                                // No overlays on the card art per DECISIONS.md
+                                // #061; treatment label below the thumb carries
+                                // the disambiguation.
                                 CardImageView(card: variant, size: .thumb)
                                     .frame(width: 80, height: 112)
                                     .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
-                                    .cardThumbBadges(for: variant)
 
                                 Text(variant.treatment ?? variant.set)
                                     .font(Design.Fonts.mono(9))

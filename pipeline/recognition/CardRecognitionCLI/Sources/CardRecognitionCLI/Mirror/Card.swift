@@ -54,6 +54,15 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
     /// passed to any Worker / matcher / pricing lookup — that
     /// automation is prohibited.
     let radishUrl: String?
+    /// Card-art-OCR'd print run, populated for 464 of 17,974 catalog
+    /// cards (PRICING_PLAYBOOK §6.4 Feature 0). `5`, `10`, `25`, or
+    /// `50` typically — observed serialization, the hardest scarcity
+    /// signal we have. Nil for the un-numbered majority. DECISIONS.md
+    /// #061 makes this the ONLY source of printRunLabel — the prior
+    /// weapon→count switch (#028 assumption) shipped wrong values on
+    /// 174+ FIRE cards because FIRE + ICE each appear at BOTH /5 AND
+    /// /50 in the real OCR data.
+    let printRun: Int?
 
     // Sealed product fields (nil for regular cards)
     let sealedProductId: String?
@@ -111,24 +120,18 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
         }
     }
 
-    /// Tick 197 — Discord backlog #7 (Android tick 189 parity).
-    /// Optional print-run label for at-a-glance scarcity. Returns nil
-    /// for the typical 99% card. Source of truth: DECISIONS.md #028
-    /// "Inspired Ink = Serialized with weapon-tied print numbers:
-    /// Hex /5, Glow /10, Fire /25, Ice /50."  Superfoil is the
-    /// next-rarest non-numbered treatment.
+    /// Print-run label for cards — reads the catalog's real `printRun`
+    /// field (populated for 464 cards via card-art OCR; PRICING_PLAYBOOK
+    /// §6.4 Feature 0). Returns nil when there's no OCR'd value, which
+    /// is most cards. The prior weapon→count switch (DECISIONS.md #028
+    /// assumption — FIRE→/25, ICE→/50, etc.) is retired by #061: the
+    /// OCR data shows FIRE + ICE each appear at BOTH /5 AND /50, so
+    /// the weapon→count mapping shipped wrong values on 174+ FIRE
+    /// cards alone. Anything not on the card art itself is a guess,
+    /// and we ship the truth or nothing.
     var printRunLabel: String? {
-        if isInspiredInk {
-            switch element.uppercased() {
-            case "HEX":  return "/5"
-            case "GLOW": return "/10"
-            case "FIRE": return "/25"
-            case "ICE":  return "/50"
-            default:     return "Serial"   // Steel/Gum/Brawl/Super Inspired Ink — print run not public
-            }
-        }
-        if treatment?.lowercased().contains("superfoil") == true { return "SSP" }
-        return nil
+        guard let n = printRun, n > 0 else { return nil }
+        return "/\(n)"
     }
 
     // Stable unique id — v3 formula matches boba_id.py:
@@ -209,6 +212,7 @@ nonisolated struct Card: Codable, Identifiable, Hashable, Sendable {
         imageAvailable     = try c.decodeIfPresent(Bool.self,      forKey: .imageAvailable)
                              ?? !(file?.isEmpty ?? true)
         radishUrl          = try c.decodeIfPresent(String.self,    forKey: .radishUrl)
+        printRun           = try c.decodeIfPresent(Int.self,       forKey: .printRun)
         sealedProductId    = try c.decodeIfPresent(String.self,    forKey: .sealedProductId)
         productType        = try c.decodeIfPresent(String.self,    forKey: .productType)
         packsPerBox        = try c.decodeIfPresent(Int.self,       forKey: .packsPerBox)

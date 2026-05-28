@@ -442,3 +442,36 @@ Retires the weapon→print-run table in DECISIONS.md #028. The catalog now carri
 **Why `printRunLabel` is kept as a computed property at all.** The card-detail surface still renders the chip when present (`/5`, `/10`, `/25`, or `/50`) — but only for the 464 cards with real OCR data, and only in the labeled stats area, not as an overlay. The computed property is now a thin wrapper: `printRun?.let { "/$it" }` on Android/iOS, `card.printRun ? "/" + card.printRun : null` on web. The prior weapon-switch + Superfoil→SSP derivation is gone. SSP went too because "Superfoil" is a treatment label, not a card-art-OCR scarcity number; the treatment field already names it in the canonical 6-cell grid.
 
 **How to apply.** Reject any PR that (a) infers a print-run label from weapon, treatment, or any other catalog field (rarity from OCR `printRun` only; nothing else); (b) renders any overlay on card art outside the Collection price chip (treatment ribbon, print-run badge, format-legality hint, ownership pip-on-art, etc. — all out); (c) re-introduces `getCardRarity` / `rarityTier`-style hardcoded-derivation helpers (the web dead-code one was removed in this entry). New rarity-relevant data → catalog field → client reads field. New visual decoration → outside the card image (caption below, stats grid in detail, etc.).
+
+## 062 — Pricing parity is verified end-to-end, not "the function exists"
+*2026-05-28*
+
+Codifies the test discipline missed in v2.388 + v2.392. The pricing-system parity check that ratified v2.388 confirmed the **resolver shapes matched** (iOS / web / Android all had a `marketValue()` function ranking Recent Sales → Listed Range → Buy Now → Estimate) but never traced what each platform actually rendered for a card in each input state. Two platform-specific gaps shipped behind the same architectural facade:
+
+- **iOS** had `fetchEstimatorBucket` and a Tier 3 `marketValue` branch, but the only caller was `CollectionStore` (refresh-values batch). `PricingSection.fetch()` — the card-detail UI flow — never called it. The resolver's estimate branch only fired on a legacy worker-embedded sold response that never happens for cards with no live eBay data; the branch was unreachable from production input.
+- **Android** correctly fetched `MarketEstimate` in the VM and stashed it in `pricingState.marketEstimate`, but `marketValue()` didn't accept estimate as input AND `CardDetailScreen.PricingPanels` had no `hasEstimate` branch. The data reached the screen and the screen ignored it.
+
+Both gaps were invisible to the "the function exists, the resolver shape matches" check; both were caught the moment a real estimator-only card (BLBF-203 Crews-Missle) was opened on each platform.
+
+**Principle — parity is about the render the user sees, not the internal API surface.** A function existing on each platform is not parity. A `marketValue()` accepting the same inputs is not parity. **Parity is what shows in the pricing panel for a card in each input state.** Anything else is the same kind of trust-erosion the picker (#060) and the rarity overlay (#061) both shipped: a panel that looks unified at the architectural layer but renders inconsistently at the user layer.
+
+**The seven-state pricing render matrix** — every pricing change is verified against this on all three platforms before shipping. Each state is reproducible against a real Worker response; pick a card whose `/comps`, eBay-proxy, Whatnot, and `/estimate` outputs match the row.
+
+| State | Inputs | Expected render |
+|---|---|---|
+| **A** Estimator-only | sold=0, active=0, comps=0, whatnot=0, estimator=set | headline "~$X · estimated from comparable cards" + MARKET EST. tri-grid |
+| **B** eBay active-only | sold=0, active>0, comps=0, whatnot=0 | headline "$X · N active eBay listings · no recent sales yet" + LISTED RANGE tri-grid + items |
+| **C** Whatnot matched-only | sold=0, active=0, comps=0, whatnot=matched>0 | headline "$X · N active Whatnot listings · no recent sales yet" + LISTED RANGE + Whatnot strip |
+| **D** eBay + Whatnot | sold=0, active>0, comps=0, whatnot=matched>0 | headline "$X · N active eBay + Whatnot listings · no recent sales yet" + LISTED RANGE + items + Whatnot strip |
+| **E** Comps-only | sold=0, active=0, comps>0, whatnot=0 | headline "$X · based on N recent sales" + RECENT SALES tri-grid + comp rows (NO empty Buy Now placeholder) |
+| **F** Comps + active | sold=0, active>0, comps>0, whatnot=any | headline "$X · based on N recent sales" + RECENT SALES + BUY NOW |
+| **G** Truly empty | nothing anywhere | "No active listings or recent sales found." |
+
+**Locked copy across platforms** (per state, per surface):
+
+- Headline values: render in ALL three tiers (Recent Sales / Listed Range / Market Est.) when present. Web previously omitted the headline entirely; Android omitted it for Listed Range. Fixed.
+- Section captions: `"N active X listing(s) · no recent sales yet"` (no "data") — drops the redundant word that drifted three section captions out of sync with three headlines that already said the same thing minus "data".
+- Empty state: `"No active listings or recent sales found."` everywhere. iOS previously said "No eBay listings found." (misleading once comps + Whatnot + estimator joined the panel); Web previously said "No eBay sales or listings found." (same issue).
+- Buy Now section header: rendered ONLY when active listings exist. Android previously rendered "Buy Now / No active listings" placeholder in comp-only state (state E); iOS + Web hid the section entirely. Aligned to hide.
+
+**How to apply.** Any pricing-system change: pick a card in each of the seven states above, open it on iOS / web / Android, screenshot or describe the render, and check against the locked copy. If any platform's render doesn't match the expected row, the change isn't done. The static `boba-price-estimator` artifact + the live Workers are deterministic enough that the same card produces the same response for each platform, so this is a five-minute observation pass — the same five minutes that would have caught the v2.388 + v2.392 gaps before they shipped.

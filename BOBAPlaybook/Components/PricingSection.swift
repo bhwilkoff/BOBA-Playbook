@@ -490,7 +490,7 @@ struct PricingSection: View {
                     let plural = bucket.count != 1 ? "s" : ""
                     let whereStr = (listedHasWhatnot && listedHasEbay) ? "eBay + Whatnot"
                                  : listedHasWhatnot ? "Whatnot" : "eBay"
-                    Text("\(bucket.count) active \(whereStr) listing\(plural) · no recent sales data yet")
+                    Text("\(bucket.count) active \(whereStr) listing\(plural) · no recent sales yet")
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
                 } else {
@@ -831,7 +831,12 @@ struct PricingSection: View {
                 // Don't surface an error yet — comps (below) may carry real
                 // sales even when there are no live eBay listings. The
                 // resolver decides the true empty state.
-                fetchError = "No eBay listings found."
+                // Empty-state text is platform-aligned (web js/app.js +
+                // Android CardDetailScreen): the panel covers eBay + comps
+                // + Whatnot + estimator now, not just eBay (DECISIONS.md
+                // #058 + #062). "No eBay listings found" was misleading
+                // when other tiers also turned up empty.
+                fetchError = "No active listings or recent sales found."
             } catch PricingService.PricingError.notConfigured {
                 _ = await compsTask
                 return

@@ -4348,6 +4348,20 @@ dialog.modal-overlay[open] {
   margin-bottom: 0.75rem;
 }
 
+/* "$X.XX · basis" line above the pricing sections — parity with iOS
+   PricingSection + Android CardDetailScreen. Carries the most-specific
+   honestly-labeled value the resolver picked; the basis text after the
+   middot tells the user what kind of signal it is (recent sales /
+   active listings / estimate). Web previously omitted this entirely. */
+.pricing-headline {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--boba-text);
+  margin: 0 0 0.5rem 0;
+  letter-spacing: 0.02em;
+}
+
 .pricing-day-picker {
   display: flex;
   gap: 0.25rem;

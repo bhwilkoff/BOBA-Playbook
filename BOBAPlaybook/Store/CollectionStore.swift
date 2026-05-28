@@ -400,8 +400,21 @@ final class CollectionStore {
                 forceRefresh: forceRefresh
             )
             let resolved = PricingService.marketValue(ebay: pricing, comps: await compsTask, whatnotMatched: [])
+            // Last-resort fallback to the rarity-baseline estimator. Without
+            // this, every long-tail card with no recent eBay/Whatnot activity
+            // and no inferred-sold comp would land at $0 in the user's
+            // collection — even though the rarity-baseline knows roughly what
+            // it's worth from its comparable cards. PRICING_PLAYBOOK §6.6:
+            // EVERY card in the collection should carry a stored value.
+            var finalValue: Decimal? = resolved.headlineValue
+            if finalValue == nil || finalValue == 0 {
+                if let est = await PricingService.shared.marketEstimate(bobaId: card.bobaId),
+                   est.average > 0 {
+                    finalValue = est.average
+                }
+            }
             let fields = UpdateUserCard(
-                estimatedValue: resolved.headlineValue ?? pricing.average,
+                estimatedValue: finalValue ?? pricing.average,
                 lastPriceCheck: Date()
             )
             // Only stamp estimated_value on entries the user owns. Wanted

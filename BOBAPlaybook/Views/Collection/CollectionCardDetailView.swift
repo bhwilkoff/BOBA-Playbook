@@ -290,7 +290,7 @@ struct CollectionCardDetailView: View {
                 // Silently refresh estimated_value when the view appears if data is stale.
                 guard let card = catalogCard else { return }
                 isRefreshingPrice = true
-                await collection.refreshPricingIfNeeded(for: card.cardNumber, card: card)
+                await collection.refreshPricingIfNeeded(for: card)
                 isRefreshingPrice = false
             }
             .task(id: auth.isAuthenticated) {

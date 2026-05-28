@@ -48,7 +48,12 @@ class CollectionRepository @Inject constructor(
     }
 
     private val _ownedCards = MutableStateFlow<List<UserCard>>(emptyList())
-    val ownedCards: Flow<List<UserCard>> = _ownedCards.asStateFlow()
+    /**
+     * StateFlow (not bare Flow) so callers — most importantly the
+     * `recalculateAll` loop in [CollectionViewModel] — can take a
+     * one-shot `.value` snapshot without spinning up a collector.
+     */
+    val ownedCards: kotlinx.coroutines.flow.StateFlow<List<UserCard>> = _ownedCards.asStateFlow()
 
     /** Flips true after the first refresh() completes (success or
      *  failure). The Collection UI uses this to distinguish
@@ -173,6 +178,44 @@ class CollectionRepository @Inject constructor(
             refresh()
         }.onFailure { e ->
             Log.e(TAG, "Failed to insert user_card (bobaId=$cardBobaId): ${e.javaClass.simpleName}: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Stamp a fresh `estimated_value` + `last_price_check` on every
+     * user_cards row matching `bobaId`. Used by the Collection's
+     * "Refresh market values" recompute loop (parity with iOS
+     * `CollectionStore.fetchAndStorePricing`). Keying on bobaId — NOT
+     * cardNumber — keeps weapon-variant siblings (DECISIONS.md #057)
+     * on distinct pricing tracks; pre-fix the loop wrote one variant's
+     * pricing to every same-cardNumber sibling.
+     *
+     * Optimistically updates the in-memory cache so the value-summary
+     * reflects the new number before the next `refresh()` round-trip.
+     */
+    suspend fun updateEstimatedValue(bobaId: String, value: Double) {
+        val nowIso = java.time.Instant.now().toString()
+        // Optimistic local update — write to every cached row matching
+        // this bobaId. Per [[feedback_derived_arrays_must_rebuild]] we
+        // emit a new list reference so Compose recomposes.
+        _ownedCards.value = _ownedCards.value.map { uc ->
+            if (uc.cardBobaId == bobaId) uc.copy(estimatedValue = value) else uc
+        }
+        runCatching {
+            supabase.postgrest.from("user_cards")
+                .update(
+                    {
+                        set("estimated_value", value)
+                        set("last_price_check", nowIso)
+                    },
+                ) {
+                    filter { eq("boba_id", bobaId) }
+                }
+        }.onFailure { e ->
+            Log.w(
+                TAG,
+                "updateEstimatedValue($bobaId, $value) failed: ${e.javaClass.simpleName}: ${e.message}",
+            )
         }
     }
 

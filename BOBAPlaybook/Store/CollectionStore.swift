@@ -300,11 +300,14 @@ final class CollectionStore {
 
     // MARK: - Pricing refresh
 
-    /// Updates estimated_value + last_price_check for every entry of `cardNumber`
+    /// Updates estimated_value + last_price_check for every entry of `card.bobaId`
     /// only when the price data is stale (nil or older than 24 hours).
-    func refreshPricingIfNeeded(for cardNumber: String, card: Card) async {
-        guard needsPriceRefresh(cardNumber) else { return }
-        await fetchAndStorePricing(for: cardNumber, card: card)
+    /// Per DECISIONS.md #057 keying on bobaId (not cardNumber) keeps weapon-
+    /// variant siblings (BLBF-203 FIRE vs ICE vs GLOW) on distinct pricing
+    /// tracks.
+    func refreshPricingIfNeeded(for card: Card) async {
+        guard needsPriceRefresh(bobaId: card.bobaId) else { return }
+        await fetchAndStorePricing(card: card)
     }
 
     /// Tick 192 — single orchestrator that owns the refresh task.
@@ -340,25 +343,40 @@ final class CollectionStore {
         await task.value
     }
 
-    /// Force-refreshes estimated_value for every owned unique card number.
+    /// Force-refreshes estimated_value for every owned UNIQUE bobaId.
     /// Calls `progress(current, total)` after each card so the UI can show progress.
+    ///
+    /// Iterates by bobaId, NOT by cardNumber — DECISIONS.md #057
+    /// weapon-variant siblings (e.g. BLBF-203 FIRE Cupid vs ICE
+    /// Crews-Missle vs GLOW Maverick) share the printed cardNumber but
+    /// have different bobaIds and different pricing. The prior loop
+    /// deduped by cardNumber and applied the first variant's pricing
+    /// to ALL same-cardNumber rows — silently writing wrong values to
+    /// weapon-variant siblings.
     func recalculateAllValues(cardStore: CardStore, progress: @escaping @MainActor (Int, Int) -> Void) async {
-        let ownedNumbers = Array(Set(
-            userCards.filter { $0.designation.isOwned }.map { $0.cardNumber }
+        let ownedBobaIds = Array(Set(
+            userCards.filter { $0.designation.isOwned }.compactMap { $0.bobaId }
         ))
-        let total = ownedNumbers.count
-        for (index, cardNumber) in ownedNumbers.enumerated() {
+        let total = ownedBobaIds.count
+        var failed = 0
+        for (index, bobaId) in ownedBobaIds.enumerated() {
             await MainActor.run { progress(index + 1, total) }
-            guard let card = cardStore.displayCards.first(where: { $0.cardNumber == cardNumber }) else { continue }
+            guard let card = cardStore.displayCards.first(where: { $0.bobaId == bobaId }) else {
+                failed += 1
+                continue
+            }
             // Force-refresh bypasses the in-memory PricingService
             // cache so an explicit user-triggered refresh actually
             // re-hits the Worker (and the Worker's edge cache) for
             // every owned card. Without this, "Refresh market values"
             // and pull-to-refresh would silently no-op for any card
             // viewed in the last hour.
-            await fetchAndStorePricing(for: cardNumber, card: card, forceRefresh: true)
+            await fetchAndStorePricing(card: card, forceRefresh: true)
             // Light throttle so we don't flood the worker
             try? await Task.sleep(nanoseconds: 400_000_000)
+        }
+        if failed > 0 {
+            print("[CollectionStore] recalculateAllValues: \(failed) of \(total) bobaIds had no catalog match")
         }
         await MainActor.run { progress(total, total) }
         // Notify every open PricingSection (card detail, show queue,
@@ -371,13 +389,13 @@ final class CollectionStore {
 
     // MARK: - Private
 
-    private func needsPriceRefresh(_ cardNumber: String) -> Bool {
-        let latest = entries(for: cardNumber).compactMap { $0.lastPriceCheck }.max()
+    private func needsPriceRefresh(bobaId: String) -> Bool {
+        let latest = entries(forBobaId: bobaId).compactMap { $0.lastPriceCheck }.max()
         guard let latest else { return true }
         return Date().timeIntervalSince(latest) > 86400  // 24 hours
     }
 
-    private func fetchAndStorePricing(for cardNumber: String, card: Card, forceRefresh: Bool = false) async {
+    private func fetchAndStorePricing(card: Card, forceRefresh: Bool = false) async {
         guard !WorkerConfig.ebayProxyURL.isEmpty else { return }
         do {
             // Fetch eBay pricing + our own transacted comps in parallel, then
@@ -394,7 +412,12 @@ final class CollectionStore {
                 set: card.set,
                 element: card.element,
                 power: card.power,
-                days: 30,
+                // Match the card-detail view + DECISIONS.md #060 unified
+                // window. Marketplace Insights is permanently empty for us
+                // (#058), so the `days` param is effectively a Worker cache
+                // key — three platforms sending the same value share one
+                // cache entry and return the same active-listing count.
+                days: 90,
                 treatment: card.treatment,
                 variation: card.variation,
                 forceRefresh: forceRefresh
@@ -417,18 +440,21 @@ final class CollectionStore {
                 estimatedValue: finalValue ?? pricing.average,
                 lastPriceCheck: Date()
             )
-            // Only stamp estimated_value on entries the user owns. Wanted
-            // / grails cards aren't in the collection yet — showing them
-            // a market value is fine at the card-detail level, but we
-            // don't want to persist per-entry pricing on wishlist rows
-            // that could later feel like they count toward collection
-            // value. The aggregates already filter by isOwned; this keeps
-            // the stored data consistent with the intent.
-            for entry in entries(for: cardNumber) where entry.designation.isOwned {
+            // Only stamp estimated_value on entries that match THIS bobaId.
+            // Pre-fix, the loop wrote to every user_card with the same
+            // cardNumber, which silently overwrote weapon-variant siblings'
+            // pricing with the first-found variant's value (DECISIONS.md
+            // #057). The bobaId-keyed filter keeps FIRE vs ICE vs GLOW on
+            // distinct pricing tracks. Wanted / Grail rows are excluded —
+            // those aren't in the collection yet (#039).
+            for entry in entries(forBobaId: card.bobaId) where entry.designation.isOwned {
                 try await updateCard(id: entry.id, fields: fields)
             }
         } catch {
-            // Silent — stale or missing price is acceptable
+            // Log so silent Worker failures during refresh don't read as
+            // "refresh worked" when they didn't. Don't surface to the user
+            // mid-loop; the recalculateAllValues summary handles that.
+            print("[CollectionStore] fetchAndStorePricing(\(card.bobaId)) failed: \(error)")
         }
     }
 

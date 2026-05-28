@@ -3668,25 +3668,27 @@
     if (!section) return;
 
     const ebayUrl   = buildEbayUrl(card);
-    let days = 30;
+    // Fixed eBay sold-search window per DECISIONS.md #060. The 7/30/90
+    // user picker was removed because it ONLY controlled Marketplace
+    // Insights sold-comp lookback — permanently empty for us (#058) —
+    // while visually appearing to scope the whole panel including
+    // active listings (which have no meaningful time dimension). 90
+    // matches MI's documented maximum and unifies the Worker cache
+    // key across iOS / web / Android so all three see the same active-
+    // listing count for the same card.
+    const days = 90;
     /// When the user taps Refresh, append `&fresh=1` so the Worker
     /// bumps its cache key (the Worker also looks at this flag). Reset
-    /// to false after the request lands so subsequent day-toggle
-    /// fetches use the cache normally.
+    /// to false after the request lands.
     let forceRefresh = false;
 
     async function fetchAndRender() {
       section.innerHTML = `
         <div class="pricing-header">
           <h3 class="section-label">Pricing</h3>
-          <div class="pricing-day-picker" role="group" aria-label="Time range">
-            <button class="day-btn${days === 7  ? ' active' : ''}" data-days="7">7d</button>
-            <button class="day-btn${days === 30 ? ' active' : ''}" data-days="30">30d</button>
-            <button class="day-btn${days === 90 ? ' active' : ''}" data-days="90">90d</button>
-            <button class="day-btn pricing-refresh-btn" aria-label="Refresh pricing"
-                    title="Refresh now (bypass Worker cache)"
-                    type="button">↻</button>
-          </div>
+          <button class="pricing-refresh-btn" aria-label="Refresh pricing"
+                  title="Refresh now (bypass Worker cache)"
+                  type="button">↻</button>
         </div>
         <div class="pricing-body">
           <div class="pricing-loading">
@@ -3699,13 +3701,10 @@
           <a href="${escHtml(radishDisplayUrl(card))}" target="_blank" rel="noopener noreferrer" class="btn-pricing-radish">View on Radish</a>
         </div>
       `;
-      section.querySelectorAll('.day-btn:not(.pricing-refresh-btn)').forEach(btn => {
-        btn.addEventListener('click', () => { days = parseInt(btn.dataset.days); fetchAndRender(); });
-      });
-      // Refresh — same fetch, but flags the Worker cache to bypass so
-      // a fresh eBay-pricing round-trip happens immediately instead of
-      // serving the 6-hour cached response. Parity with the iOS +
-      // Android pricing refresh button (PARITY.md §8).
+      // Refresh — re-runs fetchAndRender with `forceRefresh=true` so
+      // the Worker bypasses its 6-hour cache and the Supabase 24h
+      // snapshot. Parity with iOS PricingSection refresh button +
+      // Android `PricingPanels` (PARITY.md §8).
       section.querySelector('.pricing-refresh-btn')?.addEventListener('click', () => {
         forceRefresh = true;
         fetchAndRender();
@@ -4154,11 +4153,10 @@
       stale = false, estimated = false, estimatedSource = null
     } = sectionData;
     const typeStr = isSold ? 'sold' : 'active listing';
-    const days    = opts.days ?? 30;
 
     // Estimated path: no real sales — Market Est. range from
-    // comparable cards. Render as "MARKET EST." with the same
-    // tri-cell shape (EST. LOW / EST. MID / EST. HIGH) plus a
+    // comparable cards. Render as "MARKET EST." with the unified
+    // LOW / AVG / HIGH tri-cell shape (DECISIONS.md #059) plus a
     // subtitle explaining where the range came from.
     if (isSold && estimated) {
       const sourceCaption = estimatedSource === 'comps'
@@ -4173,16 +4171,20 @@
             <span class="pricing-est-pill">EST</span>
           </p>
           <div class="pricing-grid">
+            <!-- Unified LOW / AVG / HIGH labels across all three
+                 sections + all three platforms (DECISIONS.md #059).
+                 The "MARKET EST." framing lives in the section header
+                 above — cells stay clean. -->
             <div class="pricing-stat">
-              <span class="pricing-label">EST. LOW</span>
+              <span class="pricing-label">LOW</span>
               <span class="pricing-val">${fmt(low)}</span>
             </div>
             <div class="pricing-stat pricing-stat-center">
-              <span class="pricing-label">EST. MID</span>
+              <span class="pricing-label">AVG</span>
               <span class="pricing-val pricing-val-avg">${fmt(average)}</span>
             </div>
             <div class="pricing-stat">
-              <span class="pricing-label">EST. HIGH</span>
+              <span class="pricing-label">HIGH</span>
               <span class="pricing-val">${fmt(high)}</span>
             </div>
           </div>
@@ -4236,7 +4238,7 @@
               <span class="pricing-val">${fmt(sale.price)}</span>
             </div>
           </div>
-          <p class="pricing-sale-count">${ageStr ? `Sale ${escHtml(ageStr)} · ` : ''}older than ${days}d window</p>
+          <p class="pricing-sale-count">${ageStr ? `Sale ${escHtml(ageStr)}` : 'Older sale'}</p>
           ${itemsHtml}
         </div>`;
     }

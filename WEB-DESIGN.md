@@ -607,7 +607,9 @@ derived estimate; folding COMC asking into a sold number (#034);
 hiding the source pill (provenance is the trust mechanism); labels
 other than `LOW / AVG / HIGH` inside any tri-grid (DECISIONS.md #059
 cross-platform vocabulary lock — the section header carries every
-other framing).
+other framing); a global `7d / 30d / 90d` time-window picker scoping
+the whole panel (DECISIONS.md #060 removed it — Recent Sales rows
+carry per-row dates, active listings are inherently current).
 
 **Community comps (Tier 3) — quiet + subordinate.** A single low-emphasis
 `.pricing-comp-link` at the FOOT of the pricing body ("Saw one sell? Add a

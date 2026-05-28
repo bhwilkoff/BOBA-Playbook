@@ -4250,7 +4250,7 @@
     if (opts.listedRange) {
       const where = (sectionData.hasWhatnot && sectionData.hasEbay) ? 'eBay + Whatnot'
                   : sectionData.hasWhatnot ? 'Whatnot' : 'eBay';
-      countCaption = `${count} active ${where} listing${count !== 1 ? 's' : ''} · no recent sales data yet`;
+      countCaption = `${count} active ${where} listing${count !== 1 ? 's' : ''} · no recent sales yet`;
     } else if (opts.recentSales) {
       countCaption = `${count} recent sale${count !== 1 ? 's' : ''}`;
     } else {
@@ -4347,6 +4347,19 @@
 
     if (mv.recentSales || mv.listedRange || mv.estimate || data.sold || data.active) {
       const parts = [];
+      // Headline — single line above the sections, parity with iOS
+      // PricingSection + Android CardDetailScreen. The resolver picks
+      // the most-specific honestly-labeled value + basis; asks are
+      // NEVER folded into a sold number (#034). Web previously
+      // skipped this entirely and just rendered the sections, which
+      // meant cards in estimator-only / listed-range states didn't
+      // surface the "what's it worth" answer above the fold.
+      if (mv.headline && mv.headline.value != null && mv.headline.basis) {
+        const fmt = n => n > 0 ? `$${n.toFixed(2)}` : '—';
+        parts.push(
+          `<p class="pricing-headline">${escHtml(fmt(mv.headline.value))} · ${escHtml(mv.headline.basis)}</p>`
+        );
+      }
       if (mv.recentSales) {
         // 1. RECENT SALES — transacted comps (vanish-inferred eBay/Whatnot +
         // mod-approved community), each row carrying its own source pill.
@@ -4376,7 +4389,7 @@
         const strip = renderWhatnotStrip(opts.whatnotResp, opts.heroLabel);
         if (strip) parts.push(strip);
       }
-      body.innerHTML = parts.length ? parts.join('') : '<p class="pricing-none">No eBay sales or listings found.</p>';
+      body.innerHTML = parts.length ? parts.join('') : '<p class="pricing-none">No active listings or recent sales found.</p>';
       if (opts.bobaId) appendCompSubmit(body, opts.bobaId);
       return;
     }
@@ -4384,7 +4397,7 @@
     // Legacy format (old cached responses / old Worker versions)
     const { low, average, high, count, priceType, items = [] } = data;
     if (!count) {
-      body.innerHTML = '<p class="pricing-none">No eBay listings found.</p>';
+      body.innerHTML = '<p class="pricing-none">No active listings or recent sales found.</p>';
       return;
     }
     const isSold  = priceType === 'sold';

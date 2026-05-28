@@ -1502,15 +1502,12 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
                 )
             }
             RecentSalesRows(resolved.recentSales)
-            BOBASectionHeader(title = "Buy Now")
-            if (state.ebayActive.isEmpty()) {
-                Text(
-                    text = "No active listings",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                )
-            } else {
+            // Buy Now renders ONLY when there are active eBay listings — parity
+            // with iOS PricingSection + web renderPricingData. The earlier
+            // "Buy Now / No active listings" placeholder showed empty chrome
+            // on comp-only cards; less is more (DECISIONS.md §4 density rules).
+            if (state.ebayActive.isNotEmpty()) {
+                BOBASectionHeader(title = "Buy Now")
                 TapPriceHint()
                 ListingsRow(listings = state.ebayActive)
             }
@@ -1519,6 +1516,29 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
             // 2. LISTED RANGE — no sales yet, so the active eBay + Whatnot
             // matched asks ARE the honest signal (the (A) fold, PRICING_
             // PLAYBOOK §4.3). Never a fabricated estimate (PRICING_PLAYBOOK §7).
+            // Headline (parity with iOS + web + the Recent Sales / Market Est.
+            // branches above and below) — surfaces the resolver's
+            // "$avg · N active listing(s) · no recent sales yet" line so the
+            // user sees a single answer to "what's it worth" above the fold.
+            // The basis explicitly says "active listings", so we're not
+            // misrepresenting asks as sold data (#034 + DECISIONS.md #058).
+            resolved.headlineValue?.let { est ->
+                Text(
+                    text = "~$${est.formatUsdAmount()}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                resolved.headlineBasis?.let { basis ->
+                    Text(
+                        text = basis,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
+            }
             BOBASectionHeader(title = "Listed Range")
             // Tri-grid LOW / AVG / HIGH when count > 1 (parity with iOS
             // PricingSection + web renderPricingSection — DECISIONS.md
@@ -1541,7 +1561,7 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
             }
             val plural = if (resolved.listedCount != 1) "s" else ""
             Text(
-                text = "${resolved.listedCount} active $where listing$plural · no recent sales data yet",
+                text = "${resolved.listedCount} active $where listing$plural · no recent sales yet",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
@@ -1594,7 +1614,7 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
         else -> {
             BOBASectionHeader(title = "Listed Range")
             Text(
-                text = "No active listings or recent sales found",
+                text = "No active listings or recent sales found.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),

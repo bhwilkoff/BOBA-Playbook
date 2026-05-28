@@ -546,7 +546,8 @@ actor PricingService {
     nonisolated static func marketValue(
         ebay: PricingResult?,
         comps: CompsResult?,
-        whatnotMatched: [WhatnotProductsService.Listing]
+        whatnotMatched: [WhatnotProductsService.Listing],
+        estimate: PricingBucket? = nil
     ) -> ResolvedPricing {
         var out = ResolvedPricing()
 
@@ -612,10 +613,21 @@ actor PricingService {
         }
 
         // ── 3. Estimate (labeled, last resort) ─────────────────────────
-        if let s = ebay?.sold, (s.estimated ?? false), s.average > 0 {
-            out.estimate = s
+        // Two valid sources:
+        //   (a) Worker embedded the estimator into `ebay.sold` with
+        //       `estimated=true` (legacy + snapshot-cache fast path).
+        //   (b) Caller separately fetched the static estimator artifact
+        //       via `marketEstimate(bobaId:)` (PRICING_PLAYBOOK §6.5).
+        // Either populates `out.estimate`; the headline only takes the
+        // estimate when nothing more specific surfaced.
+        let workerEstimate: PricingBucket? = {
+            guard let s = ebay?.sold, (s.estimated ?? false), s.average > 0 else { return nil }
+            return s
+        }()
+        if let est = workerEstimate ?? estimate, est.average > 0 {
+            out.estimate = est
             if out.recentSales == nil && out.listedRange == nil {
-                out.headlineValue  = s.average
+                out.headlineValue  = est.average
                 out.headlineSource = "estimate"
                 out.headlineBasis  = "estimated from comparable cards"
             }

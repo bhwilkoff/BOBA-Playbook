@@ -1551,6 +1551,46 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
                 ListingsRow(listings = state.ebayActive)
             }
         }
+        resolved.hasEstimate -> {
+            // 3. MARKET EST. — labeled comparability estimate from the
+            // static `boba-price-estimator` artifact (PRICING_PLAYBOOK
+            // §6.5). Surfaces ONLY when no Recent Sales / Listed Range
+            // exists; never blended with real signals (#058). The
+            // headline carries "estimated from comparable cards" so
+            // users know it's a model output, not a transaction.
+            resolved.headlineValue?.let { est ->
+                Text(
+                    text = "~$${est.formatUsdAmount()}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                resolved.headlineBasis?.let { basis ->
+                    Text(
+                        text = basis,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
+            }
+            BOBASectionHeader(title = "Market Est.")
+            PriceTriGrid(
+                low = resolved.estimateLow,
+                avg = resolved.estimateAvg,
+                high = resolved.estimateHigh,
+            )
+            val nComps = resolved.estimateCount
+            if (nComps > 0) {
+                Text(
+                    text = "Estimated from $nComps comparable card${if (nComps != 1) "s" else ""}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+        }
         else -> {
             BOBASectionHeader(title = "Listed Range")
             Text(

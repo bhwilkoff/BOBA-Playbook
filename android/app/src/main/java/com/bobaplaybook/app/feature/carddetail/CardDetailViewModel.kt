@@ -81,6 +81,10 @@ data class CardDetailUiState(
             ebaySold = ebaySold,
             comps = marketComps,
             whatnotMatched = whatnotListings.filter { it.matchesCard },
+            // Tier 4 fallback — the static estimator artifact (already
+            // fetched in `loadPricing` for comp-less cards). Surfaces as
+            // MARKET EST. when no Recent Sales / Listed Range exists.
+            estimate = marketEstimate,
         )
 
 }

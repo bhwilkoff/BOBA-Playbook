@@ -27,6 +27,11 @@ struct PricingSection: View {
     /// mod-approved community comps) from boba-pricing-tracker. The REAL
     /// "Recent Sales" signal; the resolver ranks it above Listed Range (#058).
     @State private var comps: PricingService.CompsResult?
+    /// Tier 4 fallback — the static `boba-price-estimator` artifact bucket,
+    /// fetched ONLY when no real signal (sold / comps / active / matched
+    /// Whatnot) surfaced. Renders as "MARKET EST." per PRICING_PLAYBOOK §6.5
+    /// and DECISIONS.md #058 (labeled, never presented as transacted).
+    @State private var estimateBucket: PricingService.PricingBucket?
     /// Tier 3 community-comp submission sheet (PRICING_PLAYBOOK §5). Opened
     /// from a quiet foot affordance; the sheet carries the form + auth gate.
     @State private var showCommunityCompSheet = false
@@ -83,7 +88,11 @@ struct PricingSection: View {
                     // reactively so comps-only cards (real sales, no live
                     // eBay listings) still render even when `result` is nil.
                     let matched  = whatnotListings.filter { $0.matchesCard == true }
-                    let resolved = PricingService.marketValue(ebay: result, comps: comps, whatnotMatched: matched)
+                    let resolved = PricingService.marketValue(
+                        ebay: result, comps: comps,
+                        whatnotMatched: matched,
+                        estimate: estimateBucket
+                    )
                     let hasResolved = resolved.recentSales != nil || resolved.listedRange != nil || resolved.estimate != nil
                     if hasResolved {
                         // Headline — single line above the sections. Asks are
@@ -776,6 +785,7 @@ struct PricingSection: View {
         comcListings = []
         whatnotListings = []
         comps = nil
+        estimateBucket = nil
         // COMC + Whatnot fire in parallel with the pricing waterfall —
         // additive asking sources on the BUY NOW panel, never block the
         // primary fetch. Both soft-fail to [] when their Worker is blocked
@@ -832,6 +842,23 @@ struct PricingSection: View {
             // Transacted comps trump the eBay no-data error — clear it so
             // the Recent Sales section renders instead of the empty state.
             if comps != nil { fetchError = nil }
+            // Tier 4 fallback — fetch the static estimator artifact when
+            // nothing else surfaced. Mirrors web's loadPricing fallback
+            // (js/app.js:3764) + PRICING_PLAYBOOK §6.5. The fetched
+            // bucket has `estimated=true` + a `mid` value that's safe to
+            // headline since the resolver only takes it when no Recent
+            // Sales / Listed Range exists. Keeps quota use minimal —
+            // only cards with no live eBay data hit this Worker.
+            let hasAnyRealSignal =
+                (result?.sold?.count ?? 0) > 0
+                || (result?.active?.count ?? 0) > 0
+                || (comps?.summary.count ?? 0) > 0
+                || whatnotListings.contains { $0.matchesCard == true }
+            if !hasAnyRealSignal {
+                estimateBucket = await PricingService.shared.marketEstimate(bobaId: card.bobaId)
+                // Estimator answered → suppress the empty-state error.
+                if estimateBucket != nil { fetchError = nil }
+            }
             isLoading = false
         }
     }

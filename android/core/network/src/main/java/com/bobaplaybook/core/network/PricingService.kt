@@ -336,13 +336,24 @@ data class ResolvedPricing(
     val listedCount: Int = 0,
     val listedHasEbay: Boolean = false,
     val listedHasWhatnot: Boolean = false,
+    /**
+     * Tier 4 — labeled comparability estimate from the static
+     * `boba-price-estimator` artifact (PRICING_PLAYBOOK §6.5). Populated
+     * ONLY when no Recent Sales + no Listed Range surfaced, so the
+     * headline can take it without misrepresenting transacted data.
+     */
+    val estimateLow: Double = 0.0,
+    val estimateAvg: Double = 0.0,
+    val estimateHigh: Double = 0.0,
+    val estimateCount: Int = 0,
     val headlineValue: Double? = null,
     val headlineSource: String? = null,   // "recent_sales" | "listed_range" | "estimate"
     val headlineBasis: String? = null,
 ) {
     val hasRecentSales: Boolean get() = recentSales.isNotEmpty()
     val hasListedRange: Boolean get() = listedCount > 0
-    val hasAnySignal: Boolean get() = hasRecentSales || hasListedRange
+    val hasEstimate: Boolean get() = estimateAvg > 0
+    val hasAnySignal: Boolean get() = hasRecentSales || hasListedRange || hasEstimate
 }
 
 /** Human-readable provenance pill for a comp `source` (#058). */
@@ -361,15 +372,18 @@ fun compSourcePill(source: String?): String = when {
  *   1. Recent Sales — `comps` (vanish-inferred + community) + real eBay sold.
  *   2. Listed Range — eBay active + Whatnot **matched** asks combined (the (A)
  *      fold, PRICING_PLAYBOOK §4.3). The honest signal when there are no sales.
+ *   3. Market Est. (Tier 4) — labeled comparability estimate from the static
+ *      `boba-price-estimator` artifact (PRICING_PLAYBOOK §6.5). Only taken as
+ *      the headline when nothing more specific surfaced; never blended.
  * Buy Now (eBay actives + Whatnot tiles) is additive; asks NEVER enter a
- * sold/value number (#034). The estimator (Tier 4) is suppressed while starved
- * and handled by the caller's existing fallback.
+ * sold/value number (#034).
  */
 fun marketValue(
     ebayActive: List<PricingListing>,
     ebaySold: List<PricingListing>,
     comps: CompsResult?,
     whatnotMatched: List<WhatnotListing>,
+    estimate: MarketEstimate? = null,
 ): ResolvedPricing {
     var out = ResolvedPricing()
 
@@ -414,6 +428,22 @@ fun marketValue(
                 headlineBasis = "${all.size} active $where listing${if (all.size != 1) "s" else ""} · no recent sales yet",
             )
         }
+    }
+
+    // 3. Market Est. — labeled comparability estimate (PRICING_PLAYBOOK §6.5).
+    // Only populated when nothing more specific surfaced, so a card with no
+    // live eBay/Whatnot activity + no transacted comps still shows the
+    // static artifact's price band. Mirrors iOS PricingService.marketValue.
+    if (estimate != null && estimate.mid > 0 && !out.hasRecentSales && !out.hasListedRange) {
+        out = out.copy(
+            estimateLow = estimate.low,
+            estimateAvg = estimate.mid,
+            estimateHigh = estimate.high,
+            estimateCount = estimate.comparableCount,
+            headlineValue = estimate.mid,
+            headlineSource = "estimate",
+            headlineBasis = "estimated from comparable cards",
+        )
     }
     return out
 }

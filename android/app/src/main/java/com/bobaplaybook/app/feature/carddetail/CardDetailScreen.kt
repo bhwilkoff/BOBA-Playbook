@@ -13,6 +13,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +43,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ContainedLoadingIndicator
@@ -51,6 +54,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
@@ -1301,6 +1305,125 @@ private fun ArtPanel(card: Card) {
     }
 }
 
+/**
+ * Unified LOW / AVG / HIGH tri-grid for Recent Sales, Listed Range, and
+ * (future) MARKET EST. sections (DECISIONS.md #059 — cross-platform
+ * pricing terminology lock). Cell labels are always `LOW · AVG · HIGH`;
+ * the section header carries the framing. Renders only when count > 1;
+ * single anchors render via [PriceSingleAnchor] instead.
+ *
+ * Material-native idiom (M3 Surface + Row + VerticalDivider) — NOT a
+ * port of the iOS BOBAPriceTile chrome.
+ */
+@Composable
+private fun PriceTriGrid(low: Double, avg: Double, high: Double) {
+    androidx.compose.material3.Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = 14.dp),
+        ) {
+            PriceTriCell(label = "LOW", value = low, modifier = Modifier.weight(1f))
+            VerticalDivider(
+                modifier = Modifier.height(36.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+            PriceTriCell(label = "AVG", value = avg, modifier = Modifier.weight(1f))
+            VerticalDivider(
+                modifier = Modifier.height(36.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+            PriceTriCell(label = "HIGH", value = high, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun PriceTriCell(label: String, value: Double, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = "$${value.formatUsdAmount()}",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+/**
+ * Single-anchor cell for count == 1 cases:
+ *   - "FROM $X"      — Listed Range with one listing (asking)
+ *   - "LAST SOLD $X" — Recent Sales with one transacted comp
+ *
+ * Mirrors iOS PricingSection's `priceCell` single-cell path so the
+ * affordance reads the same across platforms (DECISIONS.md #059).
+ */
+@Composable
+private fun PriceSingleAnchor(label: String, value: Double) {
+    androidx.compose.material3.Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "$${value.formatUsdAmount()}",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+/**
+ * Builds the eBay sold-listings search URL for a given card. Mirrors the
+ * iOS PricingSection `ebayURL` builder and web `buildEbayUrl` (js/app.js)
+ * verbatim — query is `bo jackson battle arena {hero} {cardNumber}` and
+ * `LH_Sold=1` + `LH_Complete=1` scope the search to completed sales.
+ * DECISIONS.md #059: pricing-affordance copy + URL builders are locked
+ * across platforms so the same card opens the same eBay search no matter
+ * which client the user is on.
+ */
+private fun buildEbaySoldSearchUrl(hero: String?, cardNumber: String?): String {
+    val parts = listOfNotNull(
+        "bo jackson battle arena",
+        hero?.takeIf { it.isNotBlank() },
+        cardNumber?.takeIf { it.isNotBlank() },
+    )
+    val raw = parts.joinToString(" ")
+    val encoded = java.net.URLEncoder.encode(raw, "UTF-8")
+    return "https://www.ebay.com/sch/i.html?_nkw=$encoded" +
+        "&LH_Sold=1&LH_Complete=1&_sacat=0&_from=R40&_trksid=m570.l1313&_osacat=0"
+}
+
 @Composable
 private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
     if (state.isLoadingPricing) {
@@ -1364,6 +1487,20 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
                 }
             }
             BOBASectionHeader(title = "Recent Sales")
+            // Tri-grid LOW / AVG / HIGH when count > 1 (parity with iOS
+            // PricingSection + web renderPricingSection — DECISIONS.md
+            // #059). Single sale → LAST SOLD anchor.
+            when {
+                resolved.recentSales.size > 1 -> PriceTriGrid(
+                    low = resolved.recentLow,
+                    avg = resolved.recentAvg,
+                    high = resolved.recentHigh,
+                )
+                resolved.recentSales.size == 1 -> PriceSingleAnchor(
+                    label = "LAST SOLD",
+                    value = resolved.recentSales.first().priceUsd,
+                )
+            }
             RecentSalesRows(resolved.recentSales)
             BOBASectionHeader(title = "Buy Now")
             if (state.ebayActive.isEmpty()) {
@@ -1383,6 +1520,20 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
             // matched asks ARE the honest signal (the (A) fold, PRICING_
             // PLAYBOOK §4.3). Never a fabricated estimate (PRICING_PLAYBOOK §7).
             BOBASectionHeader(title = "Listed Range")
+            // Tri-grid LOW / AVG / HIGH when count > 1 (parity with iOS
+            // PricingSection + web renderPricingSection — DECISIONS.md
+            // #059). Single listing → FROM anchor (lowest asking price).
+            when {
+                resolved.listedCount > 1 -> PriceTriGrid(
+                    low = resolved.listedLow,
+                    avg = resolved.listedAvg,
+                    high = resolved.listedHigh,
+                )
+                resolved.listedCount == 1 -> PriceSingleAnchor(
+                    label = "FROM",
+                    value = resolved.listedLow,
+                )
+            }
             val where = when {
                 resolved.listedHasWhatnot && resolved.listedHasEbay -> "eBay + Whatnot"
                 resolved.listedHasWhatnot -> "Whatnot"
@@ -1418,26 +1569,61 @@ private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
         WhatnotAsksSection(listings = state.whatnotListings)
     }
 
-    // "View on Radish" — single ordinary user-facing link permitted by
-    // Radish per email 2026-05-23. Opens the system default browser
-    // (Intent.ACTION_VIEW, not CustomTabsIntent) so the user fully
-    // leaves BOBA Playbook. Uses the legacy `Card.radishUrl` field
-    // when present, falls back to the homepage otherwise. The catalog
-    // `radishUrl` field is treated as frozen static data — never
-    // refreshed, validated, or used for pricing.
+    // External-pricing affordances — "eBay Sales" + "View on Radish"
+    // (DECISIONS.md #059 — cross-platform pricing affordance parity).
+    //
+    // **eBay Sales** opens the same `bo jackson battle arena {hero}
+    // {cardNumber}` sold-search URL iOS + web open (see
+    // buildEbaySoldSearchUrl) — the user lands on completed eBay sales
+    // for THIS card. Brand orange to match `Design.Colors.bobaOrange`.
+    //
+    // **View on Radish** is the single ordinary user-facing link
+    // permitted by Radish per email 2026-05-23 (DECISIONS.md #056).
+    // Opens the system default browser (Intent.ACTION_VIEW, not
+    // CustomTabsIntent) so the user fully leaves BOBA Playbook. Reads
+    // the legacy `Card.radishUrl` field; falls back to the Radish
+    // homepage when null. The catalog `radishUrl` field is treated as
+    // frozen static data — never refreshed, validated, or used for
+    // pricing. (Pre-2026-05-28 Android slim catalog dropped this
+    // field, so the link always fell back to the homepage; see
+    // pipeline/scripts/regen_bundles.py + DECISIONS.md #059.)
     state.card?.let { card ->
         val ctx = LocalContext.current
-        val target = (card.radishUrl?.takeIf { it.isNotBlank() })
+        val ebayUrl = buildEbaySoldSearchUrl(hero = card.hero, cardNumber = card.cardNumber)
+        val radishTarget = (card.radishUrl?.takeIf { it.isNotBlank() })
             ?: "https://radishpriceguide.com"
-        TextButton(
-            onClick = {
-                runCatching {
-                    ctx.startActivity(Intent(Intent.ACTION_VIEW, target.toUri()))
-                }
-            },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            Text(text = "View on Radish")
+            OutlinedButton(
+                onClick = {
+                    runCatching {
+                        ctx.startActivity(Intent(Intent.ACTION_VIEW, ebayUrl.toUri()))
+                    }
+                },
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ShoppingCart,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = "eBay Sales")
+            }
+            OutlinedButton(
+                onClick = {
+                    runCatching {
+                        ctx.startActivity(Intent(Intent.ACTION_VIEW, radishTarget.toUri()))
+                    }
+                },
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(text = "View on Radish")
+            }
         }
     }
 

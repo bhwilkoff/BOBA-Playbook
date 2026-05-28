@@ -4541,22 +4541,20 @@
       : null;
   }
 
-  /// Tick 383 — explanation copy for the print-run / SSP chip.
-  /// Android tick 379 + iOS tick 382 ship the same tap-to-explain
-  /// popover; web matches by attaching this string as title= +
-  /// data-print-run-explain on the chip, and opening a popover via
-  /// `bobaShowPopoverMenu` on click. Casual users don't auto-know the
-  /// BoBA Inspired Ink convention (Hex /5 · Glow /10 · Fire /25 · Ice /50
-  /// per DECISIONS.md #028).
+  /// Tap-to-explain copy for the print-run chip on card detail. The
+  /// prior text named a specific weapon for each count ("Inspired Ink
+  /// Hex" for /5, "Inspired Ink Fire" for /25, etc.) but that mapping
+  /// was the DECISIONS.md #028 assumption retired by #061 — card-art
+  /// OCR shows weapon and print-run are independent (FIRE + ICE each
+  /// appear at BOTH /5 AND /50). Now the explainer describes only
+  /// what the number itself means.
   function printRunExplain(label) {
     switch (label) {
-      case 'SSP':    return "Superfoil — Super-Short-Print, BoBA's rarest non-numbered treatment.";
-      case '/5':     return "Inspired Ink Hex — limited run of 5 copies (BoBA's rarest serialized treatment).";
-      case '/10':    return 'Inspired Ink Glow — limited run of 10 copies.';
-      case '/25':    return 'Inspired Ink Fire — limited run of 25 copies.';
-      case '/50':    return 'Inspired Ink Ice — limited run of 50 copies.';
-      case 'Serial': return 'Inspired Ink — serialized run; print number not publicly disclosed.';
-      default:       return `${label} print run.`;
+      case '/5':     return 'Hand-stamped Inspired Ink — print run of 5. Among the rarest serialized counts in any product run.';
+      case '/10':    return 'Hand-stamped Inspired Ink — print run of 10.';
+      case '/25':    return 'Hand-stamped Inspired Ink — print run of 25.';
+      case '/50':    return 'Hand-stamped Inspired Ink — print run of 50. The highest standard Inspired Ink count.';
+      default:       return `${label} print run — OCR'd from the card art.`;
     }
   }
 

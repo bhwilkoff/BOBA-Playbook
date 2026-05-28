@@ -1459,22 +1459,21 @@
             <h3 class="collect-heading">TREATMENTS</h3>
             <p class="collect-intro">Treatments are the different ways a given card can be printed — Base Set, the Battlefoil family, themed foils, and the premium Inspired Ink / Superfoil chase tiers. The prefix on the card number maps to its treatment.</p>
 
-            <!-- Inspired Ink serial-number ladder (Hex /5, Glow /10,
-                 Fire /25, Ice /50). Surfaced as its own callout
-                 because collectors specifically need the weapon-tied
-                 print numbers when valuing serialized cards. -->
+            <!-- Inspired Ink serial-number callout. The prior copy
+                 here listed "Hex /5, Glow /10, Fire /25, Ice /50"
+                 as a fixed weapon→count mapping (DECISIONS.md #028
+                 era). Card-art OCR retired that assumption: the real
+                 per-card printRun field shows FIRE + ICE each appear
+                 at BOTH /5 AND /50, and 174 FIRE cards have a real
+                 printRun ≠ 25. DECISIONS.md #061 bans the inferred
+                 ladder; rarity is a fact about the physical card,
+                 read off the art itself. -->
             <div class="treatment-callout">
               <div class="treatment-callout-head">
                 <span class="treatment-callout-glyph">✍︎</span>
                 <span class="treatment-callout-label">INSPIRED INK = SERIALIZED</span>
               </div>
-              <p class="treatment-callout-body">Inspired Ink cards carry hand-stamped serial numbers tied to the hero's weapon type:</p>
-              <div class="treatment-serial-row">
-                <div class="treatment-serial-chip" style="--serial-color:#8B00FF"><span class="serial-weapon">Hex</span><span class="serial-num">/5</span></div>
-                <div class="treatment-serial-chip" style="--serial-color:#FFD700"><span class="serial-weapon">Glow</span><span class="serial-num">/10</span></div>
-                <div class="treatment-serial-chip" style="--serial-color:#FF4D00"><span class="serial-weapon">Fire</span><span class="serial-num">/25</span></div>
-                <div class="treatment-serial-chip" style="--serial-color:#00BFFF"><span class="serial-weapon">Ice</span><span class="serial-num">/50</span></div>
-              </div>
+              <p class="treatment-callout-body">Inspired Ink cards carry hand-stamped serial numbers — typically <strong>/5</strong>, <strong>/10</strong>, <strong>/25</strong>, or <strong>/50</strong>. The exact print run is stamped on the card art itself; it varies by individual card, not by weapon type. Open a card's detail view to see its actual print run (we OCR it off the art for the 464 numbered cards in the catalog).</p>
             </div>
 
             <h4 class="treatment-group-heading">STANDARD</h4>
@@ -1680,7 +1679,7 @@
                 <span class="treatment-prefix">BPL</span>
                 <div class="treatment-info">
                   <div class="treatment-name">Bonus Plays</div>
-                  <div class="treatment-desc">Element-triggered Plays that don't count against the 30-card Playbook limit. Drawn automatically when their trigger fires; surfaced with a gold ★ BONUS tag in the practice playmat.</div>
+                  <div class="treatment-desc">Weapon-triggered Plays that don't count against the 30-card Playbook limit. Drawn automatically when their trigger fires; surfaced with a gold ★ BONUS tag in the practice playmat.</div>
                 </div>
               </div>
               <div class="treatment-row" style="--t-color:#FFA500">
@@ -1892,7 +1891,7 @@
               <button class="glossary-row" type="button" data-term="raw" data-def="Ungraded. The opposite of PSA/BGS/CGC/TAG graded."><span class="glossary-term">raw</span><span class="glossary-def">Ungraded. The opposite of PSA/BGS/CGC/TAG graded.</span></button>
               <button class="glossary-row" type="button" data-term="graded" data-def="Encapsulated and scored by a third-party grader (PSA, BGS, CGC, TAG). 'PSA 10' is the top grade at PSA."><span class="glossary-term">graded</span><span class="glossary-def">Encapsulated and scored by a third-party grader (PSA, BGS, CGC, TAG). 'PSA 10' is the top grade at PSA.</span></button>
               <button class="glossary-row" type="button" data-term="TAG" data-def="TAG Grading — an emerging alternative grader using laser-scored analysis. Ask your event organizer whether TAG slabs are accepted as proxies."><span class="glossary-term">TAG</span><span class="glossary-def">TAG Grading — an emerging alternative grader using laser-scored analysis. Ask your event organizer whether TAG slabs are accepted as proxies.</span></button>
-              <button class="glossary-row" type="button" data-term="comps" data-def="Comparable recent sales — used to sanity-check a price. The card detail view's pricing panel pulls comps from eBay's Marketplace Insights API."><span class="glossary-term">comps</span><span class="glossary-def">Comparable recent sales — used to sanity-check a price. The card detail view's pricing panel pulls comps from eBay's Marketplace Insights API.</span></button>
+              <button class="glossary-row" type="button" data-term="comps" data-def="Comparable recent sales — actual sold transactions used to gauge a card's value. The pricing panel surfaces sales we generate ourselves: eBay (inferred when active listings disappear, ~14–60d window), Whatnot, and community-submitted comps. Each row carries a source pill so you can see where it came from."><span class="glossary-term">comps</span><span class="glossary-def">Comparable recent sales — actual sold transactions used to gauge a card's value. The pricing panel surfaces sales we generate ourselves: eBay (inferred when active listings disappear, ~14–60d window), Whatnot, and community-submitted comps. Each row carries a source pill so you can see where it came from.</span></button>
               <button class="glossary-row" type="button" data-term="dumper" data-def="A card sold cheaply — often the lower-value hit in a break-day liquidation."><span class="glossary-term">dumper</span><span class="glossary-def">A card sold cheaply — often the lower-value hit in a break-day liquidation.</span></button>
               <button class="glossary-row" type="button" data-term="banger" data-def="An impressive or high-value pull. Affectionate."><span class="glossary-term">banger</span><span class="glossary-def">An impressive or high-value pull. Affectionate.</span></button>
               <button class="glossary-row" type="button" data-term="scam / scammer" data-def="Don't engage, report to moderators, and check the vouch history before any trade with a new account."><span class="glossary-term">scam / scammer</span><span class="glossary-def">Don't engage, report to moderators, and check the vouch history before any trade with a new account.</span></button>

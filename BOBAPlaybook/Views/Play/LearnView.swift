@@ -1852,7 +1852,7 @@ private struct GlossaryView: View {
         .init(term: "raw",   definition: "Ungraded. The opposite of PSA/BGS/CGC/TAG graded."),
         .init(term: "graded", definition: "Encapsulated and scored by a third-party grader (PSA, BGS, CGC, TAG). 'PSA 10' is the top grade at PSA."),
         .init(term: "TAG",   definition: "TAG Grading — an emerging alternative grader using laser-scored analysis. Ask your event organizer whether TAG slabs are accepted as proxies."),
-        .init(term: "comps", definition: "Comparable recent sales — used to sanity-check a price. The card detail view's pricing panel pulls comps from eBay's Marketplace Insights API."),
+        .init(term: "comps", definition: "Comparable recent sales — actual sold transactions used to gauge a card's value. The pricing panel surfaces sales we generate ourselves: eBay (inferred when active listings disappear, ~14–60d window), Whatnot, and community-submitted comps. Each row carries a source pill so you can see where it came from."),
         .init(term: "dumper", definition: "A card sold cheaply — often the lower-value hit in a break-day liquidation."),
         .init(term: "banger", definition: "An impressive or high-value pull. Affectionate."),
         .init(term: "scam / scammer", definition: "Don't engage, report to moderators, and check the vouch history before any trade with a new account."),
@@ -2273,9 +2273,13 @@ private struct TreatmentsSection: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, Design.Spacing.xs)
 
-            // Inspired Ink serial-number callout — surfaces the
-            // Hex /5, Glow /10, Fire /25, Ice /50 ladder collectors
-            // need to know.
+            // Inspired Ink serial-number callout. Prior copy named
+            // a fixed weapon→count ladder (Hex /5, Glow /10, Fire /25,
+            // Ice /50) — retired by DECISIONS.md #061 because card-art
+            // OCR proved the mapping wrong (FIRE + ICE each appear at
+            // BOTH /5 AND /50; 174 FIRE cards have real printRun ≠ 25).
+            // New copy explains the convention without inferring the
+            // count from weapon.
             inspiredInkCallout
                 .padding(.bottom, Design.Spacing.xs)
 
@@ -2340,16 +2344,10 @@ private struct TreatmentsSection: View {
                     .foregroundStyle(Color(hex: "FF69B4"))
                     .tracking(1)
             }
-            Text("Inspired Ink cards carry hand-stamped serial numbers tied to the hero's weapon type:")
+            Text("Inspired Ink cards carry hand-stamped serial numbers — typically /5, /10, /25, or /50. The exact print run is stamped on the card art itself and varies by individual card, not by weapon type. Open a card's detail view to see its actual count (we OCR it off the art for the 464 numbered cards in the catalog).")
                 .font(Design.Fonts.mono(12))
                 .foregroundStyle(Design.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 6) {
-                serialChip("Hex", "/5",  Design.Colors.element("HEX"))
-                serialChip("Glow", "/10", Design.Colors.element("GLOW"))
-                serialChip("Fire", "/25", Design.Colors.element("FIRE"))
-                serialChip("Ice", "/50", Design.Colors.element("ICE"))
-            }
         }
         .padding(Design.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -2359,20 +2357,9 @@ private struct TreatmentsSection: View {
                 .strokeBorder(Color(hex: "FF69B4").opacity(0.35), lineWidth: 1)))
     }
 
-    private func serialChip(_ weapon: String, _ serial: String, _ color: Color) -> some View {
-        VStack(spacing: 1) {
-            Text(weapon)
-                .font(Design.Fonts.mono(9, weight: .bold))
-                .foregroundStyle(color)
-            Text(serial)
-                .font(Design.Fonts.mono(13, weight: .bold))
-                .foregroundStyle(.white)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Capsule().fill(color.opacity(0.18))
-            .overlay(Capsule().strokeBorder(color.opacity(0.5), lineWidth: 1)))
-    }
+    // `serialChip` helper removed 2026-05-28 — the only call sites
+    // were the four hardcoded Hex/Glow/Fire/Ice chips inside
+    // `inspiredInkCallout`, retired by DECISIONS.md #061.
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2396,7 +2383,7 @@ private struct ParallelsSection: View {
          "The Playbook subsystem — non-Hero cards used during Battle to modify outcomes. Tracked separately from Heroes for deck-building purposes.",
          Design.Colors.bobaViolet),
         ("BPL",  "Bonus Plays",
-         "Element-triggered Plays that don't count against the 30-card Playbook limit. Drawn automatically when their trigger fires.",
+         "Weapon-triggered Plays that don't count against the 30-card Playbook limit. Drawn automatically when their trigger fires.",
          Color(hex: "FFD700")),
         ("P",    "Prize & Promo",
          "Prize cards (tournament rewards) and Promo cards (event/release exclusives). Limited distribution; not part of standard pack rotation.",

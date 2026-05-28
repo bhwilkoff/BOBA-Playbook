@@ -91,8 +91,10 @@ SIM_WEIGHTS = {
     "printRun_match":     10,   # /5 finds /5 (hardest scarcity signal, §6.4 Feature 0)
     "treatment_match":     5,   # same print-variant family
     "weapon_match":        4,   # same rarity tier (Brawl Common → Super 1-of-1)
-    "variation_match":     3,   # First Edition / 2026 / athlete-debut
-    "cardType_match":      3,   # Hero ≠ Play ≠ HotDog ≠ Sealed
+    "variation_match":     3,   # First Edition / 2026 / athlete-debut / Hobby Box
+    "cardType_match":      3,   # Hero ≠ Play ≠ HotDog ≠ Sealed Product
+    "set_match":           3,   # era affinity; CRITICAL for Sealed (no treatment / weapon)
+                                # and helpful refinement for normal cards across reissues
     "power_tier_match":    2,   # gameplay value bucket
     "both_unserialized":   2,   # weak commonality between two non-/N cards
     "hero_match":          1,   # §6.2 — secondary multiplier, NEVER primary
@@ -208,6 +210,12 @@ def similarity(target, peer):
     t_ct = target.get("cardType")
     if t_ct and t_ct == peer.get("cardType"):
         s += SIM_WEIGHTS["cardType_match"]
+    # Set / era — load-bearing for Sealed Products (which have no treatment
+    # or weapon, so without this they can't reach MIN_SIM); a useful refinement
+    # for normal cards across reissues. Same Alpha Update Battlefoil → bonus.
+    t_set = target.get("set")
+    if t_set and t_set == peer.get("set"):
+        s += SIM_WEIGHTS["set_match"]
     # Gameplay value bucket.
     t_pt = power_tier(target.get("power"))
     if t_pt != "na" and t_pt == power_tier(peer.get("power")):

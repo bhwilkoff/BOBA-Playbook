@@ -449,6 +449,17 @@ actor PricingService {
         }
     }
 
+    /// Public hook into the rarity-baseline estimator (boba-price-estimator
+    /// `/estimate?bobaId=`). Used by Collection's "Refresh Market Values" path
+    /// as the LAST-RESORT fallback so EVERY card in the user's collection has
+    /// a stored value, not just the cards eBay/Whatnot/community have priced
+    /// directly. Soft-fails (returns nil) on Worker-not-configured / 404 /
+    /// timeout, in which case the caller falls back to its existing default
+    /// (typically 0 / unchanged).
+    func marketEstimate(bobaId: String) async -> PricingBucket? {
+        await fetchEstimatorBucket(bobaId: bobaId)
+    }
+
     private func fetchEstimatorBucket(bobaId: String) async -> PricingBucket? {
         let base = await MainActor.run { WorkerConfig.priceEstimatorURL }
         guard !base.isEmpty,

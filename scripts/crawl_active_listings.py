@@ -59,16 +59,17 @@ PROXY = "https://boba-ebay-proxy.benwilkoff.workers.dev"
 
 
 def treatment_family(t):
-    """Mirror of the estimator's treatmentFamily() — keep in lockstep with
-    workers/price-estimator/worker.js so buckets line up."""
-    t = (t or "").lower()
-    if "battlefoil" in t and "super" not in t:
-        return "battlefoil_color"
-    for k in ("superfoil", "inspired", "blizzard", "linoleum",
-              "logofoil", "mixtape", "chillin", "grillin", "alpha"):
-        if k in t:
-            return k
-    return "base"
+    """Lockstep with scripts/build_price_estimates.py::treatment_family —
+    one treatment string → one family key. The catalog has 59 distinct
+    treatments (Pink Blast, Base Set, Silver Battlefoil, etc.); each is a
+    real rarity class so the stratifier should give each a fair share."""
+    if not t:
+        return "none"
+    return (t.lower()
+              .replace("'", "")
+              .replace(" & ", "_and_")
+              .replace("&", "and")
+              .replace(" ", "_"))
 
 
 def load_cursor():
@@ -134,6 +135,10 @@ def main():
     ap.add_argument("--limit", type=int, default=800, help="max cards this run (eBay-quota guard)")
     ap.add_argument("--delay", type=float, default=1.2, help="seconds between calls (rate-limit guard)")
     ap.add_argument("--timeout", type=float, default=12.0)
+    ap.add_argument("--treatments", default="",
+                    help="CSV of exact treatment strings to focus this run on; "
+                         "all other treatments are skipped. Used to fill empty "
+                         "rarity buckets identified by the builder's coverage audit.")
     ap.add_argument("--reset", action="store_true", help="clear the resume cursor and exit")
     args = ap.parse_args()
 
@@ -145,7 +150,15 @@ def main():
 
     cards = json.load(open(CATALOG))
     done = load_cursor()
-    order = stratified_order(cards, done)
+    # Targeted-fill mode: restrict the queue to cards in specific treatments
+    # (e.g., to fill rarity-buckets the coverage audit flagged as empty).
+    if args.treatments:
+        focus = {t.strip() for t in args.treatments.split(",") if t.strip()}
+        cards_for_order = [c for c in cards if (c.get("treatment") or "") in focus]
+        print(f"targeted treatments ({len(focus)}): {sorted(focus)}")
+    else:
+        cards_for_order = cards
+    order = stratified_order(cards_for_order, done)
     print(f"catalog={len(cards)} already_crawled={len(done)} queued={len(order)} limit={args.limit}")
 
     crawled = 0

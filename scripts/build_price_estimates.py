@@ -69,16 +69,22 @@ CONF_HIGH = 8
 
 
 def treatment_family(t):
-    """Lockstep with workers/price-estimator/worker.js::treatmentFamily and
-    scripts/crawl_active_listings.py::treatment_family."""
-    t = (t or "").lower()
-    if "battlefoil" in t and "super" not in t:
-        return "battlefoil_color"
-    for k in ("superfoil", "inspired", "blizzard", "linoleum",
-              "logofoil", "mixtape", "chillin", "grillin", "alpha"):
-        if k in t:
-            return k
-    return "base"
+    """Use the treatment STRING itself as the family key (normalized).
+
+    The catalog has 59 distinct treatments; each is a real rarity class
+    (Pink Blast ≠ Base Set ≠ Silver Battlefoil — different runs, different
+    prices, per PRICING_PLAYBOOK §6.4). Earlier this function collapsed many
+    of them onto a handful of keys ("base", "battlefoil_color", etc.), which
+    dragged the bucket median wrong (mixing Base Set commons with Blast/Hot
+    Dog/Cyber chase variants) and hid genuine misses. One treatment → one
+    family is the honest design. Lockstep with crawl_active_listings.py."""
+    if not t:
+        return "none"
+    return (t.lower()
+              .replace("'", "")
+              .replace(" & ", "_and_")
+              .replace("&", "and")
+              .replace(" ", "_"))
 
 
 def power_tier(p):

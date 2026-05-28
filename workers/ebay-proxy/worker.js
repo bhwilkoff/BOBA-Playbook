@@ -1296,6 +1296,7 @@ export default {
     if (request.method === "GET"  && url.pathname.endsWith("/whatnot/upcoming")) return handleWhatnotUpcoming(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/whatnot/products")) return handleWhatnotProducts(request, env, ctx);
     if (request.method === "GET"  && url.pathname.endsWith("/scrape-ebay"))      return handleScrapeEbay(request, env);
+    if (request.method === "GET"  && url.pathname.endsWith("/sealed"))            return handleSealedSearch(request, env, ctx);
     if (request.method === "GET"  && url.pathname.endsWith("/tracker/active"))   return handleTrackerActive(request, env);
     if (request.method === "GET"  && url.pathname.endsWith("/tracker/ratelimit")) return handleRateLimit(request, env);
     const { searchParams } = url;
@@ -1688,6 +1689,76 @@ function pushIngest(env, ctx, bobaId, source, listings) {
     })).then(() => {}).catch(() => {})
   );
 }
+
+/**
+ * Sealed Product search — `GET /sealed?q=<query>&bobaId=<id>`
+ *
+ * Sealed products (Hobby Box, Blaster Case, Trainer Kit, etc.) are FUNDAMENTALLY
+ * different from individual cards (PRICING_PLAYBOOK §6.6): each Sealed is its
+ * own SKU and trades at its own market price. They don't have comparable
+ * cards — a Griffey Hobby Box ISN'T like a Tecmo Hobby Box for pricing
+ * purposes — so the similarity model doesn't apply. Instead, the caller
+ * supplies a HAND-CURATED eBay search query that finds listings for ONE
+ * specific Sealed SKU, and the proxy pushes whatever matches into the tracker
+ * keyed on the provided bobaId. The builder then uses those direct listings
+ * as the SKU's own price (no comparability search).
+ *
+ * The query is used verbatim — no auto-built keyword filter, no card-number
+ * matching, no power-match filter — because the SKU identity IS the query.
+ */
+async function handleSealedSearch(request, env, ctx) {
+  if (!env.EBAY_APP_ID || !env.EBAY_CERT_ID) {
+    return json({ error: "EBAY_APP_ID and EBAY_CERT_ID secrets required" }, 500);
+  }
+  const url    = new URL(request.url);
+  const q      = (url.searchParams.get("q") || "").trim();
+  const bobaId = (url.searchParams.get("bobaId") || "").trim();
+  if (!q)      return json({ error: "q parameter required" }, 400);
+  if (!bobaId) return json({ error: "bobaId parameter required" }, 400);
+
+  let token;
+  try {
+    token = await getAppToken(env, caches.default);
+  } catch (e) {
+    return json({ error: `oauth: ${e.message || e}` }, 500);
+  }
+
+  const { items: raw, error } = await searchActive(token, q);
+  if (error) return json({ query: q, bobaId, count: 0, error }, 502);
+
+  // Map directly — no specificity filter. The query IS the identity for
+  // Sealed; whatever eBay returns for this SKU search is what we want.
+  const listings = (raw || [])
+    .map(it => {
+      const v = parseFloat(it.price?.value);
+      if (!Number.isFinite(v) || v <= 0) return null;
+      return {
+        itemId:  it.itemId,
+        price:   v,
+        title:   it.title || "",
+        url:     it.itemWebUrl || "",
+        image:   it.image?.imageUrl || null,
+        format:  Array.isArray(it.buyingOptions) ? it.buyingOptions[0] : null,
+        endTime: it.itemEndDate || null,
+        sellerId: it.seller?.username || null,
+        condition: it.condition || null,
+      };
+    })
+    .filter(Boolean);
+
+  if (listings.length > 0) {
+    pushIngest(env, ctx, bobaId, "ebay", listings);
+  }
+
+  const sample = listings
+    .slice()
+    .sort((a, b) => a.price - b.price)
+    .slice(0, 6)
+    .map(li => ({ price: li.price, title: li.title.slice(0, 80) }));
+
+  return json({ query: q, bobaId, count: listings.length, sample }, 200);
+}
+
 
 async function handleWhatnotProducts(request, env, ctx) {
   const url   = new URL(request.url);

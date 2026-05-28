@@ -227,6 +227,41 @@ def similarity(target, peer):
     return s
 
 
+def pull_sealed_listings(bobaIds):
+    """Return {bobaId: [raw_active_prices]} — RAW prices, not medians. The
+    Sealed-product path computes its own filtered median (it needs to drop
+    single-card noise that creeps in via broad search queries — e.g., a
+    'Battle Trainer Kit' query hitting any listing whose title mentions
+    those words). Empty dict when bobaIds is empty or the query fails."""
+    if not bobaIds:
+        return {}
+    in_clause = ",".join("'" + bid.replace("'", "''") + "'" for bid in bobaIds)
+    sql = (
+        f"SELECT boba_id, price_usd FROM listings "
+        f"WHERE vanished_at IS NULL AND price_usd > 0 AND boba_id IN ({in_clause});"
+    )
+    out = subprocess.run(
+        ["npx", "wrangler", "d1", "execute", "boba-pricing", "--remote", "--json", "--command", sql],
+        cwd=TRACKER_DIR, capture_output=True, text=True, timeout=180,
+    )
+    if out.returncode != 0:
+        print(out.stderr[-500:], file=sys.stderr)
+        return {}
+    by_card = defaultdict(list)
+    for r in json.loads(out.stdout)[0]["results"]:
+        by_card[r["boba_id"]].append(r["price_usd"])
+    return by_card
+
+
+# Sealed products are per-SKU markets — single-card listings sometimes leak
+# into the search results because the catalog product name shares words
+# with card titles (e.g., a "Battle Trainer Kit" query matches single cards
+# whose titles mention those words). Filter clearly-too-cheap listings out
+# before computing the median; the legitimate Sealed market starts well
+# above single-card territory.
+SEALED_MIN_PRICE = 10
+
+
 def pull_tracker_prices():
     """Return {bobaId: (median_price, kind)} where kind is 'sold' or 'ask'.
     Sold (inferred + community-confidence) preferred; else active asking."""
@@ -364,12 +399,67 @@ def main():
     # top MAX_COMPS, and compute an outlier-trimmed percentile band on their
     # prices. Honest provenance (#058): the basis names *which combination*
     # of factors got us to those comps — not a fixed-level label.
+    # ── Sealed Products — per-SKU direct pricing, NOT comparability ─────
+    # Sealed (Hobby Box, Blaster Case, Trainer Kit, etc.) are fundamentally
+    # different from cards: each Sealed is its own market. A Griffey Hobby
+    # Box and a Tecmo Hobby Box don't share a price baseline. The similarity
+    # model would either skip Sealed (no comparable card has matching
+    # treatment/weapon/hero) or wrongly average two unrelated SKUs onto one
+    # median. So Sealed gets its own path: use the median of THIS card's
+    # own listings (curated per-SKU eBay queries via scripts/crawl_sealed_
+    # products.py), filtered to drop single-card noise. SOLD_HAIRCUT applies
+    # the same way (active ask → estimated-sold).
+    print("\nSealed Product direct pricing:")
+    sealed_cards = [c for c in cards if (c.get("cardType") or "") == "Sealed Product"]
+    sealed_bobaIds = [c["bobaId"] for c in sealed_cards if c.get("bobaId")]
+    sealed_listings = pull_sealed_listings(sealed_bobaIds)
+    sealed_estimates = {}
+    for c in sealed_cards:
+        bid = c.get("bobaId")
+        if not bid:
+            continue
+        raw = sealed_listings.get(bid, [])
+        kept = sorted(p for p in raw if p >= SEALED_MIN_PRICE)
+        if len(kept) < MIN_CARDS:
+            continue
+        after = [p * SOLD_HAIRCUT for p in kept]
+        n = len(after)
+        if n >= 10:
+            trim = max(1, n // 10)
+            band = after[trim:-trim]
+        else:
+            band = after
+        nb = len(band)
+        def pct(q, b=band, m=nb):
+            return b[max(0, min(m - 1, int(q * (m - 1) + 0.5)))]
+        sealed_estimates[bid] = {
+            "low":    round(pct(0.25), 2),
+            "mid":    round(pct(0.50), 2),
+            "high":   round(pct(0.75), 2),
+            "n":      n,
+            "avgSim": 0,
+            "topSim": 0,
+            "basis":  "direct eBay listings for this SKU (Sealed Product)",
+            "conf":   "med" if n >= 5 else "low",
+        }
+    print(f"  Sealed SKUs with priced listings: {len([b for b in sealed_listings if sealed_listings[b]])}")
+    print(f"  Sealed estimates produced (≥{MIN_CARDS} listings ≥ ${SEALED_MIN_PRICE}): {len(sealed_estimates)}")
+    sealed_bid_set = {c.get("bobaId") for c in sealed_cards if c.get("bobaId")}
+
     print("\nFinding closest comps for each card…")
     estimates = {}
+    # Seed with Sealed estimates so they're written to the artifact. Sealed
+    # cards are SKIPPED in the similarity loop below — they're already done.
+    estimates.update(sealed_estimates)
     n_skipped_too_few = 0
     for c in cards:
         bid = c.get("bobaId")
         if not bid:
+            continue
+        # Sealed Products were handled above with per-SKU direct pricing —
+        # skip them here so the similarity model doesn't try (and fail) to
+        # find comps for products that don't share rarity-class semantics.
+        if bid in sealed_bid_set:
             continue
         # Score every priced peer; skip self.
         scored = []

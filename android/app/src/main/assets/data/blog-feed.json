@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-05-27",
+  "lastUpdated": "2026-05-28",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -329,6 +329,13 @@
       "date": "2024-08-08",
       "url": "https://bobattlearena.com/blog/national-24-recap",
       "excerpt": "2024 National Sports Collectors Convention Recap: A Milestone for Bo Jackson Battle Arena The National Sports Collectors Convention was a monumental launch for Bo Jackson Battle Arena, marking the re..."
+    },
+    {
+      "id": "join-the-boba-fun-on-whatnot",
+      "title": "Join the BoBA Fun on Whatnot",
+      "date": null,
+      "url": "https://bobattlearena.com/blog/join-the-boba-fun-on-whatnot",
+      "excerpt": "&lt;p style=&#8221;text-align: left;&#8221;&gt;&lt;span style=&#8221;font-weight: 400;&#8221;&gt;A singles show feels a lot like walking into a card shop.&lt;/span&gt;&lt;/p&gt; &lt;p style=&#8221;text-align: left;&#8221;&gt;&lt;/p&gt;&lt;p style=&#8221;text-align: left;&#8221;&gt;&lt;span style=&#8221;font-weight: 400;&#8221;&gt;Singles shows are especially useful if:&lt;/span&gt;&lt;/p&gt; &lt;p style=&#8221;text-align: left;&#8221;&gt;&lt;span style=&#8221;font-weight: 400;&#8221;&gt;you are hunting a specific BoBA card&lt;/span&gt;&lt;/p&gt; &lt;p style=&#8221;text-align: left;&#8221;&gt;&lt;span style=&#8221;font-weight: 400;&#8221;&gt;you want to build out a certain Hero or strategy&lt;/span&gt;&lt;/p&gt; &lt;p style=&#8221;text-align:&#8230; Read more &raquo;"
     }
   ]
 }

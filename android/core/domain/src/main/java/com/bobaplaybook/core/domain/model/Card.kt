@@ -81,6 +81,17 @@ data class Card(
      */
     val radishUrl: String? = null,
     val bvUrl: String? = null,
+    /**
+     * Card-art-OCR'd print run, populated for 464 of 17,974 catalog
+     * cards (PRICING_PLAYBOOK §6.4 Feature 0). `5`, `10`, `25`, or
+     * `50` typically — observed serialization, the hardest scarcity
+     * signal we have. Null for the un-numbered majority. DECISIONS.md
+     * #061 makes this the ONLY source of [printRunLabel] — the prior
+     * weapon→count switch (#028 assumption) shipped wrong values on
+     * 174+ FIRE cards because FIRE + ICE each appear at BOTH /5 AND
+     * /50 in the real OCR data.
+     */
+    val printRun: Int? = null,
 
     /** The real-world athlete this card's hero is inspired by. */
     val athleteInspiration: String? = null,
@@ -152,28 +163,18 @@ data class Card(
         get() = if (hero.isNotEmpty()) hero else name
 
     /**
-     * Tick 189 — Discord backlog #7. Optional print-run label for the
-     * card. Returns null when there's no known scarcity indicator (the
-     * 99% case — Base Set, Battlefoils, etc.). Used by card detail +
-     * card cell to surface a "SSP / Numbered /N" badge for at-a-glance
-     * shopping comprehension.
-     *
-     * Source of truth: DECISIONS.md #028 "Inspired Ink = Serialized
-     * with weapon-tied print numbers: Hex /5, Glow /10, Fire /25, Ice
-     * /50." Superfoil is the next-rarest non-numbered treatment.
+     * Print-run label for cards — reads the catalog's real [printRun]
+     * field (populated for 464 cards via card-art OCR; PRICING_PLAYBOOK
+     * §6.4 Feature 0). Returns null when there's no OCR'd value, which
+     * is most cards. The prior weapon→count switch (DECISIONS.md #028
+     * assumption — FIRE→/25, ICE→/50, etc.) is retired by #061: the
+     * OCR data shows FIRE + ICE each appear at BOTH /5 AND /50, so
+     * the weapon→count mapping shipped wrong values on 174+ FIRE
+     * cards alone. Anything not on the card art itself is a guess,
+     * and we ship the truth or nothing.
      */
     val printRunLabel: String?
-        get() = when {
-            isInspiredInk -> when (element.uppercase()) {
-                "HEX"  -> "/5"
-                "GLOW" -> "/10"
-                "FIRE" -> "/25"
-                "ICE"  -> "/50"
-                else   -> "Serial"   // Steel/Gum/Brawl/Super Inspired Ink — print run not public
-            }
-            treatment?.contains("Superfoil", ignoreCase = true) == true -> "SSP"
-            else -> null
-        }
+        get() = printRun?.takeIf { it > 0 }?.let { "/$it" }
 }
 
 /**

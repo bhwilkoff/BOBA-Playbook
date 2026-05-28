@@ -115,22 +115,15 @@ fun BOBACardCell(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
-                if (!printRunLabel.isNullOrBlank() && maxWidth >= 80.dp) {
-                    PrintRunBadge(
-                        label = printRunLabel,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(4.dp),
-                    )
-                }
-                if (!formatLegalityHint.isNullOrBlank() && maxWidth >= 80.dp) {
-                    FormatLegalityHintBadge(
-                        label = formatLegalityHint,
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(4.dp),
-                    )
-                }
+                // No overlays on the card art per DECISIONS.md #061 — the
+                // only on-grid overlay allowed is Collection's price chip
+                // (ANDROID-DESIGN.md §8.8 + DECISIONS.md #036). PrintRun +
+                // FormatLegality info lives in the card-detail stats grid
+                // / "Other Versions" labels, not over the art. Function
+                // params kept so call sites compile; they're intentional
+                // no-ops here.
+                @Suppress("UNUSED_PARAMETER")
+                run { printRunLabel; formatLegalityHint }
             }
         }
     }

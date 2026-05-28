@@ -826,15 +826,14 @@ struct CollectionCardDetailView: View {
 
     private func variationTile(_ card: Card) -> some View {
         VStack(spacing: Design.Spacing.xs) {
-            // Tick 502 — print-run + format-legality badges on
-            // variation tiles (Android tick 461/469 + iOS Find-tab
-            // tick 462/472 parity). CardImageView bypasses BOBACardCell
-            // so the badges need to be wired inline via the now-
-            // extracted PrintRunBadge / FormatLegalityHintBadge structs.
+            // No overlays on the card art per DECISIONS.md #061 — the
+            // only on-grid overlay allowed is Collection's price chip
+            // (DESIGN.md §8.8). The treatment label below the tile +
+            // ownership pip below it carry the disambiguation; the
+            // art stays clean.
             CardImageView(card: card, size: .thumb)
                 .frame(width: 80, height: 112)
                 .clipShape(RoundedRectangle(cornerRadius: Design.Radius.sm))
-                .cardThumbBadges(for: card)
 
             Text(card.treatment ?? card.set)
                 .font(Design.Fonts.mono(9))

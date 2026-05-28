@@ -9,11 +9,17 @@ compatibility_date = "2024-01-01"
 binding = "ESTIMATES"
 id      = "b44ff8f1197646c2a4ba5563a2a68959"
 
-# Cron schedule — nightly at 03:00 UTC. Recomputes estimates for every
-# catalog card. Walks ~18k cards in batches; total runtime well under
-# Cloudflare's 30-min cron-invocation cap.
+# Cron DISABLED — the comp-recompute walk made per-card service-binding
+# fetches (up to ~150/card × 600 cards), which blows Cloudflare's free-plan
+# 50-subrequest/invocation cap (the same wall that pushed the tracker to a
+# push model, DECISIONS.md #058). It is superseded by the OFFLINE
+# scripts/build_price_estimates.py, which computes the rarity-baseline with
+# no Worker limits and (when present) prefers real inferred-sold comps over
+# asks automatically. The Worker still serves /estimate (KV → static
+# artifact fallback); only the catalog-grind cron is off. Re-enable ONLY if
+# moved to a paid plan AND the walk is rewritten to bulk price lookups.
 [triggers]
-crons = ["0 3 * * *"]
+crons = []
 
 # Service binding — Worker-to-Worker fetch via public URLs gets
 # 404'd by Cloudflare's edge router. Service bindings route directly

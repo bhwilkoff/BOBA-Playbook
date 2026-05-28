@@ -161,22 +161,52 @@ async function handleIngest(request, env) {
     `SELECT item_id, price_usd, format, end_time, first_seen, last_seen
        FROM listings WHERE boba_id = ? AND source = ? AND vanished_at IS NULL`
   ).bind(bobaId, source).all();
+  const priorPrice = new Map();
+  for (const row of prior || []) priorPrice.set(row.item_id, row.price_usd);
 
   const stmts = incoming.map(li => upsertStmt(env, bobaId, li, source));
 
   const now = nowIso();
+
+  // Price-trajectory snapshots (§6.6 layer 1). Write a snapshot whenever the
+  // observed price differs from the last we recorded for that listing — so a
+  // listing that walks $30 → $25 → $20 produces 3 rows in listing_snapshots,
+  // a durable record of price discovery. PRIMARY KEY guards exact duplicates.
+  for (const li of incoming) {
+    const prev = priorPrice.get(li.itemId);
+    if (prev === undefined || Number(prev) !== Number(li.price)) {
+      stmts.push(env.DB.prepare(
+        `INSERT OR IGNORE INTO listing_snapshots (item_id, boba_id, snapshot_at, price_usd, source)
+           VALUES (?, ?, ?, ?, ?)`
+      ).bind(li.itemId, bobaId, now, li.price, source));
+    }
+  }
+
   let vanished = 0;
+  let archived = 0;
   for (const row of prior || []) {
     if (currentIds.has(row.item_id)) continue;      // still listed → not vanished
     const conf = soldConfidence(row);
+    const isSold = conf >= 0.55;
     stmts.push(env.DB.prepare(
       `UPDATE listings SET vanished_at = ?, inferred_sold = ?, sold_confidence = ?, sold_price_usd = ?
          WHERE item_id = ?`
-    ).bind(now, conf >= 0.55 ? 1 : 0, conf, row.price_usd, row.item_id));
+    ).bind(now, isSold ? 1 : 0, conf, row.price_usd, row.item_id));
+    // Sold-event archive (§6.6 layer 2). One immutable row per sold inference
+    // — the durable "data we own" record that the hedonic weight learner
+    // queries (§6.3) and that never gets overwritten by another ingest cycle.
+    if (isSold) {
+      const durDays = (Date.parse(now) - Date.parse(row.first_seen)) / 86400e3;
+      stmts.push(env.DB.prepare(
+        `INSERT INTO sold_events (boba_id, sold_at, sold_price_usd, confidence, source, item_id, duration_days, archived_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(bobaId, now, row.price_usd, conf, source + "-inferred", row.item_id, durDays, now));
+      archived++;
+    }
     vanished++;
   }
   await flushBatch(env, stmts);
-  return json({ bobaId, source, ingested: incoming.length, vanished });
+  return json({ bobaId, source, ingested: incoming.length, vanished, archived });
 }
 
 // Build (not run) one upsert statement. Cloudflare caps subrequests per

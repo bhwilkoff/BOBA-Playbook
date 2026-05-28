@@ -353,6 +353,40 @@ The estimator *logic* (§6.2) was ready long before it could produce anything: d
 
 **Coverage timeline.** Day 1: ~8% of cards (the buckets the first crawl batch filled). As the crawl walks the catalog (re-run periodically / wire into a cron; the push model also fills organically), L1–L3 buckets fill and coverage climbs toward the share of the catalog whose rarity class has *any* market activity. When vanish-inference (§3) starts yielding real inferred-sold rows, the builder prefers those over asks automatically — the estimate gets truer without code changes.
 
+### 6.6 Active maintenance + long-term tuning loop (shipped 2026-05-28)
+
+The initial crawl gave us a baseline dataset (~1,300 priced cards across the 17,974 catalog). Without an active maintenance loop the data ages immediately — a card last viewed three weeks ago still drives a bucket median from three-week-old prices, and any sales in between never get vanish-inferred because we never took a second snapshot. And without an accuracy-feedback loop the model can't get better than its initial priors. §6.6 is the architecture for the dataset to **compound** into something materially better than what any single crawl can produce.
+
+#### Three durable data layers
+
+The `listings` table in `boba-pricing` D1 is point-in-time: it tells you a card's *current* listings and prices. Three additional tables, populated automatically by the proxy push model, form the durable record we own:
+
+1. **`listing_snapshots`** — price-trajectory. The original `listings` row gets overwritten on every observation (`price_usd`, `last_seen`), so a listing that walks `$30 → $25 → $20` would record only `$20` at vanish-time. The snapshots table writes ONE row per *observed price change*, so the whole trajectory is preserved. Lets us learn how asks decay toward sold (the natural sold-haircut signal), and gives us a richer time series than just `(first_seen, last_seen)`.
+2. **`sold_events`** — immutable archive. Every vanish-inferred sale with `sold_confidence ≥ 0.55`, and every mod-approved community comp, writes ONE row here keyed by `boba_id + sold_at`. Includes `duration_days` (how long the listing was up before vanishing — the signal the confidence formula uses, here observable from outcomes), `confidence`, `source` (`ebay-inferred` / `whatnot-inferred` / `community-{platform}`), and `factors_json` (the card's rarity factors at sold time). This is the **dataset the §6.3 hedonic weight learner will query** once volume is sufficient. It is never overwritten by another ingest cycle.
+3. **`estimate_audits`** — accuracy log. When a sold event lands for a card that previously had an estimate, one row records `(estimate_at_time, actual_sold_price, error_pct, model_version)`. This is the FEEDBACK loop that makes "really good at estimation" possible — the model can see how it's doing, and we can A/B compare model iterations on the same sold-event stream. (Populated by an accuracy-audit script that joins `sold_events` to the historical estimate artifacts in git.)
+
+Populated by the **same** `handleIngest` path that already writes `listings`, with no new subrequests beyond the existing batch — so the cost of preserving history is zero ongoing operational overhead.
+
+#### Two ongoing processes
+
+1. **`scripts/refresh_stale_prices.py`** — re-crawl cards whose newest tracker observation is older than `--stale-days` (default 7). Pulls candidates from D1 in oldest-first order, calls the proxy (which push-ingests + auto-vanish-detects + snapshots + archives), quota-capped via `--limit`. `--source whatnot` costs zero eBay quota. Without this loop, the long tail of un-viewed cards ages indefinitely.
+2. **`scripts/build_price_estimates.py`** — already exists; the periodic rebuild that turns the accumulating data into `assets/data/price-estimates.json`. Each run is a git commit, so the artifact has an immutable history we can later use to ground accuracy audits to "what did the model say at time T."
+
+**Recommended cadence:**
+- **Daily** (cron-amenable): `scripts/crawl_active_listings.py --limit 1500` (broad coverage as quota allows) + `scripts/refresh_stale_prices.py --limit 500` (long-tail freshness) + `scripts/build_price_estimates.py` (rebuild artifact) + commit. End-to-end ~60-90 min, autonomous.
+- **Weekly**: review `sold_events` accumulation (`SELECT COUNT(*), MIN(sold_at), MAX(sold_at) FROM sold_events;`). Spot-check 5–10 random rows for false positives (vanish ≠ sold for sellers who relisted) and tune the confidence floor if needed.
+- **Monthly**: query `estimate_audits` for median `|error_pct|` per `model_version`. If the new model version's error is worse than the previous, revert.
+
+#### Weight-learning roadmap
+
+The `SIM_WEIGHTS` in the builder (printRun=10, treatment=5, weapon=4, variation=3, cardType=3, power=2, hero=1) are PRIORS based on §6.4's ordinal rarity ranking, not learned values. The architecture above sets up three phases:
+
+- **Phase 1 (now)** — hardcoded priors. We've encoded what §6.4 says about rarity (printRun is hardest scarcity; treatment + weapon are the rarity class; variation is era; hero is secondary). The closest-comp similarity model uses these to score peers.
+- **Phase 2 (~3–6 months, when `sold_events` reaches a few thousand rows)** — fit a hedonic regression: `log(sold_price) ~ f(treatment, weapon, printRun, variation, power_tier, cardType, hero)` against the immutable `sold_events` archive. The fitted coefficients become the new `SIM_WEIGHTS`. Validate the new weights on a held-out set of sold events; promote only if median `|error_pct|` improves.
+- **Phase 3 (~12 months)** — per-rarity-class fine-tuning from `estimate_audits`. If the audit log shows the model systematically over-estimates Glow Battlefoils and under-estimates Inspired Ink Hex, learn bucket-specific corrections from the actual `(estimate, sold)` pairs.
+
+None of this requires touching the client — `marketValue()` on each platform consumes the rarity-baseline artifact, and the artifact regenerates from whatever's the current model. The user sees better estimates every rebuild; no app updates needed.
+
 ---
 
 ## 7. Tier 5 — Listed Range honest reframing (Week 1 — ships immediately)

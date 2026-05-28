@@ -68,9 +68,43 @@ OUT = os.path.join(REPO, "assets", "data", "price-estimates.json")
 TRACKER_DIR = os.path.join(REPO, "workers", "pricing-tracker")
 
 SOLD_HAIRCUT = 0.82     # asking → estimated-sold (asks run ~10-25% above sold)
-MIN_CARDS = 3           # confidence floor: a bucket needs this many OTHER priced cards
+MIN_CARDS = 3           # need at least this many comps for any estimate
 CONF_HIGH = 8
 PROXY = "https://boba-ebay-proxy.benwilkoff.workers.dev"
+
+# Similarity-weighted nearest-neighbor comp model (PRICING_PLAYBOOK §6.2 / §6.4).
+# Each factor contributes a score; a card's comps are its top-K most-similar
+# priced peers, regardless of which COMBINATION of factors got them there. A
+# strict ladder forces treatment to match at every level, which means a /5 Hex
+# Inspired Ink could never see a /5 Hex Battlefoil as a comp even though those
+# share the more-scarcity-defining factor (printRun=5). The combination model
+# fixes that — same /N + same weapon + similar power can beat same-treatment +
+# different /N when /N is the dominant scarcity signal.
+#
+# Weights, ordered by §6.4 priority. These are PRIORS not learned coefficients
+# (§6.3 — real weights get fit when sold-comp data accrues), but the ordering
+# is principled: printRun is Feature 0 (the hardest scarcity signal); treatment
+# + weapon are the rarity class; variation + cardType are identity-of-thing
+# (First Edition vs reprint, Hero vs Play); power tier is gameplay value; hero
+# is intentionally weak (Feature 6 — a multiplier, not a primary axis).
+SIM_WEIGHTS = {
+    "printRun_match":     10,   # /5 finds /5 (hardest scarcity signal, §6.4 Feature 0)
+    "treatment_match":     5,   # same print-variant family
+    "weapon_match":        4,   # same rarity tier (Brawl Common → Super 1-of-1)
+    "variation_match":     3,   # First Edition / 2026 / athlete-debut
+    "cardType_match":      3,   # Hero ≠ Play ≠ HotDog ≠ Sealed
+    "power_tier_match":    2,   # gameplay value bucket
+    "both_unserialized":   2,   # weak commonality between two non-/N cards
+    "hero_match":          1,   # §6.2 — secondary multiplier, NEVER primary
+}
+MIN_SIM   = 9      # treatment+weapon = 9, printRun alone = 10 — both qualify; below means too unrelated
+MAX_SIM_GAP = 4    # comps within this many sim-points of the top comp are kept;
+                   #   below means meaningfully-less-similar rarity class and mixing
+                   #   them drags the median wrong (e.g., a /5 chase top-comp at
+                   #   sim 14 next to sim-9 unserialized commons = $400 averaged
+                   #   with $5 → emit nothing rather than that lie).
+MAX_COMPS = 16     # cap the comp pool at the top-K most similar
+CONF_AVG_SIM_MED = 14  # avg similarity of top comps to qualify for "med" confidence
 
 # Weapon names that appear in listing titles. Matched case-insensitive with
 # word boundaries so "Steel" matches but "steelhead" doesn't. ALT/CYBER/NONE
@@ -147,6 +181,44 @@ def power_tier(p):
     return "lo" if p <= 25 else "mid" if p <= 60 else "hi" if p <= 100 else "elite"
 
 
+def similarity(target, peer):
+    """Combined-factor similarity score between two cards (target ↔ peer).
+    Higher = closer comp. See SIM_WEIGHTS for the per-factor priors; the
+    closest-comp model means whichever COMBINATION of factors gets the
+    highest score wins, not a fixed-priority ladder."""
+    s = 0
+    # printRun is the hardest scarcity signal when both cards have it.
+    t_pr, p_pr = target.get("printRun"), peer.get("printRun")
+    if t_pr and p_pr and t_pr == p_pr:
+        s += SIM_WEIGHTS["printRun_match"]
+    elif (not t_pr) and (not p_pr):
+        # Both unserialized — weak commonality (most catalog cards are this).
+        s += SIM_WEIGHTS["both_unserialized"]
+    # Rarity class.
+    t_t = target.get("treatment")
+    if t_t and t_t == peer.get("treatment"):
+        s += SIM_WEIGHTS["treatment_match"]
+    t_el = target.get("element")
+    if t_el and t_el == peer.get("element"):
+        s += SIM_WEIGHTS["weapon_match"]
+    # Identity-of-thing.
+    t_va = target.get("variation")
+    if t_va and t_va == peer.get("variation"):
+        s += SIM_WEIGHTS["variation_match"]
+    t_ct = target.get("cardType")
+    if t_ct and t_ct == peer.get("cardType"):
+        s += SIM_WEIGHTS["cardType_match"]
+    # Gameplay value bucket.
+    t_pt = power_tier(target.get("power"))
+    if t_pt != "na" and t_pt == power_tier(peer.get("power")):
+        s += SIM_WEIGHTS["power_tier_match"]
+    # Hero — explicitly weak per §6.2 (multiplier, not primary axis).
+    t_h = target.get("hero")
+    if t_h and t_h == peer.get("hero"):
+        s += SIM_WEIGHTS["hero_match"]
+    return s
+
+
 def pull_tracker_prices():
     """Return {bobaId: (median_price, kind)} where kind is 'sold' or 'ask'.
     Sold (inferred + community-confidence) preferred; else active asking."""
@@ -189,74 +261,44 @@ def main():
           f"(sold={sum(1 for _,k in prices.values() if k=='sold')} "
           f"ask={sum(1 for _,k in prices.values() if k=='ask')})")
 
-    # Index priced cards into each bucket level (store the price + bobaId so we
-    # can exclude a card from its own bucket). Floor at L3 = treatment-family ×
-    # weapon: the loosest bucket that is still a real RARITY CLASS. We do NOT
-    # emit weapon-only (a weapon spans base commons → serialized chase) or
-    # family-only (inspired-ink is serialized BY weapon — /5 Hex ≫ /50 Ice)
-    # estimates: those collapse wildly different cards onto one median and
-    # violate provenance honesty (#058). Comp-less rarity classes honestly show
-    # no estimate until the crawl fills their bucket.
-    levels = ["l1", "l2", "l3"]
-    buckets = {lv: defaultdict(list) for lv in levels}
-
-    def keys_for(c):
-        fam = treatment_family(c.get("treatment"))
-        el = c.get("element") or "NONE"
-        pt = power_tier(c.get("power"))
-        ct = c.get("cardType") or "na"
-        return {
-            "l1": f"{fam}|{el}|{pt}|{ct}",
-            "l2": f"{fam}|{el}|{pt}",
-            "l3": f"{fam}|{el}",
-        }
-
+    # ── Build the priced-comp pool ───────────────────────────────────────
+    # Per-card tracker prices + Whatnot augmentation (per-card matches via
+    # cardNumber resolution; treatment-level aggregates as synthetic comp
+    # entries that share only treatment+weapon with targets).
+    priced_pool = []  # [(card_dict_or_synthetic, price), …]
     for c in cards:
         bid = c.get("bobaId")
         if bid in prices:
-            price = prices[bid][0]
-            for lv, k in keys_for(c).items():
-                buckets[lv][k].append((bid, price))
+            priced_pool.append((c, prices[bid][0]))
 
     # ── Whatnot augmentation ─────────────────────────────────────────────
-    # Many catalog treatments (mainstream battlefoils, color blasts, Inspired
-    # Ink series) trade more on Whatnot than eBay. Two-tier resolution per
-    # listing — most specific first:
-    #
-    #   (A) If the title contains a catalog cardNumber (e.g., "BLBF-15",
-    #       "GLBF-365", "RAD-208"), look it up in the catalog and treat it as
-    #       a per-card price feeding ALL bucket levels (L1/L2/L3) for that
-    #       specific card. Resolution gates on the queried treatment-family
-    #       to disambiguate cardNumbers that recur across reissues; when
-    #       multiple weapons share the cardNumber+treatment, the title's
-    #       weapon word disambiguates.
-    #   (B) If only a weapon word is parseable, fall back to a treatment ×
-    #       weapon level aggregate (L3 bucket), with a sentinel bobaId so
-    #       the self-exclusion check is a no-op.
-    #
-    # Asks × SOLD_HAIRCUT for both. Zero eBay quota; proxy caches scrapes
-    # 12 min. Per-card matches (A) are FAR more precise than treatment
-    # aggregates and feed the tightest L1 bucket — usually the dominant
-    # contributor when Whatnot listings include cardNumber prefixes.
+    # Many treatments (mainstream battlefoils, color blasts, Inspired Ink)
+    # trade more on Whatnot than eBay. Two-tier resolution per listing:
+    #   (A) cardNumber parseable from title (e.g., "BLBF-15", "GLBF-365") →
+    #       resolve to a specific catalog card → use as a per-card comp with
+    #       full rarity factors.
+    #   (B) only weapon word parseable → synthetic "comp entry" with only
+    #       treatment+weapon set, so it contributes at similarity 9 (the
+    #       treatment×weapon floor) to targets sharing those factors.
+    # Asks × SOLD_HAIRCUT for both. Zero eBay quota.
     print("\nWhatnot augmentation:")
-
-    # Build a lookup: (cardNumber-uppercase, treatment-family) → [card, …].
     cards_by_cn_fam = defaultdict(list)
     for c in cards:
-        cn = c.get("cardNumber")
-        t = c.get("treatment")
+        cn = c.get("cardNumber"); t = c.get("treatment")
         if cn and t:
             cards_by_cn_fam[(cn.upper(), treatment_family(t))].append(c)
 
-    bid_to_card = {c["bobaId"]: c for c in cards if c.get("bobaId")}
-
     distinct_treatments = sorted({(c.get("treatment") or "") for c in cards if c.get("treatment")})
+    # Coverage gap proxy: treatments where at least one (treatment, weapon)
+    # has no per-card priced data. Cheap heuristic — we query everything
+    # whose floor is sparse, since Whatnot scrape is cached at the edge.
+    priced_tw = {(c.get("treatment") or "", c.get("element") or "NONE")
+                 for c, _ in priced_pool if c.get("bobaId") not in (None,)}
     treatments_to_query = []
     for t_str in distinct_treatments:
-        fam = treatment_family(t_str)
         weapons_used = {(c.get("element") or "NONE") for c in cards
                         if c.get("bobaId") and (c.get("treatment") or "") == t_str}
-        if any(len(buckets["l3"][f"{fam}|{w}"]) < MIN_CARDS for w in weapons_used):
+        if any((t_str, w) not in priced_tw for w in weapons_used):
             treatments_to_query.append(t_str)
     print(f"  under-filled treatments to query: {len(treatments_to_query)}")
 
@@ -269,7 +311,7 @@ def main():
         items = fetch_whatnot_listings(t_str)
         fam = treatment_family(t_str)
         for li in items:
-            price = float(li["price"])
+            price = float(li["price"]) * SOLD_HAIRCUT
             title = li.get("title") or ""
             # (A) cardNumber path — most precise.
             cn = parse_cardnumber_from_title(title)
@@ -278,78 +320,113 @@ def main():
             if len(cands) == 1:
                 chosen = cands[0]
             elif len(cands) > 1:
-                # Same cardNumber + treatment across multiple weapons (FIRE/GLOW
-                # variant pairs, #057). Disambiguate from the title's weapon word.
+                # Same cardNumber + treatment across multiple weapons (#057
+                # FIRE/GLOW variant pairs). Disambiguate from title weapon.
                 w_in_title = parse_weapon_from_title(title)
                 if w_in_title:
                     for cand in cands:
                         if (cand.get("element") or "").upper() == w_in_title:
                             chosen = cand
                             break
-            if chosen and chosen.get("bobaId"):
-                bid = chosen["bobaId"]
-                priced = price * SOLD_HAIRCUT
-                for lv, k in keys_for(chosen).items():
-                    buckets[lv][k].append((bid, priced))
+            if chosen:
+                priced_pool.append((chosen, price))
                 matched_by_card += 1
                 continue
-            # (B) weapon-only fallback → L3 aggregate.
+            # (B) weapon-only fallback → synthetic comp entry (treatment +
+            # weapon only, no other factors). It'll match targets sharing
+            # treatment+weapon at similarity 9.
             w = parse_weapon_from_title(title)
             if w:
-                buckets["l3"][f"{fam}|{w}"].append((WN_SENTINEL, price * SOLD_HAIRCUT))
+                synth = {"bobaId": WN_SENTINEL, "treatment": t_str, "element": w}
+                priced_pool.append((synth, price))
                 matched_by_treatment += 1
             else:
                 dropped_unparseable += 1
         if i % 10 == 0:
             print(f"  ... {i}/{len(treatments_to_query)} treatments queried")
-        time.sleep(0.6)  # gentle pacing — proxy caches per-query, this is per-treatment
+        time.sleep(0.6)
     print(f"  Whatnot listings → per-card matches: {matched_by_card}, "
           f"treatment-level aggregates: {matched_by_treatment}, "
           f"dropped (no cardNumber/weapon): {dropped_unparseable}")
+    print(f"  priced comp pool size: {len(priced_pool)}")
 
-    LEVEL_BASIS = {
-        "l1": "treatment + weapon + power + type",
-        "l2": "treatment + weapon + power",
-        "l3": "treatment + weapon",
-    }
-
+    # ── Similarity-weighted nearest-neighbor comp selection ──────────────
+    # For each target card, score every priced peer by combined-factor
+    # similarity, keep those with sim ≥ MIN_SIM, sort descending, take the
+    # top MAX_COMPS, and compute an outlier-trimmed percentile band on their
+    # prices. Honest provenance (#058): the basis names *which combination*
+    # of factors got us to those comps — not a fixed-level label.
+    print("\nFinding closest comps for each card…")
     estimates = {}
-    cov = defaultdict(int)
+    n_skipped_too_few = 0
     for c in cards:
         bid = c.get("bobaId")
         if not bid:
             continue
-        ks = keys_for(c)
-        for lv in levels:
-            members = [p for (mid, p) in buckets[lv][ks[lv]] if mid != bid]  # exclude self
-            if len(members) >= MIN_CARDS:
-                members.sort()
-                n = len(members)
-                # Robust range: report the interquartile band (p25 / median /
-                # p75), NOT min/max — eBay asks include wild outliers (a single
-                # mispriced or slabbed listing would otherwise blow the range to
-                # $2–$152). The median is the headline; p25–p75 is an honest band.
-                def pct(q):
-                    return members[min(n - 1, int(q * (n - 1) + 0.5))]
-                estimates[bid] = {
-                    "low": round(pct(0.25), 2),
-                    "mid": round(pct(0.50), 2),
-                    "high": round(pct(0.75), 2),
-                    "n": n,
-                    "level": lv,
-                    "basis": LEVEL_BASIS[lv],
-                    # No "high" confidence while estimates are ASK-derived (no
-                    # sold comps back them yet, #058). Tight rarity class with
-                    # many comps = "med"; everything looser/sparser = "low".
-                    "conf": "med" if (lv in ("l1", "l2") and n >= CONF_HIGH) else "low",
-                }
-                cov[lv] += 1
-                break
+        # Score every priced peer; skip self.
+        scored = []
+        for peer, price in priced_pool:
+            if peer.get("bobaId") == bid:
+                continue
+            s = similarity(c, peer)
+            if s >= MIN_SIM:
+                scored.append((s, price))
+        if len(scored) < MIN_CARDS:
+            n_skipped_too_few += 1
+            continue
+        # Sort by similarity desc; KEEP only comps within MAX_SIM_GAP of the
+        # top one (mixing meaningfully-less-similar peers drags the median
+        # wrong — e.g., a /5 chase whose top comp is a same-treatment /50 at
+        # sim 14 shouldn't be averaged with Base Set commons at sim 9). Then
+        # take the top MAX_COMPS of what remains.
+        scored.sort(key=lambda x: -x[0])
+        top_sim = scored[0][0]
+        scored = [(s, p) for s, p in scored if s >= top_sim - MAX_SIM_GAP]
+        if len(scored) < MIN_CARDS:
+            n_skipped_too_few += 1
+            continue
+        top = scored[:MAX_COMPS]
+        sims = [s for s, _ in top]
+        comp_prices = sorted(p for _, p in top)
+        n = len(comp_prices)
+        avg_sim = sum(sims) / n
+        # Outlier-trim the price band (drop top/bottom 10% for n ≥ 10) so a
+        # single unicorn (e.g., $19,500 Founding Hero) can't drag the high.
+        if n >= 10:
+            trim = max(1, n // 10)
+            band = comp_prices[trim:-trim]
+        else:
+            band = comp_prices
+        nb = len(band)
+        def pct(q):
+            return band[max(0, min(nb - 1, int(q * (nb - 1) + 0.5)))]
+        estimates[bid] = {
+            "low":    round(pct(0.25), 2),
+            "mid":    round(pct(0.50), 2),
+            "high":   round(pct(0.75), 2),
+            "n":      n,
+            "avgSim": round(avg_sim, 1),
+            "topSim": top[0][0],
+            "basis":  "closest comparable cards (combined-factor similarity)",
+            # "med" only when comps are tight AND there are enough of them; the
+            # closest-comp model + ask-derived data won't yield "high" today.
+            "conf":   "med" if (avg_sim >= CONF_AVG_SIM_MED and n >= CONF_HIGH) else "low",
+        }
 
     print(f"estimates produced: {len(estimates)} / {len(cards)} cards "
           f"({100*len(estimates)//max(1,len(cards))}% coverage)")
-    for lv in levels:
-        print(f"  {lv} ({LEVEL_BASIS[lv]}): {cov[lv]} cards")
+    print(f"  cards skipped (fewer than {MIN_CARDS} comps at sim≥{MIN_SIM}): {n_skipped_too_few}")
+    # Distribution of avg-similarity to see how tight the comps are
+    bins = [0, 10, 13, 16, 20, 99]
+    bin_labels = ["9-10 (treatment+weapon)", "10-13", "13-16", "16-20", "20+ (very tight)"]
+    bcounts = [0] * (len(bins) - 1)
+    for e in estimates.values():
+        for i in range(len(bins) - 1):
+            if bins[i] <= e["avgSim"] < bins[i + 1]:
+                bcounts[i] += 1
+                break
+    for label, n in zip(bin_labels, bcounts):
+        print(f"  avgSim {label}: {n} cards")
 
     if args.dry:
         print("(dry run — not writing)")
@@ -359,9 +436,12 @@ def main():
     payload = {
         "generatedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "soldHaircut": SOLD_HAIRCUT,
-        "minCards": MIN_CARDS,
-        "method": "rarity_bucket_v1",
-        "estimates": estimates,
+        "minCards":    MIN_CARDS,
+        "minSim":      MIN_SIM,
+        "maxComps":    MAX_COMPS,
+        "weights":     SIM_WEIGHTS,
+        "method":      "nearest_comparable_v1",
+        "estimates":   estimates,
     }
     json.dump(payload, open(OUT, "w"), separators=(",", ":"))
     size_kb = os.path.getsize(OUT) // 1024

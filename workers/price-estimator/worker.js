@@ -348,8 +348,43 @@ async function refreshAllEstimates(env, budgetOverride) {
   return { processed, skipped, written, elapsedMs, cursorStart: cursor, cursorEnd: i % cardsWithBobaId.length };
 }
 
+// Static rarity-baseline artifact (assets/data/price-estimates.json), built
+// offline by scripts/build_price_estimates.py from the active-listing +
+// inferred-sold data we collect ourselves (PRICING_PLAYBOOK §6 · #058). The
+// per-card comp estimate (KV) is preferred; this baseline is the fallback so
+// EVERY card whose rarity class has data gets a rough estimate today, without
+// a free-plan-impossible catalog-grinding cron. Memoized per-isolate (10 min)
+// so we don't re-parse the ~230 KB artifact on every request; edge-cached too.
+let _baseline = { at: 0, map: null };
+async function getBaselineMap(env) {
+  const now = Date.now();
+  if (_baseline.map && now - _baseline.at < 10 * 60 * 1000) return _baseline.map;
+  try {
+    const res = await fetch(env.ESTIMATES_ARTIFACT_URL, { cf: { cacheTtl: 600, cacheEverything: true } });
+    if (!res.ok) return _baseline.map;        // serve stale (or null) on failure
+    const data = await res.json();
+    _baseline = { at: now, map: data.estimates || {} };
+  } catch { /* keep prior memo */ }
+  return _baseline.map;
+}
+
+/** Map a static-artifact entry to the same shape the comp estimator returns. */
+function baselineToEstimate(bobaId, e) {
+  if (!e || !(e.mid > 0)) return null;
+  return {
+    bobaId,
+    low: e.low, mid: e.mid, high: e.high,
+    comparableCount: e.n,
+    comparableSources: [e.basis],
+    confidence: e.conf || "low",
+    method: "rarity_baseline",
+    computedAt: null,
+  };
+}
+
 /**
  * HTTP handler — GET /estimate?bobaId=X
+ * KV (comp-derived, preferred) → static rarity-baseline artifact (fallback).
  */
 async function handleEstimateRequest(request, env) {
   const url = new URL(request.url);
@@ -361,18 +396,19 @@ async function handleEstimateRequest(request, env) {
     });
   }
   const raw = await env.ESTIMATES.get(`estimate:v2:${bobaId}`);
-  if (!raw) {
-    return new Response(JSON.stringify({
-      bobaId,
-      estimate: null,
-      reason: "no_comps_yet",
-    }), {
-      status: 404,
-      headers: { ...CORS, "Content-Type": "application/json" },
-    });
+  if (raw) {
+    return new Response(raw, { status: 200, headers: { ...CORS, "Content-Type": "application/json" } });
   }
-  return new Response(raw, {
-    status: 200,
+  // No comp-derived estimate yet — fall back to the offline rarity baseline.
+  if (env.ESTIMATES_ARTIFACT_URL) {
+    const map = await getBaselineMap(env);
+    const est = map && baselineToEstimate(bobaId, map[bobaId]);
+    if (est) {
+      return new Response(JSON.stringify(est), { status: 200, headers: { ...CORS, "Content-Type": "application/json" } });
+    }
+  }
+  return new Response(JSON.stringify({ bobaId, estimate: null, reason: "no_comps_yet" }), {
+    status: 404,
     headers: { ...CORS, "Content-Type": "application/json" },
   });
 }

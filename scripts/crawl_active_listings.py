@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""
+crawl_active_listings.py — seed the pricing-tracker with active-listing
+data across the WHOLE catalog, so the estimator has representative comps
+to work from (PRICING_PLAYBOOK §3/§6 · DECISIONS.md #058).
+
+WHY THIS EXISTS
+---------------
+The push model (proxy → tracker /ingest on every card view + Collection
+refresh) only collects price data for cards users actually open. As of
+2026-05-27 that was 60 cards — 59 of them "base" treatment, 45 FIRE —
+nowhere near enough to anchor a per-card rarity estimate (most rarity
+buckets empty → estimates collapse to a meaningless global average). The
+estimator's comparability logic is ready; it just needs data.
+
+This script walks the catalog through the *same* eBay proxy the app uses
+(`GET /?cardNumber=&hero=&set=&element=&bobaId=`). The proxy fetches eBay
+active listings and — via the existing push model (`pushIngest`,
+ctx.waitUntil) — records them into the tracker D1 keyed on bobaId. No new
+infrastructure: we just exercise the proxy across the catalog instead of
+waiting for organic views.
+
+DESIGN
+------
+- **Stratified order.** Cards are round-robined across
+  (treatment-family × weapon) buckets so coverage fills EVENLY — the
+  estimator needs a few priced cards in each rarity class, not 17k base
+  FIRE cards first.
+- **Resumable.** A cursor file records crawled bobaIds; re-runs skip them.
+  Safe to wire into the existing daily macOS cron (see
+  `project_pipeline_architecture`).
+- **Quota-safe.** eBay Browse is ~5000 calls/day; default --limit 800
+  leaves headroom for live user traffic. SEQUENTIAL with a delay — never
+  parallel (the proxy + eBay rate-limit, and parallel-same-token bursts
+  have burned us before).
+- **Read-only on the catalog.** Never writes cards.json. The only side
+  effect is tracker D1 rows via the proxy's push.
+
+USAGE
+-----
+    python3 scripts/crawl_active_listings.py --limit 800
+    python3 scripts/crawl_active_listings.py --limit 2000 --delay 1.0
+    python3 scripts/crawl_active_listings.py --reset        # clear cursor
+"""
+
+import argparse
+import json
+import os
+import sys
+import time
+import urllib.parse
+import urllib.request
+from collections import defaultdict
+
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CATALOG = os.path.join(REPO, "assets", "data", "cards.json")
+CURSOR = os.path.join(REPO, "scripts", ".active_crawl_cursor.json")
+PROXY = "https://boba-ebay-proxy.benwilkoff.workers.dev"
+
+
+def treatment_family(t):
+    """Mirror of the estimator's treatmentFamily() — keep in lockstep with
+    workers/price-estimator/worker.js so buckets line up."""
+    t = (t or "").lower()
+    if "battlefoil" in t and "super" not in t:
+        return "battlefoil_color"
+    for k in ("superfoil", "inspired", "blizzard", "linoleum",
+              "logofoil", "mixtape", "chillin", "grillin", "alpha"):
+        if k in t:
+            return k
+    return "base"
+
+
+def load_cursor():
+    if os.path.exists(CURSOR):
+        try:
+            return set(json.load(open(CURSOR)).get("done", []))
+        except Exception:
+            return set()
+    return set()
+
+
+def save_cursor(done):
+    json.dump({"done": sorted(done)}, open(CURSOR, "w"))
+
+
+def stratified_order(cards, done):
+    """Round-robin across (treatment-family, weapon) buckets so coverage
+    fills evenly. Within a bucket, leave catalog order (cards with art /
+    lower numbers tend to be the ones people research)."""
+    buckets = defaultdict(list)
+    for c in cards:
+        bid = c.get("bobaId")
+        if not bid or bid in done:
+            continue
+        if not c.get("cardNumber"):
+            continue
+        key = (treatment_family(c.get("treatment")), c.get("element") or "NONE")
+        buckets[key].append(c)
+    order = []
+    keys = list(buckets.keys())
+    idx = {k: 0 for k in keys}
+    remaining = True
+    while remaining:
+        remaining = False
+        for k in keys:
+            i = idx[k]
+            if i < len(buckets[k]):
+                order.append(buckets[k][i])
+                idx[k] += 1
+                remaining = True
+    return order
+
+
+def crawl_one(card, timeout):
+    params = {
+        "cardNumber": card.get("cardNumber", ""),
+        "hero": card.get("hero", "") or "",
+        "set": card.get("set", "") or "",
+        "element": card.get("element", "") or "",
+        "days": "90",
+        "bobaId": card.get("bobaId", ""),
+    }
+    url = f"{PROXY}/?{urllib.parse.urlencode(params)}"
+    req = urllib.request.Request(url, headers={"User-Agent": "boba-active-crawl/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        data = json.loads(r.read().decode())
+    active = (data.get("active") or {}).get("count", 0) if data.get("active") else 0
+    return active
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--limit", type=int, default=800, help="max cards this run (eBay-quota guard)")
+    ap.add_argument("--delay", type=float, default=1.2, help="seconds between calls (rate-limit guard)")
+    ap.add_argument("--timeout", type=float, default=12.0)
+    ap.add_argument("--reset", action="store_true", help="clear the resume cursor and exit")
+    args = ap.parse_args()
+
+    if args.reset:
+        if os.path.exists(CURSOR):
+            os.remove(CURSOR)
+        print("cursor cleared")
+        return
+
+    cards = json.load(open(CATALOG))
+    done = load_cursor()
+    order = stratified_order(cards, done)
+    print(f"catalog={len(cards)} already_crawled={len(done)} queued={len(order)} limit={args.limit}")
+
+    crawled = 0
+    with_listings = 0
+    for card in order:
+        if crawled >= args.limit:
+            break
+        bid = card["bobaId"]
+        try:
+            n = crawl_one(card, args.timeout)
+            with_listings += 1 if n > 0 else 0
+            done.add(bid)
+            crawled += 1
+            if crawled % 25 == 0:
+                save_cursor(done)
+                print(f"  {crawled}/{args.limit}  listings_found={with_listings}  last={bid[:40]} (n={n})")
+        except KeyboardInterrupt:
+            break
+        except Exception as e:
+            # A single-card failure (timeout / proxy hiccup) must not abort
+            # the run — mark done so we don't retry-loop a bad card forever.
+            done.add(bid)
+            crawled += 1
+            print(f"  skip {bid[:40]}: {e}", file=sys.stderr)
+        time.sleep(args.delay)
+
+    save_cursor(done)
+    print(f"DONE this run: crawled={crawled} with_listings={with_listings} total_done={len(done)}")
+
+
+if __name__ == "__main__":
+    main()

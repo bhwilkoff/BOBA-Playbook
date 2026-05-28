@@ -33,6 +33,11 @@ service = "boba-pricing-tracker"
 # URL of the canonical catalog JSON the estimator reads from. GitHub
 # Pages serves this with edge caching; the Worker pulls once per cron.
 CATALOG_URL = "https://bobaplaybook.com/assets/data/cards.json"
+# Static rarity-baseline artifact built offline by
+# scripts/build_price_estimates.py from the price data we collect ourselves.
+# Served as the /estimate fallback when no comp-derived KV entry exists, so
+# every card whose rarity class has data gets a rough estimate (#058 · §6).
+ESTIMATES_ARTIFACT_URL = "https://bobaplaybook.com/assets/data/price-estimates.json"
 # eBay Marketplace Insights / Browse API proxy. The estimator delegates
 # its per-card eBay queries here so the OAuth + scoring logic stays in
 # one place (no Worker-to-Worker scoring duplication).

@@ -11,7 +11,6 @@ struct PricingSection: View {
     /// apples with owned-copy market value.
     var showActiveListings: Bool = true
 
-    @State private var selectedDays = 30
     @State private var result: PricingService.PricingResult?
     @State private var isLoading = false
     @State private var fetchError: String?
@@ -32,26 +31,44 @@ struct PricingSection: View {
     /// from a quiet foot affordance; the sheet carries the form + auth gate.
     @State private var showCommunityCompSheet = false
 
-    private let dayOptions = [7, 30, 90]
+    /// Fixed eBay sold-search window per DECISIONS.md #060. The 7/30/90
+    /// user picker was removed because it ONLY controlled Marketplace
+    /// Insights sold-comp lookback — which is permanently empty for us
+    /// (#058) — while visually appearing to scope the whole panel
+    /// including active listings (which have no meaningful time
+    /// dimension). 90 matches MI's documented maximum and unifies the
+    /// Worker cache key across iOS / web / Android so all three see the
+    /// same active-listing count for the same card.
+    private let ebayDays = 90
 
     var body: some View {
         VStack(alignment: .leading, spacing: Design.Spacing.md) {
 
-            // Header row — label + day picker
+            // Header row — label + refresh button.
+            // The 7/30/90 day-window picker was removed 2026-05-28 per
+            // DECISIONS.md #060: it controlled only the (permanently
+            // empty) Marketplace Insights sold lookback while visually
+            // appearing to scope the whole panel, and divergent per-
+            // platform `days` values were producing different Worker
+            // cache hits → user-visible count divergence across iOS /
+            // web / Android. Refresh button takes its slot for parity
+            // with Android `PricingPanels` + web `pricing-refresh-btn`.
             HStack {
                 Text("MARKET PRICING")
                     .font(Design.Fonts.mono(9, weight: .bold))
                     .foregroundStyle(Design.Colors.textMuted)
                     .tracking(1.5)
                 Spacer()
-                Picker("Period", selection: $selectedDays) {
-                    ForEach(dayOptions, id: \.self) { d in
-                        Text("\(d)d").tag(d)
-                    }
+                Button {
+                    fetch(forceRefresh: true)
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .frame(width: 28, height: 28)
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 130)
-                .colorMultiply(Design.Colors.bobaOrange)
+                .accessibilityLabel("Refresh pricing")
+                .help("Refresh pricing")
             }
 
             // Price grid / loading / error
@@ -125,7 +142,7 @@ struct PricingSection: View {
 
                         let typeLabel = result.isSold ? "sold" : "active listing"
                         let plural    = result.count != 1 ? "s" : ""
-                        Text("\(result.count) \(typeLabel)\(plural) · last \(selectedDays)d")
+                        Text("\(result.count) \(typeLabel)\(plural)")
                             .font(Design.Fonts.mono(10))
                             .foregroundStyle(Design.Colors.textMuted)
 
@@ -205,7 +222,6 @@ struct PricingSection: View {
             //     pulse — every open PricingSection re-fetches.
             fetch()
         }
-        .onChange(of: selectedDays) { fetch() }
         .sheet(isPresented: $showEbay)   { SafariView(url: ebayURL) }
         // sheet(item:) ensures the URL is set before the sheet is presented,
         // fixing the blank-on-first-tap bug that sheet(isPresented:) caused.
@@ -403,11 +419,11 @@ struct PricingSection: View {
                 .background(RoundedRectangle(cornerRadius: Design.Radius.md).fill(Design.Colors.surface2))
 
                 if let staleLabel = staleAgeLabel(sale.date) {
-                    Text("Sale \(staleLabel) · older than \(selectedDays)d window")
+                    Text("Sale \(staleLabel)")
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
                 } else {
-                    Text("Older than \(selectedDays)d window")
+                    Text("Older sale")
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
                 }
@@ -471,7 +487,7 @@ struct PricingSection: View {
                 } else {
                     let typeLabel = isActive ? "listing" : "sold"
                     let plural    = bucket.count != 1 ? "s" : ""
-                    Text("\(bucket.count) \(typeLabel)\(plural) · last \(selectedDays)d")
+                    Text("\(bucket.count) \(typeLabel)\(plural)")
                         .font(Design.Fonts.mono(10))
                         .foregroundStyle(Design.Colors.textMuted)
                 }
@@ -749,7 +765,10 @@ struct PricingSection: View {
 
     // MARK: - Fetch
 
-    private func fetch() {
+    /// Fetch the four pricing signals. `forceRefresh=true` bypasses the
+    /// in-memory cache + Supabase 24h snapshot, hitting the Workers live
+    /// (parity with the Android Refresh button + web `fresh=1` param).
+    private func fetch(forceRefresh: Bool = false) {
         guard !WorkerConfig.ebayProxyURL.isEmpty else { return }
         isLoading  = true
         fetchError = nil
@@ -792,16 +811,17 @@ struct PricingSection: View {
                     set: card.set,
                     element: card.element,
                     power: card.power,
-                    days: selectedDays,
+                    days: ebayDays,
                     treatment: card.treatment,
-                    variation: card.variation
+                    variation: card.variation,
+                    forceRefresh: forceRefresh
                 )
                 result = pricingResult
             } catch PricingService.PricingError.noData {
                 // Don't surface an error yet — comps (below) may carry real
                 // sales even when there are no live eBay listings. The
                 // resolver decides the true empty state.
-                fetchError = "No eBay listings found for the last \(selectedDays) days."
+                fetchError = "No eBay listings found."
             } catch PricingService.PricingError.notConfigured {
                 _ = await compsTask
                 return

@@ -530,18 +530,18 @@
       "coverage_pct": 100.0
     },
     {
-      "weapon": "HEX",
-      "tier": 4,
-      "in_catalog": 2491,
-      "with_estimate": 1637,
-      "coverage_pct": 65.7
-    },
-    {
       "weapon": "GUM",
       "tier": 4,
       "in_catalog": 499,
       "with_estimate": 499,
       "coverage_pct": 100.0
+    },
+    {
+      "weapon": "HEX",
+      "tier": 4,
+      "in_catalog": 2491,
+      "with_estimate": 1637,
+      "coverage_pct": 65.7
     },
     {
       "weapon": "GLOW",
@@ -551,18 +551,18 @@
       "coverage_pct": 63.8
     },
     {
-      "weapon": "FIRE",
-      "tier": 2,
-      "in_catalog": 3241,
-      "with_estimate": 2125,
-      "coverage_pct": 65.6
-    },
-    {
       "weapon": "ICE",
       "tier": 2,
       "in_catalog": 3240,
       "with_estimate": 2666,
       "coverage_pct": 82.3
+    },
+    {
+      "weapon": "FIRE",
+      "tier": 2,
+      "in_catalog": 3241,
+      "with_estimate": 2125,
+      "coverage_pct": 65.6
     },
     {
       "weapon": "STEEL",
@@ -586,17 +586,17 @@
       "coverage_pct": 100.0
     },
     {
-      "weapon": "ALT",
-      "tier": null,
-      "in_catalog": 47,
-      "with_estimate": 47,
-      "coverage_pct": 100.0
-    },
-    {
       "weapon": "NONE",
       "tier": null,
       "in_catalog": 3,
       "with_estimate": 3,
+      "coverage_pct": 100.0
+    },
+    {
+      "weapon": "ALT",
+      "tier": null,
+      "in_catalog": 47,
+      "with_estimate": 47,
       "coverage_pct": 100.0
     }
   ],

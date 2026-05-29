@@ -17,6 +17,15 @@ hit, with the commit + memory that documents the lesson):
   1. Weapon-tier ordering — SUPER > HEX/GUM > GLOW > FIRE/ICE > BRAWL/STEEL
      median. Inversions = the rarity model isn't reaching the output.
      (Origin: Ben's 2026-05-29 audit — 444/454 SUPER at $4. DECISIONS.md #063.)
+  ...
+  8. Suspect-HIGH estimates — mirror of #5. Catches cross-treatment
+     leakage UPWARD where a cheap Base Set common got chase-tier
+     pricing. (Origin: paired with #5 as the symmetric check.)
+  9. Outlier-rich clusters — clusters where >25% of members are >3σ
+     outliers. Catches SYSTEMATIC bugs across an entire cluster.
+     (Origin: pre-#064 the entire IIMBF cluster was flat $1.84 because
+     the synth pool was cross-treatment poisoned — per-card outliers
+     wouldn't catch this since they were all uniformly low.)
 
   2. Print-run ordering — /5 > /10 > /25 > /50 medians. Inversions = the
      printRun_match=10 weight isn't winning where it should.
@@ -315,6 +324,94 @@ def main() -> int:
         print(f"    ${o['mid']:>8.2f}  (cluster med ${o['cluster_median']}, z={o['z']:.1f})")
         print(f"      {o['bobaId']}")
     report["cluster_outliers"] = outliers[:200]
+    print()
+
+    # ── 8. Suspect-HIGH estimates ───────────────────────────────────
+    # Mirror of #5 — low-rarity cards priced as if chase. Catches the
+    # opposite failure mode: cross-treatment leakage UPWARD where a
+    # cheap Base Set common gets a chase-tier estimate because a
+    # cross-treatment peer (Inspired Ink chase $300+) dominated its
+    # comp pool. The strict-treatment gate (#064) prevents most of
+    # these going forward but pre-fix runs (or future scoring tweaks)
+    # may re-introduce the pattern — this audit surfaces it.
+    print("── 8. SUSPECT-HIGH ESTIMATES ─" + "─" * 45)
+    print("  low-rarity cards above ceiling — likely cross-treatment leakage upward")
+    # Tight ceilings only for cards that genuinely shouldn't be expensive:
+    #   Base Set commons    → $50 across all weapons (cheapest treatment)
+    #   tier-1 non-Base BRAWL/STEEL (Battlefoils etc.) → $300 (common tier;
+    #     above this likely chase-leakage from cross-treatment match)
+    # Tier-2+ weapons / tier-2+ treatments have no ceiling here — they have
+    # legitimate chase pricing.
+    suspects_high = []
+    for c in cards:
+        e = est.get(c.get("bobaId") or "")
+        if not e:
+            continue
+        mid = e.get("mid", 0)
+        if mid <= 0:
+            continue
+        w = c.get("element")
+        treatment = c.get("treatment") or ""
+        treatment_t = treatment_tier(treatment)
+        if treatment == "Base Set":
+            ceiling = 50
+        elif (treatment_t == 1) and w in ("STEEL", "BRAWL"):
+            ceiling = 300
+        else:
+            ceiling = 0
+        if ceiling and mid > ceiling:
+            suspects_high.append({"bobaId": c.get("bobaId"), "mid": mid,
+                                  "ceiling": ceiling, "weapon": w,
+                                  "treatment": treatment})
+            flag("suspect_high", c.get("bobaId"))
+    suspects_high.sort(key=lambda s: -s["mid"])
+    print(f"  {len(suspects_high)} suspect-high estimates")
+    for s in suspects_high[:10]:
+        print(f"    ${s['mid']:>8.2f} (ceiling ${s['ceiling']})  "
+              f"w={s['weapon']!r:<7} t={s['treatment']!r}")
+        print(f"      {s['bobaId']}")
+    report["suspect_high"] = suspects_high[:200]
+    print()
+
+    # ── 9. Outlier-rich clusters ────────────────────────────────────
+    # Cluster-level pattern detection — better than per-card outliers
+    # (#7) for catching SYSTEMATIC bugs. When >25% of a cluster's
+    # cards are >3σ outliers from the cluster's own median, the
+    # cluster median itself is probably wrong (the cluster is split
+    # across two real markets that the estimator is averaging).
+    # Pre-#064 the entire IIMBF cluster fit this — every estimate at
+    # $1.84 because the synth pool was cross-treatment poisoned.
+    print("── 9. OUTLIER-RICH CLUSTERS (>25% of members are >3σ outliers) ─" + "─" * 9)
+    rich_clusters = []
+    for key, group in clusters.items():
+        mids = [est[c["bobaId"]]["mid"] for c in group
+                if est.get(c.get("bobaId") or "") and est[c["bobaId"]].get("mid", 0) > 0]
+        if len(mids) < 10:
+            continue
+        med = statistics.median(mids)
+        sd = statistics.stdev(mids)
+        if sd == 0:
+            continue
+        n_outliers = sum(1 for m in mids if abs(m - med) / sd > 3)
+        ratio = n_outliers / len(mids)
+        if ratio > 0.25:
+            rich_clusters.append({
+                "cluster": list(key),
+                "n": len(mids),
+                "median": round(med, 2),
+                "outlier_pct": round(ratio * 100, 1),
+                "n_outliers": n_outliers,
+            })
+            # Flag every card in the cluster (cluster-level bug)
+            for c in group:
+                if est.get(c.get("bobaId") or ""):
+                    flag("outlier_rich_cluster", c.get("bobaId"))
+    rich_clusters.sort(key=lambda r: -r["outlier_pct"])
+    print(f"  {len(rich_clusters)} outlier-rich clusters")
+    for r in rich_clusters[:10]:
+        print(f"    {r['outlier_pct']:>5.1f}% outliers  n={r['n']:<4}  "
+              f"median=${r['median']:<8}  {r['cluster']}")
+    report["outlier_rich_clusters"] = rich_clusters[:50]
     print()
 
     # ── Cross-audit priority list ───────────────────────────────────

@@ -1,0 +1,258 @@
+# pricing-daily-refresh.yml
+#
+# Daily self-improving pricing loop. Runs 06:00 UTC (after the image
+# pipeline stages so we don't race for runner minutes).
+#
+#     refresh stale prices  →  rebuild estimator artifact  →
+#       audit  →  track history  →  check regressions  →
+#         calibrate  →  commit + push if clean
+#
+# Free-tier budget per run (verified):
+#   - eBay Browse API: ~1,200 calls (out of 5,000/day free tier)
+#   - Whatnot proxy:   ~500 calls (no auth; just rate-limited)
+#   - Cloudflare D1:   ~5 queries (well under 5M/day free read cap)
+#   - GH Actions:      ~15-25 min on ubuntu-latest (public repo = free)
+#   - Cloudflare API token: 1 secret needed (CLOUDFLARE_API_TOKEN with
+#                          D1:Read on the boba-pricing database)
+#
+# REGRESSION GATE: scripts/check_audit_regressions.py exits non-zero on
+# critical regressions (2+ flagged cards reappear, missing-in-cluster
+# reappear, outlier-rich cluster reappear, coverage drops >5pp). When
+# that happens the workflow FAILS BEFORE the commit step — the bad
+# artifact never lands on bobaplaybook.com and the cross-platform
+# Worker cache stays serving yesterday's data until the underlying
+# bug is fixed.
+#
+# WHY GH ACTIONS NOT CLOUDFLARE CRON: see DECISIONS.md #065.
+# Short version: the per-card walk needs to make ~1700 sequential
+# HTTP calls + run a Python pipeline + git-commit; that's strictly
+# wrong for a 50-subrequest/10ms-CPU Worker.
+#
+# See PRICING_AUTOMATION.md for the end-to-end documentation.
+
+name: pricing · daily refresh + audit
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # 06:00 UTC daily
+
+  workflow_dispatch:
+    inputs:
+      ebay_stale_limit:
+        description: 'Max stale-cards to refresh via eBay (default 800)'
+        required: false
+        default: '800'
+      whatnot_stale_limit:
+        description: 'Max stale-cards to refresh via Whatnot (default 400)'
+        required: false
+        default: '400'
+      crawl_new_limit:
+        description: 'Max NEW cards to seed via stratified crawl (default 400)'
+        required: false
+        default: '400'
+      skip_refresh:
+        description: 'Skip the refresh step (just rebuild from existing tracker data)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # to commit the rebuilt artifact + history + recommendations
+  issues: write     # to open an alert issue on critical regression
+
+jobs:
+  daily-refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      EBAY_STALE_LIMIT: ${{ inputs.ebay_stale_limit || '800' }}
+      WHATNOT_STALE_LIMIT: ${{ inputs.whatnot_stale_limit || '400' }}
+      CRAWL_NEW_LIMIT: ${{ inputs.crawl_new_limit || '400' }}
+      SKIP_REFRESH: ${{ inputs.skip_refresh || 'false' }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need the full history so we can amend the audit-history file
+          # in the same commit that updates the artifact (clean diff).
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install wrangler
+        run: npm install -g wrangler@latest
+
+      - name: Verify Cloudflare credentials
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN secret is not configured." \
+                 "Create one at https://dash.cloudflare.com/profile/api-tokens" \
+                 "with 'D1:Read' on the boba-pricing database, then add it" \
+                 "as a repository secret."
+            exit 1
+          fi
+          # Smoke-test: list databases (cheap call that verifies the token works)
+          cd workers/pricing-tracker
+          npx wrangler d1 list 2>&1 | head -10
+
+      # ── 1. Refresh stale prices via eBay (long-tail freshness) ───
+      - name: Refresh stale prices via eBay
+        if: ${{ env.SKIP_REFRESH != 'true' }}
+        continue-on-error: true   # quota burnout shouldn't fail the whole job
+        run: |
+          python3 scripts/refresh_stale_prices.py \
+            --source ebay \
+            --stale-days 14 \
+            --limit "$EBAY_STALE_LIMIT" \
+            --delay 1.5
+
+      # ── 2. Refresh stale prices via Whatnot (zero eBay quota) ────
+      - name: Refresh stale prices via Whatnot
+        if: ${{ env.SKIP_REFRESH != 'true' }}
+        continue-on-error: true
+        run: |
+          python3 scripts/refresh_stale_prices.py \
+            --source whatnot \
+            --stale-days 7 \
+            --limit "$WHATNOT_STALE_LIMIT" \
+            --delay 0.8
+
+      # ── 3. Seed new cards via stratified crawl (broaden coverage) ─
+      - name: Stratified crawl — new cards
+        if: ${{ env.SKIP_REFRESH != 'true' }}
+        continue-on-error: true
+        run: |
+          python3 scripts/crawl_active_listings.py \
+            --source ebay \
+            --limit "$CRAWL_NEW_LIMIT" \
+            --delay 1.5
+
+      # ── 4. Rebuild the static estimator artifact ─────────────────
+      - name: Rebuild price-estimates.json
+        run: |
+          python3 scripts/build_price_estimates.py | tee build.log
+
+      # ── 5. Run the audit framework ───────────────────────────────
+      - name: Run audit
+        run: |
+          python3 scripts/audit_estimator.py | tee audit.log
+
+      # ── 6. Track history (one row per day) ───────────────────────
+      - name: Track audit history
+        run: |
+          python3 scripts/track_audit_history.py --print
+
+      # ── 7. Regression gate (FAILS the job if critical) ───────────
+      - name: Check regressions
+        id: regressions
+        continue-on-error: true   # so we can open an issue before exiting
+        run: |
+          python3 scripts/check_audit_regressions.py | tee regression-report.log
+
+      # ── 8. Calibration recommendations (advisory) ────────────────
+      - name: Calibration recommendations
+        run: |
+          python3 scripts/calibrate_estimator.py --window-days 14 || true
+
+      # ── 9. If regression detected: open issue + exit ─────────────
+      - name: Open regression issue
+        if: ${{ steps.regressions.outcome == 'failure' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('regression-report.log', 'utf8');
+            const auditLog = fs.readFileSync('audit.log', 'utf8').split('\n').slice(0, 80).join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Pricing regression detected — ${new Date().toISOString().slice(0,10)}`,
+              labels: ['pricing', 'regression', 'automated'],
+              body: [
+                '## Critical pricing regression',
+                '',
+                'The daily pricing-refresh workflow detected a critical regression and BLOCKED the artifact commit.',
+                'The Worker is still serving yesterday\'s artifact until this is resolved.',
+                '',
+                '### Regression report',
+                '```',
+                report,
+                '```',
+                '',
+                '### Audit summary (head)',
+                '```',
+                auditLog,
+                '```',
+                '',
+                '### Resolution',
+                '',
+                '1. Inspect `assets/data/price-estimates-audit.json` (machine-readable) and the run log above',
+                '2. Re-run locally: `python3 scripts/audit_estimator.py --rebuild`',
+                '3. Find the source of regression — likely a recent tracker-data shift or a script change',
+                '4. Fix root cause + force-push the corrected artifact',
+                '5. Close this issue',
+                '',
+                'See PRICING_AUTOMATION.md §4 for the full diagnostic workflow.',
+                '',
+                `Workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              ].join('\n'),
+            });
+
+      - name: Exit on regression
+        if: ${{ steps.regressions.outcome == 'failure' }}
+        run: |
+          echo "::error::Critical regression detected — see issue + run log. Artifact NOT committed."
+          exit 1
+
+      # ── 10. Commit + push if artifact changed ────────────────────
+      - name: Commit + push artifact changes
+        run: |
+          git config user.name "boba-pricing-bot"
+          git config user.email "bot@bobaplaybook.com"
+          git add assets/data/price-estimates.json \
+                  assets/data/price-estimates-audit.json \
+                  assets/data/pricing-audit-history.json \
+                  assets/data/pricing-calibration-recommendations.json
+          if git diff --cached --quiet; then
+            echo "No artifact changes — D1 tracker data didn't shift today."
+            exit 0
+          fi
+          # Headline for the commit message: parse from build log.
+          COVERAGE=$(grep -oE 'estimates produced: [0-9]+ / [0-9]+' build.log | tail -1 || echo "unknown")
+          FLAGGED=$(grep -oE '[0-9]+ cards flagged by 2\+ audits' audit.log | tail -1 || echo "0 cards flagged")
+          git commit -m "pricing: daily refresh — $(date -u +%Y-%m-%d) [skip ci]
+
+          $COVERAGE
+          $FLAGGED
+
+          Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          See PRICING_AUTOMATION.md for the loop architecture."
+          git push origin HEAD:main
+
+      # ── 11. Summary annotation in run UI ─────────────────────────
+      - name: Workflow summary
+        if: always()
+        run: |
+          {
+            echo "## Daily pricing refresh — $(date -u +%Y-%m-%d)"
+            echo ""
+            echo "### Build"
+            grep -E 'catalog=|priced_cards|priced comp pool|estimates produced' build.log 2>/dev/null | head -10 || echo "(no build log)"
+            echo ""
+            echo "### Audit headlines"
+            grep -E 'Estimated:|2\+ audits|suspect-low|missing in|outlier-rich' audit.log 2>/dev/null | head -10 || echo "(no audit log)"
+            echo ""
+            echo "### Regressions"
+            cat regression-report.log 2>/dev/null || echo "(no regression report)"
+            echo ""
+            echo "### Calibration"
+            cat assets/data/pricing-calibration-recommendations.json 2>/dev/null | python3 -m json.tool | head -40 || echo "(no recommendations file)"
+          } >> "$GITHUB_STEP_SUMMARY"

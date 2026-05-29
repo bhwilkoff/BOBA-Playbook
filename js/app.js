@@ -588,6 +588,12 @@
   // and runs the full eBay + comps + Whatnot + estimator pipeline +
   // renderPricingData. See DECISIONS.md #062.
   window.bobaLoadPricing = loadPricing;
+  // Expose `buildCardContentHtml` so js/collection.js can render the
+  // canonical 6-cell stats grid + Play extras + format legality strip
+  // (or full sealed product layout) on its card-detail overlay. Returns
+  // an HTML string; caller drops into its own container. Pre-2026-05-28
+  // the Collection overlay had none of this content (Ben's audit).
+  window.bobaBuildCardContentHtml = buildCardContentHtml;
 
   function showView(name, fromHistory = false) {
     // Practice is gated to admin only — bounce non-admins back to
@@ -4615,6 +4621,130 @@
   // The catalog's own `treatment` field is the user-facing display;
   // the `printRun` field (populated for 464 cards via card-art OCR)
   // is the only valid scarcity number. Anything else is a guess.
+
+  /**
+   * Shared card-content HTML — the canonical 6-cell stats grid + Cost/
+   * DBS/Ability for Plays + format legality strip for non-sealed; full
+   * product layout + stats + highlights for sealed. Both Find's modal
+   * (buildModalContent below) and Collection's cdetail overlay
+   * (js/collection.js) call this so they render identical card content
+   * without duplicating the markup. Pre-2026-05-28 the Collection
+   * overlay had none of this — Ben's audit caught the gap; this
+   * extraction closes it without forcing a copy/paste between modules.
+   *
+   * Returns an HTML string ready to drop into a container. The Find
+   * modal wraps it with its own <div class="modal-stats"> etc.; the
+   * Collection overlay wraps it with .cdetail-section. The contents
+   * are identical — same data, same labels.
+   */
+  function buildCardContentHtml(card) {
+    if (!card) return '';
+    const isHero    = card.cardType === 'Hero';
+    const isPlay    = card.cardType === 'Play';
+    const isSealed  = card.cardType === 'Sealed Product';
+
+    // Sealed products get their own dedicated layout (name + product
+    // type + badges + stats + highlights). Returns the full block.
+    if (isSealed) {
+      const highlightsHtml = (card.highlights || []).map(h =>
+        `<li class="sealed-highlight">${escHtml(h)}</li>`
+      ).join('');
+      const productTypeLabel = card.productType
+        ? card.productType.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        : 'Sealed Product';
+      return `
+        <div class="modal-badges">
+          <span class="element-badge element-badge-lg" data-element="SEALED">SEALED</span>
+          <span class="set-badge">${escHtml(card.set || 'Unknown')}</span>
+        </div>
+        <div class="modal-card-product-name">
+          <div class="modal-card-number">${escHtml(productTypeLabel)}</div>
+        </div>
+        <div class="modal-stats" aria-label="Product stats">
+          ${card.packsPerBox ? `<div class="stat-cell"><div class="stat-label-sm">Packs / Box</div><div class="stat-val">${card.packsPerBox}</div></div>` : ''}
+          ${card.cardsPerPack ? `<div class="stat-cell"><div class="stat-label-sm">Cards / Pack</div><div class="stat-val">${card.cardsPerPack}</div></div>` : ''}
+          ${card.totalCards ? `<div class="stat-cell"><div class="stat-label-sm">Total Cards</div><div class="stat-val">${card.totalCards}</div></div>` : ''}
+          ${card.msrp ? `<div class="stat-cell"><div class="stat-label-sm">MSRP</div><div class="stat-val">$${card.msrp.toFixed(2)}</div></div>` : ''}
+          ${card.upc ? `<div class="stat-cell full"><div class="stat-label-sm">UPC</div><div class="stat-val">${escHtml(card.upc)}</div></div>` : ''}
+        </div>
+        ${highlightsHtml ? `
+        <div class="sealed-highlights">
+          <h3 class="section-label">What's Inside</h3>
+          <ul class="sealed-highlights-list">${highlightsHtml}</ul>
+        </div>` : ''}`;
+    }
+
+    // Regular cards: canonical 6-cell stats grid + Play extras + ability
+    const treatmentVal = (card.treatment && card.treatment.trim()) ? card.treatment : 'Base Set';
+    const weaponVal    = (card.element && card.element !== 'NONE') ? card.element : '—';
+    const printRun     = printRunLabelFor(card);
+
+    const statDefs = [
+      { label: 'Card #',    val: card.cardNumber, full: false },
+      { label: 'Type',      val: card.cardType,   full: false },
+      { label: 'Treatment', val: treatmentVal,    full: false, extraChip: printRun },
+      { label: 'Weapon',    val: weaponVal,       full: false },
+      { label: 'Set',       val: card.set,        full: false },
+      { label: 'Sub-set',   val: card.subSet || '—', full: false },
+      isPlay ? { label: 'Cost', val: card.playCost === 0 ? 'FREE' : `${card.playCost} Hot Dog${card.playCost !== 1 ? 's' : ''}`, full: false } : null,
+    ].filter(s => s !== null && s.val !== null && s.val !== undefined);
+
+    let statCells = statDefs.map(s => {
+      const chip = s.extraChip
+        ? (() => {
+            const explain = printRunExplain(s.extraChip);
+            const variant = s.extraChip === 'SSP' ? 'ssp' : 'numbered';
+            return `<button type="button" class="print-run-chip print-run-${variant}" data-print-run-explain="${escHtml(explain)}" title="${escHtml(explain)}" aria-label="${escHtml(s.extraChip + ' — ' + explain)}">${escHtml(s.extraChip)}</button>`;
+          })()
+        : '';
+      return `<div class="stat-cell${s.full ? ' full' : ''}">
+         <div class="stat-label-sm">${escHtml(s.label)}</div>
+         <div class="stat-val">${escHtml(s.val ?? '—')}${chip}</div>
+       </div>`;
+    }).join('');
+
+    // DBS cell (Plays only) — tappable; data-action="open-dbs-info"
+    // is wired by the modal-level click handler in initCardDetail
+    // (Find modal) or the Collection overlay handler.
+    if (isPlay && card.dbs != null) {
+      const tier = (card.dbsTier || '').toLowerCase();
+      const tierClass = tier ? `dbs-tier-${tier.replace(/\s+/g, '-')}` : '';
+      statCells += `
+        <button class="stat-cell stat-cell-dbs ${tierClass}" type="button"
+                data-action="open-dbs-info"
+                data-card-dbs="${escHtml(String(card.dbs))}"
+                aria-label="What is DBS? Open explainer">
+          <div class="stat-label-sm">
+            DBS <span class="dbs-help" aria-hidden="true">?</span>
+          </div>
+          <div class="stat-val">
+            ${escHtml(String(card.dbs))}
+            ${card.dbsTier ? `<span class="dbs-tier-pill">${escHtml(card.dbsTier.toUpperCase())}</span>` : ''}
+          </div>
+        </button>`;
+    }
+
+    if (card.playAbility) {
+      statCells += `
+        <div class="stat-cell full">
+          <div class="stat-label-sm">Ability</div>
+          <div class="stat-val ability">${escHtml(card.playAbility)}</div>
+        </div>`;
+    }
+
+    // Format legality strip — 4 chips (Spec / Spec+ / Brawl / Checklist).
+    const chips = legalFormatsFor(card);
+    const legalityHtml = chips.length === 0 ? '' : `
+      <div class="format-legality-strip" aria-label="Format legality">
+        ${chips.map(c => `<span class="format-legality-chip format-legality-${c.status}" title="${escHtml(c.reason || `${c.format}: legal`)}">
+          <span class="format-legality-dot" aria-hidden="true"></span>${escHtml(c.format)}
+        </span>`).join('')}
+      </div>`;
+
+    return `
+      <div class="modal-stats">${statCells}</div>
+      ${legalityHtml}`;
+  }
 
   function buildModalContent(card) {
     const imgSrc = card.imageFile ? API.cardFullUrl(card) : null;

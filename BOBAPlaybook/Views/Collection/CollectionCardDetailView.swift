@@ -130,6 +130,20 @@ struct CollectionCardDetailView: View {
                             cardMetadata(for: card)
                         }
 
+                        // Card content — canonical 6-cell stats grid +
+                        // Cost/DBS for Plays + format legality strip +
+                        // format restrictions + play ability + athlete
+                        // inspiration + (for sealed) product fields +
+                        // highlights. Shared with Find via the
+                        // CardContentSection struct (CardDetailView.swift
+                        // §"CardContentSection"). Same struct = same
+                        // render = no drift between surfaces, per
+                        // DESIGN.md §8.6's binding rule that detail
+                        // surfaces share content verbatim.
+                        if let card = catalogCard {
+                            CardContentSection(card: card)
+                        }
+
                         copiesSection
 
                         if auth.isAuthenticated {

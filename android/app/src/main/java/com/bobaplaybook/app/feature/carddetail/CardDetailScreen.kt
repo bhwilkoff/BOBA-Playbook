@@ -1432,6 +1432,61 @@ internal fun PricingPanelsPublic(state: CardDetailUiState, onRefresh: () -> Unit
     PricingPanels(state = state, onRefresh = onRefresh)
 }
 
+/**
+ * Shared card-content body — everything between the art panel and the
+ * pricing surface that's a pure function of the card model. iOS calls
+ * the same set out of CardContentSection (CardDetailView.swift). Web
+ * builds the same DOM out of buildModalContent (js/app.js).
+ *
+ * Both Find (CardDetailBody) and Collection (CollectionCardDetailScreen)
+ * call this so the badge/athlete/stat/legality/restrictions/ability
+ * stack renders identically on both surfaces. Pre-2026-05-28 Collection
+ * was missing all of these (Ben's audit); this wrapper closes the gap
+ * without duplicating composables across packages.
+ *
+ * `showStatsGrid` controls whether the canonical 6-cell BOBAStatsGrid
+ * renders inside this body. Find passes `true` (it's the only place
+ * stats are rendered on that screen). Collection passes `false` because
+ * CollectionCardDetailScreen renders its own BOBAStatsGrid above this
+ * call to keep its existing screen order.
+ */
+@Composable
+internal fun CardContentBodyPublic(card: Card, showStatsGrid: Boolean = false) {
+    BadgeRow(card = card)
+    card.athleteInspiration?.takeIf { it.isNotBlank() }?.let { athlete ->
+        AthleteInspirationRow(athlete = athlete, card = card)
+    }
+    if (showStatsGrid) {
+        BOBAStatsGrid(
+            cardNumber = card.cardNumber,
+            cardType   = card.cardType,
+            treatment  = card.treatment,
+            weapon     = card.element.takeIf { !card.isSealed }?.lowercase()?.replaceFirstChar { it.uppercase() },
+            set        = card.set,
+            subSet     = card.subSet,
+        )
+    }
+    HeroStatRow(card = card)
+    FormatLegalityStrip(card = card)
+    FormatRestrictionsBlock(card = card)
+    card.abilityText?.takeIf { it.isNotBlank() }?.let { text ->
+        BOBASectionHeader(title = "Ability")
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+    }
+    card.bonusText?.takeIf { it.isNotBlank() }?.let { text ->
+        BOBASectionHeader(title = "Bonus")
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+    }
+}
+
 @Composable
 private fun PricingPanels(state: CardDetailUiState, onRefresh: () -> Unit) {
     if (state.isLoadingPricing) {

@@ -299,6 +299,30 @@ def main():
     args = ap.parse_args()
 
     cards = json.load(open(CATALOG))
+    # SUPER weapon is canonically 1-of-1 per assets/data/rarity-model.json
+    # (label "one_of_one", distributionTier 5). Super cards aren't
+    # numbered — they ARE the unique copy — so OCR can't pull a "/1"
+    # stamp and `printRun` stays None on every Super card in the
+    # catalog. Without this inference the similarity scorer can only
+    # cluster Super peers by treatment_match (5) + weapon_match (4) =
+    # 9, the bare MIN_SIM — well below the printRun_match=10 bonus the
+    # rarity model intends, so the closest-comp pool fills with
+    # cheaper Battlefoil commons that share weapon-tier-2 attributes.
+    # Ben's audit 2026-05-29 found 444 of 454 SUPER cards estimated
+    # under $10 (median $3.07) — wrong for the rarest treatment by
+    # multiple orders of magnitude. Inferring printRun=1 here makes
+    # the model cluster Super↔Super exclusively (sim ≥ 21 vs
+    # Super↔non-Super at ≤17, outside MAX_SIM_GAP=4), so the estimator
+    # either matches actual Super tracker comps OR honestly emits
+    # nothing — never the lie.
+    super_inferred = 0
+    for c in cards:
+        if c.get("element") == "SUPER" and c.get("printRun") is None:
+            c["printRun"] = 1
+            super_inferred += 1
+    if super_inferred:
+        print(f"inferred printRun=1 on {super_inferred} SUPER cards "
+              f"(rarity-model.json says SUPER is one_of_one — Ben's 2026-05-29 audit)")
     prices = pull_tracker_prices()
     print(f"catalog={len(cards)} priced_cards={len(prices)} "
           f"(sold={sum(1 for _,k in prices.values() if k=='sold')} "
@@ -461,9 +485,31 @@ def main():
         # find comps for products that don't share rarity-class semantics.
         if bid in sealed_bid_set:
             continue
+        # Tier-locked comps for canonical 1-of-1 cards. SUPER weapon is
+        # definitionally one-of-one per assets/data/rarity-model.json
+        # (label "one_of_one", distributionTier 5). A Super estimated
+        # from non-Super peers is structurally wrong regardless of how
+        # closely the lesser factors match — the rarity tier IS the
+        # signal, and crossing tiers misrepresents the entire market.
+        # If no Super peer has tracker data, the honest output is no
+        # estimate at all (clients then surface "no comparable data"
+        # rather than a low-confidence cross-tier guess).
+        #
+        # Ben's audit 2026-05-29 caught this — 444 of 454 SUPER cards
+        # estimated under $10 (median $3.07) because the priced pool
+        # had zero Super cards, so the model accepted same-treatment
+        # Battlefoils at sim ~12 and reported the lie at conf=low.
+        # The companion `printRun=1` inference earlier in main() helps
+        # cluster Super-with-Super when data DOES exist; this filter
+        # closes the door when it doesn't.
+        if c.get("element") == "SUPER":
+            eligible_peers = [(p, pr) for p, pr in priced_pool
+                              if p.get("element") == "SUPER"]
+        else:
+            eligible_peers = priced_pool
         # Score every priced peer; skip self.
         scored = []
-        for peer, price in priced_pool:
+        for peer, price in eligible_peers:
             if peer.get("bobaId") == bid:
                 continue
             s = similarity(c, peer)

@@ -4581,6 +4581,7 @@
   /// what the number itself means.
   function printRunExplain(label) {
     switch (label) {
+      case '/1':     return 'Super — One of One. The single rarest treatment in BoBA; only one copy exists of this exact card.';
       case '/5':     return 'Hand-stamped Inspired Ink — print run of 5. Among the rarest serialized counts in any product run.';
       case '/10':    return 'Hand-stamped Inspired Ink — print run of 10.';
       case '/25':    return 'Hand-stamped Inspired Ink — print run of 25.';

@@ -831,6 +831,7 @@ struct CardDetailView: View {
                         let accent = label == "SSP" ? Design.Colors.bobaOrange : Design.Colors.bobaCyan
                         let explanation: String = {
                             switch label {
+                            case "/1":     return "Super — One of One. The single rarest treatment in BoBA; only one copy exists of this exact card."
                             case "SSP":    return "Superfoil — Super-Short-Print, BoBA's rarest non-numbered treatment."
                             case "/5":     return "Hand-stamped Inspired Ink — print run of 5. Among the rarest serialized counts in any product run."
                             case "/10":    return "Hand-stamped Inspired Ink — print run of 10."
@@ -1858,6 +1859,7 @@ struct CardContentSection: View {
 
     private func printRunExplanation(_ label: String) -> String {
         switch label {
+        case "/1":     return "Super — One of One. The single rarest treatment in BoBA; only one copy exists of this exact card."
         case "SSP":    return "Superfoil — Super-Short-Print, BoBA's rarest non-numbered treatment."
         case "/5":     return "Hand-stamped Inspired Ink — print run of 5. Among the rarest serialized counts in any product run."
         case "/10":    return "Hand-stamped Inspired Ink — print run of 10."

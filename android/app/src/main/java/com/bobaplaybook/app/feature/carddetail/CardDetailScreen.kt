@@ -748,6 +748,7 @@ private fun BadgeRow(card: Card) {
             val tooltipScope = androidx.compose.runtime.rememberCoroutineScope()
             val explanation = when (label) {
                 "SSP"    -> "Superfoil — Super-Short-Print, BoBA's rarest non-numbered treatment."
+                "/1"     -> "Super — One of One. The single rarest treatment in BoBA; only one copy exists of this exact card."
                 "/5"     -> "Hand-stamped Inspired Ink — print run of 5. Among the rarest serialized counts in any product run."
                 "/10"    -> "Hand-stamped Inspired Ink — print run of 10."
                 "/25"    -> "Hand-stamped Inspired Ink — print run of 25."

@@ -894,3 +894,33 @@ value. The four signals, in order:
 **Done state:** all 4 signals render from one helper; Listed Range reflects
 eBay + Whatnot asks; inferred-sold/community show as "Recent Sales" with their
 source pills (not "Estimate"). Update PARITY §8 rows.
+
+### 6.7 Audit & calibration loop (shipped 2026-05-29)
+
+The estimator's similarity model + per-tier multipliers are dense enough that systematic issues hide between any two builds. `scripts/audit_estimator.py` is the standing audit framework that surfaces failure PATTERNS rather than individual SYMPTOMS — Ben's 2026-05-29 ask was "I'd like to not tell you individual cards I notice are not getting estimated correctly," and this script is the answer.
+
+**Seven audits** (each captures a real failure mode this codebase has hit):
+
+1. **Weapon-tier ordering** — median estimate by weapon should follow `rarity-model.json` `weaponTier.ordinal`. Inversions = rarity model isn't reaching the output (the bug that triggered DECISIONS.md #063).
+2. **Print-run ordering** — /5 > /10 > /25 > /50 by median. Inversions = `printRun_match=10` weight isn't winning.
+3. **Same-hero rarity ladder** — within each hero, treatments follow rarity tier ordering. 1.5× inversions flagged.
+4. **Coverage by weapon** — % of cards per weapon with estimates. <80% on a rarity class = systematic skip.
+5. **Suspect-low estimates** — high-rarity cards under canonical floors (SUPER<$30, HEX/GUM<$15, /5<$25, "Inspired Ink"<$20, etc.).
+6. **Missing estimates in well-covered clusters** — cards skipped when ≥80% of their (treatment × weapon × set) cluster has estimates. Catches Palmer-SFA-24-style single-card outliers.
+7. **Within-cluster z-score outliers** — cards >3σ from same-cluster median. Catches single-card bugs even when cluster average looks fine.
+
+**Cross-audit priority list** at the end of stdout: cards flagged by ≥2 audits. These are the highest-confidence wrong estimates — investigate top of list first. Machine-readable output at `assets/data/price-estimates-audit.json` so the next session can diff against the prior run.
+
+**Invocation:**
+```bash
+python3 scripts/audit_estimator.py           # audit current artifact
+python3 scripts/audit_estimator.py --rebuild # rebuild then audit
+```
+
+**Workflow for ALL estimator outlier work:**
+1. Run the audit. Don't spot-check individual cards.
+2. Read by pattern (which audits fire?), not by card.
+3. Tune the script's constants (SIM_WEIGHTS, multipliers, MIN_SIM, etc.), not the catalog. The catalog edits only for canonical truth (SUPER → printRun=1 was right because the rarity model says SUPER IS 1-of-1).
+4. Re-run audit, diff against previous. Same pattern shouldn't reappear AND no new patterns should fire.
+
+The audit slots into the §6.6 maintenance loop alongside `crawl_active_listings.py` + `refresh_stale_prices.py` + `build_price_estimates.py`. Recommended cadence: run the audit after every `build_price_estimates.py` rebuild; spend ~5 min reading top of the cross-audit list before committing the artifact.

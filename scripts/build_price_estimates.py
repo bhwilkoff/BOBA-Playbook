@@ -69,6 +69,15 @@ TRACKER_DIR = os.path.join(REPO, "workers", "pricing-tracker")
 
 SOLD_HAIRCUT = 0.82     # asking → estimated-sold (asks run ~10-25% above sold)
 MIN_CARDS = 3           # need at least this many comps for any estimate
+# Rarity-premium multipliers for canonical 1-of-1 cards (SUPER weapon)
+# when no tier-locked tracker peers exist. Applied to the same-treatment
+# closest-comp band as a wide hedged range. Reflects sports-card market
+# behavior where 1-of-1 chase cards trade at 5–50× same-treatment commons.
+# Tunable — Ben can fit these once real Super tracker data accrues and
+# the relationship to same-treatment comps can be measured.
+SUPER_PREMIUM_LOW  = 5
+SUPER_PREMIUM_MID  = 15
+SUPER_PREMIUM_HIGH = 50
 CONF_HIGH = 8
 PROXY = "https://boba-ebay-proxy.benwilkoff.workers.dev"
 
@@ -487,24 +496,34 @@ def main():
             continue
         # Tier-locked comps for canonical 1-of-1 cards. SUPER weapon is
         # definitionally one-of-one per assets/data/rarity-model.json
-        # (label "one_of_one", distributionTier 5). A Super estimated
-        # from non-Super peers is structurally wrong regardless of how
-        # closely the lesser factors match — the rarity tier IS the
-        # signal, and crossing tiers misrepresents the entire market.
-        # If no Super peer has tracker data, the honest output is no
-        # estimate at all (clients then surface "no comparable data"
-        # rather than a low-confidence cross-tier guess).
+        # (label "one_of_one", distributionTier 5). When Super tracker
+        # comps exist, use them exclusively — the rarity tier IS the
+        # signal, and cross-tier mixing misrepresents the market.
         #
-        # Ben's audit 2026-05-29 caught this — 444 of 454 SUPER cards
-        # estimated under $10 (median $3.07) because the priced pool
-        # had zero Super cards, so the model accepted same-treatment
-        # Battlefoils at sim ~12 and reported the lie at conf=low.
-        # The companion `printRun=1` inference earlier in main() helps
-        # cluster Super-with-Super when data DOES exist; this filter
-        # closes the door when it doesn't.
-        if c.get("element") == "SUPER":
-            eligible_peers = [(p, pr) for p, pr in priced_pool
-                              if p.get("element") == "SUPER"]
+        # When no Super peer has tracker data (today's state — Ben's
+        # 2026-05-29 audit verified 0 across listings, sold_events,
+        # Whatnot, and live eBay), we DON'T emit nothing — that loses
+        # the user signal entirely. Instead we fall back to same-
+        # treatment-family peers WITH a rarity-tier premium multiplier
+        # + a wider hedged band, marked clearly as 'rarity-extrapolated'
+        # so the UI can show appropriate caveats. The multiplier
+        # matches sports-card market behavior where 1-of-1 chase cards
+        # trade at 5–50× same-treatment commons (low / mid / high).
+        is_super_target = (c.get("element") == "SUPER")
+        if is_super_target:
+            super_peers = [(p, pr) for p, pr in priced_pool
+                           if p.get("element") == "SUPER"]
+        else:
+            super_peers = []
+        # Prefer Super-only peers when any exist; otherwise fall through
+        # to the full pool and apply the rarity premium downstream.
+        rarity_extrapolated = False
+        if is_super_target and super_peers:
+            eligible_peers = super_peers
+        elif is_super_target:
+            eligible_peers = priced_pool
+            rarity_extrapolated = True   # gated on Super-target with no
+                                         # tier-locked peers
         else:
             eligible_peers = priced_pool
         # Score every priced peer; skip self.
@@ -544,17 +563,35 @@ def main():
         nb = len(band)
         def pct(q):
             return band[max(0, min(nb - 1, int(q * (nb - 1) + 0.5)))]
+        low_raw, mid_raw, high_raw = pct(0.25), pct(0.50), pct(0.75)
+        if rarity_extrapolated:
+            # Super 1-of-1 with NO tier-locked comp data. Apply a rarity-
+            # tier premium reflecting where 1-of-1 chase cards trade in
+            # adjacent sports-card markets vs same-treatment commons.
+            # Wide band hedges the right-tail uncertainty (a Maverick or
+            # LeBoss 1-of-1 sits at the top end; an obscure-hero Super
+            # sits at the floor). Better-than-silent, honestly labeled.
+            # Multipliers are tunable — pre-tracker-data defaults.
+            low_raw  *= SUPER_PREMIUM_LOW
+            mid_raw  *= SUPER_PREMIUM_MID
+            high_raw *= SUPER_PREMIUM_HIGH
+            basis = (f"rarity-extrapolated from same-treatment comps "
+                     f"(no Super tracker data yet; premium {SUPER_PREMIUM_LOW}–{SUPER_PREMIUM_HIGH}×)")
+            conf = "low"
+        else:
+            basis = "closest comparable cards (combined-factor similarity)"
+            # "med" only when comps are tight AND there are enough of them; the
+            # closest-comp model + ask-derived data won't yield "high" today.
+            conf  = "med" if (avg_sim >= CONF_AVG_SIM_MED and n >= CONF_HIGH) else "low"
         estimates[bid] = {
-            "low":    round(pct(0.25), 2),
-            "mid":    round(pct(0.50), 2),
-            "high":   round(pct(0.75), 2),
+            "low":    round(low_raw, 2),
+            "mid":    round(mid_raw, 2),
+            "high":   round(high_raw, 2),
             "n":      n,
             "avgSim": round(avg_sim, 1),
             "topSim": top[0][0],
-            "basis":  "closest comparable cards (combined-factor similarity)",
-            # "med" only when comps are tight AND there are enough of them; the
-            # closest-comp model + ask-derived data won't yield "high" today.
-            "conf":   "med" if (avg_sim >= CONF_AVG_SIM_MED and n >= CONF_HIGH) else "low",
+            "basis":  basis,
+            "conf":   conf,
         }
 
     print(f"estimates produced: {len(estimates)} / {len(cards)} cards "

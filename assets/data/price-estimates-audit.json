@@ -530,18 +530,18 @@
       "coverage_pct": 100.0
     },
     {
-      "weapon": "GUM",
-      "tier": 4,
-      "in_catalog": 499,
-      "with_estimate": 499,
-      "coverage_pct": 100.0
-    },
-    {
       "weapon": "HEX",
       "tier": 4,
       "in_catalog": 2491,
       "with_estimate": 1637,
       "coverage_pct": 65.7
+    },
+    {
+      "weapon": "GUM",
+      "tier": 4,
+      "in_catalog": 499,
+      "with_estimate": 499,
+      "coverage_pct": 100.0
     },
     {
       "weapon": "GLOW",

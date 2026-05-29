@@ -1,0 +1,74 @@
+{
+  "_doc": "Daily pricing-audit history. One row per day. Append-only except for same-day re-runs which REPLACE the latest row. Feed for scripts/calibrate_estimator.py.",
+  "rows": [
+    {
+      "date": "2026-05-29",
+      "generatedAt": "2026-05-29T17:20:24.394163+00:00",
+      "buildVersion": "2.400",
+      "coverage": {
+        "total": 17974,
+        "estimated": 13703,
+        "pct": 0.7624
+      },
+      "audit_counts": {
+        "weapon_tier_violations": 11,
+        "printrun_violations": 1,
+        "hero_ladder_inversions": 50,
+        "low_coverage_weapons": [
+          "HEX",
+          "GLOW",
+          "FIRE"
+        ],
+        "suspect_low": 5,
+        "suspect_high": 0,
+        "missing_in_covered_clusters": 0,
+        "cluster_outliers": 200,
+        "outlier_rich_clusters": 0,
+        "two_plus_flagged": 0
+      },
+      "weapon_medians": {
+        "FIRE": 45.1,
+        "ICE": 32.8,
+        "STEEL": 17.62,
+        "BRAWL": 82.0,
+        "SUPER": 307.5,
+        "GUM": 227.55,
+        "HEX": 294.95,
+        "GLOW": 102.49,
+        "ALT": 27.05,
+        "NONE": 41.71,
+        "CYBER": 311.59
+      },
+      "printrun_medians": {
+        "/1": 307.5,
+        "/25": 389.49,
+        "/50": 205.0,
+        "/10": 1722.0
+      },
+      "basis_breakdown": {
+        "direct_comp": 11016,
+        "wide_gap_fallback": 975,
+        "weapon_extrapolated_tier4": 1249,
+        "rarity_extrapolated_super": 455,
+        "sealed_direct": 8,
+        "other": 0
+      },
+      "config_snapshot": {
+        "SOLD_HAIRCUT": 0.82,
+        "MIN_CARDS": 3,
+        "MIN_SIM": 9,
+        "MAX_SIM_GAP": 4,
+        "MAX_COMPS": 16,
+        "CONF_AVG_SIM_MED": 14,
+        "CONF_HIGH": 8,
+        "SEALED_MIN_PRICE": 10,
+        "SUPER_PREMIUM_LOW": 35,
+        "SUPER_PREMIUM_MID": 100,
+        "SUPER_PREMIUM_HIGH": 300,
+        "WEAPON_TIER4_PREMIUM_LOW": 3,
+        "WEAPON_TIER4_PREMIUM_MID": 6,
+        "WEAPON_TIER4_PREMIUM_HIGH": 12
+      }
+    }
+  ]
+}

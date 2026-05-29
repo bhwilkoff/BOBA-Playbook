@@ -924,3 +924,18 @@ python3 scripts/audit_estimator.py --rebuild # rebuild then audit
 4. Re-run audit, diff against previous. Same pattern shouldn't reappear AND no new patterns should fire.
 
 The audit slots into the §6.6 maintenance loop alongside `crawl_active_listings.py` + `refresh_stale_prices.py` + `build_price_estimates.py`. Recommended cadence: run the audit after every `build_price_estimates.py` rebuild; spend ~5 min reading top of the cross-audit list before committing the artifact.
+
+**Extended 2026-05-29** (post-#064 audit-driven calibration): the framework grew from 7 audits to 9 (added suspect-HIGH for upward cross-treatment leakage detection + outlier-rich clusters for systematic-bug catching), and the loop is now WIRED INTO A DAILY GH ACTION (`.github/workflows/pricing-daily-refresh.yml`) that:
+
+1. Refreshes stale prices via the eBay proxy (`refresh_stale_prices.py --limit 800`) + Whatnot (`--limit 400`)
+2. Seeds new coverage via stratified crawl (`crawl_active_listings.py --limit 400`)
+3. Rebuilds the artifact (`build_price_estimates.py`)
+4. Runs the 9-audit framework
+5. Tracks one history row per day in `assets/data/pricing-audit-history.json` (`scripts/track_audit_history.py`) — captures audit counts, weapon/printrun medians, basis breakdown, and the build's config snapshot (multipliers + thresholds) so calibration has comparable baselines
+6. **Regression gate** (`scripts/check_audit_regressions.py`) — FAILS the workflow + opens an issue if `two_plus_flagged`, `missing_in_covered_clusters`, or `outlier_rich_clusters` reappear from 0 → ≥1, or coverage drops >5pp. The bad artifact never lands on bobaplaybook.com.
+7. **Calibration recommendations** (`scripts/calibrate_estimator.py --window-days 14`) — analyses 14-day trends and writes `assets/data/pricing-calibration-recommendations.json` with concrete tuning suggestions (e.g., "SUPER median has been below GUM median for 7+ days; consider bumping SUPER_PREMIUM_MID by ~50%"). Recommendation-only by design — auto-applying creates feedback loops on noisy days.
+8. Commits the new artifact + history + recommendations only when regression-clean.
+
+Free-tier budget per run (verified): ~1,200 eBay Browse calls (out of 5K/day free), ~25 GH Actions minutes (unlimited on public repos), ~5 D1 queries, ~5MB storage growth/month. Full end-to-end documentation: [PRICING_AUTOMATION.md](./PRICING_AUTOMATION.md). Architecture decision: DECISIONS.md #065.
+
+**Future-proofing for audit changes**: adding a new audit (e.g., #10) automatically flows into history tracking (audit_counts dict is schema-agnostic), regression gating (add one rule in `CRITICAL_RULES`), and calibration (add a pattern check in `analyze_persistent_audit_patterns`). See PRICING_AUTOMATION.md §5 for the per-layer extension procedure.

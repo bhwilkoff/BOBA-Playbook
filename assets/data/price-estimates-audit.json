@@ -1,0 +1,4702 @@
+{
+  "weapon_tier_ordering": {
+    "summary": [
+      {
+        "weapon": "SUPER",
+        "tier": 5,
+        "n": 454,
+        "median": 46.12
+      },
+      {
+        "weapon": "GUM",
+        "tier": 4,
+        "n": 498,
+        "median": 227.55
+      },
+      {
+        "weapon": "HEX",
+        "tier": 4,
+        "n": 2485,
+        "median": 225.49
+      },
+      {
+        "weapon": "GLOW",
+        "tier": 3,
+        "n": 2527,
+        "median": 38.95
+      },
+      {
+        "weapon": "FIRE",
+        "tier": 2,
+        "n": 3159,
+        "median": 3.17
+      },
+      {
+        "weapon": "ICE",
+        "tier": 2,
+        "n": 3108,
+        "median": 4.09
+      },
+      {
+        "weapon": "STEEL",
+        "tier": 1,
+        "n": 2825,
+        "median": 2.66
+      },
+      {
+        "weapon": "BRAWL",
+        "tier": 1,
+        "n": 1601,
+        "median": 4.1
+      },
+      {
+        "weapon": "ALT",
+        "tier": null,
+        "n": 44,
+        "median": 27.05
+      },
+      {
+        "weapon": "CYBER",
+        "tier": null,
+        "n": 28,
+        "median": 311.59
+      },
+      {
+        "weapon": "NONE",
+        "tier": null,
+        "n": 3,
+        "median": 1.63
+      }
+    ],
+    "violations": [
+      {
+        "higher_tier": "FIRE",
+        "lower_tier": "BRAWL",
+        "higher_median": 3.17,
+        "lower_median": 4.1
+      },
+      {
+        "higher_tier": "FIRE",
+        "lower_tier": "ALT",
+        "higher_median": 3.17,
+        "lower_median": 27.05
+      },
+      {
+        "higher_tier": "FIRE",
+        "lower_tier": "CYBER",
+        "higher_median": 3.17,
+        "lower_median": 311.59
+      },
+      {
+        "higher_tier": "ICE",
+        "lower_tier": "BRAWL",
+        "higher_median": 4.09,
+        "lower_median": 4.1
+      },
+      {
+        "higher_tier": "ICE",
+        "lower_tier": "ALT",
+        "higher_median": 4.09,
+        "lower_median": 27.05
+      },
+      {
+        "higher_tier": "ICE",
+        "lower_tier": "CYBER",
+        "higher_median": 4.09,
+        "lower_median": 311.59
+      },
+      {
+        "higher_tier": "STEEL",
+        "lower_tier": "ALT",
+        "higher_median": 2.66,
+        "lower_median": 27.05
+      },
+      {
+        "higher_tier": "STEEL",
+        "lower_tier": "CYBER",
+        "higher_median": 2.66,
+        "lower_median": 311.59
+      },
+      {
+        "higher_tier": "BRAWL",
+        "lower_tier": "ALT",
+        "higher_median": 4.1,
+        "lower_median": 27.05
+      },
+      {
+        "higher_tier": "BRAWL",
+        "lower_tier": "CYBER",
+        "higher_median": 4.1,
+        "lower_median": 311.59
+      },
+      {
+        "higher_tier": "SUPER",
+        "lower_tier": "GUM",
+        "higher_median": 46.12,
+        "lower_median": 227.55
+      },
+      {
+        "higher_tier": "SUPER",
+        "lower_tier": "HEX",
+        "higher_median": 46.12,
+        "lower_median": 225.49
+      },
+      {
+        "higher_tier": "SUPER",
+        "lower_tier": "CYBER",
+        "higher_median": 46.12,
+        "lower_median": 311.59
+      },
+      {
+        "higher_tier": "GUM",
+        "lower_tier": "CYBER",
+        "higher_median": 227.55,
+        "lower_median": 311.59
+      },
+      {
+        "higher_tier": "HEX",
+        "lower_tier": "CYBER",
+        "higher_median": 225.49,
+        "lower_median": 311.59
+      },
+      {
+        "higher_tier": "GLOW",
+        "lower_tier": "CYBER",
+        "higher_median": 38.95,
+        "lower_median": 311.59
+      }
+    ]
+  },
+  "print_run_ordering": {
+    "summary": [
+      {
+        "printRun": 1,
+        "n": 454,
+        "median": 46.12
+      },
+      {
+        "printRun": 5,
+        "n": 25,
+        "median": 2.87
+      },
+      {
+        "printRun": 10,
+        "n": 46,
+        "median": 287.0
+      },
+      {
+        "printRun": 50,
+        "n": 223,
+        "median": 205.0
+      }
+    ],
+    "violations": [
+      {
+        "lower_pr": 5,
+        "higher_pr": 10,
+        "lower_median": 2.87,
+        "higher_median": 287.0
+      }
+    ]
+  },
+  "same_hero_rarity_inversions": [
+    {
+      "hero": "LeBoss",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 49.08
+    },
+    {
+      "hero": "Merlomes",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 49.08
+    },
+    {
+      "hero": "Gaveler",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 16.4,
+      "higher_median": 8.2
+    },
+    {
+      "hero": "Victory",
+      "lower_tier": "Rookie Power Up",
+      "higher_tier": "Blue Blast",
+      "lower_median": 615.0,
+      "higher_median": 14.75
+    },
+    {
+      "hero": "Victory",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 16.4,
+      "higher_median": 10.65
+    },
+    {
+      "hero": "Dijon",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 24.6,
+      "higher_median": 14.35
+    },
+    {
+      "hero": "Bison",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.76,
+      "higher_median": 49.08
+    },
+    {
+      "hero": "Donny Buckets",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 49.08
+    },
+    {
+      "hero": "Skuba",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 24.6,
+      "higher_median": 12.71
+    },
+    {
+      "hero": "Harpoon",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 49.08
+    },
+    {
+      "hero": "Haliburst",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 24.6,
+      "higher_median": 8.2
+    },
+    {
+      "hero": "Burrocious",
+      "lower_tier": "Cyber",
+      "higher_tier": "Blue Blast",
+      "lower_median": 311.59,
+      "higher_median": 8.19
+    },
+    {
+      "hero": "Jaybird",
+      "lower_tier": "Rookie Power Up",
+      "higher_tier": "Bubble Gum Blast",
+      "lower_median": 615.0,
+      "higher_median": 213.19
+    },
+    {
+      "hero": "Jaybird",
+      "lower_tier": "Silver Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 11.77,
+      "higher_median": 3.27
+    },
+    {
+      "hero": "J-Jetts",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 46.12
+    },
+    {
+      "hero": "Merri-Go-Round",
+      "lower_tier": "Rookie Power Up",
+      "higher_tier": "Bubble Gum Blast",
+      "lower_median": 615.0,
+      "higher_median": 213.19
+    },
+    {
+      "hero": "Merri-Go-Round",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 47.6
+    },
+    {
+      "hero": "Cupid",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 16.4,
+      "higher_median": 3.18
+    },
+    {
+      "hero": "Shystep",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 43.36
+    },
+    {
+      "hero": "Air Ace",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 24.6,
+      "higher_median": 16.4
+    },
+    {
+      "hero": "Ram",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 42.93
+    },
+    {
+      "hero": "Maxed Out",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 24.6,
+      "higher_median": 14.96
+    },
+    {
+      "hero": "Lightningrod",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 42.93
+    },
+    {
+      "hero": "Bayou",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 46.12
+    },
+    {
+      "hero": "McArmyKnife",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 46.12
+    },
+    {
+      "hero": "BrockNess",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 24.6,
+      "higher_median": 14.35
+    },
+    {
+      "hero": "Fungi",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 16.4,
+      "higher_median": 4.09
+    },
+    {
+      "hero": "Cheetah",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 46.12
+    },
+    {
+      "hero": "Spider",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 46.12
+    },
+    {
+      "hero": "Caliber",
+      "lower_tier": "Rookie Power Up",
+      "higher_tier": "Bubble Gum Blast",
+      "lower_median": 615.0,
+      "higher_median": 213.19
+    },
+    {
+      "hero": "Caliber",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 16.4,
+      "higher_median": 4.1
+    },
+    {
+      "hero": "Crews-Missle",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 46.12
+    },
+    {
+      "hero": "Marksman",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 17.63,
+      "higher_median": 8.61
+    },
+    {
+      "hero": "Unibrow",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 46.12
+    },
+    {
+      "hero": "Exterminaber",
+      "lower_tier": "Rookie Power Up",
+      "higher_tier": "Blue Blast",
+      "lower_median": 615.0,
+      "higher_median": 65.59
+    },
+    {
+      "hero": "C.C.",
+      "lower_tier": "Rookie Power Up",
+      "higher_tier": "Bubble Gum Blast",
+      "lower_median": 615.0,
+      "higher_median": 213.19
+    },
+    {
+      "hero": "Jeanetic",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 24.6,
+      "higher_median": 10.87
+    },
+    {
+      "hero": "Bomber",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 42.93
+    },
+    {
+      "hero": "Doublecheck",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 16.4,
+      "higher_median": 4.1
+    },
+    {
+      "hero": "Juice",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 47.6
+    },
+    {
+      "hero": "Attak",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 42.93
+    },
+    {
+      "hero": "Escape Artist",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 24.6,
+      "higher_median": 6.55
+    },
+    {
+      "hero": "J-Cam",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 17.63,
+      "higher_median": 7.78
+    },
+    {
+      "hero": "Phoenix",
+      "lower_tier": "Rookie Power Up",
+      "higher_tier": "Bubble Gum Blast",
+      "lower_median": 615.0,
+      "higher_median": 213.19
+    },
+    {
+      "hero": "Phoenix",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 46.12
+    },
+    {
+      "hero": "Generator",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 24.6,
+      "higher_median": 7.58
+    },
+    {
+      "hero": "Lieutenant",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 42.93
+    },
+    {
+      "hero": "Tattoo",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 16.4,
+      "higher_median": 4.1
+    },
+    {
+      "hero": "Snowbear",
+      "lower_tier": "Blizzard Battlefoil",
+      "higher_tier": "Superfoil",
+      "lower_median": 73.8,
+      "higher_median": 46.12
+    },
+    {
+      "hero": "Brawn",
+      "lower_tier": "Slime Battlefoil",
+      "higher_tier": "Blizzard Battlefoil",
+      "lower_median": 17.63,
+      "higher_median": 6.55
+    }
+  ],
+  "coverage_by_weapon": [
+    {
+      "weapon": "SUPER",
+      "tier": 5,
+      "in_catalog": 455,
+      "with_estimate": 454,
+      "coverage_pct": 99.8
+    },
+    {
+      "weapon": "GUM",
+      "tier": 4,
+      "in_catalog": 499,
+      "with_estimate": 498,
+      "coverage_pct": 99.8
+    },
+    {
+      "weapon": "HEX",
+      "tier": 4,
+      "in_catalog": 2491,
+      "with_estimate": 2485,
+      "coverage_pct": 99.8
+    },
+    {
+      "weapon": "GLOW",
+      "tier": 3,
+      "in_catalog": 2722,
+      "with_estimate": 2527,
+      "coverage_pct": 92.8
+    },
+    {
+      "weapon": "ICE",
+      "tier": 2,
+      "in_catalog": 3240,
+      "with_estimate": 3108,
+      "coverage_pct": 95.9
+    },
+    {
+      "weapon": "FIRE",
+      "tier": 2,
+      "in_catalog": 3241,
+      "with_estimate": 3159,
+      "coverage_pct": 97.5
+    },
+    {
+      "weapon": "STEEL",
+      "tier": 1,
+      "in_catalog": 2928,
+      "with_estimate": 2825,
+      "coverage_pct": 96.5
+    },
+    {
+      "weapon": "BRAWL",
+      "tier": 1,
+      "in_catalog": 1625,
+      "with_estimate": 1601,
+      "coverage_pct": 98.5
+    },
+    {
+      "weapon": "NONE",
+      "tier": null,
+      "in_catalog": 3,
+      "with_estimate": 3,
+      "coverage_pct": 100.0
+    },
+    {
+      "weapon": "ALT",
+      "tier": null,
+      "in_catalog": 47,
+      "with_estimate": 44,
+      "coverage_pct": 93.6
+    },
+    {
+      "weapon": "CYBER",
+      "tier": null,
+      "in_catalog": 28,
+      "with_estimate": 28,
+      "coverage_pct": 100.0
+    }
+  ],
+  "suspect_low": [
+    {
+      "bobaId": "ABA-8-Goofin' Off-Inspired Ink Metallic Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "ACA-8-Eraser-Inspired Ink Metallic Battlefoil-Alysha Clark Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "ADPA-8-All day-Inspired Ink Metallic Battlefoil-Adrian Peterson Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "BWA-8-Bern Baby, Bern-Inspired Ink Metallic Battlefoil-Bernie Williams Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "CBA-8-Big Geo-Inspired Ink Metallic Battlefoil-Craig Biggio Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "CFA-8-Pudge-Inspired Ink Metallic Battlefoil-Carlton Fisk Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "CHMA-8-Cheryl Bomb-Inspired Ink Metallic Battlefoil-Cheryl Miller Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "CMA-8-Mull & Bones-Inspired Ink Metallic Battlefoil-Chris Mullin Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "CPRA-8-Ramponage-Inspired Ink Metallic Battlefoil-Christie Pearce Rampone Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "CYBA-8-Billhook-Inspired Ink Metallic Battlefoil-Chauncey Billups Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "DHA-8-Joystick-Inspired Ink Metallic Battlefoil-Dante Hall Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "DOA-8-Big Papi-Inspired Ink Metallic Battlefoil-David Ortiz Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "DPA-8-Walk The Plank-Inspired Ink Metallic Battlefoil-Doug Plank Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "EDDA-8-Belladonna-Inspired Ink Metallic Battlefoil-Elena Delle Donne Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "EDLCA-8-Cruze Control-Inspired Ink Metallic Battlefoil-Elly De La Cruz Unmasked-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "EGA-8-Game Over-Inspired Ink Metallic Battlefoil-\u00c9ric Gagn\u00e9 Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "EMA-8-Gar-Inspired Ink Metallic Battlefoil-Edgar Martinez Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "FHA-8-King Felix-Inspired Ink Metallic Battlefoil-F\u00e9lix Hern\u00e1ndez Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "GBA-8-Bells-Inspired Ink Metallic Battlefoil-George Bell Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "HLA-8-King Henrik-Inspired Ink Metallic Battlefoil-Henrik Lundqvist Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "JAA-8-Altitude-Inspired Ink Metallic Battlefoil-Jozy Altidore Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "JBA-8-Bags-Inspired Ink Metallic Battlefoil-Jeff Bagwell Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "JEA-8-Dr. J-Inspired Ink Metallic Battlefoil-Julius Erving Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "JHA-8-Hambone-Inspired Ink Metallic Battlefoil-Jack Ham Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "JKMA-8-Captain Hook-Inspired Ink Metallic Battlefoil-Jack Morris Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "JLPA-8-Peppers-Inspired Ink Metallic Battlefoil-Julius Peppers Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "JPA-8-JPEG-Inspired Ink Metallic Battlefoil-Jessica Pegula Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "JRA-8-Boston Strongboy-Inspired Ink Metallic Battlefoil-Jim Rice Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "JSA-8-Smoltzie-Inspired Ink Metallic Battlefoil-John Smoltz Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "JSTA-8-Dunker-Inspired Ink Metallic Battlefoil-John Starks Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "KGJA-8-The Kid-Inspired Ink Metallic Battlefoil-Cover Hero-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "KGSA-8-Senior-Inspired Ink Metallic Battlefoil-Ken Griffey Sr. Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "KHA-8-Nice Game Pretty Boy-Inspired Ink Metallic Battlefoil-Keith Hern\u00e1ndez Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MCA-8-Tigre-Inspired Ink Metallic Battlefoil-Miguel Cabrera Unmasked-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MRA-8-Unanimous Sandman-Inspired Ink Metallic Battlefoil-Mariano Rivera Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "PBA-8-Pauldron-Inspired Ink Metallic Battlefoil-Paula Badosa Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "PEA-8-Destroya-Inspired Ink Metallic Battlefoil-Patrick Ewing Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "PGA-8-PG-D3-Inspired Ink Metallic Battlefoil-Pierre Gar\u00e7on Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "RCA-8-Rocket-Inspired Ink Metallic Battlefoil-Roger Clemens Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "RFA-8-Fingers-Inspired Ink Metallic Battlefoil-Rollie Fingers Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "RJA-8-JAW-JAW-Inspired Ink Metallic Battlefoil-Ron Jaworski Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "RQA-8-Cousin-Inspired Ink Metallic Battlefoil-Randy Quaid Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "RSA-8-The Red Baron-Inspired Ink Metallic Battlefoil-Rick Sutcliffe Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "SMA-8-Santa-Moss-Inspired Ink Metallic Battlefoil-Santana Moss Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "SPA-8-Perkolator-Inspired Ink Metallic Battlefoil-Sam Perkins Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "SRA-8-Rollin'-Inspired Ink Metallic Battlefoil-Scott Rolen Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "SSA-8-Gator-Inspired Ink Metallic Battlefoil-Steve Spurrier Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "TGA-8-Tommy G-Inspired Ink Metallic Battlefoil-Tom Glavine Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "THA-8-Highway to Helton-Inspired Ink Metallic Battlefoil-Todd Helton Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "THRA-8-Herro-Inspired Ink Metallic Battlefoil-Tyler Herro Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "TRA-8-Rainestorm-Inspired Ink Metallic Battlefoil-Tim Raines Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "VGSA-8-Vlad the Impaler-Inspired Ink Metallic Battlefoil-Vladimir Guerrero Sr. Debut-STEEL",
+      "mid": 1.84,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "DEA-8-ECKS-Inspired Ink Metallic Battlefoil-Dennis Eckersley Debut-STEEL",
+      "mid": 2.03,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "DSA-8-Shells-Inspired Ink Metallic Battlefoil-Donnie Shell Debut-STEEL",
+      "mid": 2.03,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "JBNA-8-Burner-Inspired Ink Metallic Battlefoil-Jalen Brunson Unmasked-STEEL",
+      "mid": 2.03,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "JBOA-8-Game Time-Inspired Ink Metallic Battlefoil-Jim Boeheim Debut-STEEL",
+      "mid": 2.03,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "PMA-8-Gigante-Inspired Ink Metallic Battlefoil-Pedro Mart\u00ednez Debut-STEEL",
+      "mid": 2.03,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "RYA-8-Robin Hood-Inspired Ink Metallic Battlefoil-Robin Yount Debut-STEEL",
+      "mid": 2.03,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "SGA-8-Mr. Clean-Inspired Ink Metallic Battlefoil-Steve Garvey Debut-STEEL",
+      "mid": 2.03,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "TAA-8-Troy of Dallas-Inspired Ink Metallic Battlefoil-Troy Aikman Debut-STEEL",
+      "mid": 2.03,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "GAA-8-Freakshow-Inspired Ink Metallic Battlefoil-Giannis Antetokounmpo Unmasked-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-1-Magic-Inspired Ink Metallic Battlefoil-Magic Johnson Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-2-Emmitt-164-Inspired Ink Metallic Battlefoil-Emmitt Smith Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-3-Marino-Inspired Ink Metallic Battlefoil-Dan Marino Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-4-Barry \"Cutback\" Sanders-Inspired Ink Metallic Battlefoil-Barry Sanders Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-5-Muggsy-Inspired Ink Metallic Battlefoil-Muggsy Bogues Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-6-Spudnick-Inspired Ink Metallic Battlefoil-Spudd Webb Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-7-The Ironman-Inspired Ink Metallic Battlefoil-Cal Ripkin JR Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-8-Peek-A-Boo-Inspired Ink Metallic Battlefoil-Picabo Street Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-9-Wizard-Inspired Ink Metallic Battlefoil-Ozzie Smith Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-10-Joey Jawz-Inspired Ink Metallic Battlefoil-Joey Chestnut Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-11-Bus-Inspired Ink Metallic Battlefoil-Jerome Bettis Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-12-Chicken Man-Inspired Ink Metallic Battlefoil-Wade Boggs Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-13-HowBout'em-Inspired Ink Metallic Battlefoil-Jimmy Johnson Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-14-Sea-Largent-Inspired Ink Metallic Battlefoil-Steve Largent Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-15-Howietzer-Inspired Ink Metallic Battlefoil-Howie Long Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-16-Goggles-Inspired Ink Metallic Battlefoil-Eric Dickerson Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-17-Steady Eddie-Inspired Ink Metallic Battlefoil-Eddie George Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-18-X.L.-Inspired Ink Metallic Battlefoil-Xavier Legette Alpha Update-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-19-Pet Dog-Inspired Ink Metallic Battlefoil-Ethan Petry Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-20-Windmill-Inspired Ink Metallic Battlefoil-Dominique Wilkins Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-21-Boom-Inspired Ink Metallic Battlefoil-Boomer Esiason Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-22-Cameleon-Inspired Ink Metallic Battlefoil-Cameron Brink Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-23-Cura\u00e7ao Kid-Inspired Ink Metallic Battlefoil-Anduw Jones Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-24-Sterling-Inspired Ink Metallic Battlefoil-Sterling Sharpe Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-25-Caveman-Inspired Ink Metallic Battlefoil-Johnny Damon Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-26-Lady Magic-Inspired Ink Metallic Battlefoil-Nancy Lieberman Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-27-Hoge-Ball-Inspired Ink Metallic Battlefoil-Merril Hoge Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-28-InVinceable-Inspired Ink Metallic Battlefoil-Vince Young Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-29-Slash-Inspired Ink Metallic Battlefoil-Kordell Stewart Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-30-Tikoff-Inspired Ink Metallic Battlefoil-Fred Biletnikoff Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-31-Bone-Inspired Ink Metallic Battlefoil-Jay Buhner Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-32-Kurse-Inspired Ink Metallic Battlefoil-Jevon Kearse Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-33-Deep Freeze-Inspired Ink Metallic Battlefoil-George Gervin Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-34-Woody-Inspired Ink Metallic Battlefoil-Darren Woodson Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-35-Coopanova-Inspired Ink Metallic Battlefoil-Cynthia Cooper Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-36-Hard-Drive-Inspired Ink Metallic Battlefoil-Tim Hardaway Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-37-BuckShot-Inspired Ink Metallic Battlefoil-Buck Showalter Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-38-Haymaker-Inspired Ink Metallic Battlefoil-Spencer Haywood Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "RJA-8-Mr. October-Inspired Ink Metallic Battlefoil-Reggie Jackson Debut-STEEL",
+      "mid": 2.25,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "DMWA-12-Windmill-Inspired Ink Battlefoil-2026 Brawl-BRAWL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "BRAWL",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-1-A.I.-Inspired Ink Metallic Battlefoil-Allen Iverson Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-2-Young-Gunner-Inspired Ink Metallic Battlefoil-Steve Young Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-3-Brandi-Inspired Ink Metallic Battlefoil-Brandi Chastain Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-5-Cruschman-Inspired Ink Metallic Battlefoil-Adley Rutshman Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-6-Allenwrench-Inspired Ink Metallic Battlefoil-Marcus Allen Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-7-Star-Bach-Inspired Ink Metallic Battlefoil-Roger Staubach Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-8-Grand-Ma-Ma-Inspired Ink Metallic Battlefoil-Larry Johnson Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-9-Amon-Ra-Inspired Ink Metallic Battlefoil-Amon-Ra St. Brown Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-10-Waddler-Inspired Ink Metallic Battlefoil-Jaylen Waddle Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-11-Donnie Baseball-Inspired Ink Metallic Battlefoil-Don Mattingly Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-12-Boshpit-Inspired Ink Metallic Battlefoil-Chris Bosh Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-13-Thurmanator-Inspired Ink Metallic Battlefoil-Thuman Thomas Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-14-Flutie-Inspired Ink Metallic Battlefoil-Doug Flutie Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-15-Green-Machine-Inspired Ink Metallic Battlefoil-Jalen Green Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-16-KAT-Inspired Ink Metallic Battlefoil-Karl-Anthony Towns Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-17-Mean-Joe-Inspired Ink Metallic Battlefoil-Joe Greene Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-18-Chief-Inspired Ink Metallic Battlefoil-Robert Parish Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-19-Thrill-Inspired Ink Metallic Battlefoil-Will Clark Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-20-Frostbite-Inspired Ink Metallic Battlefoil-Trae Young Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-21-Blockhale-Inspired Ink Metallic Battlefoil-Kevin McHale Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-22-Timmy-Inspired Ink Metallic Battlefoil-Tim Brown Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-23-Palmer-Inspired Ink Metallic Battlefoil-Jim Palmer Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-24-Thighs Man-Inspired Ink Metallic Battlefoil-Joe Theisman-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-25-Rodder-Inspired Ink Metallic Battlefoil-Rod Smith Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-26-Awesome Dawson-Inspired Ink Metallic Battlefoil-Andre Dawson Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-27-Line-Art-Inspired Ink Metallic Battlefoil-Matt Leinart Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-28-Swoopes-Inspired Ink Metallic Battlefoil-Sheryl Swoopes Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-29-Smoke-Inspired Ink Metallic Battlefoil-Dave Stewart Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-30-Man of Steal-Inspired Ink Metallic Battlefoil-Vince Coleman Debut-STEEL",
+      "mid": 2.45,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "MBFA-4-Boz-Inspired Ink Metallic Battlefoil-Brian Bosworth Debut-STEEL",
+      "mid": 2.7,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Metallic Battlefoil"
+    },
+    {
+      "bobaId": "CMA-5-Mull & Bones-Inspired Ink Battlefoil-Chris Mullin Debut-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "DOA-5-Big Papi-Inspired Ink Battlefoil-David Ortiz Debut-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "GBA-5-Bells-Inspired Ink Battlefoil-George Bell Debut-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "HLA-5-King Henrik-Inspired Ink Battlefoil-Henrik Lundqvist Debut-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "JBNA-5-Burner-Inspired Ink Battlefoil-Jalen Brunson Unmasked-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "JEA-5-Dr. J-Inspired Ink Battlefoil-Julius Erving Debut-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "JKMA-5-Captain Hook-Inspired Ink Battlefoil-Jack Morris Debut-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "JLPA-5-Peppers-Inspired Ink Battlefoil-Julius Peppers Debut-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "JPA-5-JPEG-Inspired Ink Battlefoil-Jessica Pegula Debut-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "JRA-5-Boston Strongboy-Inspired Ink Battlefoil-Jim Rice Debut-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "PGA-5-PG-D3-Inspired Ink Battlefoil-Pierre Gar\u00e7on Debut-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "RJA-5-JAW-JAW-Inspired Ink Battlefoil-Ron Jaworski Debut-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "VGSA-5-Vlad the Impaler-Inspired Ink Battlefoil-Vladimir Guerrero Sr. Debut-FIRE",
+      "mid": 2.86,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "BBFA-3-A.I.-Silver Blast-Allen Iverson Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-6-Young-Gunner-Silver Blast-Steve Young Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-9-Brandi-Silver Blast-Brandi Chastain Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-12-Boz-Silver Blast-Brian Bosworth Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-15-Cruschman-Silver Blast-Adley Rutshman Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-18-Allenwrench-Silver Blast-Marcus Allen Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-21-Star-Bach-Silver Blast-Roger Staubach Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-24-Grand-Ma-Ma-Silver Blast-Larry Johnson Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-30-Waddler-Silver Blast-Jaylen Waddle Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-33-Donnie Baseball-Silver Blast-Don Mattingly Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-36-Boshpit-Silver Blast-Chris Bosh Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-39-Thurmanator-Silver Blast-Thuman Thomas Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-42-Flutie-Silver Blast-Doug Flutie Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-45-Green-Machine-Silver Blast-Jalen Green Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-48-KAT-Silver Blast-Karl-Anthony Towns Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-51-Mean-Joe-Silver Blast-Joe Greene Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-57-Thrill-Silver Blast-Will Clark Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-63-Blockhale-Silver Blast-Kevin McHale Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-66-Timmy-Silver Blast-Tim Brown Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-69-Palmer-Silver Blast-Jim Palmer Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-72-Thighs Man-Silver Blast-Joe Theisman-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-75-Rodder-Silver Blast-Rod Smith Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-78-Awesome Dawson-Silver Blast-Andre Dawson Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BBFA-81-Line-Art-Silver Blast-Matt Leinart Debut-ICE",
+      "mid": 2.87,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "CHMA-6-Cheryl Bomb-Inspired Ink Battlefoil-Cheryl Miller Debut-ICE",
+      "mid": 3.11,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "DHA-6-Joystick-Inspired Ink Battlefoil-Dante Hall Debut-ICE",
+      "mid": 3.11,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "DOA-6-Big Papi-Inspired Ink Battlefoil-David Ortiz Debut-ICE",
+      "mid": 3.11,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "JEA-6-Dr. J-Inspired Ink Battlefoil-Julius Erving Debut-ICE",
+      "mid": 3.11,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "JKMA-6-Captain Hook-Inspired Ink Battlefoil-Jack Morris Debut-ICE",
+      "mid": 3.11,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "JPA-6-JPEG-Inspired Ink Battlefoil-Jessica Pegula Debut-ICE",
+      "mid": 3.11,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "JRA-6-Boston Strongboy-Inspired Ink Battlefoil-Jim Rice Debut-ICE",
+      "mid": 3.11,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "KHA-6-Nice Game Pretty Boy-Inspired Ink Battlefoil-Keith Hern\u00e1ndez Debut-ICE",
+      "mid": 3.11,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "PEA-6-Destroya-Inspired Ink Battlefoil-Patrick Ewing Debut-ICE",
+      "mid": 3.11,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "RQA-6-Cousin-Inspired Ink Battlefoil-Randy Quaid Debut-ICE",
+      "mid": 3.11,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "DEA-7-ECKS-Inspired Ink Battlefoil-Dennis Eckersley Debut-STEEL",
+      "mid": 3.27,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "JBNA-6-Burner-Inspired Ink Battlefoil-Jalen Brunson Unmasked-ICE",
+      "mid": 3.27,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "PMA-6-Gigante-Inspired Ink Battlefoil-Pedro Mart\u00ednez Debut-ICE",
+      "mid": 3.27,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "BBFA-54-Chief-Silver Blast-Robert Parish Debut-ICE",
+      "mid": 3.89,
+      "floor": 25,
+      "weapon": "ICE",
+      "printRun": 5,
+      "treatment": "Silver Blast"
+    },
+    {
+      "bobaId": "BFA-20-Boz-Inspired Ink Battlefoil-Brian Bosworth Debut-STEEL",
+      "mid": 4.09,
+      "floor": 20,
+      "weapon": "STEEL",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "BFA-122-The Ironman-Inspired Ink Battlefoil-Cal Ripkin JR Debut-ICE",
+      "mid": 4.09,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "BFA-143-InVinceable-Inspired Ink Battlefoil-Vince Young Debut-ICE",
+      "mid": 4.09,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "BFA-150-Coopanova-Inspired Ink Battlefoil-Cynthia Cooper Debut-ICE",
+      "mid": 4.09,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "ABA-5-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-FIRE",
+      "mid": 4.1,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "ABA-6-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-ICE",
+      "mid": 4.1,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "ACA-5-Eraser-Inspired Ink Battlefoil-Alysha Clark Debut-FIRE",
+      "mid": 4.1,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "CHMA-5-Cheryl Bomb-Inspired Ink Battlefoil-Cheryl Miller Debut-FIRE",
+      "mid": 4.1,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "PEA-5-Destroya-Inspired Ink Battlefoil-Patrick Ewing Debut-FIRE",
+      "mid": 4.1,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "SSA-5-Gator-Inspired Ink Battlefoil-Steve Spurrier Debut-FIRE",
+      "mid": 4.1,
+      "floor": 20,
+      "weapon": "FIRE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "BFA-131-Goggles-Inspired Ink Battlefoil-Eric Dickerson Debut-ICE",
+      "mid": 5.73,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "BFA-132-Steady Eddie-Inspired Ink Battlefoil-Eddie George Debut-ICE",
+      "mid": 5.73,
+      "floor": 20,
+      "weapon": "ICE",
+      "printRun": null,
+      "treatment": "Inspired Ink Battlefoil"
+    },
+    {
+      "bobaId": "BGBF-1-Showtime-Battlefoil-First Edition-GUM",
+      "mid": 8.19,
+      "floor": 15,
+      "weapon": "GUM",
+      "printRun": null,
+      "treatment": "Battlefoil"
+    },
+    {
+      "bobaId": "BGBF-2-Matata-Battlefoil-First Edition-GUM",
+      "mid": 8.19,
+      "floor": 15,
+      "weapon": "GUM",
+      "printRun": null,
+      "treatment": "Battlefoil"
+    },
+    {
+      "bobaId": "BGBF-3-Gaveler-Battlefoil-First Edition-GUM",
+      "mid": 8.19,
+      "floor": 15,
+      "weapon": "GUM",
+      "printRun": null,
+      "treatment": "Battlefoil"
+    },
+    {
+      "bobaId": "BGBF-4-Burrocious-Battlefoil-First Edition-GUM",
+      "mid": 8.19,
+      "floor": 15,
+      "weapon": "GUM",
+      "printRun": null,
+      "treatment": "Battlefoil"
+    },
+    {
+      "bobaId": "BGBF-5-Victory-Battlefoil-First Edition-GUM",
+      "mid": 8.19,
+      "floor": 15,
+      "weapon": "GUM",
+      "printRun": null,
+      "treatment": "Battlefoil"
+    },
+    {
+      "bobaId": "BGBF-6-Shrouded-Battlefoil-First Edition-GUM",
+      "mid": 8.19,
+      "floor": 15,
+      "weapon": "GUM",
+      "printRun": null,
+      "treatment": "Battlefoil"
+    }
+  ],
+  "missing_in_covered_clusters": [
+    {
+      "coverage": 0.99,
+      "cluster": [
+        "Blue Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "BBF-123-Ozzmosis-Blue Battlefoil-First Edition-ICE"
+    },
+    {
+      "coverage": 0.99,
+      "cluster": [
+        "Orange Blast",
+        "FIRE",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-O115-Haymaker-Orange Blast-Spencer Haywood Debut-FIRE"
+    },
+    {
+      "coverage": 0.99,
+      "cluster": [
+        "Silver Blast",
+        "STEEL",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-S115-Haymaker-Silver Blast-Spencer Haywood Debut-STEEL"
+    },
+    {
+      "coverage": 0.99,
+      "cluster": [
+        "Blizzard Battlefoil",
+        "GLOW",
+        "Griffey Edition"
+      ],
+      "bobaId": "BLBF-261-Go-Cart-Blizzard Battlefoil-First Edition-GLOW"
+    },
+    {
+      "coverage": 0.99,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "HEX",
+        "Alpha Update"
+      ],
+      "bobaId": "RAD-10-Wizard-80's Rad Battlefoil-Ozzie Smith Debut-HEX"
+    },
+    {
+      "coverage": 0.99,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "RAD-52-Wizard-80's Rad Battlefoil-Ozzie Smith Debut-GLOW"
+    },
+    {
+      "coverage": 0.99,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-782-Forcefield-80's Rad Battlefoil-First Edition-BRAWL"
+    },
+    {
+      "coverage": 0.98,
+      "cluster": [
+        "Alpha Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABF-387-Bell-Camp-Alpha Battlefoil-First Edition-FIRE"
+    },
+    {
+      "coverage": 0.98,
+      "cluster": [
+        "Alpha Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABF-392-Go-Cart-Alpha Battlefoil-First Edition-FIRE"
+    },
+    {
+      "coverage": 0.98,
+      "cluster": [
+        "Alpha Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABF-393-Castler-Alpha Battlefoil-First Edition-FIRE"
+    },
+    {
+      "coverage": 0.98,
+      "cluster": [
+        "Blizzard Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "BLBF-145-Carroller-Blizzard Battlefoil-First Edition-STEEL"
+    },
+    {
+      "coverage": 0.98,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "ICE",
+        "Alpha Update"
+      ],
+      "bobaId": "RAD-449-Risarcher-80's Rad Battlefoil-First Edition-ICE"
+    },
+    {
+      "coverage": 0.98,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "ICE",
+        "Alpha Update"
+      ],
+      "bobaId": "RAD-450-Sarrtillery-80's Rad Battlefoil-First Edition-ICE"
+    },
+    {
+      "coverage": 0.97,
+      "cluster": [
+        "Silver Blast",
+        "ICE",
+        "Alpha Blast"
+      ],
+      "bobaId": "BBFA-27-Amon-Ra-Silver Blast-Amon-Ra St. Brown Debut-ICE"
+    },
+    {
+      "coverage": 0.97,
+      "cluster": [
+        "Silver Blast",
+        "ICE",
+        "Alpha Blast"
+      ],
+      "bobaId": "BBFA-210-Haymaker-Silver Blast-Spencer Haywood Debut-ICE"
+    },
+    {
+      "coverage": 0.93,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "FIRE",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-384-Gravedigger-Mixtape Battlefoil-First Edition-FIRE"
+    },
+    {
+      "coverage": 0.93,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "FIRE",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-385-D-Hop-Mixtape Battlefoil-First Edition-FIRE"
+    },
+    {
+      "coverage": 0.93,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "FIRE",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-386-Alien-Mixtape Battlefoil-First Edition-FIRE"
+    },
+    {
+      "coverage": 0.93,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "FIRE",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-387-Portalize-Mixtape Battlefoil-First Edition-FIRE"
+    },
+    {
+      "coverage": 0.93,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "FIRE",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-388-Torque-Mixtape Battlefoil-First Edition-FIRE"
+    },
+    {
+      "coverage": 0.93,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "FIRE",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-389-Risarcher-Mixtape Battlefoil-First Edition-FIRE"
+    },
+    {
+      "coverage": 0.93,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "FIRE",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-390-Sarrtillery-Mixtape Battlefoil-First Edition-FIRE"
+    }
+  ],
+  "cluster_outliers": [
+    {
+      "z": 10.42,
+      "mid": 233.29,
+      "cluster_median": 2.86,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-283-Goofin' Off-80's Rad Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-FIRE"
+    },
+    {
+      "z": 10.09,
+      "mid": 410.0,
+      "cluster_median": 3.17,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "FIRE",
+        "Alpha Update"
+      ],
+      "bobaId": "RAD-94-Wizard-80's Rad Battlefoil-Ozzie Smith Debut-FIRE"
+    },
+    {
+      "z": 9.58,
+      "mid": 18.03,
+      "cluster_median": 3.07,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "FIRE",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-375-PukaDot-Mixtape Battlefoil-First Edition-FIRE"
+    },
+    {
+      "z": 8.1,
+      "mid": 147.6,
+      "cluster_median": 3.27,
+      "cluster": [
+        "Alpha Battlefoil",
+        "STEEL",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABF-567-Highway to Helton-Alpha Battlefoil-Todd Helton Debut-STEEL"
+    },
+    {
+      "z": 8.1,
+      "mid": 147.6,
+      "cluster_median": 3.27,
+      "cluster": [
+        "Alpha Battlefoil",
+        "STEEL",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABF-582-Ante-de something K-Alpha Battlefoil-Kostas Antetokounmpo Debut-STEEL"
+    },
+    {
+      "z": 8.08,
+      "mid": 147.6,
+      "cluster_median": 3.68,
+      "cluster": [
+        "Alpha Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABF-698-Highway to Helton-Alpha Battlefoil-Todd Helton Debut-BRAWL"
+    },
+    {
+      "z": 8.08,
+      "mid": 147.6,
+      "cluster_median": 3.68,
+      "cluster": [
+        "Alpha Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABF-713-Ante-de something K-Alpha Battlefoil-Kostas Antetokounmpo Debut-BRAWL"
+    },
+    {
+      "z": 7.94,
+      "mid": 389.5,
+      "cluster_median": 3.11,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-394-Bojax-80's Rad Battlefoil-2026 Founding Hero-ICE"
+    },
+    {
+      "z": 7.94,
+      "mid": 389.5,
+      "cluster_median": 3.11,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-431-JAW-JAW-80's Rad Battlefoil-Ron Jaworski Debut-ICE"
+    },
+    {
+      "z": 7.91,
+      "mid": 147.6,
+      "cluster_median": 5.74,
+      "cluster": [
+        "Alpha Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABF-305-Highway to Helton-Alpha Battlefoil-Todd Helton Debut-FIRE"
+    },
+    {
+      "z": 7.91,
+      "mid": 147.6,
+      "cluster_median": 5.74,
+      "cluster": [
+        "Alpha Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABF-320-Ante-de something K-Alpha Battlefoil-Kostas Antetokounmpo Debut-FIRE"
+    },
+    {
+      "z": 7.84,
+      "mid": 225.5,
+      "cluster_median": 245.96,
+      "cluster": [
+        "Pink Blast",
+        "HEX",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-P82-Muggsy-Pink Blast-Muggsy Bogues Debut-HEX"
+    },
+    {
+      "z": 7.84,
+      "mid": 225.5,
+      "cluster_median": 245.96,
+      "cluster": [
+        "Pink Blast",
+        "HEX",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-P97-Windmill-Pink Blast-Dominique Wilkins Debut-HEX"
+    },
+    {
+      "z": 7.84,
+      "mid": 225.5,
+      "cluster_median": 245.96,
+      "cluster": [
+        "Pink Blast",
+        "HEX",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-P101-Sterling-Pink Blast-Sterling Sharpe Debut-HEX"
+    },
+    {
+      "z": 7.81,
+      "mid": 594.5,
+      "cluster_median": 369.0,
+      "cluster": [
+        "Green Blast",
+        "GLOW",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-G45-Burner-Green Blast-First Edition-GLOW"
+    },
+    {
+      "z": 7.81,
+      "mid": 594.5,
+      "cluster_median": 369.0,
+      "cluster": [
+        "Green Blast",
+        "GLOW",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-G72-Cupid-Green Blast-First Edition-GLOW"
+    },
+    {
+      "z": 7.81,
+      "mid": 594.5,
+      "cluster_median": 369.0,
+      "cluster": [
+        "Green Blast",
+        "GLOW",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-G154-Sabotage-Green Blast-First Edition-GLOW"
+    },
+    {
+      "z": 7.53,
+      "mid": 32.8,
+      "cluster_median": 4.1,
+      "cluster": [
+        "Blizzard Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "BLBF-416-Tigre-Blizzard Battlefoil-Miguel Cabrera Unmasked-ICE"
+    },
+    {
+      "z": 7.53,
+      "mid": 32.8,
+      "cluster_median": 4.1,
+      "cluster": [
+        "Blizzard Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "BLBF-439-Bern Baby, Bern-Blizzard Battlefoil-Bernie Williams Debut-ICE"
+    },
+    {
+      "z": 7.47,
+      "mid": 3.27,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "STEEL",
+        "Griffey Edition"
+      ],
+      "bobaId": "DEA-7-ECKS-Inspired Ink Battlefoil-Dennis Eckersley Debut-STEEL"
+    },
+    {
+      "z": 7.32,
+      "mid": 307.5,
+      "cluster_median": 2.3,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "STEEL",
+        "Alpha Update"
+      ],
+      "bobaId": "RAD-175-Spudnick-80's Rad Battlefoil-Spudd Webb Debut-STEEL"
+    },
+    {
+      "z": 7.3,
+      "mid": 614.94,
+      "cluster_median": 39.85,
+      "cluster": [
+        "Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "SF-70-PB Buckets-Superfoil-First Edition-SUPER"
+    },
+    {
+      "z": 7.3,
+      "mid": 614.94,
+      "cluster_median": 39.85,
+      "cluster": [
+        "Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "SF-77-PB Buckets-Superfoil-First Edition-SUPER"
+    },
+    {
+      "z": 7.28,
+      "mid": 256.21,
+      "cluster_median": 389.5,
+      "cluster": [
+        "Inspired Ink Bubble Gum Battlefoil",
+        "GUM",
+        "Griffey Edition"
+      ],
+      "bobaId": "BOJA-3-Bojax-Inspired Ink Bubble Gum Battlefoil-2026 Founding Hero-GUM"
+    },
+    {
+      "z": 7.24,
+      "mid": 73.68,
+      "cluster_median": 46.12,
+      "cluster": [
+        "Superfoil",
+        "SUPER",
+        "Alpha Update"
+      ],
+      "bobaId": "SF-50-Warp-Superfoil-First Edition-SUPER"
+    },
+    {
+      "z": 7.16,
+      "mid": 594.5,
+      "cluster_median": 106.59,
+      "cluster": [
+        "Silver Blast",
+        "GLOW",
+        "Alpha Blast"
+      ],
+      "bobaId": "BBFA-105-Bus-Silver Blast-Jerome Bettis Debut-GLOW"
+    },
+    {
+      "z": 7.02,
+      "mid": 205.0,
+      "cluster_median": 3.69,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-656-Bojax-Great Grandma's Linoleum Battlefoil-2026 Founding Hero-BRAWL"
+    },
+    {
+      "z": 6.7,
+      "mid": 32.8,
+      "cluster_median": 6.54,
+      "cluster": [
+        "Blizzard Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "BLBF-285-Tigre-Blizzard Battlefoil-Miguel Cabrera Unmasked-FIRE"
+    },
+    {
+      "z": 6.7,
+      "mid": 32.8,
+      "cluster_median": 6.54,
+      "cluster": [
+        "Blizzard Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "BLBF-308-Bern Baby, Bern-Blizzard Battlefoil-Bernie Williams Debut-FIRE"
+    },
+    {
+      "z": 6.64,
+      "mid": 82.0,
+      "cluster_median": 2.45,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "STEEL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-525-Bojax-80's Rad Battlefoil-2026 Founding Hero-STEEL"
+    },
+    {
+      "z": 6.64,
+      "mid": 82.0,
+      "cluster_median": 2.45,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "STEEL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-545-Goofin' Off-80's Rad Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-STEEL"
+    },
+    {
+      "z": 6.64,
+      "mid": 82.0,
+      "cluster_median": 2.45,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "STEEL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-562-JAW-JAW-80's Rad Battlefoil-Ron Jaworski Debut-STEEL"
+    },
+    {
+      "z": 6.24,
+      "mid": 1640.0,
+      "cluster_median": 307.5,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "HEX",
+        "Alpha Update"
+      ],
+      "bobaId": "BFA-11-Joey Jawz-Inspired Ink Battlefoil-Joey Chestnut Debut-HEX"
+    },
+    {
+      "z": 6.02,
+      "mid": 176.3,
+      "cluster_median": 3.69,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-690-Bells-Great Grandma's Linoleum Battlefoil-George Bell Debut-BRAWL"
+    },
+    {
+      "z": 5.92,
+      "mid": 3.6,
+      "cluster_median": 2.87,
+      "cluster": [
+        "Blizzard Battlefoil",
+        "ICE",
+        "Alpha Edition"
+      ],
+      "bobaId": "BLBF-29-Shrouded-Blizzard Battlefoil-First Edition-ICE"
+    },
+    {
+      "z": 5.79,
+      "mid": 4.1,
+      "cluster_median": 8.19,
+      "cluster": [
+        "Red Headlines Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RHBF-26-Doublecheck-Red Headlines Battlefoil-2026 Edition-BRAWL"
+    },
+    {
+      "z": 5.75,
+      "mid": 164.0,
+      "cluster_median": 4.1,
+      "cluster": [
+        "Colosseum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "CBF-397-Freakshow-Colosseum Battlefoil-Giannis Antetokounmpo Unmasked-ICE"
+    },
+    {
+      "z": 5.75,
+      "mid": 164.0,
+      "cluster_median": 4.1,
+      "cluster": [
+        "Colosseum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "CBF-403-Rocket-Colosseum Battlefoil-Roger Clemens Debut-ICE"
+    },
+    {
+      "z": 5.75,
+      "mid": 164.0,
+      "cluster_median": 4.1,
+      "cluster": [
+        "Colosseum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "CBF-415-Mr. October-Colosseum Battlefoil-Reggie Jackson Debut-ICE"
+    },
+    {
+      "z": 5.75,
+      "mid": 164.0,
+      "cluster_median": 4.1,
+      "cluster": [
+        "Colosseum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "CBF-438-Herro-Colosseum Battlefoil-Tyler Herro Debut-ICE"
+    },
+    {
+      "z": 5.73,
+      "mid": 176.3,
+      "cluster_median": 5.74,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-263-Bojax-Great Grandma's Linoleum Battlefoil-2026 Founding Hero-FIRE"
+    },
+    {
+      "z": 5.73,
+      "mid": 176.3,
+      "cluster_median": 5.74,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-273-Troy of Dallas-Great Grandma's Linoleum Battlefoil-Troy Aikman Debut-FIRE"
+    },
+    {
+      "z": 5.73,
+      "mid": 176.3,
+      "cluster_median": 5.74,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-284-Mr. October-Great Grandma's Linoleum Battlefoil-Reggie Jackson Debut-FIRE"
+    },
+    {
+      "z": 5.73,
+      "mid": 176.3,
+      "cluster_median": 5.74,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-297-Bells-Great Grandma's Linoleum Battlefoil-George Bell Debut-FIRE"
+    },
+    {
+      "z": 5.66,
+      "mid": 225.5,
+      "cluster_median": 287.0,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "HEX",
+        "Alpha Edition"
+      ],
+      "bobaId": "JBOA-2-Game Time-Inspired Ink Battlefoil-Jim Boeheim Debut-HEX"
+    },
+    {
+      "z": 5.57,
+      "mid": 225.5,
+      "cluster_median": 287.0,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "GUM",
+        "Alpha Edition"
+      ],
+      "bobaId": "BGA-29-Swoopes-Inspired Ink Battlefoil-Sheryl Swoopes Debut-GUM"
+    },
+    {
+      "z": 5.48,
+      "mid": 205.0,
+      "cluster_median": 164.0,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "ICE",
+        "Alpha Edition"
+      ],
+      "bobaId": "BFA-89-Chief-Inspired Ink Battlefoil-Robert Parish Debut-ICE"
+    },
+    {
+      "z": 5.48,
+      "mid": 2.7,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Inspired Ink Metallic Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "MBFA-4-Boz-Inspired Ink Metallic Battlefoil-Brian Bosworth Debut-STEEL"
+    },
+    {
+      "z": 5.39,
+      "mid": 4.09,
+      "cluster_median": 287.0,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "BFA-20-Boz-Inspired Ink Battlefoil-Brian Bosworth Debut-STEEL"
+    },
+    {
+      "z": 5.38,
+      "mid": 3.27,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Silver Blast",
+        "STEEL",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-S1-Bojax-Silver Blast-Founding Hero-STEEL"
+    },
+    {
+      "z": 5.38,
+      "mid": 3.27,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Silver Blast",
+        "STEEL",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-S5-Boz-Silver Blast-Brian Bosworth Debut-STEEL"
+    },
+    {
+      "z": 5.38,
+      "mid": 3.27,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Silver Blast",
+        "STEEL",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-S125-Donny Buckets-Silver Blast-First Edition-STEEL"
+    },
+    {
+      "z": 5.38,
+      "mid": 3.27,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Silver Blast",
+        "STEEL",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-S126-Warp-Silver Blast-First Edition-STEEL"
+    },
+    {
+      "z": 5.38,
+      "mid": 3.27,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Silver Blast",
+        "STEEL",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-S127-Harpoon-Silver Blast-First Edition-STEEL"
+    },
+    {
+      "z": 5.1,
+      "mid": 98.4,
+      "cluster_median": 61.5,
+      "cluster": [
+        "Superfoil",
+        "SUPER",
+        "Alpha Edition"
+      ],
+      "bobaId": "SF-36-Shrouded-Superfoil-First Edition-SUPER"
+    },
+    {
+      "z": 5.02,
+      "mid": 10.65,
+      "cluster_median": 8.19,
+      "cluster": [
+        "Battlefoil",
+        "GUM",
+        "Alpha Edition"
+      ],
+      "bobaId": "BGBF-12-Cruze-Control-Battlefoil-First Edition-GUM"
+    },
+    {
+      "z": 4.98,
+      "mid": 82.0,
+      "cluster_median": 28.7,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "GLOW",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-132-Bojax-80's Rad Battlefoil-2026 Founding Hero-GLOW"
+    },
+    {
+      "z": 4.98,
+      "mid": 82.0,
+      "cluster_median": 28.7,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "GLOW",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-152-Goofin' Off-80's Rad Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-GLOW"
+    },
+    {
+      "z": 4.98,
+      "mid": 82.0,
+      "cluster_median": 28.7,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "GLOW",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-169-JAW-JAW-80's Rad Battlefoil-Ron Jaworski Debut-GLOW"
+    },
+    {
+      "z": 4.87,
+      "mid": 3.63,
+      "cluster_median": 3.07,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "FIRE",
+        "Alpha Edition"
+      ],
+      "bobaId": "RAD-303-Cha-Ching-80's Rad Battlefoil-First Edition-FIRE"
+    },
+    {
+      "z": 4.66,
+      "mid": 73.68,
+      "cluster_median": 61.5,
+      "cluster": [
+        "Inspired Ink Superfoil",
+        "SUPER",
+        "Alpha Edition"
+      ],
+      "bobaId": "SFA-5-Boz-Inspired Ink Superfoil-Brian Bosworth Debut-SUPER"
+    },
+    {
+      "z": 4.65,
+      "mid": 12.26,
+      "cluster_median": 15.99,
+      "cluster": [
+        "Icon Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-180-Javalanche-Icon Battlefoil-2026 Edition-FIRE"
+    },
+    {
+      "z": 4.64,
+      "mid": 53.3,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Green Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "GBF-25-Sterling-Green Battlefoil-Sterling Sharpe Debut-GLOW"
+    },
+    {
+      "z": 4.63,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Green Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "GBF-6-Muggsy-Green Battlefoil-Muggsy Bogues Debut-GLOW"
+    },
+    {
+      "z": 4.63,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Green Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "GBF-12-Bus-Green Battlefoil-Jerome Bettis Debut-GLOW"
+    },
+    {
+      "z": 4.63,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Green Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "GBF-21-Windmill-Green Battlefoil-Dominique Wilkins Debut-GLOW"
+    },
+    {
+      "z": 4.63,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Green Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "GBF-58-Freakshow-Green Battlefoil-First Edition-GLOW"
+    },
+    {
+      "z": 4.62,
+      "mid": 53.3,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "GLBF-67-Sterling-Grandma's Linoleum Battlefoil-Sterling Sharpe Debut-GLOW"
+    },
+    {
+      "z": 4.61,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "GLBF-48-Muggsy-Grandma's Linoleum Battlefoil-Muggsy Bogues Debut-GLOW"
+    },
+    {
+      "z": 4.61,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "GLBF-54-Bus-Grandma's Linoleum Battlefoil-Jerome Bettis Debut-GLOW"
+    },
+    {
+      "z": 4.61,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "GLBF-63-Windmill-Grandma's Linoleum Battlefoil-Dominique Wilkins Debut-GLOW"
+    },
+    {
+      "z": 4.61,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "GLBF-286-Freakshow-Grandma's Linoleum Battlefoil-First Edition-GLOW"
+    },
+    {
+      "z": 4.61,
+      "mid": 12.29,
+      "cluster_median": 15.99,
+      "cluster": [
+        "Icon Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-179-Superbaby-Icon Battlefoil-2026 Edition-FIRE"
+    },
+    {
+      "z": 4.61,
+      "mid": 12.29,
+      "cluster_median": 15.99,
+      "cluster": [
+        "Icon Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-193-Action-Icon Battlefoil-2026 Edition-FIRE"
+    },
+    {
+      "z": 4.45,
+      "mid": 410.0,
+      "cluster_median": 106.59,
+      "cluster": [
+        "Silver Blast",
+        "GLOW",
+        "Alpha Blast"
+      ],
+      "bobaId": "BBFA-132-Haymaker-Silver Blast-Spencer Haywood Debut-GLOW"
+    },
+    {
+      "z": 4.45,
+      "mid": 2.7,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "GLBF-20-Boz-Grandma's Linoleum Battlefoil-Brian Bosworth Debut-STEEL"
+    },
+    {
+      "z": 4.45,
+      "mid": 2.7,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "GLBF-180-Shrouded-Grandma's Linoleum Battlefoil-First Edition-STEEL"
+    },
+    {
+      "z": 4.45,
+      "mid": 2.7,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "GLBF-255-Halo-Grandma's Linoleum Battlefoil-First Edition-STEEL"
+    },
+    {
+      "z": 4.45,
+      "mid": 2.7,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "GLBF-270-Bandelero-Grandma's Linoleum Battlefoil-First Edition-STEEL"
+    },
+    {
+      "z": 4.44,
+      "mid": 73.76,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Blue Blast",
+        "ICE",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-B123-Bison-Blue Blast-First Edition-ICE"
+    },
+    {
+      "z": 4.43,
+      "mid": 130.79,
+      "cluster_median": 3.69,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-677-Mr. October-Great Grandma's Linoleum Battlefoil-Reggie Jackson Debut-BRAWL"
+    },
+    {
+      "z": 4.37,
+      "mid": 2.25,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Inspired Ink Metallic Battlefoil",
+        "STEEL",
+        "Griffey Edition"
+      ],
+      "bobaId": "GAA-8-Freakshow-Inspired Ink Metallic Battlefoil-Giannis Antetokounmpo Unmasked-STEEL"
+    },
+    {
+      "z": 4.37,
+      "mid": 2.25,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Inspired Ink Metallic Battlefoil",
+        "STEEL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RJA-8-Mr. October-Inspired Ink Metallic Battlefoil-Reggie Jackson Debut-STEEL"
+    },
+    {
+      "z": 4.25,
+      "mid": 110.7,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-74-Victory-Grandma's Linoleum Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 4.25,
+      "mid": 110.7,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-84-Cupid-Grandma's Linoleum Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 4.25,
+      "mid": 110.7,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Pink Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "PBF-74-Victory-Pink Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 4.25,
+      "mid": 110.7,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Pink Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "PBF-84-Cupid-Pink Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 4.24,
+      "mid": 110.7,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-74-Victory-Mixtape Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 4.24,
+      "mid": 110.7,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-84-Cupid-Mixtape Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 4.12,
+      "mid": 5.74,
+      "cluster_median": 2.56,
+      "cluster": [
+        "Blizzard Battlefoil",
+        "STEEL",
+        "Alpha Update"
+      ],
+      "bobaId": "BLBF-286-Sprinkler-Blizzard Battlefoil-First Edition-STEEL"
+    },
+    {
+      "z": 4.11,
+      "mid": 2.45,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-466-Gaveler-Mixtape Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 4.11,
+      "mid": 2.45,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-467-Victory-Mixtape Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 4.11,
+      "mid": 2.45,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-486-Gunner-Mixtape Battlefoil-First Edition-ICE"
+    },
+    {
+      "z": 4.11,
+      "mid": 2.45,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-490-Doublecheck-Mixtape Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 4.11,
+      "mid": 2.45,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-491-Caliber-Mixtape Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 4.08,
+      "mid": 2.45,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-466-Gaveler-Grandma's Linoleum Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 4.08,
+      "mid": 2.45,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-467-Victory-Grandma's Linoleum Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 4.08,
+      "mid": 2.45,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-486-Gunner-Grandma's Linoleum Battlefoil-First Edition-ICE"
+    },
+    {
+      "z": 4.08,
+      "mid": 2.45,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-490-Doublecheck-Grandma's Linoleum Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 4.08,
+      "mid": 2.45,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-491-Caliber-Grandma's Linoleum Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 4.07,
+      "mid": 39.36,
+      "cluster_median": 54.94,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Update"
+      ],
+      "bobaId": "BPL-16-Sweet Relish-Plays-First Edition-"
+    },
+    {
+      "z": 4.07,
+      "mid": 39.36,
+      "cluster_median": 54.94,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Update"
+      ],
+      "bobaId": "BPL-20-Roll And Hope-Plays-First Edition-"
+    },
+    {
+      "z": 4.07,
+      "mid": 39.36,
+      "cluster_median": 54.94,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Update"
+      ],
+      "bobaId": "BPL-22-Drop The Giant-Plays-First Edition-"
+    },
+    {
+      "z": 4.07,
+      "mid": 39.36,
+      "cluster_median": 54.94,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Update"
+      ],
+      "bobaId": "BPL-24-High Turnover-Plays-First Edition-"
+    },
+    {
+      "z": 4.07,
+      "mid": 39.36,
+      "cluster_median": 54.94,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Update"
+      ],
+      "bobaId": "PL-1-Hot Dog Dominance-Plays-First Edition-"
+    },
+    {
+      "z": 4.07,
+      "mid": 39.36,
+      "cluster_median": 54.94,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Update"
+      ],
+      "bobaId": "PL-2-Cheap Addition-Plays-First Edition-"
+    },
+    {
+      "z": 4.07,
+      "mid": 39.36,
+      "cluster_median": 54.94,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Update"
+      ],
+      "bobaId": "PL-4-Outside The Pocket-Plays-First Edition-"
+    },
+    {
+      "z": 4.07,
+      "mid": 39.36,
+      "cluster_median": 54.94,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Update"
+      ],
+      "bobaId": "PL-7-10 Per Play-Plays-First Edition-"
+    },
+    {
+      "z": 4.07,
+      "mid": 82.0,
+      "cluster_median": 225.5,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-1-Bojax-80's Rad Battlefoil-2026 Founding Hero-HEX"
+    },
+    {
+      "z": 4.07,
+      "mid": 82.0,
+      "cluster_median": 225.5,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-21-Goofin' Off-80's Rad Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-HEX"
+    },
+    {
+      "z": 4.07,
+      "mid": 82.0,
+      "cluster_median": 225.5,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-38-JAW-JAW-80's Rad Battlefoil-Ron Jaworski Debut-HEX"
+    },
+    {
+      "z": 4.05,
+      "mid": 127.1,
+      "cluster_median": 106.59,
+      "cluster": [
+        "Battlefoil",
+        "HEX",
+        "Alpha Edition"
+      ],
+      "bobaId": "BF-86-Superbaby-Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 4.05,
+      "mid": 127.1,
+      "cluster_median": 106.59,
+      "cluster": [
+        "Battlefoil",
+        "HEX",
+        "Alpha Edition"
+      ],
+      "bobaId": "BF-171-Shepherd-Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 4.05,
+      "mid": 127.1,
+      "cluster_median": 106.59,
+      "cluster": [
+        "Battlefoil",
+        "HEX",
+        "Alpha Edition"
+      ],
+      "bobaId": "BF-176-Ollie-Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 4.03,
+      "mid": 106.59,
+      "cluster_median": 16.4,
+      "cluster": [
+        "Red Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RBF-1-Bojax-Red Battlefoil-2026 Founding Hero-BRAWL"
+    },
+    {
+      "z": 4.03,
+      "mid": 106.59,
+      "cluster_median": 16.4,
+      "cluster": [
+        "Red Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RBF-2-The Kid-Red Battlefoil-Cover Hero-BRAWL"
+    },
+    {
+      "z": 4.03,
+      "mid": 106.59,
+      "cluster_median": 16.4,
+      "cluster": [
+        "Red Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RBF-4-Freakshow-Red Battlefoil-Giannis Antetokounmpo Unmasked-BRAWL"
+    },
+    {
+      "z": 4.03,
+      "mid": 106.59,
+      "cluster_median": 16.4,
+      "cluster": [
+        "Red Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RBF-5-Cruze Control-Red Battlefoil-Elly De La Cruz Unmasked-BRAWL"
+    },
+    {
+      "z": 4.03,
+      "mid": 106.59,
+      "cluster_median": 16.4,
+      "cluster": [
+        "Red Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RBF-9-Cousin-Red Battlefoil-Randy Quaid Debut-BRAWL"
+    },
+    {
+      "z": 4.03,
+      "mid": 106.59,
+      "cluster_median": 16.4,
+      "cluster": [
+        "Red Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RBF-10-Rocket-Red Battlefoil-Roger Clemens Debut-BRAWL"
+    },
+    {
+      "z": 4.01,
+      "mid": 61.38,
+      "cluster_median": 46.12,
+      "cluster": [
+        "Superfoil",
+        "SUPER",
+        "Alpha Update"
+      ],
+      "bobaId": "SF-53-Jaybird-Superfoil-First Edition-SUPER"
+    },
+    {
+      "z": 3.96,
+      "mid": 73.68,
+      "cluster_median": 39.85,
+      "cluster": [
+        "Inspired Ink Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABA-1-Goofin' Off-Inspired Ink Superfoil-Adri\u00e1n Beltr\u00e9 Debut-SUPER"
+    },
+    {
+      "z": 3.96,
+      "mid": 73.68,
+      "cluster_median": 39.85,
+      "cluster": [
+        "Inspired Ink Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "GAA-1-Freakshow-Inspired Ink Superfoil-Giannis Antetokounmpo Unmasked-SUPER"
+    },
+    {
+      "z": 3.96,
+      "mid": 73.68,
+      "cluster_median": 39.85,
+      "cluster": [
+        "Inspired Ink Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "RJA-1-Mr. October-Inspired Ink Superfoil-Reggie Jackson Debut-SUPER"
+    },
+    {
+      "z": 3.93,
+      "mid": 65.59,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Blue Blast",
+        "ICE",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-B143-Exterminaber-Blue Blast-First Edition-ICE"
+    },
+    {
+      "z": 3.87,
+      "mid": 143.5,
+      "cluster_median": 127.1,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "GUM",
+        "Griffey Edition"
+      ],
+      "bobaId": "JSTA-2-Dunker-Inspired Ink Battlefoil-John Starks Debut-GUM"
+    },
+    {
+      "z": 3.85,
+      "mid": 15.58,
+      "cluster_median": 20.42,
+      "cluster": [
+        "Icon Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-244-Superbaby-Icon Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 3.85,
+      "mid": 15.58,
+      "cluster_median": 20.42,
+      "cluster": [
+        "Icon Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-245-Javalanche-Icon Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 3.85,
+      "mid": 15.58,
+      "cluster_median": 20.42,
+      "cluster": [
+        "Icon Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-258-Action-Icon Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 3.83,
+      "mid": 42.02,
+      "cluster_median": 41.71,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Edition"
+      ],
+      "bobaId": "PL-3-Get What You Pay For-Plays-First Edition-"
+    },
+    {
+      "z": 3.83,
+      "mid": 42.02,
+      "cluster_median": 41.71,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Edition"
+      ],
+      "bobaId": "PL-6-Late Game Push-Plays-First Edition-"
+    },
+    {
+      "z": 3.83,
+      "mid": 42.02,
+      "cluster_median": 41.71,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Edition"
+      ],
+      "bobaId": "PL-12-Cloudy With A Chance Of Hot Dogs-Plays-First Edition-"
+    },
+    {
+      "z": 3.83,
+      "mid": 42.02,
+      "cluster_median": 41.71,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Edition"
+      ],
+      "bobaId": "PL-15-No More Subs-Plays-First Edition-"
+    },
+    {
+      "z": 3.83,
+      "mid": 42.02,
+      "cluster_median": 41.71,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Edition"
+      ],
+      "bobaId": "PL-19-Unlimited Subs-Plays-First Edition-"
+    },
+    {
+      "z": 3.83,
+      "mid": 42.02,
+      "cluster_median": 41.71,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Edition"
+      ],
+      "bobaId": "PL-20-Leave It To Fate-Plays-First Edition-"
+    },
+    {
+      "z": 3.83,
+      "mid": 42.02,
+      "cluster_median": 41.71,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Edition"
+      ],
+      "bobaId": "PL-21-Ice Boost-Plays-First Edition-"
+    },
+    {
+      "z": 3.83,
+      "mid": 42.02,
+      "cluster_median": 41.71,
+      "cluster": [
+        "Plays",
+        "",
+        "Alpha Edition"
+      ],
+      "bobaId": "PL-22-Steel Boost-Plays-First Edition-"
+    },
+    {
+      "z": 3.81,
+      "mid": 82.0,
+      "cluster_median": 311.59,
+      "cluster": [
+        "Cyber",
+        "CYBER",
+        "Promo Cards"
+      ],
+      "bobaId": "CYB-6-Magic-Cyber-2025 Cyber Promo-CYBER"
+    },
+    {
+      "z": 3.81,
+      "mid": 82.0,
+      "cluster_median": 311.59,
+      "cluster": [
+        "Cyber",
+        "CYBER",
+        "Promo Cards"
+      ],
+      "bobaId": "CYB-7-Barry \"Cutback\" Sanders-Cyber-2025 Cyber Promo-CYBER"
+    },
+    {
+      "z": 3.8,
+      "mid": 3.03,
+      "cluster_median": 2.45,
+      "cluster": [
+        "Silver Blast",
+        "STEEL",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-S120-Merlomes-Silver Blast-First Edition-STEEL"
+    },
+    {
+      "z": 3.8,
+      "mid": 112.75,
+      "cluster_median": 3.69,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-666-Troy of Dallas-Great Grandma's Linoleum Battlefoil-Troy Aikman Debut-BRAWL"
+    },
+    {
+      "z": 3.71,
+      "mid": 53.3,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-67-Sterling-Mixtape Battlefoil-Sterling Sharpe Debut-GLOW"
+    },
+    {
+      "z": 3.7,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-48-Muggsy-Mixtape Battlefoil-Muggsy Bogues Debut-GLOW"
+    },
+    {
+      "z": 3.7,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-54-Bus-Mixtape Battlefoil-Jerome Bettis Debut-GLOW"
+    },
+    {
+      "z": 3.7,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-63-Windmill-Mixtape Battlefoil-Dominique Wilkins Debut-GLOW"
+    },
+    {
+      "z": 3.7,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-286-Freakshow-Mixtape Battlefoil-First Edition-GLOW"
+    },
+    {
+      "z": 3.7,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-323-Breeze-Mixtape Battlefoil-First Edition-GLOW"
+    },
+    {
+      "z": 3.7,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-328-Torque-Mixtape Battlefoil-First Edition-GLOW"
+    },
+    {
+      "z": 3.7,
+      "mid": 53.29,
+      "cluster_median": 46.74,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "MIX-330-Sarrtillery-Mixtape Battlefoil-First Edition-GLOW"
+    },
+    {
+      "z": 3.67,
+      "mid": 14.74,
+      "cluster_median": 16.35,
+      "cluster": [
+        "Plays",
+        "",
+        "Griffey Edition"
+      ],
+      "bobaId": "PL-1-Grilled Bandit-Plays-First Edition-"
+    },
+    {
+      "z": 3.67,
+      "mid": 14.74,
+      "cluster_median": 16.35,
+      "cluster": [
+        "Plays",
+        "",
+        "Griffey Edition"
+      ],
+      "bobaId": "PL-2-The Closer-Plays-First Edition-"
+    },
+    {
+      "z": 3.67,
+      "mid": 14.74,
+      "cluster_median": 16.35,
+      "cluster": [
+        "Plays",
+        "",
+        "Griffey Edition"
+      ],
+      "bobaId": "PL-3-Banked Power-Plays-First Edition-"
+    },
+    {
+      "z": 3.67,
+      "mid": 14.74,
+      "cluster_median": 16.35,
+      "cluster": [
+        "Plays",
+        "",
+        "Griffey Edition"
+      ],
+      "bobaId": "PL-4-Hero Reset-Plays-First Edition-"
+    },
+    {
+      "z": 3.67,
+      "mid": 14.74,
+      "cluster_median": 16.35,
+      "cluster": [
+        "Plays",
+        "",
+        "Griffey Edition"
+      ],
+      "bobaId": "PL-7-Lineup Pressure-Plays-First Edition-"
+    },
+    {
+      "z": 3.67,
+      "mid": 14.74,
+      "cluster_median": 16.35,
+      "cluster": [
+        "Plays",
+        "",
+        "Griffey Edition"
+      ],
+      "bobaId": "PL-8-Sacrifice And Scheme-Plays-First Edition-"
+    },
+    {
+      "z": 3.67,
+      "mid": 14.74,
+      "cluster_median": 16.35,
+      "cluster": [
+        "Plays",
+        "",
+        "Griffey Edition"
+      ],
+      "bobaId": "PL-13-Hero Tax-Plays-First Edition-"
+    },
+    {
+      "z": 3.67,
+      "mid": 14.74,
+      "cluster_median": 16.35,
+      "cluster": [
+        "Plays",
+        "",
+        "Griffey Edition"
+      ],
+      "bobaId": "PL-14-Sack Streak-Plays-First Edition-"
+    },
+    {
+      "z": 3.66,
+      "mid": 122.99,
+      "cluster_median": 24.59,
+      "cluster": [
+        "Blue Battlefoil",
+        "ICE",
+        "Alpha Edition"
+      ],
+      "bobaId": "BBF-9-Amon-Ra-Blue Battlefoil-Amon-Ra St. Brown Debut-ICE"
+    },
+    {
+      "z": 3.66,
+      "mid": 122.99,
+      "cluster_median": 24.59,
+      "cluster": [
+        "Blue Battlefoil",
+        "ICE",
+        "Alpha Edition"
+      ],
+      "bobaId": "BBF-18-Chief-Blue Battlefoil-Robert Parish Debut-ICE"
+    },
+    {
+      "z": 3.66,
+      "mid": 24.59,
+      "cluster_median": 61.5,
+      "cluster": [
+        "Plays",
+        "",
+        "World Champions"
+      ],
+      "bobaId": "PHI-34-Taking Down The Dynasty-Plays-World Champions Debut-"
+    },
+    {
+      "z": 3.66,
+      "mid": 24.59,
+      "cluster_median": 61.5,
+      "cluster": [
+        "Plays",
+        "",
+        "World Champions"
+      ],
+      "bobaId": "PHI-39-Elite Secondary-Plays-World Champions Debut-"
+    },
+    {
+      "z": 3.65,
+      "mid": 97.99,
+      "cluster_median": 16.4,
+      "cluster": [
+        "Red Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RBF-7-Unanimous Sandman-Red Battlefoil-Mariano Rivera Debut-BRAWL"
+    },
+    {
+      "z": 3.64,
+      "mid": 127.1,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-73-Gaveler-Grandma's Linoleum Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.64,
+      "mid": 127.1,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-91-Fungi-Grandma's Linoleum Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.64,
+      "mid": 127.1,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Pink Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "PBF-73-Gaveler-Pink Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.64,
+      "mid": 127.1,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Pink Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "PBF-91-Fungi-Pink Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.63,
+      "mid": 127.1,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-73-Gaveler-Mixtape Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.63,
+      "mid": 127.1,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-91-Fungi-Mixtape Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.63,
+      "mid": 4.09,
+      "cluster_median": 2.7,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "RAD-20-Boz-80's Rad Battlefoil-Brian Bosworth Debut-STEEL"
+    },
+    {
+      "z": 3.63,
+      "mid": 4.09,
+      "cluster_median": 2.7,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "RAD-180-Shrouded-80's Rad Battlefoil-First Edition-STEEL"
+    },
+    {
+      "z": 3.58,
+      "mid": 82.0,
+      "cluster_median": 2.86,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-263-Bojax-80's Rad Battlefoil-2026 Founding Hero-FIRE"
+    },
+    {
+      "z": 3.58,
+      "mid": 82.0,
+      "cluster_median": 2.86,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-300-JAW-JAW-80's Rad Battlefoil-Ron Jaworski Debut-FIRE"
+    },
+    {
+      "z": 3.56,
+      "mid": 2.66,
+      "cluster_median": 1.84,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "STEEL",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-597-Gaveler-Grandma's Linoleum Battlefoil-2026 Edition-STEEL"
+    },
+    {
+      "z": 3.53,
+      "mid": 122.99,
+      "cluster_median": 32.8,
+      "cluster": [
+        "Blue Battlefoil",
+        "ICE",
+        "Alpha Update"
+      ],
+      "bobaId": "BBF-10-Wizard-Blue Battlefoil-Ozzie Smith Debut-ICE"
+    },
+    {
+      "z": 3.53,
+      "mid": 122.99,
+      "cluster_median": 32.8,
+      "cluster": [
+        "Blue Battlefoil",
+        "ICE",
+        "Alpha Update"
+      ],
+      "bobaId": "BBF-14-HowBout'em-Blue Battlefoil-Jimmy Johnson Debut-ICE"
+    },
+    {
+      "z": 3.52,
+      "mid": 4.05,
+      "cluster_median": 2.7,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "RAD-270-Bandelero-80's Rad Battlefoil-First Edition-STEEL"
+    },
+    {
+      "z": 3.5,
+      "mid": 184.49,
+      "cluster_median": 49.2,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-660-Cruze Control-80's Rad Battlefoil-Elly De La Cruz Unmasked-BRAWL"
+    },
+    {
+      "z": 3.39,
+      "mid": 57.36,
+      "cluster_median": 46.74,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "GLOW",
+        "Alpha Update"
+      ],
+      "bobaId": "RAD-67-Sterling-80's Rad Battlefoil-Sterling Sharpe Debut-GLOW"
+    },
+    {
+      "z": 3.34,
+      "mid": 135.3,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-97-Doublecheck-Grandma's Linoleum Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.34,
+      "mid": 135.3,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-102-Tattoo-Grandma's Linoleum Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.34,
+      "mid": 135.3,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-106-Bandelero-Grandma's Linoleum Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.34,
+      "mid": 135.3,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Pink Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "PBF-97-Doublecheck-Pink Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.34,
+      "mid": 135.3,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Pink Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "PBF-102-Tattoo-Pink Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.34,
+      "mid": 135.3,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Pink Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "PBF-106-Bandelero-Pink Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.33,
+      "mid": 135.3,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-97-Doublecheck-Mixtape Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.33,
+      "mid": 135.3,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-102-Tattoo-Mixtape Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.33,
+      "mid": 135.3,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-106-Bandelero-Mixtape Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.32,
+      "mid": 3.28,
+      "cluster_median": 2.87,
+      "cluster": [
+        "Blizzard Battlefoil",
+        "ICE",
+        "Alpha Edition"
+      ],
+      "bobaId": "BLBF-129-Action-Blizzard Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 3.32,
+      "mid": 12.71,
+      "cluster_median": 32.8,
+      "cluster": [
+        "Blizzard Battlefoil",
+        "GLOW",
+        "Griffey Edition"
+      ],
+      "bobaId": "BLBF-255-DeKap-Blizzard Battlefoil-First Edition-GLOW"
+    },
+    {
+      "z": 3.31,
+      "mid": 73.8,
+      "cluster_median": 122.18,
+      "cluster": [
+        "Home Team Discount",
+        "",
+        "Alpha Blast"
+      ],
+      "bobaId": "HTD-6-Only Ice-Home Team Discount--"
+    },
+    {
+      "z": 3.31,
+      "mid": 73.8,
+      "cluster_median": 122.18,
+      "cluster": [
+        "Home Team Discount",
+        "",
+        "Alpha Blast"
+      ],
+      "bobaId": "HTD-10-Steel Defense-Home Team Discount--"
+    },
+    {
+      "z": 3.31,
+      "mid": 73.8,
+      "cluster_median": 122.18,
+      "cluster": [
+        "Home Team Discount",
+        "",
+        "Alpha Blast"
+      ],
+      "bobaId": "HTD-17-Adding Depth-Home Team Discount--"
+    },
+    {
+      "z": 3.31,
+      "mid": 73.8,
+      "cluster_median": 122.18,
+      "cluster": [
+        "Home Team Discount",
+        "",
+        "Alpha Blast"
+      ],
+      "bobaId": "HTD-30-QB Sneak-Home Team Discount--"
+    },
+    {
+      "z": 3.31,
+      "mid": 73.8,
+      "cluster_median": 122.18,
+      "cluster": [
+        "Home Team Discount",
+        "",
+        "Alpha Blast"
+      ],
+      "bobaId": "HTD-32-Recycle-Home Team Discount--"
+    },
+    {
+      "z": 3.31,
+      "mid": 73.8,
+      "cluster_median": 122.18,
+      "cluster": [
+        "Home Team Discount",
+        "",
+        "Alpha Blast"
+      ],
+      "bobaId": "HTD-48-Brothers In Arms-Home Team Discount--"
+    },
+    {
+      "z": 3.28,
+      "mid": 98.4,
+      "cluster_median": 49.19,
+      "cluster": [
+        "Logofoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "LOGO-266-Freakshow-Logofoil-Giannis Antetokounmpo Unmasked-FIRE"
+    },
+    {
+      "z": 3.28,
+      "mid": 98.4,
+      "cluster_median": 49.19,
+      "cluster": [
+        "Logofoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "LOGO-270-Gigante-Logofoil-Pedro Mart\u00ednez Debut-FIRE"
+    },
+    {
+      "z": 3.28,
+      "mid": 98.4,
+      "cluster_median": 49.19,
+      "cluster": [
+        "Logofoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "LOGO-271-Cousin-Logofoil-Randy Quaid Debut-FIRE"
+    },
+    {
+      "z": 3.28,
+      "mid": 98.4,
+      "cluster_median": 49.19,
+      "cluster": [
+        "Logofoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "LOGO-274-Cheryl Bomb-Logofoil-Cheryl Miller Debut-FIRE"
+    },
+    {
+      "z": 3.28,
+      "mid": 98.4,
+      "cluster_median": 49.19,
+      "cluster": [
+        "Logofoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "LOGO-282-Bags-Logofoil-Jeff Bagwell Debut-FIRE"
+    }
+  ],
+  "top_priorities": [
+    {
+      "flags_count": 2,
+      "audits": [
+        "cluster_outlier",
+        "suspect_low"
+      ],
+      "bobaId": "RJA-8-Mr. October-Inspired Ink Metallic Battlefoil-Reggie Jackson Debut-STEEL",
+      "mid": 2.25
+    },
+    {
+      "flags_count": 2,
+      "audits": [
+        "cluster_outlier",
+        "suspect_low"
+      ],
+      "bobaId": "MBFA-4-Boz-Inspired Ink Metallic Battlefoil-Brian Bosworth Debut-STEEL",
+      "mid": 2.7
+    },
+    {
+      "flags_count": 2,
+      "audits": [
+        "cluster_outlier",
+        "suspect_low"
+      ],
+      "bobaId": "GAA-8-Freakshow-Inspired Ink Metallic Battlefoil-Giannis Antetokounmpo Unmasked-STEEL",
+      "mid": 2.25
+    },
+    {
+      "flags_count": 2,
+      "audits": [
+        "cluster_outlier",
+        "suspect_low"
+      ],
+      "bobaId": "DEA-7-ECKS-Inspired Ink Battlefoil-Dennis Eckersley Debut-STEEL",
+      "mid": 3.27
+    },
+    {
+      "flags_count": 2,
+      "audits": [
+        "cluster_outlier",
+        "suspect_low"
+      ],
+      "bobaId": "BGBF-12-Cruze-Control-Battlefoil-First Edition-GUM",
+      "mid": 10.65
+    },
+    {
+      "flags_count": 2,
+      "audits": [
+        "cluster_outlier",
+        "suspect_low"
+      ],
+      "bobaId": "BFA-20-Boz-Inspired Ink Battlefoil-Brian Bosworth Debut-STEEL",
+      "mid": 4.09
+    },
+    {
+      "flags_count": 2,
+      "audits": [
+        "cluster_outlier",
+        "suspect_low"
+      ],
+      "bobaId": "BBFA-54-Chief-Silver Blast-Robert Parish Debut-ICE",
+      "mid": 3.89
+    }
+  ]
+}

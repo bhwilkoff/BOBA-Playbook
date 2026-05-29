@@ -17,7 +17,7 @@
         "weapon": "HEX",
         "tier": 4,
         "n": 1637,
-        "median": 147.6
+        "median": 294.95
       },
       {
         "weapon": "GLOW",
@@ -126,7 +126,7 @@
       {
         "higher_tier": "HEX",
         "lower_tier": "CYBER",
-        "higher_median": 147.6,
+        "higher_median": 294.95,
         "lower_median": 311.59
       },
       {
@@ -147,7 +147,7 @@
       {
         "printRun": 10,
         "n": 46,
-        "median": 287.0
+        "median": 1722.0
       },
       {
         "printRun": 25,
@@ -162,10 +162,10 @@
     ],
     "violations": [
       {
-        "lower_pr": 10,
-        "higher_pr": 25,
-        "lower_median": 287.0,
-        "higher_median": 389.49
+        "lower_pr": 1,
+        "higher_pr": 10,
+        "lower_median": 307.5,
+        "higher_median": 1722.0
       }
     ]
   },
@@ -307,7 +307,7 @@
       "hero": "Ramponage",
       "lower_tier": "Inspired Ink Bubble Gum Battlefoil",
       "higher_tier": "Superfoil",
-      "lower_median": 389.5,
+      "lower_median": 2337.0,
       "higher_median": 245.59
     },
     {
@@ -335,7 +335,7 @@
       "hero": "Vlad the Impaler",
       "lower_tier": "Inspired Ink Bubble Gum Battlefoil",
       "higher_tier": "Superfoil",
-      "lower_median": 389.5,
+      "lower_median": 2337.0,
       "higher_median": 245.59
     },
     {
@@ -405,14 +405,14 @@
       "hero": "Herro",
       "lower_tier": "Inspired Ink Bubble Gum Battlefoil",
       "higher_tier": "Superfoil",
-      "lower_median": 389.5,
+      "lower_median": 2337.0,
       "higher_median": 245.59
     },
     {
       "hero": "Altitude",
       "lower_tier": "Inspired Ink Bubble Gum Battlefoil",
       "higher_tier": "Superfoil",
-      "lower_median": 389.5,
+      "lower_median": 2337.0,
       "higher_median": 245.59
     },
     {
@@ -433,7 +433,7 @@
       "hero": "Robin Hood",
       "lower_tier": "Inspired Ink Bubble Gum Battlefoil",
       "higher_tier": "Superfoil",
-      "lower_median": 389.5,
+      "lower_median": 2337.0,
       "higher_median": 245.59
     },
     {
@@ -447,7 +447,7 @@
       "hero": "Joystick",
       "lower_tier": "Inspired Ink Bubble Gum Battlefoil",
       "higher_tier": "Superfoil",
-      "lower_median": 389.5,
+      "lower_median": 2337.0,
       "higher_median": 245.59
     },
     {
@@ -468,28 +468,28 @@
       "hero": "Game Over",
       "lower_tier": "Inspired Ink Bubble Gum Battlefoil",
       "higher_tier": "Superfoil",
-      "lower_median": 389.5,
+      "lower_median": 2337.0,
       "higher_median": 245.59
     },
     {
       "hero": "PG-D3",
       "lower_tier": "Inspired Ink Bubble Gum Battlefoil",
       "higher_tier": "Superfoil",
-      "lower_median": 389.5,
+      "lower_median": 2337.0,
       "higher_median": 245.59
     },
     {
       "hero": "Pauldron",
       "lower_tier": "Inspired Ink Bubble Gum Battlefoil",
       "higher_tier": "Superfoil",
-      "lower_median": 389.5,
+      "lower_median": 2337.0,
       "higher_median": 245.59
     },
     {
       "hero": "Game Time",
       "lower_tier": "Inspired Ink Bubble Gum Battlefoil",
       "higher_tier": "Superfoil",
-      "lower_median": 389.5,
+      "lower_median": 2337.0,
       "higher_median": 245.59
     },
     {
@@ -497,7 +497,7 @@
       "lower_tier": "Cyber",
       "higher_tier": "80's Rad Battlefoil",
       "lower_median": 311.59,
-      "higher_median": 17.62
+      "higher_median": 49.2
     },
     {
       "hero": "X.L.",
@@ -551,13 +551,6 @@
       "coverage_pct": 63.8
     },
     {
-      "weapon": "FIRE",
-      "tier": 2,
-      "in_catalog": 3241,
-      "with_estimate": 2125,
-      "coverage_pct": 65.6
-    },
-    {
       "weapon": "ICE",
       "tier": 2,
       "in_catalog": 3240,
@@ -565,11 +558,11 @@
       "coverage_pct": 82.3
     },
     {
-      "weapon": "BRAWL",
-      "tier": 1,
-      "in_catalog": 1625,
-      "with_estimate": 1363,
-      "coverage_pct": 83.9
+      "weapon": "FIRE",
+      "tier": 2,
+      "in_catalog": 3241,
+      "with_estimate": 2125,
+      "coverage_pct": 65.6
     },
     {
       "weapon": "STEEL",
@@ -577,6 +570,13 @@
       "in_catalog": 2928,
       "with_estimate": 2486,
       "coverage_pct": 84.9
+    },
+    {
+      "weapon": "BRAWL",
+      "tier": 1,
+      "in_catalog": 1625,
+      "with_estimate": 1363,
+      "coverage_pct": 83.9
     },
     {
       "weapon": "NONE",
@@ -610,366 +610,6 @@
       "treatment": "Paper"
     },
     {
-      "bobaId": "BGBF-1-Showtime-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-2-Matata-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-3-Gaveler-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-4-Burrocious-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-5-Victory-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-6-Shrouded-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-7-Taze'em-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-9-C.C.-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-14-Burner-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-15-Cowboy-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-16-Yeti-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-18-Superbaby-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-19-Jeesaw-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-20-Tongue-Twister-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-22-Eagle-Eye-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-23-Turntable-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-24-Bandelero-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-25-Marverati-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-26-Action-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-27-Vampire-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-28-Jeeves-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-29-Carroller-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-30-Draco-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-31-Cha-Ching-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-32-Time-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-33-Fungi-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-35-Shepherd-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-36-Ollie-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-37-Tank-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-38-Grin-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-39-Bammer-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-40-Barreler-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-41-Cupid-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-42-Javalanche-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-43-Bionic-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-44-Stitcher-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-45-Triple Threat-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BILLY-2-Billy-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "CJ-2-CJ Maddux-Battlefoil-First Edition-GUM",
-      "mid": 8.19,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-8-Caliber-Battlefoil-First Edition-GUM",
-      "mid": 9.22,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-10-Doublecheck-Battlefoil-First Edition-GUM",
-      "mid": 9.22,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-11-Cobra-Battlefoil-First Edition-GUM",
-      "mid": 9.22,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-13-Processor-Battlefoil-First Edition-GUM",
-      "mid": 9.22,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-17-Tattoo-Battlefoil-First Edition-GUM",
-      "mid": 9.22,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-21-Halo-Battlefoil-First Edition-GUM",
-      "mid": 9.22,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
       "bobaId": "Promo-A.I.-Exclusive Battlefoil--GLOW",
       "mid": 9.84,
       "floor": 10,
@@ -1000,30 +640,6 @@
       "weapon": "GLOW",
       "printRun": null,
       "treatment": "Exclusive Battlefoil"
-    },
-    {
-      "bobaId": "BGBF-12-Cruze-Control-Battlefoil-First Edition-GUM",
-      "mid": 10.65,
-      "floor": 15,
-      "weapon": "GUM",
-      "printRun": null,
-      "treatment": "Battlefoil"
-    },
-    {
-      "bobaId": "RAD-10-Wizard-80's Rad Battlefoil-Ozzie Smith Debut-HEX",
-      "mid": 12.3,
-      "floor": 15,
-      "weapon": "HEX",
-      "printRun": null,
-      "treatment": "80's Rad Battlefoil"
-    },
-    {
-      "bobaId": "RAD-306-Time-80's Rad Battlefoil-First Edition-HEX",
-      "mid": 12.3,
-      "floor": 15,
-      "weapon": "HEX",
-      "printRun": null,
-      "treatment": "80's Rad Battlefoil"
     }
   ],
   "missing_in_covered_clusters": [],
@@ -1074,8 +690,8 @@
     },
     {
       "z": 8.72,
-      "mid": 12.3,
-      "cluster_median": 17.62,
+      "mid": 73.8,
+      "cluster_median": 105.73,
       "cluster": [
         "80's Rad Battlefoil",
         "HEX",
@@ -1194,39 +810,6 @@
       "bobaId": "SBF-6-Burner-Silver Battlefoil-Jalen Brunson Unmasked-STEEL"
     },
     {
-      "z": 7.84,
-      "mid": 225.5,
-      "cluster_median": 245.96,
-      "cluster": [
-        "Pink Blast",
-        "HEX",
-        "Alpha Blast"
-      ],
-      "bobaId": "BL-P82-Muggsy-Pink Blast-Muggsy Bogues Debut-HEX"
-    },
-    {
-      "z": 7.84,
-      "mid": 225.5,
-      "cluster_median": 245.96,
-      "cluster": [
-        "Pink Blast",
-        "HEX",
-        "Alpha Blast"
-      ],
-      "bobaId": "BL-P97-Windmill-Pink Blast-Dominique Wilkins Debut-HEX"
-    },
-    {
-      "z": 7.84,
-      "mid": 225.5,
-      "cluster_median": 245.96,
-      "cluster": [
-        "Pink Blast",
-        "HEX",
-        "Alpha Blast"
-      ],
-      "bobaId": "BL-P101-Sterling-Pink Blast-Sterling Sharpe Debut-HEX"
-    },
-    {
       "z": 7.81,
       "mid": 205.0,
       "cluster_median": 164.0,
@@ -1291,6 +874,17 @@
         "Alpha Update"
       ],
       "bobaId": "HBF-34-Wild Beard-Headlines Battlefoil-First Edittion-STEEL"
+    },
+    {
+      "z": 7.75,
+      "mid": 225.49,
+      "cluster_median": 204.99,
+      "cluster": [
+        "Battlefoil",
+        "HEX",
+        "Alpha Update"
+      ],
+      "bobaId": "BF-33-Boltage-Battlefoil-First Edition-HEX"
     },
     {
       "z": 7.75,
@@ -1470,8 +1064,8 @@
     },
     {
       "z": 6.24,
-      "mid": 1640.0,
-      "cluster_median": 307.5,
+      "mid": 9840.0,
+      "cluster_median": 1845.0,
       "cluster": [
         "Inspired Ink Battlefoil",
         "HEX",
@@ -1569,8 +1163,8 @@
     },
     {
       "z": 5.66,
-      "mid": 225.5,
-      "cluster_median": 287.0,
+      "mid": 1353.0,
+      "cluster_median": 1722.0,
       "cluster": [
         "Inspired Ink Battlefoil",
         "HEX",
@@ -1580,8 +1174,8 @@
     },
     {
       "z": 5.57,
-      "mid": 225.5,
-      "cluster_median": 287.0,
+      "mid": 1353.0,
+      "cluster_median": 1722.0,
       "cluster": [
         "Inspired Ink Battlefoil",
         "GUM",
@@ -1722,17 +1316,6 @@
       "bobaId": "SF-36-Shrouded-Superfoil-First Edition-SUPER"
     },
     {
-      "z": 5.02,
-      "mid": 10.65,
-      "cluster_median": 8.19,
-      "cluster": [
-        "Battlefoil",
-        "GUM",
-        "Alpha Edition"
-      ],
-      "bobaId": "BGBF-12-Cruze-Control-Battlefoil-First Edition-GUM"
-    },
-    {
       "z": 4.94,
       "mid": 12.29,
       "cluster_median": 24.58,
@@ -1786,6 +1369,39 @@
         "Alpha Edition"
       ],
       "bobaId": "BFA-20-Boz-Inspired Ink Battlefoil-Brian Bosworth Debut-STEEL"
+    },
+    {
+      "z": 4.55,
+      "mid": 180.4,
+      "cluster_median": 204.99,
+      "cluster": [
+        "Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "BF-15-Maxed Out-Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 4.55,
+      "mid": 180.4,
+      "cluster_median": 204.99,
+      "cluster": [
+        "Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "BF-28-Escape Artist-Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 4.55,
+      "mid": 180.4,
+      "cluster_median": 204.99,
+      "cluster": [
+        "Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "BF-32-Brawn-Battlefoil-First Edition-HEX"
     },
     {
       "z": 4.45,
@@ -2019,37 +1635,37 @@
       "bobaId": "PL-7-10 Per Play-Plays-First Edition-"
     },
     {
-      "z": 4.05,
-      "mid": 127.1,
-      "cluster_median": 106.59,
+      "z": 4.01,
+      "mid": 49.15,
+      "cluster_median": 225.5,
       "cluster": [
         "Battlefoil",
-        "HEX",
+        "GUM",
         "Alpha Edition"
       ],
-      "bobaId": "BF-86-Superbaby-Battlefoil-First Edition-HEX"
+      "bobaId": "BGBF-18-Superbaby-Battlefoil-First Edition-GUM"
     },
     {
-      "z": 4.05,
-      "mid": 127.1,
-      "cluster_median": 106.59,
+      "z": 4.01,
+      "mid": 49.15,
+      "cluster_median": 225.5,
       "cluster": [
         "Battlefoil",
-        "HEX",
+        "GUM",
         "Alpha Edition"
       ],
-      "bobaId": "BF-171-Shepherd-Battlefoil-First Edition-HEX"
+      "bobaId": "BGBF-35-Shepherd-Battlefoil-First Edition-GUM"
     },
     {
-      "z": 4.05,
-      "mid": 127.1,
-      "cluster_median": 106.59,
+      "z": 4.01,
+      "mid": 49.15,
+      "cluster_median": 225.5,
       "cluster": [
         "Battlefoil",
-        "HEX",
+        "GUM",
         "Alpha Edition"
       ],
-      "bobaId": "BF-176-Ollie-Battlefoil-First Edition-HEX"
+      "bobaId": "BGBF-36-Ollie-Battlefoil-First Edition-GUM"
     },
     {
       "z": 4.01,
@@ -2479,6 +2095,72 @@
         "World Champions"
       ],
       "bobaId": "OKC-27-ChetMate-Battlefoil-World Champion Debut-STEEL"
+    },
+    {
+      "z": 3.43,
+      "mid": 278.62,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-10-Crosbow-Icon Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 3.43,
+      "mid": 278.62,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-15-Dart-Board-Icon Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 3.43,
+      "mid": 278.62,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-20-Maxed Out-Icon Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 3.43,
+      "mid": 278.62,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-27-Gunner-Icon Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 3.43,
+      "mid": 278.62,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-37-Brawn-Icon Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 3.43,
+      "mid": 278.62,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-38-Cicada-Icon Battlefoil-First Edition-HEX"
     },
     {
       "z": 3.34,
@@ -3161,92 +2843,7 @@
         "Griffey Edition"
       ],
       "bobaId": "BLBF-386-DeKap-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-387-Bell-Camp-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-388-Bangford-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-389-Forcefield-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-390-Amoeba-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-392-Go-Cart-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-393-Castler-Blizzard Battlefoil-First Edition-FIRE"
     }
   ],
-  "top_priorities": [
-    {
-      "flags_count": 2,
-      "audits": [
-        "cluster_outlier",
-        "suspect_low"
-      ],
-      "bobaId": "RAD-306-Time-80's Rad Battlefoil-First Edition-HEX",
-      "mid": 12.3
-    },
-    {
-      "flags_count": 2,
-      "audits": [
-        "cluster_outlier",
-        "suspect_low"
-      ],
-      "bobaId": "BGBF-12-Cruze-Control-Battlefoil-First Edition-GUM",
-      "mid": 10.65
-    }
-  ]
+  "top_priorities": []
 }

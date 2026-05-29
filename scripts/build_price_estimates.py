@@ -79,6 +79,16 @@ MIN_CARDS = 3           # need at least this many comps for any estimate
 SUPER_PREMIUM_LOW  = 35
 SUPER_PREMIUM_MID  = 100
 SUPER_PREMIUM_HIGH = 300
+# Weapon-tier extrapolation multipliers for HEX/GUM (tier 4 "secret_rare")
+# when no same-weapon peers exist within the target's treatment. Applied to
+# cross-weapon same-treatment comps as a rarity premium. Reflects HEX/GUM
+# pricing typically running 3-10× vs same-treatment STEEL/BRAWL commons.
+# Smaller spread than SUPER (5/15/50 → 25/75/250 → 35/100/300 progression
+# above) because HEX/GUM populations vary card-to-card (not strict 1-of-1)
+# so the band is tighter. Tunable in response to audit drift.
+WEAPON_TIER4_PREMIUM_LOW  = 3
+WEAPON_TIER4_PREMIUM_MID  = 6
+WEAPON_TIER4_PREMIUM_HIGH = 12
 CONF_HIGH = 8
 PROXY = "https://boba-ebay-proxy.benwilkoff.workers.dev"
 
@@ -319,6 +329,8 @@ def main():
     # cross-treatment leakage from common Battlefoils).
     treatment_tier = {name: (meta.get("distributionTier") or 0)
                       for name, meta in rarity_model.get("treatments", {}).items()}
+    weapon_tier = {name: (meta.get("ordinal") or 0)
+                   for name, meta in rarity_model.get("weaponTier", {}).items()}
     # Low-population printRun buckets — same logic as SUPER. /5 is Hex
     # Inspired Ink chase; /1 is SUPER. /10, /25, /50 have wider markets
     # (LeBoss IIS-style) so don't strict-require printRun match for them.
@@ -644,20 +656,61 @@ def main():
         strict_treatment = (target_treatment_tier >= 1) and not rarity_extrapolated
         pr_target = c.get("printRun")
         strict_printrun = (pr_target in STRICT_PRINTRUN) and not rarity_extrapolated
+        # Strict-weapon for tier ≥ 4 (HEX, GUM, SUPER — the secret-rare
+        # and one-of-one weapons per rarity-model.json). Pre-fix
+        # examples: RAD-306 Time 80's Rad Battlefoil HEX estimated at
+        # $12.30 because the 80's Rad Battlefoil treatment has zero
+        # same-weapon HEX D1 listings — only 4 BRAWL, 4 ICE, 2 STEEL,
+        # at \$15-\$30. The HEX target cross-comped those and adopted
+        # their low median, drastically misrepresenting tier-4 rarity.
+        # Fix: HEX/GUM targets must find same-weapon peers within
+        # their treatment market or skip honestly. SUPER's path is
+        # rarity_extrapolated (already gated out via 'not
+        # rarity_extrapolated'); the tier-locked SUPER branch with
+        # printRun=1 + super_peers already enforces same-weapon
+        # implicitly.
+        t_element = c.get("element")
+        target_weapon_tier = weapon_tier.get(t_element, 0)
+        strict_weapon = (target_weapon_tier >= 4) and not rarity_extrapolated
         # Score every priced peer; skip self.
-        scored = []
-        for peer, price in eligible_peers:
-            if peer.get("bobaId") == bid:
-                continue
-            # Strict gates — peer must match the dominant scarcity
-            # attribute or it can't comp this target.
-            if strict_treatment and peer.get("treatment") != t_target:
-                continue
-            if strict_printrun and peer.get("printRun") != pr_target:
-                continue
-            s = similarity(target_for_scoring, peer)
-            if s >= MIN_SIM:
-                scored.append((s, price))
+        def score_peers(peers, *, enforce_treatment, enforce_printrun, enforce_weapon):
+            out = []
+            for peer, price in peers:
+                if peer.get("bobaId") == bid:
+                    continue
+                if enforce_treatment and peer.get("treatment") != t_target:
+                    continue
+                if enforce_printrun and peer.get("printRun") != pr_target:
+                    continue
+                if enforce_weapon and peer.get("element") != t_element:
+                    continue
+                s = similarity(target_for_scoring, peer)
+                if s >= MIN_SIM:
+                    out.append((s, price))
+            return out
+
+        scored = score_peers(
+            eligible_peers,
+            enforce_treatment=strict_treatment,
+            enforce_printrun=strict_printrun,
+            enforce_weapon=strict_weapon,
+        )
+        # Weapon-tier extrapolation fallback for tier-4 HEX/GUM. When
+        # the strict-weapon gate yields too few peers, retry WITHOUT
+        # weapon gating and apply a rarity-tier premium multiplier
+        # downstream (mirrors SUPER's rarity_extrapolated path #063 +
+        # #064). Reflects HEX/GUM trading at 3-10× vs same-treatment
+        # commons even when no direct-weapon comps exist.
+        weapon_extrapolated = False
+        if strict_weapon and len(scored) < MIN_CARDS:
+            scored = score_peers(
+                eligible_peers,
+                enforce_treatment=strict_treatment,
+                enforce_printrun=strict_printrun,
+                enforce_weapon=False,
+            )
+            if len(scored) >= MIN_CARDS:
+                weapon_extrapolated = True
         if len(scored) < MIN_CARDS:
             n_skipped_too_few += 1
             continue
@@ -717,6 +770,17 @@ def main():
             high_raw *= SUPER_PREMIUM_HIGH
             basis = (f"rarity-extrapolated from same-treatment comps "
                      f"(no Super tracker data yet; premium {SUPER_PREMIUM_LOW}–{SUPER_PREMIUM_HIGH}×)")
+            conf = "low"
+        elif weapon_extrapolated:
+            # Tier-4 HEX/GUM with no same-weapon peers in this
+            # treatment's pool — use cross-weapon same-treatment
+            # comps as a base and apply the weapon-tier premium.
+            low_raw  *= WEAPON_TIER4_PREMIUM_LOW
+            mid_raw  *= WEAPON_TIER4_PREMIUM_MID
+            high_raw *= WEAPON_TIER4_PREMIUM_HIGH
+            basis = (f"rarity-extrapolated from same-treatment cross-weapon comps "
+                     f"(no {t_element} peers in this treatment; premium "
+                     f"{WEAPON_TIER4_PREMIUM_LOW}–{WEAPON_TIER4_PREMIUM_HIGH}×)")
             conf = "low"
         else:
             if gap_narrow_fallback:

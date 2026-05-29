@@ -58,6 +58,7 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.bobaplaybook.app.feature.carddetail.CardContentBodyPublic
 import com.bobaplaybook.app.feature.carddetail.CardDetailViewModel
 import com.bobaplaybook.app.feature.carddetail.PricingPanelsPublic
 import com.bobaplaybook.core.domain.model.Card
@@ -162,14 +163,14 @@ fun CollectionCardDetailScreen(
                 .verticalScroll(rememberScrollState()),
         ) {
             ArtPanel(card)
-            BOBAStatsGrid(
-                cardNumber = card.cardNumber,
-                cardType   = card.cardType,
-                treatment  = card.treatment,
-                weapon     = card.element.takeIf { !card.isSealed }?.lowercase()?.replaceFirstChar { it.uppercase() },
-                set        = card.set,
-                subSet     = card.subSet,
-            )
+            // Shared card-content body — BadgeRow + AthleteInspiration +
+            // BOBAStatsGrid + HeroStatRow (Power for Heroes, Cost+DBS for
+            // Plays) + Format Legality strip + Format Restrictions block
+            // + Ability/Bonus text. Pre-2026-05-28 Collection was missing
+            // most of these (Ben's audit). `showStatsGrid = true` so the
+            // canonical 6-cell grid renders in its Find-mandated position
+            // between AthleteInspirationRow and HeroStatRow.
+            CardContentBodyPublic(card = card, showStatsGrid = true)
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
             // Tick 434 — locale-format the count (web tick 433 + iOS parity).
             BOBASectionHeader(

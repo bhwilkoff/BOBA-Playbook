@@ -3302,6 +3302,16 @@ const Collection = (() => {
           </div>
           ${copiesHtml}
         </div>
+        ${catalogCard && typeof window.bobaBuildCardContentHtml === 'function' ? `
+        <div class="cdetail-section cdetail-content-section">
+          <!-- Canonical card content — 6-cell stats grid + Play extras +
+               format legality strip (regular cards), or product info +
+               highlights (sealed). Same HTML the Find modal renders,
+               built by app.js::buildCardContentHtml + exposed as
+               window.bobaBuildCardContentHtml. Pre-2026-05-28 the
+               Collection overlay had none of this (Ben's audit). -->
+          ${window.bobaBuildCardContentHtml(catalogCard)}
+        </div>` : ''}
         ${catalogCard ? `
         <div class="cdetail-section">
           <!-- Pricing — same panel the Find modal renders. js/app.js exposes

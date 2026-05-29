@@ -1454,3 +1454,417 @@ final class CardShareItemSource: NSObject, UIActivityItemSource {
         return "\(card.name) — BOBA Playbook"
     }
 }
+
+// ════════════════════════════════════════════════════════════════════
+// MARK: - CardContentSection (shared between Find + Collection)
+// ════════════════════════════════════════════════════════════════════
+//
+// Renders the "middle" of a card detail surface — the parts that
+// describe the card itself, independent of where the user opened it
+// from. Stats grid, format legality, format restrictions, play ability,
+// athlete inspiration row for non-sealed; product fields + highlights
+// for sealed.
+//
+// Pre-2026-05-28 the Collection detail view had NONE of this —
+// CollectionCardDetailView showed only header / copies / decks /
+// pricing / variations, missing the entire 6-cell stats grid +
+// format legality + ability + athlete. Ben's audit caught it; this
+// shared struct closes the gap without forcing a copy/paste between
+// Find (CardDetailView) and Collection (CollectionCardDetailView).
+//
+// Owns its own @State (showingDBSInfo + showingPrintRunExplainer) so
+// parent views don't have to thread bindings — each include is a
+// self-contained subtree.
+//
+// DESIGN.md §8.6: "Three structs share artPanel + toolbar verbatim —
+// drift is the bug." This is the same intent, applied to the content
+// middle: same code path = no drift.
+
+struct CardContentSection: View {
+    let card: Card
+
+    @State private var showingDBSInfo = false
+    @State private var showingPrintRunExplainer = false
+
+    var body: some View {
+        if card.isSealed {
+            sealedSection
+        } else {
+            regularSection
+        }
+    }
+
+    // ── Regular cards: Hero / Play / HotDog ────────────────────────
+
+    @ViewBuilder
+    private var regularSection: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.lg) {
+            statsGrid
+            formatLegalityRow
+            formatRestrictionsRow
+            playAbilityRow
+            athleteInspirationRow
+        }
+        .sheet(isPresented: $showingDBSInfo) { DBSInfoSheet() }
+    }
+
+    private var statsGrid: some View {
+        LazyVGrid(
+            columns: [GridItem(.flexible()), GridItem(.flexible())],
+            spacing: Design.Spacing.sm
+        ) {
+            statCell(label: "Card #", value: card.cardNumber)
+            statCell(label: "Type",   value: card.cardType)
+            // Treatment slot — "Base Set" when treatment is empty
+            // (DECISIONS.md #029 canonical 6-cell layout).
+            statCell(
+                label: "Treatment",
+                value: card.treatment?.isEmpty == false
+                    ? card.treatment!
+                    : (card.rarityLabel == "Paper" ? "Base Set" : card.rarityLabel),
+            )
+            // Weapon slot — heroes always show their printed weapon;
+            // non-heroes get "—" so the grid stays 6 cells. Element
+            // color tints the value text.
+            if card.isHero || (card.element != "NONE" && !card.element.isEmpty) {
+                statCell(
+                    label: "Weapon",
+                    value: card.element,
+                    color: Design.Colors.element(card.element),
+                )
+            } else {
+                statCell(label: "Weapon", value: "—", color: Design.Colors.textMuted)
+            }
+            statCell(label: "Set", value: card.set)
+            if let sub = card.subSet, !sub.isEmpty {
+                statCell(label: "Sub-set", value: sub)
+            } else {
+                statCell(label: "Sub-set", value: "—", color: Design.Colors.textMuted)
+            }
+            // Play extras — Cost + DBS render BELOW the canonical six
+            // (DECISIONS.md #029, never interleaved).
+            if card.isPlay, let cost = card.playCost {
+                statCell(
+                    label: "Cost",
+                    value: cost == 0 ? "FREE" : "\(cost) Hot Dog\(cost == 1 ? "" : "s")",
+                    color: cost == 0 ? Color(hex: "7ecb82") : Design.Colors.bobaCyan,
+                )
+            }
+            if card.isPlay, let dbs = card.dbs {
+                dbsStatCell(dbs: dbs, tier: card.dbsTier)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var formatLegalityRow: some View {
+        let chips = CardFormatEligibility.legalFormats(for: card)
+        if !chips.isEmpty {
+            HStack(spacing: 6) {
+                ForEach(chips) { chip in
+                    let (dotColor, textColor): (Color, Color) = {
+                        switch chip.status {
+                        case .legal:       return (Color(red: 0.49, green: 0.80, blue: 0.51), Design.Colors.textSecondary)
+                        case .constrained: return (Color(red: 1.00, green: 0.84, blue: 0.00), Design.Colors.textPrimary)
+                        case .illegal:     return (Color(red: 0.75, green: 0.23, blue: 0.14), Design.Colors.textMuted)
+                        }
+                    }()
+                    HStack(spacing: 5) {
+                        Circle().fill(dotColor).frame(width: 6, height: 6)
+                        Text(chip.format)
+                            .font(Design.Fonts.mono(11, weight: .semibold))
+                            .foregroundStyle(textColor)
+                    }
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(
+                        Capsule().fill(Design.Colors.surface)
+                            .overlay(Capsule().strokeBorder(Design.Colors.glassBorder, lineWidth: 0.5)),
+                    )
+                    .help(chip.reason ?? "\(chip.format): legal")
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var formatRestrictionsRow: some View {
+        let notes = CardFormatEligibility.restrictions(for: card)
+        if !notes.isEmpty {
+            let amber = Design.Colors.bobaOrange
+            VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                Text("FORMAT RESTRICTIONS")
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .tracking(1.5)
+                VStack(spacing: 1) {
+                    ForEach(notes) { n in
+                        HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(amber)
+                                .padding(.top, 2)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(n.label)
+                                    .font(Design.Fonts.mono(12, weight: .bold))
+                                    .foregroundStyle(amber)
+                                Text(n.detail)
+                                    .font(Design.Fonts.mono(11))
+                                    .foregroundStyle(Design.Colors.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, Design.Spacing.md)
+                        .padding(.vertical, Design.Spacing.sm)
+                        .background(Design.Colors.surface)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
+                .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
+                    .strokeBorder(amber.opacity(0.3), lineWidth: 1))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var playAbilityRow: some View {
+        if let ability = card.playAbility, !ability.isEmpty {
+            VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                Text("PLAY ABILITY")
+                    .font(Design.Fonts.mono(9, weight: .bold))
+                    .foregroundStyle(Design.Colors.textMuted)
+                    .tracking(1.5)
+                Text(ability)
+                    .font(Design.Fonts.mono(13))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Design.Radius.md)
+                    .fill(Design.Colors.glass)
+                    .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)),
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var athleteInspirationRow: some View {
+        if let athlete = card.athleteInspiration, !athlete.isEmpty {
+            HStack(spacing: Design.Spacing.sm) {
+                Rectangle()
+                    .fill(Design.Colors.element(card.element))
+                    .frame(width: 3)
+                    .cornerRadius(2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("INSPIRED BY")
+                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .tracking(1.5)
+                    Text(athlete)
+                        .font(Design.Fonts.display(15))
+                        .foregroundStyle(Design.Colors.textPrimary)
+                }
+                if card.isInspiredInk {
+                    Spacer()
+                    Text("INSPIRED INK")
+                        .font(Design.Fonts.mono(8, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaViolet)
+                        .padding(.horizontal, 7).padding(.vertical, 3)
+                        .background(Capsule().fill(Design.Colors.bobaViolet.opacity(0.15))
+                            .overlay(Capsule().strokeBorder(Design.Colors.bobaViolet.opacity(0.4), lineWidth: 0.5)))
+                }
+                if let label = card.printRunLabel {
+                    if !card.isInspiredInk { Spacer() }
+                    let accent = label == "SSP" ? Design.Colors.bobaOrange : Design.Colors.bobaCyan
+                    let explanation = printRunExplanation(label)
+                    Button { showingPrintRunExplainer = true } label: {
+                        Text(label)
+                            .font(Design.Fonts.mono(9, weight: .bold))
+                            .foregroundStyle(accent)
+                            .padding(.horizontal, 7).padding(.vertical, 3)
+                            .background(Capsule().fill(accent.opacity(0.15))
+                                .overlay(Capsule().strokeBorder(accent.opacity(0.45), lineWidth: 0.5)))
+                    }
+                    .buttonStyle(.plain)
+                    .help(explanation)
+                    .accessibilityHint(explanation)
+                    .popover(isPresented: $showingPrintRunExplainer, arrowEdge: .top) {
+                        Text(explanation)
+                            .font(Design.Fonts.mono(13))
+                            .foregroundStyle(Design.Colors.textPrimary)
+                            .padding(16)
+                            .frame(maxWidth: 280)
+                            .presentationCompactAdaptation(.popover)
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Sealed products ────────────────────────────────────────────
+
+    @ViewBuilder
+    private var sealedSection: some View {
+        VStack(alignment: .leading, spacing: Design.Spacing.md) {
+            // Name + product type
+            VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                Text(card.name)
+                    .font(Design.Fonts.display(22))
+                    .foregroundStyle(Design.Colors.textPrimary)
+                if let pt = card.productType {
+                    Text(pt.replacingOccurrences(of: "-", with: " ").uppercased())
+                        .font(Design.Fonts.mono(12, weight: .bold))
+                        .foregroundStyle(Design.Colors.bobaOrange)
+                        .tracking(1)
+                }
+            }
+            // Set + SEALED PRODUCT badges
+            HStack(spacing: Design.Spacing.sm) {
+                Text(card.set.uppercased())
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.bobaOrange)
+                    .padding(.horizontal, 10).frame(height: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.sm)
+                            .fill(Design.Colors.bobaOrange.opacity(0.12))
+                            .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .strokeBorder(Design.Colors.bobaOrange.opacity(0.4), lineWidth: 1)),
+                    )
+                Text("SEALED PRODUCT")
+                    .font(Design.Fonts.mono(10, weight: .bold))
+                    .foregroundStyle(Design.Colors.textSecondary)
+                    .padding(.horizontal, 10).frame(height: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: Design.Radius.sm)
+                            .fill(Design.Colors.glass)
+                            .overlay(RoundedRectangle(cornerRadius: Design.Radius.sm)
+                                .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)),
+                    )
+            }
+            Divider().background(Design.Colors.glassBorder)
+            // Product stats grid
+            LazyVGrid(
+                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                spacing: Design.Spacing.sm,
+            ) {
+                if let packs = card.packsPerBox { statCell(label: "Packs/Box", value: "\(packs)") }
+                if let cpp = card.cardsPerPack { statCell(label: "Cards/Pack", value: "\(cpp)") }
+                if let total = card.totalCards { statCell(label: "Total Cards", value: "\(total)") }
+                if let msrp = card.msrp {
+                    statCell(label: "MSRP", value: Decimal(msrp).formatted(.currency(code: "USD")))
+                }
+                if let upc = card.upc { statCell(label: "UPC", value: upc) }
+            }
+            // Highlights ("What's Inside")
+            if let highlights = card.highlights, !highlights.isEmpty {
+                VStack(alignment: .leading, spacing: Design.Spacing.xs) {
+                    Text("WHAT'S INSIDE")
+                        .font(Design.Fonts.mono(9, weight: .bold))
+                        .foregroundStyle(Design.Colors.textMuted)
+                        .tracking(1.5)
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(highlights, id: \.self) { highlight in
+                            HStack(alignment: .top, spacing: Design.Spacing.sm) {
+                                Text("·")
+                                    .font(Design.Fonts.mono(13, weight: .bold))
+                                    .foregroundStyle(Design.Colors.bobaOrange)
+                                Text(highlight)
+                                    .font(Design.Fonts.mono(12))
+                                    .foregroundStyle(Design.Colors.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                }
+                .padding(Design.Spacing.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: Design.Radius.md)
+                        .fill(Design.Colors.glass)
+                        .overlay(RoundedRectangle(cornerRadius: Design.Radius.md)
+                            .strokeBorder(Design.Colors.glassBorder, lineWidth: 1)),
+                )
+            }
+        }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────
+
+    private func statCell(label: String, value: String, color: Color = Design.Colors.textSecondary) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label.uppercased())
+                .font(Design.Fonts.mono(8, weight: .bold))
+                .foregroundStyle(Design.Colors.textMuted)
+                .tracking(1.2)
+            Text(value)
+                .font(Design.Fonts.mono(13, weight: .bold))
+                .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .padding(Design.Spacing.md)
+        .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: Design.Radius.sm).fill(Design.Colors.surface2))
+    }
+
+    private func dbsStatCell(dbs: Int, tier: String?) -> some View {
+        Button { showingDBSInfo = true } label: {
+            HStack(alignment: .top, spacing: 4) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 4) {
+                        Text("DBS")
+                            .font(Design.Fonts.mono(8, weight: .bold))
+                            .foregroundStyle(Design.Colors.textMuted)
+                            .tracking(1.2)
+                        Image(systemName: "questionmark.circle")
+                            .font(.system(size: 10))
+                            .foregroundStyle(Design.Colors.bobaCyan)
+                    }
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("\(dbs)")
+                            .font(Design.Fonts.mono(13, weight: .bold))
+                            .foregroundStyle(dbsColor(for: tier))
+                        if let t = tier, !t.isEmpty {
+                            Text(t.uppercased())
+                                .font(Design.Fonts.mono(9, weight: .bold))
+                                .foregroundStyle(dbsColor(for: tier).opacity(0.85))
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(Capsule().fill(dbsColor(for: tier).opacity(0.15)))
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(Design.Spacing.md)
+            .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Design.Radius.sm).fill(Design.Colors.surface2))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func dbsColor(for tier: String?) -> Color {
+        switch tier?.lowercased() {
+        case "low":       return Color(hex: "7ecb82")
+        case "medium":    return Design.Colors.bobaCyan
+        case "high":      return .yellow
+        case "very high": return Design.Colors.bobaOrange
+        default:          return Design.Colors.textSecondary
+        }
+    }
+
+    private func printRunExplanation(_ label: String) -> String {
+        switch label {
+        case "SSP":    return "Superfoil — Super-Short-Print, BoBA's rarest non-numbered treatment."
+        case "/5":     return "Hand-stamped Inspired Ink — print run of 5. Among the rarest serialized counts in any product run."
+        case "/10":    return "Hand-stamped Inspired Ink — print run of 10."
+        case "/25":    return "Hand-stamped Inspired Ink — print run of 25."
+        case "/50":    return "Hand-stamped Inspired Ink — print run of 50. The highest standard Inspired Ink count."
+        case "Serial": return "Inspired Ink — serialized run; print number not publicly disclosed."
+        default:       return "\(label) print run."
+        }
+    }
+}

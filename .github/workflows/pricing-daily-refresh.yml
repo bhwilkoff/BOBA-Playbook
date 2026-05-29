@@ -47,9 +47,13 @@ on:
         required: false
         default: '400'
       crawl_new_limit:
-        description: 'Max NEW cards to seed via stratified crawl (default 400)'
+        description: 'Max NEW cards to seed via eBay stratified crawl (default 800)'
         required: false
-        default: '400'
+        default: '800'
+      whatnot_crawl_limit:
+        description: 'Max NEW cards to seed via Whatnot stratified crawl (default 1200, zero eBay cost)'
+        required: false
+        default: '1200'
       skip_refresh:
         description: 'Skip the refresh step (just rebuild from existing tracker data)'
         required: false
@@ -67,7 +71,8 @@ jobs:
     env:
       EBAY_STALE_LIMIT: ${{ inputs.ebay_stale_limit || '800' }}
       WHATNOT_STALE_LIMIT: ${{ inputs.whatnot_stale_limit || '400' }}
-      CRAWL_NEW_LIMIT: ${{ inputs.crawl_new_limit || '400' }}
+      CRAWL_NEW_LIMIT: ${{ inputs.crawl_new_limit || '800' }}
+      WHATNOT_CRAWL_LIMIT: ${{ inputs.whatnot_crawl_limit || '1200' }}
       SKIP_REFRESH: ${{ inputs.skip_refresh || 'false' }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -125,8 +130,8 @@ jobs:
             --limit "$WHATNOT_STALE_LIMIT" \
             --delay 0.8
 
-      # ── 3. Seed new cards via stratified crawl (broaden coverage) ─
-      - name: Stratified crawl — new cards
+      # ── 3a. Seed new cards via eBay stratified crawl ─────────────
+      - name: Stratified crawl — new cards (eBay)
         if: ${{ env.SKIP_REFRESH != 'true' }}
         continue-on-error: true
         run: |
@@ -134,6 +139,22 @@ jobs:
             --source ebay \
             --limit "$CRAWL_NEW_LIMIT" \
             --delay 1.5
+
+      # ── 3b. Seed new cards via Whatnot stratified crawl ──────────
+      # Zero eBay quota cost. Whatnot has lower hit rate (~5-10% of
+      # walked cards yield listings — Whatnot has limited BoBA catalog
+      # coverage), but each hit is a per-card comp that the closest-
+      # comp model can use immediately. Higher limit here than the
+      # eBay crawl because the rate-limit constraint is just Whatnot's
+      # site response time, not a paid API quota.
+      - name: Stratified crawl — new cards (Whatnot)
+        if: ${{ env.SKIP_REFRESH != 'true' }}
+        continue-on-error: true
+        run: |
+          python3 scripts/crawl_active_listings.py \
+            --source whatnot \
+            --limit "$WHATNOT_CRAWL_LIMIT" \
+            --delay 1.0
 
       # ── 4. Rebuild the static estimator artifact ─────────────────
       - name: Rebuild price-estimates.json

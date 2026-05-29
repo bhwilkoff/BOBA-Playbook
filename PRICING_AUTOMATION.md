@@ -177,15 +177,26 @@ the eBay proxy (which re-ingests via push). Quota burn: ~800 calls (vs
 whatnot --stale-days 7 --limit 400`. Zero eBay quota (Whatnot scraping
 runs through a separate proxy path without OAuth).
 
-**3. Stratified crawl for new coverage** — `crawl_active_listings.py
---source ebay --limit 400`. Round-robins across (treatment-family ×
-weapon) buckets so coverage fills evenly. Cursor file persists across
-runs so we don't re-walk the same cards every day.
+**3a. Stratified crawl for new coverage (eBay)** —
+`crawl_active_listings.py --source ebay --limit 800`. Round-robins
+across (treatment-family × weapon) buckets so coverage fills evenly.
+Cursor file persists across runs so we don't re-walk the same cards
+every day.
 
-Total eBay budget for daily refresh: **~1,200 calls/day** out of 5K
-free-tier. Combined with live user traffic (~3K), the daily total stays
-under **4,200 calls/day = 84% of free tier**, leaving meaningful
-headroom for traffic spikes.
+**3b. Stratified crawl for new coverage (Whatnot)** —
+`crawl_active_listings.py --source whatnot --limit 1200`. Same
+stratified pattern, separate cursor. **Zero eBay quota cost** — the
+limit can be raised aggressively (the constraint is just Whatnot's
+site response time, not a paid API quota). Lower hit rate (~5-10%
+of walked cards yield listings, vs ~30-50% on eBay) but every hit
+is a per-card comp the closest-comp model uses immediately.
+
+Total eBay budget for daily refresh: **~1,600 calls/day** out of 5K
+free-tier (800 stale eBay + 800 new eBay; 400 stale Whatnot + 1,200
+new Whatnot cost zero eBay). Combined with live user traffic (~3K),
+the daily total stays under **4,600 calls/day = 92% of free tier**.
+Headroom is intentionally tight here — the coverage growth math
+prioritises filling the catalog over leaving spare quota.
 
 **4. Rebuild estimator artifact** — `build_price_estimates.py` pulls
 all D1 listings + sold_events + (optionally Whatnot augmentation) and
@@ -245,10 +256,11 @@ without digging into logs.
 
 | Resource | Per-run | Daily total | Free-tier limit | Headroom |
 |---|---|---|---|---|
-| GH Actions minutes | ~15-25 min | ~25 min/day | unlimited (public repo) | ∞ |
-| eBay Browse API | ~1,200 | ~1,200 | 5,000/day | 76% |
+| GH Actions minutes | ~25-40 min | ~40 min/day | unlimited (public repo) | ∞ |
+| eBay Browse API | ~1,600 | ~1,600 (+3K user traffic = ~4,600) | 5,000/day | 8% |
+| Whatnot proxy calls | ~1,600 | ~1,600 | rate-limit only | n/a |
 | Cloudflare D1 reads | ~5 queries | ~5/day | 5M/day | >99.99% |
-| Cloudflare Worker requests | ~1,700 (proxy hits) | ~1,700 | 100K/day | 98% |
+| Cloudflare Worker requests | ~3,200 (proxy hits, both APIs) | ~3,200 | 100K/day | 97% |
 | Storage | ~5MB (artifacts + history) | grows ~50KB/day | n/a | n/a |
 
 ---

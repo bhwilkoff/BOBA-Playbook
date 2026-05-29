@@ -925,7 +925,7 @@ python3 scripts/audit_estimator.py --rebuild # rebuild then audit
 
 The audit slots into the §6.6 maintenance loop alongside `crawl_active_listings.py` + `refresh_stale_prices.py` + `build_price_estimates.py`. Recommended cadence: run the audit after every `build_price_estimates.py` rebuild; spend ~5 min reading top of the cross-audit list before committing the artifact.
 
-**Extended 2026-05-29** (post-#064 audit-driven calibration): the framework grew from 7 audits to 9 (added suspect-HIGH for upward cross-treatment leakage detection + outlier-rich clusters for systematic-bug catching), and the loop is now WIRED INTO A DAILY GH ACTION (`.github/workflows/pricing-daily-refresh.yml`) that:
+**Extended 2026-05-29** (post-#064 audit-driven calibration): the framework grew from 7 audits to 9 (added suspect-HIGH for upward cross-treatment leakage detection + outlier-rich clusters for systematic-bug catching), and the loop is now WIRED INTO A DAILY LOCAL LAUNCHD CRON (`scripts/com.bobaplaybook.pricing-daily.plist` + `scripts/daily_pricing_refresh.sh`) that:
 
 1. Refreshes stale prices via the eBay proxy (`refresh_stale_prices.py --limit 800`) + Whatnot (`--limit 400`)
 2. Seeds new coverage via stratified crawl (`crawl_active_listings.py --limit 400`)
@@ -936,6 +936,6 @@ The audit slots into the §6.6 maintenance loop alongside `crawl_active_listings
 7. **Calibration recommendations** (`scripts/calibrate_estimator.py --window-days 14`) — analyses 14-day trends and writes `assets/data/pricing-calibration-recommendations.json` with concrete tuning suggestions (e.g., "SUPER median has been below GUM median for 7+ days; consider bumping SUPER_PREMIUM_MID by ~50%"). Recommendation-only by design — auto-applying creates feedback loops on noisy days.
 8. Commits the new artifact + history + recommendations only when regression-clean.
 
-Free-tier budget per run (verified): ~1,200 eBay Browse calls (out of 5K/day free), ~25 GH Actions minutes (unlimited on public repos), ~5 D1 queries, ~5MB storage growth/month. Full end-to-end documentation: [PRICING_AUTOMATION.md](./PRICING_AUTOMATION.md). Architecture decision: DECISIONS.md #065.
+Free-tier budget per run (verified): ~1,200 eBay Browse calls (out of 5K/day free), ~25 minutes of local Mac compute, ~5 D1 queries, ~5MB storage growth/month. **Zero new credentials needed** — the cron inherits Ben's existing wrangler OAuth + macOS Keychain git auth. Full end-to-end documentation: [PRICING_AUTOMATION.md](./PRICING_AUTOMATION.md). Architecture decision: DECISIONS.md #065.
 
 **Future-proofing for audit changes**: adding a new audit (e.g., #10) automatically flows into history tracking (audit_counts dict is schema-agnostic), regression gating (add one rule in `CRITICAL_RULES`), and calibration (add a pattern check in `analyze_persistent_audit_patterns`). See PRICING_AUTOMATION.md §5 for the per-layer extension procedure.

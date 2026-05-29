@@ -551,18 +551,18 @@
       "coverage_pct": 63.8
     },
     {
-      "weapon": "ICE",
-      "tier": 2,
-      "in_catalog": 3240,
-      "with_estimate": 2666,
-      "coverage_pct": 82.3
-    },
-    {
       "weapon": "FIRE",
       "tier": 2,
       "in_catalog": 3241,
       "with_estimate": 2125,
       "coverage_pct": 65.6
+    },
+    {
+      "weapon": "ICE",
+      "tier": 2,
+      "in_catalog": 3240,
+      "with_estimate": 2666,
+      "coverage_pct": 82.3
     },
     {
       "weapon": "STEEL",
@@ -579,6 +579,13 @@
       "coverage_pct": 83.9
     },
     {
+      "weapon": "ALT",
+      "tier": null,
+      "in_catalog": 47,
+      "with_estimate": 47,
+      "coverage_pct": 100.0
+    },
+    {
       "weapon": "CYBER",
       "tier": null,
       "in_catalog": 28,
@@ -590,13 +597,6 @@
       "tier": null,
       "in_catalog": 3,
       "with_estimate": 3,
-      "coverage_pct": 100.0
-    },
-    {
-      "weapon": "ALT",
-      "tier": null,
-      "in_catalog": 47,
-      "with_estimate": 47,
       "coverage_pct": 100.0
     }
   ],
@@ -1085,8 +1085,8 @@
       "bobaId": "BGA-35-Woody-Inspired Ink Bubble Gum Battlefoil-Darren Woodson Debut-GUM"
     },
     {
-      "z": 6.15,
-      "mid": 6.54,
+      "z": 6.14,
+      "mid": 6.53,
       "cluster_median": 3.17,
       "cluster": [
         "Orange Blast",
@@ -2164,7 +2164,7 @@
     },
     {
       "z": 3.34,
-      "mid": 6.54,
+      "mid": 6.53,
       "cluster_median": 410.0,
       "cluster": [
         "Silver Blast",
@@ -2175,7 +2175,7 @@
     },
     {
       "z": 3.34,
-      "mid": 6.54,
+      "mid": 6.53,
       "cluster_median": 410.0,
       "cluster": [
         "Silver Blast",
@@ -2186,7 +2186,7 @@
     },
     {
       "z": 3.34,
-      "mid": 6.54,
+      "mid": 6.53,
       "cluster_median": 410.0,
       "cluster": [
         "Silver Blast",
@@ -2197,7 +2197,7 @@
     },
     {
       "z": 3.34,
-      "mid": 6.54,
+      "mid": 6.53,
       "cluster_median": 410.0,
       "cluster": [
         "Silver Blast",

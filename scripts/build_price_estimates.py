@@ -64,6 +64,7 @@ from collections import defaultdict
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CATALOG = os.path.join(REPO, "assets", "data", "cards.json")
+RARITY_MODEL = os.path.join(REPO, "assets", "data", "rarity-model.json")
 OUT = os.path.join(REPO, "assets", "data", "price-estimates.json")
 TRACKER_DIR = os.path.join(REPO, "workers", "pricing-tracker")
 
@@ -75,9 +76,9 @@ MIN_CARDS = 3           # need at least this many comps for any estimate
 # behavior where 1-of-1 chase cards trade at 5–50× same-treatment commons.
 # Tunable — Ben can fit these once real Super tracker data accrues and
 # the relationship to same-treatment comps can be measured.
-SUPER_PREMIUM_LOW  = 5
-SUPER_PREMIUM_MID  = 15
-SUPER_PREMIUM_HIGH = 50
+SUPER_PREMIUM_LOW  = 35
+SUPER_PREMIUM_MID  = 100
+SUPER_PREMIUM_HIGH = 300
 CONF_HIGH = 8
 PROXY = "https://boba-ebay-proxy.benwilkoff.workers.dev"
 
@@ -308,6 +309,20 @@ def main():
     args = ap.parse_args()
 
     cards = json.load(open(CATALOG))
+    # Load the canonical rarity model — used below to enforce strict
+    # treatment-match for rare-tier targets (DECISIONS.md #064 cross-tier
+    # leakage fix) and the existing SUPER tier-lock (#063).
+    rarity_model = json.load(open(RARITY_MODEL))
+    # treatments[name].distributionTier: 0=base, 1=all_sku, 2=hobby_jumbo,
+    # 3=mega_blaster, 4=single_sku, 5=superfoil_1of1. Tiers ≥ 2 are
+    # structurally rarer pull-rates → require same-treatment peers (no
+    # cross-treatment leakage from common Battlefoils).
+    treatment_tier = {name: (meta.get("distributionTier") or 0)
+                      for name, meta in rarity_model.get("treatments", {}).items()}
+    # Low-population printRun buckets — same logic as SUPER. /5 is Hex
+    # Inspired Ink chase; /1 is SUPER. /10, /25, /50 have wider markets
+    # (LeBoss IIS-style) so don't strict-require printRun match for them.
+    STRICT_PRINTRUN = {1, 5}
     # SUPER weapon is canonically 1-of-1 per assets/data/rarity-model.json
     # (label "one_of_one", distributionTier 5). Super cards aren't
     # numbered — they ARE the unique copy — so OCR can't pull a "/1"
@@ -382,6 +397,44 @@ def main():
     matched_by_card = 0
     matched_by_treatment = 0
     dropped_unparseable = 0
+    dropped_treatment_mismatch = 0
+
+    # Title-parsed treatment matcher (DECISIONS.md #064 — cross-treatment
+    # pool contamination fix). The Whatnot search endpoint does LOOSE word
+    # matching: a query for "Inspired Ink Metallic Battlefoil" returns
+    # listings actually titled "Inspired Ink Battlefoil" (no "Metallic") —
+    # they share most words and Whatnot doesn't enforce phrase precision.
+    # Pre-fix, the script created a synthetic comp entry labeled with the
+    # SEARCH-QUERY treatment, so an IIB listing at $200 got booked as an
+    # IIMBF synthetic comp at $200, polluting the rarer treatment's pool
+    # and flattening 240 IIMBF cards to wrong common-treatment prices.
+    # Fix: parse the treatment from the listing TITLE (longest match
+    # wins → most specific), and use THAT for the synthetic entry's
+    # treatment field. When the title-parsed treatment disagrees with
+    # the search query, the listing still contributes — to its CORRECT
+    # treatment's pool — but the rarer treatment's pool stays honest.
+    # Listings with no parseable treatment in the title get dropped.
+    treatments_by_len = sorted(
+        {t for t in distinct_treatments if t},
+        key=lambda s: -len(s),
+    )
+
+    def parse_treatment_from_title(title):
+        """Return the longest treatment whose lowercase form appears as a
+        substring of the lowercase title. None if none match. Substring is
+        sufficient because Whatnot listings use the treatment name verbatim
+        ("Inspired Ink Metallic Battlefoil"), and the catalog's treatment
+        strings are distinct enough that longest-match disambiguates
+        ("Inspired Ink Metallic Battlefoil" wins over "Inspired Ink
+        Battlefoil" wins over "Battlefoil"). Length-sorted match is the
+        same shape iOS / web / Android scan-result resolvers use."""
+        if not title:
+            return None
+        tl = title.lower()
+        for t in treatments_by_len:
+            if t.lower() in tl:
+                return t
+        return None
 
     for i, t_str in enumerate(treatments_to_query, 1):
         items = fetch_whatnot_listings(t_str)
@@ -408,21 +461,31 @@ def main():
                 priced_pool.append((chosen, price))
                 matched_by_card += 1
                 continue
-            # (B) weapon-only fallback → synthetic comp entry (treatment +
-            # weapon only, no other factors). It'll match targets sharing
-            # treatment+weapon at similarity 9.
+            # (B) weapon-only fallback → synthetic comp entry. The
+            # synthetic's treatment is parsed FROM THE TITLE, not taken
+            # from the search query, because Whatnot search returns
+            # treatment-mismatched listings (see comment block above on
+            # the title-parser). If no treatment can be parsed from the
+            # title, the listing is genuinely ambiguous and we drop it.
+            t_in_title = parse_treatment_from_title(title)
             w = parse_weapon_from_title(title)
-            if w:
-                synth = {"bobaId": WN_SENTINEL, "treatment": t_str, "element": w}
-                priced_pool.append((synth, price))
-                matched_by_treatment += 1
-            else:
-                dropped_unparseable += 1
+            if not t_in_title or not w:
+                if not t_in_title and not w:
+                    dropped_unparseable += 1
+                else:
+                    # Either treatment or weapon missing — can't anchor
+                    # the synthetic in the right pool.
+                    dropped_treatment_mismatch += 1
+                continue
+            synth = {"bobaId": WN_SENTINEL, "treatment": t_in_title, "element": w}
+            priced_pool.append((synth, price))
+            matched_by_treatment += 1
         if i % 10 == 0:
             print(f"  ... {i}/{len(treatments_to_query)} treatments queried")
         time.sleep(0.6)
     print(f"  Whatnot listings → per-card matches: {matched_by_card}, "
           f"treatment-level aggregates: {matched_by_treatment}, "
+          f"dropped (treatment-mismatch): {dropped_treatment_mismatch}, "
           f"dropped (no cardNumber/weapon): {dropped_unparseable}")
     print(f"  priced comp pool size: {len(priced_pool)}")
 
@@ -540,10 +603,57 @@ def main():
         # everything else (UI chip + future tier-locked matching once
         # Super tracker data accrues + every other consumer).
         target_for_scoring = {**c, "printRun": None} if rarity_extrapolated else c
+        # Strict-match gating for structurally-rare classes (DECISIONS.md
+        # #064). Combined-factor scoring is the right model for common
+        # cards — same weapon + same variation + same cardType + power
+        # tier easily reaches MIN_SIM regardless of treatment, which is
+        # why a /5 Inspired Ink Hex can usefully comp against a /5 Hex
+        # Battlefoil (printRun is the dominant scarcity signal). But
+        # for treatments at distributionTier ≥ 2 (hobby_jumbo / mega_
+        # blaster / single_sku / superfoil_1of1) the TREATMENT is the
+        # dominant scarcity signal, and cross-treatment matches drag
+        # the price toward the common pool. Pre-fix, IIMBF STEEL cards
+        # (tier 2) priced at $2.25 because they matched Beltré-debut
+        # peers across cheaper treatments. Same logic for /1 and /5
+        # printRun — those low-pop buckets must find same-printRun
+        # peers or honestly emit nothing.
+        t_target = c.get("treatment")
+        target_treatment_tier = treatment_tier.get(t_target, 0)
+        # Strict gates apply only OUTSIDE rarity-extrapolated mode. The
+        # rarity_extrapolated path is the SUPER (#063 + #064) fallback
+        # that intentionally broadens the pool and applies a hedged
+        # multiplier — gating it on same-treatment would empty the
+        # fallback pool too (Superfoil has 134 catalog cards × 0
+        # tracker comps as of 2026-05-29). Both strict gates skip in
+        # that mode; the multiplier carries the rarity premium instead.
+        #
+        # Strict-treatment applies to EVERY non-Base target (tier ≥ 1).
+        # Base Set commons (tier 0) freely cross-comp because the
+        # market is genuinely homogeneous — a Base Set FIRE LeBoss
+        # comps a Base Set FIRE Maverick at $3-5 across the catalog.
+        # Non-Base treatments (Battlefoil family, Inspired Ink family,
+        # Blasts, Headlines, etc.) each have their OWN market and the
+        # combined-factor scoring leaks low-priced Base FIRE peers
+        # into chase IIB FIRE pools at sim 11 (weapon+cardType+power
+        # +both_unserialized) — dragging IIB FIRE Mullin Debut to
+        # $2.86 against LeBoss Base Set FIRE commons at $4. The
+        # treatment-tier gate forces non-Base targets to find peers
+        # within their own treatment market or honestly skip. Tier ≥ 2
+        # already required this; tier ≥ 1 extends to mainstream
+        # Battlefoils + Inspired Ink. (DECISIONS.md #064.)
+        strict_treatment = (target_treatment_tier >= 1) and not rarity_extrapolated
+        pr_target = c.get("printRun")
+        strict_printrun = (pr_target in STRICT_PRINTRUN) and not rarity_extrapolated
         # Score every priced peer; skip self.
         scored = []
         for peer, price in eligible_peers:
             if peer.get("bobaId") == bid:
+                continue
+            # Strict gates — peer must match the dominant scarcity
+            # attribute or it can't comp this target.
+            if strict_treatment and peer.get("treatment") != t_target:
+                continue
+            if strict_printrun and peer.get("printRun") != pr_target:
                 continue
             s = similarity(target_for_scoring, peer)
             if s >= MIN_SIM:
@@ -558,7 +668,23 @@ def main():
         # take the top MAX_COMPS of what remains.
         scored.sort(key=lambda x: -x[0])
         top_sim = scored[0][0]
-        scored = [(s, p) for s, p in scored if s >= top_sim - MAX_SIM_GAP]
+        gap_kept = [(s, p) for s, p in scored if s >= top_sim - MAX_SIM_GAP]
+        gap_narrow_fallback = False
+        if len(gap_kept) < MIN_CARDS:
+            # Gap-filter clipped too aggressively — top 1-2 comps are
+            # unusually-tight matches (e.g., the 2 Whatnot per-card hits
+            # for BLBF-249/255 GLOW landing at sim 20-22 while the next
+            # tier of cross-weapon same-treatment peers sits at sim 13-17).
+            # Rather than skip the card (yields the missing-in-cluster
+            # pattern audit #6 catches), fall back to top-MIN_CARDS
+            # regardless of gap and mark conf="low". The honest answer
+            # for these cluster-edge targets — a wider comp pool with
+            # low confidence beats no estimate at all when the cluster
+            # itself has the data. (DECISIONS.md #064.)
+            scored = scored[:MIN_CARDS]
+            gap_narrow_fallback = True
+        else:
+            scored = gap_kept
         if len(scored) < MIN_CARDS:
             n_skipped_too_few += 1
             continue
@@ -593,10 +719,15 @@ def main():
                      f"(no Super tracker data yet; premium {SUPER_PREMIUM_LOW}–{SUPER_PREMIUM_HIGH}×)")
             conf = "low"
         else:
-            basis = "closest comparable cards (combined-factor similarity)"
-            # "med" only when comps are tight AND there are enough of them; the
-            # closest-comp model + ask-derived data won't yield "high" today.
-            conf  = "med" if (avg_sim >= CONF_AVG_SIM_MED and n >= CONF_HIGH) else "low"
+            if gap_narrow_fallback:
+                basis = ("closest comparable cards "
+                         "(combined-factor similarity; few in-cluster peers — wide-gap fallback)")
+                conf = "low"
+            else:
+                basis = "closest comparable cards (combined-factor similarity)"
+                # "med" only when comps are tight AND there are enough of them;
+                # the closest-comp model + ask-derived data won't yield "high".
+                conf  = "med" if (avg_sim >= CONF_AVG_SIM_MED and n >= CONF_HIGH) else "low"
         estimates[bid] = {
             "low":    round(low_raw, 2),
             "mid":    round(mid_raw, 2),

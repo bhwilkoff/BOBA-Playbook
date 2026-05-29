@@ -551,18 +551,18 @@
       "coverage_pct": 63.8
     },
     {
-      "weapon": "ICE",
-      "tier": 2,
-      "in_catalog": 3240,
-      "with_estimate": 2666,
-      "coverage_pct": 82.3
-    },
-    {
       "weapon": "FIRE",
       "tier": 2,
       "in_catalog": 3241,
       "with_estimate": 2125,
       "coverage_pct": 65.6
+    },
+    {
+      "weapon": "ICE",
+      "tier": 2,
+      "in_catalog": 3240,
+      "with_estimate": 2666,
+      "coverage_pct": 82.3
     },
     {
       "weapon": "STEEL",
@@ -579,10 +579,10 @@
       "coverage_pct": 83.9
     },
     {
-      "weapon": "NONE",
+      "weapon": "CYBER",
       "tier": null,
-      "in_catalog": 3,
-      "with_estimate": 3,
+      "in_catalog": 28,
+      "with_estimate": 28,
       "coverage_pct": 100.0
     },
     {
@@ -593,10 +593,10 @@
       "coverage_pct": 100.0
     },
     {
-      "weapon": "CYBER",
+      "weapon": "NONE",
       "tier": null,
-      "in_catalog": 28,
-      "with_estimate": 28,
+      "in_catalog": 3,
+      "with_estimate": 3,
       "coverage_pct": 100.0
     }
   ],
@@ -2845,5 +2845,7 @@
       "bobaId": "BLBF-386-DeKap-Blizzard Battlefoil-First Edition-FIRE"
     }
   ],
+  "suspect_high": [],
+  "outlier_rich_clusters": [],
   "top_priorities": []
 }

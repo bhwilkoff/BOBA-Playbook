@@ -526,12 +526,26 @@ def main():
                                          # tier-locked peers
         else:
             eligible_peers = priced_pool
+        # In rarity-extrapolated mode the catalog's canonical `printRun=1`
+        # on Super cards (DECISIONS.md #063) actively HURTS fallback
+        # matching: the cross-tier pool has zero Super peers, so neither
+        # `printRun_match` (needs both sides equal) nor `both_unserialized`
+        # (needs both None) fires — every comp scores 2 points lower than
+        # before the catalog change. That cost cascades: many Inspired Ink
+        # Superfoil cards (Palmer SFA-24, et al.) dropped below MIN_SIM=9
+        # and now skip in the hedged path that's supposed to catch them.
+        # Score the target with printRun virtualized to None for fallback
+        # scoring so both_unserialized fires against the pool's typical
+        # unnumbered peers. The catalog's printRun=1 stays canonical for
+        # everything else (UI chip + future tier-locked matching once
+        # Super tracker data accrues + every other consumer).
+        target_for_scoring = {**c, "printRun": None} if rarity_extrapolated else c
         # Score every priced peer; skip self.
         scored = []
         for peer, price in eligible_peers:
             if peer.get("bobaId") == bid:
                 continue
-            s = similarity(c, peer)
+            s = similarity(target_for_scoring, peer)
             if s >= MIN_SIM:
                 scored.append((s, price))
         if len(scored) < MIN_CARDS:

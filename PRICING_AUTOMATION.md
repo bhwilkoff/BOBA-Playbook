@@ -44,8 +44,7 @@
                                        ▼
                 ┌──────────────────────────────────────────────────────┐
                 │  DAILY 06:00 UTC  (.github/workflows/pricing-daily-   │
-                │                    refresh.yml — primary path)        │
-                │  Local launchd alternative also shipped in scripts/.  │
+                │                    refresh.yml)                       │
                 │                                                       │
                 │  1.  refresh_stale_prices --source ebay --limit 800   │
                 │  2.  refresh_stale_prices --source whatnot --limit 400│
@@ -137,33 +136,30 @@ moment a user opens a card detail.
 
 ## 3. The daily refresh layer
 
-**Primary path: GitHub Actions** — `.github/workflows/pricing-daily-
-refresh.yml`. Runs at 06:00 UTC daily on `ubuntu-latest` (unlimited
-minutes on public repos). Total ~15-25 minutes. Triggered by `schedule:`
-cron, `workflow_dispatch` for manual runs, or `gh workflow run` from
-the CLI.
+Runs in **GitHub Actions** (`.github/workflows/pricing-daily-
+refresh.yml`) at 06:00 UTC daily on `ubuntu-latest` (unlimited
+minutes on public repos). Total ~15-50 minutes depending on Whatnot
+crawl size. Triggered by `schedule:` cron, `workflow_dispatch` for
+manual runs, or `gh workflow run` from the CLI.
 
-**Alternative path: local launchd cron** — same scripts, different
-trigger. For users who want local-only execution (no GH secret), the
-repo ships `scripts/com.bobaplaybook.pricing-daily.plist` +
-`scripts/daily_pricing_refresh.sh` + `scripts/install_pricing_cron.sh`
-(see §7 "Local launchd alternative"). The scripts are identical;
-only the orchestration differs.
+### Why GH Actions (and only GH Actions)
 
-### Why GH Actions is the default
+The whole point of the pipeline is **continuous improvement without
+dependence on any single machine being awake**. Ben's Mac sleeps,
+travels, restarts, and occasionally drops off Wi-Fi. The estimator
+shouldn't pause for any of those.
 
-Independence from Ben's Mac. The daily refresh shouldn't pause when
-he's traveling, when the Mac is asleep, or when his network is flaky.
-GH Actions runs in GitHub's infrastructure, fires on the schedule
+GitHub Actions runs in GitHub's infrastructure, fires on schedule
 regardless of any local machine state, and surfaces failures in a
-single UI everyone with repo access can see.
+single UI everyone with repo access can see. Failures open issues
+automatically; success commits to main automatically.
 
-The trade-off is one new credential: `CLOUDFLARE_API_TOKEN` (D1:Read
-on `boba-pricing`) added as a repository secret. The wrangler CLI on
-a fresh ubuntu container can't reuse a local OAuth cache, so the
-token is the only way to authenticate `wrangler d1 execute` in CI.
-That's a 5-minute setup (§7) for a permanent removal of "Mac must be
-awake" as a dependency.
+The one credential cost — `CLOUDFLARE_API_TOKEN` (D1:Read on
+`boba-pricing`) added as a repository secret — is a 5-minute one-time
+setup (§7). The wrangler CLI on a fresh ubuntu container can't reuse
+a local OAuth cache, so the token is the only way to authenticate
+`wrangler d1 execute` in CI. Worth it for permanent removal of "any
+laptop must be awake" as a dependency.
 
 ### Steps in detail
 
@@ -290,51 +286,38 @@ top gives the headline. Most-likely failures:
 (Local launchd notes follow only if you opt into §7's local
 alternative; otherwise skip to Case 2.)
 
-#### Sub-case 1b — local launchd run fails (only if using §7 alternative)
-
-Open `~/Library/Logs/boba-pricing-daily.err.log` — the last `FATAL:`
-line names the step + cause. Most-likely failures:
-
-- **"wrangler not authenticated"** — local wrangler OAuth expired.
-  Run `npx wrangler whoami`. If not logged in, run `npx wrangler
-  login` once and re-trigger via `scripts/install_pricing_cron.sh
-  --trigger`.
-- **"required command 'X' not found in PATH"** — homebrew or python
-  moved. Edit the plist's `EnvironmentVariables` or the script's
-  `export PATH=` line.
-- **"git pull failed"** — usually merge conflict from manual local
-  edits. The script uses `--autostash` so simple uncommitted edits
-  rebase cleanly; a true merge conflict needs manual `git rebase
-  --continue` or `git rebase --abort`.
-- **eBay quota** — script is best-effort and continues with whatever
-  D1 has. If quota is consistently exhausted, lower `EBAY_STALE_LIMIT`
-  by editing the plist's `EnvironmentVariables` or the script.
-- **"Check regressions" failed** — by design. See Case 2.
-
 ### Case 2 — critical regression aborts the commit
 
-Notification: "BOBA pricing daily — REGRESSION". The artifact was
-rebuilt locally but NOT committed; the Worker keeps serving
-yesterday's good data. Diagnosis:
+A GitHub issue with labels `pricing,regression,automated` was opened
+by the workflow. The artifact was rebuilt in CI but NOT committed;
+the Worker keeps serving yesterday's good data. Diagnosis:
 
-1. Run locally to confirm:
-   `python3 scripts/audit_estimator.py --rebuild`
-2. Inspect the audit JSON for the offending category. For
-   `two_plus_flagged` reappearance, the report's "TOP INVESTIGATION
+1. Read the audit summary in the issue body (auto-attached by the
+   workflow). For `two_plus_flagged` growth, the "TOP INVESTIGATION
    PRIORITIES" section names the specific cards.
-3. Diagnose root cause. Common patterns:
+2. Diagnose root cause. Common patterns:
    - **Tracker data shift** (new chase listing landed and contaminated
      a cluster) → wait one more day to see if next snapshot
-     stabilises, then re-run workflow.
+     stabilises, then re-run the workflow via `gh workflow run
+     "pricing · daily refresh + audit"`.
    - **Script regression** (someone tuned `SIM_WEIGHTS` or a strict
      gate threshold) → `git log` on `scripts/build_price_estimates.py`,
-     identify the change, fix or revert.
+     identify the change, fix or revert, push to main. Next cron picks
+     it up; or trigger immediately via `gh workflow run`.
    - **New audit pattern** (audit script gained a stricter check) →
-     either tune the script's threshold or accept the new floor.
-4. Force-rebuild + ship the corrected artifact:
-   `scripts/daily_pricing_refresh.sh --skip-refresh` (after the fix is
-   committed). Skip-refresh avoids burning quota since you already have
-   the data; just rebuilds + audits + commits if regression-clean.
+     either tune the script's threshold + commit, or accept the new
+     floor and let the next cron re-baseline.
+3. **All fixes are commit-then-trigger, never run-locally-and-ship.**
+   The daily artifact ships only from CI. Local rebuilds during
+   investigation are fine for diagnosis but never get force-pushed
+   over the CI version — let the next cron (or a manual
+   `workflow_dispatch`) produce the corrected artifact.
+
+   The principle: **the cloud is the only source of truth for the
+   artifact**. Local rebuilds drift from CI in subtle ways (Whatnot
+   proxy response variation, D1 query timing, Python version diffs).
+   When a regression happens, fix the SCRIPTS in the repo, push, and
+   let CI rebuild. Don't shortcut.
 
 ### Case 3 — workflow succeeds but estimates look wrong cross-platform
 
@@ -450,7 +433,7 @@ in history; calibration adjusts its baseline.
 
 ## 7. Setup checklist (one-time, when first enabling)
 
-### Primary path — GitHub Actions
+### GitHub Actions setup
 
 1. **Create a Cloudflare API token** at
    [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens):
@@ -475,28 +458,6 @@ in history; calibration adjusts its baseline.
 6. **Subscribe to issue notifications** with `pricing,regression`
    labels so you see automated alerts.
 
-### Local launchd alternative (optional, only if you want local execution)
-
-The repo ships the launchd files for users who want local-only
-execution instead of cloud. **You do not need both.** Skip this
-section unless you have a specific reason to prefer local.
-
-1. **Verify wrangler auth**: `npx wrangler whoami` (should print
-   "logged in with an OAuth Token, associated with the email …";
-   else `npx wrangler login` once)
-2. **Verify git push works without prompt**: `git push origin main
-   --dry-run` (else `git config --global credential.helper osxkeychain`
-   + run `git push` once interactively to cache)
-3. **Install the launchd job**: `scripts/install_pricing_cron.sh`
-4. **Test-fire**: `scripts/install_pricing_cron.sh --trigger` +
-   `tail -f ~/Library/Logs/boba-pricing-daily.out.log`
-5. **Monitor first 7 days** — cron fires daily at 09:00 local;
-   regressions surface via macOS notification
-6. **Allow notifications** — System Settings → Notifications → Script
-   Editor → Allow
-
-To uninstall: `scripts/install_pricing_cron.sh --uninstall`
-
 ---
 
 ## 8. References
@@ -516,12 +477,8 @@ To uninstall: `scripts/install_pricing_cron.sh --uninstall`
   — CI gate against regressions
 - [`scripts/calibrate_estimator.py`](./scripts/calibrate_estimator.py)
   — recommendation engine
-- [`scripts/daily_pricing_refresh.sh`](./scripts/daily_pricing_refresh.sh)
-  — orchestrator shell script
-- [`scripts/com.bobaplaybook.pricing-daily.plist`](./scripts/com.bobaplaybook.pricing-daily.plist)
-  — launchd schedule (09:00 local daily)
-- [`scripts/install_pricing_cron.sh`](./scripts/install_pricing_cron.sh)
-  — one-shot installer
+- [`.github/workflows/pricing-daily-refresh.yml`](./.github/workflows/pricing-daily-refresh.yml)
+  — daily cron orchestration
 
 Per-platform pricing rendering binding docs:
 [`DESIGN.md`](./DESIGN.md) §8.7 · [`WEB-DESIGN.md`](./WEB-DESIGN.md)

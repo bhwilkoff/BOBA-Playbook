@@ -925,7 +925,7 @@ python3 scripts/audit_estimator.py --rebuild # rebuild then audit
 
 The audit slots into the §6.6 maintenance loop alongside `crawl_active_listings.py` + `refresh_stale_prices.py` + `build_price_estimates.py`. Recommended cadence: run the audit after every `build_price_estimates.py` rebuild; spend ~5 min reading top of the cross-audit list before committing the artifact.
 
-**Extended 2026-05-29** (post-#064 audit-driven calibration): the framework grew from 7 audits to 9 (added suspect-HIGH for upward cross-treatment leakage detection + outlier-rich clusters for systematic-bug catching), and the loop is now WIRED INTO A DAILY GITHUB ACTIONS WORKFLOW (`.github/workflows/pricing-daily-refresh.yml`, with `scripts/daily_pricing_refresh.sh` + `scripts/com.bobaplaybook.pricing-daily.plist` shipped as a local-launchd alternative for users who want local-only execution) that:
+**Extended 2026-05-29** (post-#064 audit-driven calibration): the framework grew from 7 audits to 9 (added suspect-HIGH for upward cross-treatment leakage detection + outlier-rich clusters for systematic-bug catching), and the loop is now WIRED INTO A DAILY GITHUB ACTIONS WORKFLOW (`.github/workflows/pricing-daily-refresh.yml` — runs in GitHub's infrastructure on `ubuntu-latest`, no laptop dependency) that:
 
 1. Refreshes stale prices via the eBay proxy (`refresh_stale_prices.py --limit 800`) + Whatnot (`--limit 400`)
 2. Seeds new coverage via stratified crawl (`crawl_active_listings.py --limit 400`)

@@ -281,7 +281,33 @@ jobs:
 
           Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           See PRICING_AUTOMATION.md for the loop architecture."
-          git push origin HEAD:main
+
+          # Race-safe push: main may have moved during the 25-80 min
+          # the workflow ran. Pull --rebase --autostash; if a conflict
+          # lands on one of the auto-generated JSON files, take CI's
+          # version (it has the freshest D1 data). Retry the push up
+          # to 3 times in case of further races. The 'theirs' strategy
+          # only applies to the artifact files we just generated; any
+          # other file conflict still fails loudly, which is what we
+          # want — the workflow only owns these four artifacts.
+          push_with_retry() {
+            for attempt in 1 2 3; do
+              git fetch origin main
+              if git rebase --strategy-option=theirs origin/main; then
+                if git push origin HEAD:main; then
+                  echo "✓ pushed on attempt $attempt"
+                  return 0
+                fi
+              else
+                git rebase --abort 2>/dev/null || true
+              fi
+              echo "  push attempt $attempt failed; sleeping 10s before retry"
+              sleep 10
+            done
+            echo "::error::Push failed after 3 attempts — main is moving too fast or there's a real conflict outside the artifact files. Manual intervention needed."
+            return 1
+          }
+          push_with_retry
 
       # ── 11. Summary annotation in run UI ─────────────────────────
       - name: Workflow summary

@@ -137,10 +137,26 @@ moment a user opens a card detail.
 ## 3. The daily refresh layer
 
 Runs in **GitHub Actions** (`.github/workflows/pricing-daily-
-refresh.yml`) at 06:00 UTC daily on `ubuntu-latest` (unlimited
-minutes on public repos). Total ~15-50 minutes depending on Whatnot
-crawl size. Triggered by `schedule:` cron, `workflow_dispatch` for
-manual runs, or `gh workflow run` from the CLI.
+refresh.yml`) on `ubuntu-latest` (unlimited minutes on public repos).
+Total ~15-50 min on weekdays, ~30-80 min on weekend bursts. Triggered
+by:
+
+- **Weekdays Mon-Fri 06:00 UTC** (`'0 6 * * 1-5'`) — standard limits
+  (800/400/800/1200 for eBay-stale/Whatnot-stale/eBay-crawl/Whatnot-
+  crawl). ~1,600 eBay calls + ~1,600 Whatnot.
+- **Weekends Sat+Sun 00:30 UTC** (`'30 0 * * 0,6'`) — elevated burst
+  limits (1200/800/1800/3000). Fires AT THE START of the UTC day so
+  the 5K/day eBay quota is freshest; weekend user traffic is ~50% of
+  weekday, leaving more cron headroom. ~3,000 eBay + ~3,800 Whatnot.
+  REPLACES the weekday 06:00 UTC run on weekends — they don't both
+  fire.
+- **`workflow_dispatch`** for manual runs (catch-up, recovery, or
+  experimentation with custom limits).
+
+The workflow detects which schedule fired via `github.event.schedule`
+and switches the env defaults accordingly. The "Run mode summary"
+step at the top of every run prints which mode is active so it's
+visible at a glance in the Actions UI.
 
 ### Why GH Actions (and only GH Actions)
 
@@ -248,15 +264,35 @@ the pages-deploy CI from re-triggering this workflow.
 summary so each run's UI page shows the key metrics at a glance
 without digging into logs.
 
-### Free-tier budget for the daily refresh
+### Free-tier budget per run
+
+**Weekday daily (Mon-Fri 06:00 UTC)**:
 
 | Resource | Per-run | Daily total | Free-tier limit | Headroom |
 |---|---|---|---|---|
 | GH Actions minutes | ~25-40 min | ~40 min/day | unlimited (public repo) | ∞ |
-| eBay Browse API | ~1,600 | ~1,600 (+3K user traffic = ~4,600) | 5,000/day | 8% |
+| eBay Browse API | ~1,600 cron + ~3K user traffic | ~4,600 | 5,000/day | 8% |
 | Whatnot proxy calls | ~1,600 | ~1,600 | rate-limit only | n/a |
+
+**Weekend burst (Sat+Sun 00:30 UTC)**:
+
+| Resource | Per-run | Daily total | Free-tier limit | Headroom |
+|---|---|---|---|---|
+| GH Actions minutes | ~50-80 min | ~80 min/day | unlimited (public repo) | ∞ |
+| eBay Browse API | ~3,000 cron + ~1.5K user traffic | ~4,500 | 5,000/day | 10% |
+| Whatnot proxy calls | ~3,800 | ~3,800 | rate-limit only | n/a |
+
+**Weekly total**: ~12K eBay cron calls (5 weekday × 1.6K + 2 weekend
+× 3K) + ~22K user traffic = ~34K eBay calls/week, vs 35K free-tier
+weekly cap (5K × 7). 4% headroom — the weekend burst pushes the
+budget to near-capacity intentionally; that's the point.
+
+**Daily-invariant resources**:
+
+| Resource | Per-run | Daily | Free-tier limit | Headroom |
+|---|---|---|---|---|
 | Cloudflare D1 reads | ~5 queries | ~5/day | 5M/day | >99.99% |
-| Cloudflare Worker requests | ~3,200 (proxy hits, both APIs) | ~3,200 | 100K/day | 97% |
+| Cloudflare Worker requests | ~3,200 (weekday) / ~6,800 (weekend) | per above | 100K/day | 93-97% |
 | Storage | ~5MB (artifacts + history) | grows ~50KB/day | n/a | n/a |
 
 ---

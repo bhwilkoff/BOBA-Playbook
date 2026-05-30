@@ -34,7 +34,15 @@ name: pricing · daily refresh + audit
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # 06:00 UTC daily
+    # Weekdays: 06:00 UTC daily refresh with standard limits
+    - cron: '0 6 * * 1-5'
+    # Weekends: 00:30 UTC catch-up burst with elevated limits.
+    # Fires AT THE START of the UTC day so eBay quota is freshest;
+    # weekend user traffic is ~50% of weekday, leaving more cron
+    # headroom under the 5K/day free tier. Weekends SKIP the 06:00
+    # UTC daily run — this burst replaces it, walking ~2× more
+    # cards via eBay and ~3× via Whatnot than a weekday run.
+    - cron: '30 0 * * 0,6'
 
   workflow_dispatch:
     inputs:
@@ -69,10 +77,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
-      EBAY_STALE_LIMIT: ${{ inputs.ebay_stale_limit || '800' }}
-      WHATNOT_STALE_LIMIT: ${{ inputs.whatnot_stale_limit || '400' }}
-      CRAWL_NEW_LIMIT: ${{ inputs.crawl_new_limit || '800' }}
-      WHATNOT_CRAWL_LIMIT: ${{ inputs.whatnot_crawl_limit || '1200' }}
+      # IS_WEEKEND_BURST detects whether this run was triggered by the
+      # weekend-burst cron schedule (vs. weekday-daily or manual).
+      # github.event.schedule contains the literal cron expression that
+      # fired the workflow when it's a scheduled run; empty otherwise.
+      IS_WEEKEND_BURST: ${{ github.event.schedule == '30 0 * * 0,6' && 'true' || 'false' }}
+      # Per-run limits. Workflow inputs (manual dispatch) override
+      # everything; otherwise weekend-burst uses elevated defaults and
+      # weekday-daily uses standard defaults.
+      # Weekend burst budget: ~3,000 eBay calls (vs ~1,600 weekday) +
+      # ~3,800 Whatnot (vs ~1,600 weekday). Weekend user traffic ~1,500
+      # eBay calls leaves ~4,500 of the 5K daily eBay quota consumed.
+      EBAY_STALE_LIMIT: ${{ inputs.ebay_stale_limit || (github.event.schedule == '30 0 * * 0,6' && '1200' || '800') }}
+      WHATNOT_STALE_LIMIT: ${{ inputs.whatnot_stale_limit || (github.event.schedule == '30 0 * * 0,6' && '800' || '400') }}
+      CRAWL_NEW_LIMIT: ${{ inputs.crawl_new_limit || (github.event.schedule == '30 0 * * 0,6' && '1800' || '800') }}
+      WHATNOT_CRAWL_LIMIT: ${{ inputs.whatnot_crawl_limit || (github.event.schedule == '30 0 * * 0,6' && '3000' || '1200') }}
       SKIP_REFRESH: ${{ inputs.skip_refresh || 'false' }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -94,6 +113,12 @@ jobs:
 
       - name: Install wrangler
         run: npm install -g wrangler@latest
+
+      - name: Run mode summary
+        run: |
+          echo "Schedule that fired: '${{ github.event.schedule }}' (empty = manual dispatch)"
+          echo "Weekend burst mode: $IS_WEEKEND_BURST"
+          echo "Limits this run: ebay_stale=$EBAY_STALE_LIMIT  ebay_crawl=$CRAWL_NEW_LIMIT  whatnot_stale=$WHATNOT_STALE_LIMIT  whatnot_crawl=$WHATNOT_CRAWL_LIMIT"
 
       - name: Verify Cloudflare credentials
         run: |

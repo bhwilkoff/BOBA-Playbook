@@ -67,7 +67,7 @@ permissions:
 jobs:
   daily-refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     env:
       EBAY_STALE_LIMIT: ${{ inputs.ebay_stale_limit || '800' }}
       WHATNOT_STALE_LIMIT: ${{ inputs.whatnot_stale_limit || '400' }}

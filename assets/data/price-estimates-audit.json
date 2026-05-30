@@ -16,44 +16,44 @@
       {
         "weapon": "HEX",
         "tier": 4,
-        "n": 1637,
+        "n": 2183,
         "median": 294.95
       },
       {
         "weapon": "GLOW",
         "tier": 3,
-        "n": 1736,
-        "median": 102.49
+        "n": 1972,
+        "median": 143.5
       },
       {
         "weapon": "FIRE",
         "tier": 2,
-        "n": 2125,
-        "median": 45.1
+        "n": 2668,
+        "median": 53.3
       },
       {
         "weapon": "ICE",
         "tier": 2,
-        "n": 2666,
-        "median": 32.8
+        "n": 2902,
+        "median": 41.0
       },
       {
         "weapon": "STEEL",
         "tier": 1,
         "n": 2486,
-        "median": 17.62
+        "median": 15.99
       },
       {
         "weapon": "BRAWL",
         "tier": 1,
-        "n": 1363,
+        "n": 1494,
         "median": 82.0
       },
       {
         "weapon": "ALT",
         "tier": null,
         "n": 47,
-        "median": 27.05
+        "median": 23.78
       },
       {
         "weapon": "CYBER",
@@ -72,37 +72,37 @@
       {
         "higher_tier": "FIRE",
         "lower_tier": "BRAWL",
-        "higher_median": 45.1,
+        "higher_median": 53.3,
         "lower_median": 82.0
       },
       {
         "higher_tier": "FIRE",
         "lower_tier": "CYBER",
-        "higher_median": 45.1,
+        "higher_median": 53.3,
         "lower_median": 311.59
       },
       {
         "higher_tier": "ICE",
         "lower_tier": "BRAWL",
-        "higher_median": 32.8,
+        "higher_median": 41.0,
         "lower_median": 82.0
       },
       {
         "higher_tier": "ICE",
         "lower_tier": "CYBER",
-        "higher_median": 32.8,
+        "higher_median": 41.0,
         "lower_median": 311.59
       },
       {
         "higher_tier": "STEEL",
         "lower_tier": "ALT",
-        "higher_median": 17.62,
-        "lower_median": 27.05
+        "higher_median": 15.99,
+        "lower_median": 23.78
       },
       {
         "higher_tier": "STEEL",
         "lower_tier": "CYBER",
-        "higher_median": 17.62,
+        "higher_median": 15.99,
         "lower_median": 311.59
       },
       {
@@ -132,7 +132,7 @@
       {
         "higher_tier": "GLOW",
         "lower_tier": "CYBER",
-        "higher_median": 102.49,
+        "higher_median": 143.5,
         "lower_median": 311.59
       }
     ]
@@ -147,7 +147,7 @@
       {
         "printRun": 10,
         "n": 46,
-        "median": 1722.0
+        "median": 1721.95
       },
       {
         "printRun": 25,
@@ -157,7 +157,7 @@
       {
         "printRun": 50,
         "n": 261,
-        "median": 205.0
+        "median": 246.0
       }
     ],
     "violations": [
@@ -165,7 +165,7 @@
         "lower_pr": 1,
         "higher_pr": 10,
         "lower_median": 307.5,
-        "higher_median": 1722.0
+        "higher_median": 1721.95
       }
     ]
   },
@@ -343,7 +343,7 @@
       "lower_tier": "Inspired Ink Bubble Gum Battlefoil",
       "higher_tier": "Superfoil",
       "lower_median": 389.5,
-      "higher_median": 245.59
+      "higher_median": 245.18
     },
     {
       "hero": "Mull & Bones",
@@ -497,13 +497,13 @@
       "lower_tier": "Cyber",
       "higher_tier": "80's Rad Battlefoil",
       "lower_median": 311.59,
-      "higher_median": 49.2
+      "higher_median": 102.5
     },
     {
       "hero": "X.L.",
       "lower_tier": "Billy Cameo Alt Arts",
       "higher_tier": "Blue Blast",
-      "lower_median": 27.05,
+      "lower_median": 23.78,
       "higher_median": 12.0
     },
     {
@@ -514,11 +514,11 @@
       "higher_median": 12.0
     },
     {
-      "hero": "A.I.",
-      "lower_tier": "Silver Blast",
-      "higher_tier": "80's Rad Battlefoil",
-      "lower_median": 54.52,
-      "higher_median": 17.62
+      "hero": "Magic",
+      "lower_tier": "Grape",
+      "higher_tier": "Blue Blast",
+      "lower_median": 19.68,
+      "higher_median": 12.0
     }
   ],
   "coverage_by_weapon": [
@@ -530,6 +530,13 @@
       "coverage_pct": 100.0
     },
     {
+      "weapon": "HEX",
+      "tier": 4,
+      "in_catalog": 2491,
+      "with_estimate": 2183,
+      "coverage_pct": 87.6
+    },
+    {
       "weapon": "GUM",
       "tier": 4,
       "in_catalog": 499,
@@ -537,31 +544,24 @@
       "coverage_pct": 100.0
     },
     {
-      "weapon": "HEX",
-      "tier": 4,
-      "in_catalog": 2491,
-      "with_estimate": 1637,
-      "coverage_pct": 65.7
-    },
-    {
       "weapon": "GLOW",
       "tier": 3,
       "in_catalog": 2722,
-      "with_estimate": 1736,
-      "coverage_pct": 63.8
-    },
-    {
-      "weapon": "FIRE",
-      "tier": 2,
-      "in_catalog": 3241,
-      "with_estimate": 2125,
-      "coverage_pct": 65.6
+      "with_estimate": 1972,
+      "coverage_pct": 72.4
     },
     {
       "weapon": "ICE",
       "tier": 2,
       "in_catalog": 3240,
-      "with_estimate": 2666,
+      "with_estimate": 2902,
+      "coverage_pct": 89.6
+    },
+    {
+      "weapon": "FIRE",
+      "tier": 2,
+      "in_catalog": 3241,
+      "with_estimate": 2668,
       "coverage_pct": 82.3
     },
     {
@@ -575,15 +575,8 @@
       "weapon": "BRAWL",
       "tier": 1,
       "in_catalog": 1625,
-      "with_estimate": 1363,
-      "coverage_pct": 83.9
-    },
-    {
-      "weapon": "ALT",
-      "tier": null,
-      "in_catalog": 47,
-      "with_estimate": 47,
-      "coverage_pct": 100.0
+      "with_estimate": 1494,
+      "coverage_pct": 91.9
     },
     {
       "weapon": "CYBER",
@@ -598,54 +591,1631 @@
       "in_catalog": 3,
       "with_estimate": 3,
       "coverage_pct": 100.0
+    },
+    {
+      "weapon": "ALT",
+      "tier": null,
+      "in_catalog": 47,
+      "with_estimate": 47,
+      "coverage_pct": 100.0
     }
   ],
   "suspect_low": [
     {
-      "bobaId": "S-105/100-McArmyKnife-Paper-Secret Starter-GLOW",
-      "mid": 4.91,
-      "floor": 10,
-      "weapon": "GLOW",
+      "bobaId": "CJ-12-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
       "printRun": null,
-      "treatment": "Paper"
+      "treatment": "Grandma's Linoleum Battlefoil"
     },
     {
-      "bobaId": "Promo-A.I.-Exclusive Battlefoil--GLOW",
-      "mid": 9.84,
-      "floor": 10,
-      "weapon": "GLOW",
+      "bobaId": "GLBF-1-Bojax-Grandma's Linoleum Battlefoil-2026 Founding Hero-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
       "printRun": null,
-      "treatment": "Exclusive Battlefoil"
+      "treatment": "Grandma's Linoleum Battlefoil"
     },
     {
-      "bobaId": "Promo-Amon-Ra-Exclusive Battlefoil--GLOW",
-      "mid": 9.84,
-      "floor": 10,
-      "weapon": "GLOW",
+      "bobaId": "GLBF-1-A.I.-Grandma's Linoleum Battlefoil-Allen Iverson Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
       "printRun": null,
-      "treatment": "Exclusive Battlefoil"
+      "treatment": "Grandma's Linoleum Battlefoil"
     },
     {
-      "bobaId": "Promo-Brandi-Exclusive Battlefoil--GLOW",
-      "mid": 9.84,
-      "floor": 10,
-      "weapon": "GLOW",
+      "bobaId": "GLBF-2-Magic-Grandma's Linoleum Battlefoil-Magic Johnson Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
       "printRun": null,
-      "treatment": "Exclusive Battlefoil"
+      "treatment": "Grandma's Linoleum Battlefoil"
     },
     {
-      "bobaId": "Promo-Cruschman-Exclusive Battlefoil--GLOW",
-      "mid": 9.84,
-      "floor": 10,
-      "weapon": "GLOW",
+      "bobaId": "GLBF-2-The Kid-Grandma's Linoleum Battlefoil-Cover Hero-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
       "printRun": null,
-      "treatment": "Exclusive Battlefoil"
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-3-Emmitt-164-Grandma's Linoleum Battlefoil-Emmitt Smith Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-3-Dr. J-Grandma's Linoleum Battlefoil-Julius Erving Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-4-Marino-Grandma's Linoleum Battlefoil-Dan Marino Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-4-Freakshow-Grandma's Linoleum Battlefoil-Giannis Antetokounmpo Unmasked-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-5-Barry \"Cutback\" Sanders-Grandma's Linoleum Battlefoil-Barry Sanders Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-5-Cruze Control-Grandma's Linoleum Battlefoil-Elly De La Cruz Unmasked-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-6-Muggsy-Grandma's Linoleum Battlefoil-Muggsy Bogues Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-6-Young-Gunner-Grandma's Linoleum Battlefoil-Steve Young Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-6-Burner-Grandma's Linoleum Battlefoil-Jalen Brunson Unmasked-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-7-Spudnick-Grandma's Linoleum Battlefoil-Spudd Webb Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-7-Unanimous Sandman-Grandma's Linoleum Battlefoil-Mariano Rivera Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-8-The Ironman-Grandma's Linoleum Battlefoil-Cal Ripkin JR Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-8-Gigante-Grandma's Linoleum Battlefoil-Pedro Mart\u00ednez Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-9-Peek-A-Boo-Grandma's Linoleum Battlefoil-Picabo Street Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-9-Cousin-Grandma's Linoleum Battlefoil-Randy Quaid Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-10-Wizard-Grandma's Linoleum Battlefoil-Ozzie Smith Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-10-Rocket-Grandma's Linoleum Battlefoil-Roger Clemens Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-11-Joey Jawz-Grandma's Linoleum Battlefoil-Joey Chestnut Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-11-Leducky-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-11-Troy of Dallas-Grandma's Linoleum Battlefoil-Troy Aikman Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-12-Bus-Grandma's Linoleum Battlefoil-Jerome Bettis Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-12-Cheryl Bomb-Grandma's Linoleum Battlefoil-Cheryl Miller Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-13-Chicken Man-Grandma's Linoleum Battlefoil-Wade Boggs Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-13-Nice Game Pretty Boy-Grandma's Linoleum Battlefoil-Keith Hern\u00e1ndez Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-14-HowBout'em-Grandma's Linoleum Battlefoil-Jimmy Johnson Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-14-Big Papi-Grandma's Linoleum Battlefoil-David Ortiz Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-15-Sea-Largent-Grandma's Linoleum Battlefoil-Steve Largent Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-15-King Felix-Grandma's Linoleum Battlefoil-F\u00e9lix Hern\u00e1ndez Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-16-Howietzer-Grandma's Linoleum Battlefoil-Howie Long Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-16-Boz-Grandma's Linoleum Battlefoil-Brian Bosworth Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-16-Peppers-Grandma's Linoleum Battlefoil-Julius Peppers Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-17-Goggles-Grandma's Linoleum Battlefoil-Eric Dickerson Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-17-King Henrik-Grandma's Linoleum Battlefoil-Henrik Lundqvist Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-18-Steady Eddie-Grandma's Linoleum Battlefoil-Eddie George Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-18-Destroya-Grandma's Linoleum Battlefoil-Patrick Ewing Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-19-X.L.-Grandma's Linoleum Battlefoil-Xavier Legette Alpha Update-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-19-Big Geo-Grandma's Linoleum Battlefoil-Craig Biggio Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-20-Pet Dog-Grandma's Linoleum Battlefoil-Ethan Petry Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-20-Bags-Grandma's Linoleum Battlefoil-Jeff Bagwell Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-21-Windmill-Grandma's Linoleum Battlefoil-Dominique Wilkins Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-21-Cruschman-Grandma's Linoleum Battlefoil-Adley Rutshman Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-21-Goofin' Off-Grandma's Linoleum Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-22-Boom-Grandma's Linoleum Battlefoil-Boomer Esiason Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-22-Mr. October-Grandma's Linoleum Battlefoil-Reggie Jackson Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-23-Cameleon-Grandma's Linoleum Battlefoil-Cameron Brink Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-23-Tigre-Grandma's Linoleum Battlefoil-Miguel Cabrera Unmasked-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-24-Cura\u00e7ao Kid-Grandma's Linoleum Battlefoil-Anduw Jones Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-24-Senior-Grandma's Linoleum Battlefoil-Ken Griffey Sr. Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-25-Sterling-Grandma's Linoleum Battlefoil-Sterling Sharpe Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-25-Ramponage-Grandma's Linoleum Battlefoil-Christie Pearce Rampone Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-26-Caveman-Grandma's Linoleum Battlefoil-Johnny Damon Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-26-Allenwrench-Grandma's Linoleum Battlefoil-Marcus Allen Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-26-Fingers-Grandma's Linoleum Battlefoil-Rollie Fingers Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-27-Lady Magic-Grandma's Linoleum Battlefoil-Nancy Lieberman Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-27-Gator-Grandma's Linoleum Battlefoil-Steve Spurrier Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-28-Hoge-Ball-Grandma's Linoleum Battlefoil-Merril Hoge Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-28-ECKS-Grandma's Linoleum Battlefoil-Dennis Eckersley Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-29-InVinceable-Grandma's Linoleum Battlefoil-Vince Young Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-29-All day-Grandma's Linoleum Battlefoil-Adrian Peterson Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-30-Slash-Grandma's Linoleum Battlefoil-Kordell Stewart Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-30-Smoltzie-Grandma's Linoleum Battlefoil-John Smoltz Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-31-Tikoff-Grandma's Linoleum Battlefoil-Fred Biletnikoff Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-31-Star-Bach-Grandma's Linoleum Battlefoil-Roger Staubach Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-31-Pudge-Grandma's Linoleum Battlefoil-Carlton Fisk Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-32-Bone-Grandma's Linoleum Battlefoil-Jay Buhner Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-32-Vlad the Impaler-Grandma's Linoleum Battlefoil-Vladimir Guerrero Sr. Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-33-Kurse-Grandma's Linoleum Battlefoil-Jevon Kearse Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-33-Billhook-Grandma's Linoleum Battlefoil-Chauncey Billups Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-34-Deep Freeze-Grandma's Linoleum Battlefoil-George Gervin Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-34-Mull & Bones-Grandma's Linoleum Battlefoil-Chris Mullin Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-35-Woody-Grandma's Linoleum Battlefoil-Darren Woodson Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-35-Bells-Grandma's Linoleum Battlefoil-George Bell Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-36-Coopanova-Grandma's Linoleum Battlefoil-Cynthia Cooper Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-36-Grand-Ma-Ma-Grandma's Linoleum Battlefoil-Larry Johnson Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-36-Rainestorm-Grandma's Linoleum Battlefoil-Tim Raines Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-37-Hard-Drive-Grandma's Linoleum Battlefoil-Tim Hardaway Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-37-The Red Baron-Grandma's Linoleum Battlefoil-Rick Sutcliffe Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-38-BuckShot-Grandma's Linoleum Battlefoil-Buck Showalter Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-38-JAW-JAW-Grandma's Linoleum Battlefoil-Ron Jaworski Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-39-Haymaker-Grandma's Linoleum Battlefoil-Spencer Haywood Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-39-Gar-Grandma's Linoleum Battlefoil-Edgar Martinez Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-40-Tank-Grandma's Linoleum Battlefoil-Bo Said So-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-40-JPEG-Grandma's Linoleum Battlefoil-Jessica Pegula Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-41-Skeee-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-41-Amon-Ra-Grandma's Linoleum Battlefoil-Amon-Ra St. Brown Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-41-Captain Hook-Grandma's Linoleum Battlefoil-Jack Morris Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-42-AJax-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-42-Hambone-Grandma's Linoleum Battlefoil-Jack Ham Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-43-Highway to Helton-Grandma's Linoleum Battlefoil-Todd Helton Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-44-Tommy G-Grandma's Linoleum Battlefoil-Tom Glavine Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-45-Herro-Grandma's Linoleum Battlefoil-Tyler Herro Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-46-Waddler-Grandma's Linoleum Battlefoil-Jaylen Waddle Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-46-Bern Baby, Bern-Grandma's Linoleum Battlefoil-Bernie Williams Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-47-Altitude-Grandma's Linoleum Battlefoil-Jozy Altidore Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-48-Eraser-Grandma's Linoleum Battlefoil-Alysha Clark Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-49-Belladonna-Grandma's Linoleum Battlefoil-Elena Delle Donne Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-50-Shells-Grandma's Linoleum Battlefoil-Donnie Shell Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-51-Donnie Baseball-Grandma's Linoleum Battlefoil-Don Mattingly Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-51-Boston Strongboy-Grandma's Linoleum Battlefoil-Jim Rice Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-52-Walk The Plank-Grandma's Linoleum Battlefoil-Doug Plank Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-53-Robin Hood-Grandma's Linoleum Battlefoil-Robin Yount Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-54-Santa-Moss-Grandma's Linoleum Battlefoil-Santana Moss Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-55-Joystick-Grandma's Linoleum Battlefoil-Dante Hall Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-56-Boshpit-Grandma's Linoleum Battlefoil-Chris Bosh Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-56-Perkolator-Grandma's Linoleum Battlefoil-Sam Perkins Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-57-Ante-de-something T-Grandma's Linoleum Battlefoil-Thanasis Antetokounmpo Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-58-Ante-de something K-Grandma's Linoleum Battlefoil-Kostas Antetokounmpo Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-59-Ante-de-something A-Grandma's Linoleum Battlefoil-Alex Antetokounmpo Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-60-Mr. Clean-Grandma's Linoleum Battlefoil-Steve Garvey Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-61-Thurmanator-Grandma's Linoleum Battlefoil-Thuman Thomas Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-61-Rollin'-Grandma's Linoleum Battlefoil-Scott Rolen Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-62-Game Over-Grandma's Linoleum Battlefoil-\u00c9ric Gagn\u00e9 Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-63-PG-D3-Grandma's Linoleum Battlefoil-Pierre Gar\u00e7on Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-64-Dunker-Grandma's Linoleum Battlefoil-John Starks Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-65-Pauldron-Grandma's Linoleum Battlefoil-Paula Badosa Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-66-Flutie-Grandma's Linoleum Battlefoil-Doug Flutie Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-66-Game Time-Grandma's Linoleum Battlefoil-Jim Boeheim Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-67-Butterfly Sting-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-68-Maverick-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-69-Mad Scientist-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-70-Alexander the Great-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-71-Green-Machine-Grandma's Linoleum Battlefoil-Jalen Green Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-71-PB Buckets-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-72-Maverick-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-73-Gaveler-Grandma's Linoleum Battlefoil-2026 Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-74-Victory-Grandma's Linoleum Battlefoil-2026 Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-75-Dijon-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-76-KAT-Grandma's Linoleum Battlefoil-Karl-Anthony Towns Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-76-Crosbow-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-77-Warden-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-78-PB Buckets-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-79-Skuba-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-80-Haliburst-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-81-Mean-Joe-Grandma's Linoleum Battlefoil-Joe Greene Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-81-Dart-Board-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-82-Dumper-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-83-Switchblade-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-84-Cupid-Grandma's Linoleum Battlefoil-2026 Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-85-Air Ace-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-86-Chief-Grandma's Linoleum Battlefoil-Robert Parish Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-86-Maxed Out-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-87-King Tuck-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-89-Gladiator-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-90-BrockNess-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-91-Thrill-Grandma's Linoleum Battlefoil-Will Clark Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-91-Fungi-Grandma's Linoleum Battlefoil-2026 Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-92-Wattage-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-93-Gunner-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-94-Marksman-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-95-D-Harp-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-96-Frostbite-Grandma's Linoleum Battlefoil-Trae Young Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-96-Jeanetic-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-97-Doublecheck-Grandma's Linoleum Battlefoil-2026 Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-98-Caliber-Grandma's Linoleum Battlefoil-2026 Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-99-Escape Artist-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-100-J-Cam-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-101-Blockhale-Grandma's Linoleum Battlefoil-Kevin McHale Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-101-Generator-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-102-Tattoo-Grandma's Linoleum Battlefoil-2026 Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-103-Brawn-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-104-Cicada-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-105-Courthouse-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-106-Timmy-Grandma's Linoleum Battlefoil-Tim Brown Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-106-Bandelero-Grandma's Linoleum Battlefoil-2026 Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-107-Kettle-Bell-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-108-JacHammer-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-109-BaldWing-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-110-Rook-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-111-Palmer-Grandma's Linoleum Battlefoil-Jim Palmer Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-111-Camera-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-112-Homestead-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-113-Scary-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-114-Canine-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-115-Superbaby-Grandma's Linoleum Battlefoil-2026 Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-116-Thighs Man-Grandma's Linoleum Battlefoil-Joe Theisman-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-116-Javalanche-Grandma's Linoleum Battlefoil-2026 Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-117-Wild Bill-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-118-Thorn-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-119-Chiller-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-120-Zephyr-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-121-Rodder-Grandma's Linoleum Battlefoil-Rod Smith Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-121-Lumber-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-122-Golden Bullet-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-123-Ozzmosis-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-124-DeKap-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-125-Bell-Camp-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-126-Awesome Dawson-Grandma's Linoleum Battlefoil-Andre Dawson Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-126-Bangford-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-127-Forcefield-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-128-Amoeba-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-129-Action-Grandma's Linoleum Battlefoil-2026 Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-130-Go-Cart-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-131-Line-Art-Grandma's Linoleum Battlefoil-Matt Leinart Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-131-Castler-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
+    },
+    {
+      "bobaId": "GLBF-136-Swoopes-Grandma's Linoleum Battlefoil-Sheryl Swoopes Debut-HEX",
+      "mid": 0.82,
+      "floor": 15,
+      "weapon": "HEX",
+      "printRun": null,
+      "treatment": "Grandma's Linoleum Battlefoil"
     }
   ],
-  "missing_in_covered_clusters": [],
+  "missing_in_covered_clusters": [
+    {
+      "coverage": 0.99,
+      "cluster": [
+        "Orange Battlefoil",
+        "FIRE",
+        "Alpha Update"
+      ],
+      "bobaId": "OBF-43-LeBoss-Orange Battlefoil-First Edition-FIRE"
+    }
+  ],
   "cluster_outliers": [
     {
-      "z": 13.44,
+      "z": 13.43,
       "mid": 28.7,
       "cluster_median": 2.45,
       "cluster": [
@@ -657,91 +2227,69 @@
     },
     {
       "z": 11.45,
-      "mid": 151.7,
-      "cluster_median": 164.0,
+      "mid": 164.0,
+      "cluster_median": 151.7,
       "cluster": [
         "Colosseum Battlefoil",
-        "FIRE",
+        "STEEL",
         "Griffey Edition"
       ],
-      "bobaId": "CBF-284-Mr. October-Colosseum Battlefoil-Reggie Jackson Debut-FIRE"
+      "bobaId": "CBF-528-Freakshow-Colosseum Battlefoil-Giannis Antetokounmpo Unmasked-STEEL"
     },
     {
       "z": 11.45,
-      "mid": 110.7,
-      "cluster_median": 176.3,
+      "mid": 4.92,
+      "cluster_median": 0.82,
+      "cluster": [
+        "Grandma's Linoleum Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "GLBF-88-Macho-Grandma's Linoleum Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 11.45,
+      "mid": 491.92,
+      "cluster_median": 323.9,
+      "cluster": [
+        "Mixtape Battlefoil",
+        "GLOW",
+        "Griffey Edition"
+      ],
+      "bobaId": "MIX-145-Big Papi-Mixtape Battlefoil-David Ortiz Debut-GLOW"
+    },
+    {
+      "z": 10.94,
+      "mid": 123.0,
+      "cluster_median": 164.0,
       "cluster": [
         "Great Grandma's Linoleum Battlefoil",
         "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "GGL-153-Mr. October-Great Grandma's Linoleum Battlefoil-Reggie Jackson Debut-GLOW"
+      "bobaId": "GGL-260-Action-Great Grandma's Linoleum Battlefoil-2026 Edition-GLOW"
     },
     {
-      "z": 11.45,
-      "mid": 110.7,
-      "cluster_median": 176.3,
+      "z": 10.1,
+      "mid": 17.62,
+      "cluster_median": 12.3,
       "cluster": [
-        "Great Grandma's Linoleum Battlefoil",
-        "ICE",
-        "Griffey Edition"
+        "80's Rad Battlefoil",
+        "STEEL",
+        "Alpha Update"
       ],
-      "bobaId": "GGL-394-Bojax-Great Grandma's Linoleum Battlefoil-2026 Founding Hero-ICE"
+      "bobaId": "RAD-462-J-Jetts-80's Rad Battlefoil-First Edition-STEEL"
     },
     {
-      "z": 8.72,
-      "mid": 73.8,
-      "cluster_median": 105.73,
+      "z": 9.36,
+      "mid": 4182.0,
+      "cluster_median": 93.48,
       "cluster": [
         "80's Rad Battlefoil",
         "HEX",
-        "Alpha Edition"
+        "Alpha Update"
       ],
-      "bobaId": "RAD-306-Time-80's Rad Battlefoil-First Edition-HEX"
-    },
-    {
-      "z": 8.12,
-      "mid": 163.99,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "ICE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-451-Ante-de something K-Alpha Battlefoil-Kostas Antetokounmpo Debut-ICE"
-    },
-    {
-      "z": 8.12,
-      "mid": 163.99,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "ICE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-493-J-Cam-Alpha Battlefoil-First Edition-ICE"
-    },
-    {
-      "z": 8.12,
-      "mid": 151.7,
-      "cluster_median": 164.0,
-      "cluster": [
-        "Colosseum Battlefoil",
-        "GLOW",
-        "Griffey Edition"
-      ],
-      "bobaId": "CBF-176-Herro-Colosseum Battlefoil-Tyler Herro Debut-GLOW"
-    },
-    {
-      "z": 8.12,
-      "mid": 151.7,
-      "cluster_median": 164.0,
-      "cluster": [
-        "Colosseum Battlefoil",
-        "GLOW",
-        "Griffey Edition"
-      ],
-      "bobaId": "CBF-217-Maxed Out-Colosseum Battlefoil-First Edition-GLOW"
+      "bobaId": "RAD-10-Wizard-80's Rad Battlefoil-Ozzie Smith Debut-HEX"
     },
     {
       "z": 8.12,
@@ -788,28 +2336,6 @@
       "bobaId": "RBF-72-Maverick-Red Battlefoil-First Edition-BRAWL"
     },
     {
-      "z": 8.12,
-      "mid": 12.7,
-      "cluster_median": 13.11,
-      "cluster": [
-        "Silver Battlefoil",
-        "STEEL",
-        "Griffey Edition"
-      ],
-      "bobaId": "SBF-4-Freakshow-Silver Battlefoil-Giannis Antetokounmpo Unmasked-STEEL"
-    },
-    {
-      "z": 8.12,
-      "mid": 12.7,
-      "cluster_median": 13.11,
-      "cluster": [
-        "Silver Battlefoil",
-        "STEEL",
-        "Griffey Edition"
-      ],
-      "bobaId": "SBF-6-Burner-Silver Battlefoil-Jalen Brunson Unmasked-STEEL"
-    },
-    {
       "z": 7.81,
       "mid": 205.0,
       "cluster_median": 164.0,
@@ -819,50 +2345,6 @@
         "Griffey Edition"
       ],
       "bobaId": "ACA-6-Eraser-Inspired Ink Battlefoil-Alysha Clark Debut-ICE"
-    },
-    {
-      "z": 7.81,
-      "mid": 594.5,
-      "cluster_median": 369.0,
-      "cluster": [
-        "Green Blast",
-        "GLOW",
-        "Alpha Blast"
-      ],
-      "bobaId": "BL-G45-Burner-Green Blast-First Edition-GLOW"
-    },
-    {
-      "z": 7.81,
-      "mid": 594.5,
-      "cluster_median": 369.0,
-      "cluster": [
-        "Green Blast",
-        "GLOW",
-        "Alpha Blast"
-      ],
-      "bobaId": "BL-G72-Cupid-Green Blast-First Edition-GLOW"
-    },
-    {
-      "z": 7.81,
-      "mid": 594.5,
-      "cluster_median": 369.0,
-      "cluster": [
-        "Green Blast",
-        "GLOW",
-        "Alpha Blast"
-      ],
-      "bobaId": "BL-G154-Sabotage-Green Blast-First Edition-GLOW"
-    },
-    {
-      "z": 7.81,
-      "mid": 11.77,
-      "cluster_median": 12.7,
-      "cluster": [
-        "Silver Battlefoil",
-        "STEEL",
-        "Alpha Update"
-      ],
-      "bobaId": "SBF-8-Warp-Silver Battlefoil-First Edition-STEEL"
     },
     {
       "z": 7.78,
@@ -909,26 +2391,15 @@
       "bobaId": "BLBF-131-Jaybird-Blizzard Battlefoil-First Edition-FIRE"
     },
     {
-      "z": 7.3,
-      "mid": 4099.59,
-      "cluster_median": 265.68,
+      "z": 7.75,
+      "mid": 20.5,
+      "cluster_median": 15.99,
       "cluster": [
-        "Superfoil",
-        "SUPER",
-        "Griffey Edition"
+        "Blizzard Battlefoil",
+        "STEEL",
+        "Alpha Update"
       ],
-      "bobaId": "SF-70-PB Buckets-Superfoil-First Edition-SUPER"
-    },
-    {
-      "z": 7.3,
-      "mid": 4099.59,
-      "cluster_median": 265.68,
-      "cluster": [
-        "Superfoil",
-        "SUPER",
-        "Griffey Edition"
-      ],
-      "bobaId": "SF-77-PB Buckets-Superfoil-First Edition-SUPER"
+      "bobaId": "BLBF-283-Big-Z-Blizzard Battlefoil-First Edition-STEEL"
     },
     {
       "z": 7.28,
@@ -986,15 +2457,48 @@
       "bobaId": "BBFA-105-Bus-Silver Blast-Jerome Bettis Debut-GLOW"
     },
     {
-      "z": 6.8,
-      "mid": 12.3,
-      "cluster_median": 17.62,
+      "z": 6.78,
+      "mid": 594.5,
+      "cluster_median": 369.0,
       "cluster": [
-        "80's Rad Battlefoil",
+        "Green Blast",
         "GLOW",
-        "Alpha Edition"
+        "Alpha Blast"
       ],
-      "bobaId": "RAD-307-Time-80's Rad Battlefoil-First Edition-GLOW"
+      "bobaId": "BL-G45-Burner-Green Blast-First Edition-GLOW"
+    },
+    {
+      "z": 6.78,
+      "mid": 594.5,
+      "cluster_median": 369.0,
+      "cluster": [
+        "Green Blast",
+        "GLOW",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-G72-Cupid-Green Blast-First Edition-GLOW"
+    },
+    {
+      "z": 6.78,
+      "mid": 594.5,
+      "cluster_median": 369.0,
+      "cluster": [
+        "Green Blast",
+        "GLOW",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-G84-The Ironman-Green Blast-Cal Ripkin JR Debut-GLOW"
+    },
+    {
+      "z": 6.78,
+      "mid": 594.5,
+      "cluster_median": 369.0,
+      "cluster": [
+        "Green Blast",
+        "GLOW",
+        "Alpha Blast"
+      ],
+      "bobaId": "BL-G154-Sabotage-Green Blast-First Edition-GLOW"
     },
     {
       "z": 6.7,
@@ -1030,6 +2534,39 @@
       "bobaId": "BL-B88-Bus-Blue Blast-Jerome Bettis Debut-ICE"
     },
     {
+      "z": 6.66,
+      "mid": 123.0,
+      "cluster_median": 164.0,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-377-Superbaby-Great Grandma's Linoleum Battlefoil-2026 Edition-FIRE"
+    },
+    {
+      "z": 6.66,
+      "mid": 123.0,
+      "cluster_median": 164.0,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-378-Javalanche-Great Grandma's Linoleum Battlefoil-2026 Edition-FIRE"
+    },
+    {
+      "z": 6.66,
+      "mid": 123.0,
+      "cluster_median": 164.0,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-391-Action-Great Grandma's Linoleum Battlefoil-2026 Edition-FIRE"
+    },
+    {
       "z": 6.64,
       "mid": 410.0,
       "cluster_median": 2.87,
@@ -1041,29 +2578,40 @@
       "bobaId": "BBFA-210-Haymaker-Silver Blast-Spencer Haywood Debut-ICE"
     },
     {
-      "z": 6.63,
-      "mid": 32.8,
-      "cluster_median": 12.3,
+      "z": 6.57,
+      "mid": 4099.18,
+      "cluster_median": 265.68,
       "cluster": [
-        "Blizzard Battlefoil",
+        "Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "SF-70-PB Buckets-Superfoil-First Edition-SUPER"
+    },
+    {
+      "z": 6.57,
+      "mid": 4099.18,
+      "cluster_median": 265.68,
+      "cluster": [
+        "Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "SF-77-PB Buckets-Superfoil-First Edition-SUPER"
+    },
+    {
+      "z": 6.56,
+      "mid": 12.29,
+      "cluster_median": 24.58,
+      "cluster": [
+        "Headlines Battlefoil",
         "STEEL",
         "Alpha Edition"
       ],
-      "bobaId": "BLBF-120-Bandelero-Blizzard Battlefoil-First Edition-STEEL"
+      "bobaId": "HBF-10-Doublecheck-Headlines Battlefoil-First Edittion-STEEL"
     },
     {
-      "z": 6.35,
-      "mid": 268.96,
-      "cluster_median": 90.19,
-      "cluster": [
-        "Inspired Ink Battlefoil",
-        "BRAWL",
-        "Griffey Edition"
-      ],
-      "bobaId": "DMWA-12-Windmill-Inspired Ink Battlefoil-2026 Brawl-BRAWL"
-    },
-    {
-      "z": 6.24,
+      "z": 6.23,
       "mid": 9840.0,
       "cluster_median": 1845.0,
       "cluster": [
@@ -1085,7 +2633,18 @@
       "bobaId": "BGA-35-Woody-Inspired Ink Bubble Gum Battlefoil-Darren Woodson Debut-GUM"
     },
     {
-      "z": 6.14,
+      "z": 6.16,
+      "mid": 819.18,
+      "cluster_median": 410.0,
+      "cluster": [
+        "Superfoil",
+        "SUPER",
+        "Alpha Edition"
+      ],
+      "bobaId": "SF-33-Gaveler-Superfoil-First Edition-SUPER"
+    },
+    {
+      "z": 6.13,
       "mid": 6.53,
       "cluster_median": 3.17,
       "cluster": [
@@ -1094,61 +2653,6 @@
         "Alpha Blast"
       ],
       "bobaId": "BL-O115-Haymaker-Orange Blast-Spencer Haywood Debut-FIRE"
-    },
-    {
-      "z": 6.14,
-      "mid": 389.5,
-      "cluster_median": 49.2,
-      "cluster": [
-        "80's Rad Battlefoil",
-        "ICE",
-        "Griffey Edition"
-      ],
-      "bobaId": "RAD-394-Bojax-80's Rad Battlefoil-2026 Founding Hero-ICE"
-    },
-    {
-      "z": 6.14,
-      "mid": 389.5,
-      "cluster_median": 49.2,
-      "cluster": [
-        "80's Rad Battlefoil",
-        "ICE",
-        "Griffey Edition"
-      ],
-      "bobaId": "RAD-414-Goofin' Off-80's Rad Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-ICE"
-    },
-    {
-      "z": 6.14,
-      "mid": 389.5,
-      "cluster_median": 49.2,
-      "cluster": [
-        "80's Rad Battlefoil",
-        "ICE",
-        "Griffey Edition"
-      ],
-      "bobaId": "RAD-431-JAW-JAW-80's Rad Battlefoil-Ron Jaworski Debut-ICE"
-    },
-    {
-      "z": 5.95,
-      "mid": 268.96,
-      "cluster_median": 225.5,
-      "cluster": [
-        "Inspired Ink Battlefoil",
-        "STEEL",
-        "Griffey Edition"
-      ],
-      "bobaId": "DEA-7-ECKS-Inspired Ink Battlefoil-Dennis Eckersley Debut-STEEL"
-    },
-    {
-      "z": 5.85,
-      "mid": 12.3,
-      "cluster_median": 17.62,
-      "cluster": [
-        "80's Rad Battlefoil",
-        "FIRE",
-        "Alpha Edition"
-      ],
-      "bobaId": "RAD-308-Time-80's Rad Battlefoil-First Edition-FIRE"
     },
     {
       "z": 5.75,
@@ -1162,9 +2666,53 @@
       "bobaId": "BL-B115-Haymaker-Blue Blast-Spencer Haywood Debut-ICE"
     },
     {
+      "z": 5.72,
+      "mid": 123.0,
+      "cluster_median": 164.0,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-394-Bojax-Great Grandma's Linoleum Battlefoil-2026 Founding Hero-ICE"
+    },
+    {
+      "z": 5.72,
+      "mid": 205.0,
+      "cluster_median": 164.0,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-508-Superbaby-Great Grandma's Linoleum Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 5.72,
+      "mid": 205.0,
+      "cluster_median": 164.0,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-509-Javalanche-Great Grandma's Linoleum Battlefoil-2026 Edition-ICE"
+    },
+    {
+      "z": 5.72,
+      "mid": 205.0,
+      "cluster_median": 164.0,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "GGL-522-Action-Great Grandma's Linoleum Battlefoil-2026 Edition-ICE"
+    },
+    {
       "z": 5.66,
       "mid": 1353.0,
-      "cluster_median": 1722.0,
+      "cluster_median": 1721.95,
       "cluster": [
         "Inspired Ink Battlefoil",
         "HEX",
@@ -1174,36 +2722,36 @@
     },
     {
       "z": 5.57,
-      "mid": 1353.0,
-      "cluster_median": 1722.0,
+      "mid": 13.11,
+      "cluster_median": 12.7,
+      "cluster": [
+        "Silver Battlefoil",
+        "STEEL",
+        "Alpha Update"
+      ],
+      "bobaId": "SBF-7-Donny Buckets-Silver Battlefoil-First Edition-STEEL"
+    },
+    {
+      "z": 5.57,
+      "mid": 13.11,
+      "cluster_median": 12.7,
+      "cluster": [
+        "Silver Battlefoil",
+        "STEEL",
+        "Alpha Update"
+      ],
+      "bobaId": "SBF-9-Harpoon-Silver Battlefoil-First Edition-STEEL"
+    },
+    {
+      "z": 5.52,
+      "mid": 225.5,
+      "cluster_median": 81.18,
       "cluster": [
         "Inspired Ink Battlefoil",
-        "GUM",
-        "Alpha Edition"
-      ],
-      "bobaId": "BGA-29-Swoopes-Inspired Ink Battlefoil-Sheryl Swoopes Debut-GUM"
-    },
-    {
-      "z": 5.52,
-      "mid": 12.29,
-      "cluster_median": 82.0,
-      "cluster": [
-        "Orange Headlines Battlefoil",
-        "FIRE",
+        "BRAWL",
         "Griffey Edition"
       ],
-      "bobaId": "OHBF-1-Maverick-Orange Headlines Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 5.52,
-      "mid": 12.29,
-      "cluster_median": 82.0,
-      "cluster": [
-        "Orange Headlines Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "OHBF-7-PB Buckets-Orange Headlines Battlefoil-First Edition-FIRE"
+      "bobaId": "DMWA-12-Windmill-Inspired Ink Battlefoil-2026 Brawl-BRAWL"
     },
     {
       "z": 5.48,
@@ -1219,6 +2767,17 @@
     {
       "z": 5.48,
       "mid": 205.0,
+      "cluster_median": 246.0,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "FIRE",
+        "Alpha Edition"
+      ],
+      "bobaId": "BFA-43-Amon-Ra-Inspired Ink Battlefoil-Amon-Ra St. Brown Debut-FIRE"
+    },
+    {
+      "z": 5.48,
+      "mid": 246.0,
       "cluster_median": 164.0,
       "cluster": [
         "Inspired Ink Battlefoil",
@@ -1228,26 +2787,15 @@
       "bobaId": "BFA-89-Chief-Inspired Ink Battlefoil-Robert Parish Debut-ICE"
     },
     {
-      "z": 5.42,
-      "mid": 12.29,
-      "cluster_median": 15.99,
+      "z": 5.31,
+      "mid": 4.92,
+      "cluster_median": 28.7,
       "cluster": [
-        "Icon Battlefoil",
-        "FIRE",
+        "Blizzard Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "IBF-180-Javalanche-Icon Battlefoil-2026 Edition-FIRE"
-    },
-    {
-      "z": 5.42,
-      "mid": 12.29,
-      "cluster_median": 15.99,
-      "cluster": [
-        "Icon Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "IBF-193-Action-Icon Battlefoil-2026 Edition-FIRE"
+      "bobaId": "BLBF-255-DeKap-Blizzard Battlefoil-First Edition-GLOW"
     },
     {
       "z": 5.2,
@@ -1305,30 +2853,52 @@
       "bobaId": "CHILL-95-D-Harp-Chillin' Battlefoil-First Edition-ICE"
     },
     {
-      "z": 5.1,
-      "mid": 656.0,
-      "cluster_median": 410.0,
+      "z": 4.88,
+      "mid": 350.5,
+      "cluster_median": 2951.51,
       "cluster": [
-        "Superfoil",
-        "SUPER",
-        "Alpha Edition"
+        "Mixtape Battlefoil",
+        "HEX",
+        "Griffey Edition"
       ],
-      "bobaId": "SF-36-Shrouded-Superfoil-First Edition-SUPER"
+      "bobaId": "MIX-114-Canine-Mixtape Battlefoil-First Edition-HEX"
     },
     {
-      "z": 4.94,
-      "mid": 12.29,
-      "cluster_median": 24.58,
+      "z": 4.85,
+      "mid": 213.19,
+      "cluster_median": 225.5,
       "cluster": [
-        "Headlines Battlefoil",
-        "STEEL",
+        "Battlefoil",
+        "GUM",
         "Alpha Edition"
       ],
-      "bobaId": "HBF-10-Doublecheck-Headlines Battlefoil-First Edittion-STEEL"
+      "bobaId": "BGBF-18-Superbaby-Battlefoil-First Edition-GUM"
+    },
+    {
+      "z": 4.85,
+      "mid": 213.19,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Battlefoil",
+        "GUM",
+        "Alpha Edition"
+      ],
+      "bobaId": "BGBF-35-Shepherd-Battlefoil-First Edition-GUM"
     },
     {
       "z": 4.75,
-      "mid": 11.77,
+      "mid": 13.11,
+      "cluster_median": 12.7,
+      "cluster": [
+        "Silver Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "SBF-2-Matata-Silver Battlefoil-First Edition-STEEL"
+    },
+    {
+      "z": 4.75,
+      "mid": 13.11,
       "cluster_median": 12.7,
       "cluster": [
         "Silver Battlefoil",
@@ -1338,37 +2908,59 @@
       "bobaId": "SBF-6-Shrouded-Silver Battlefoil-First Edition-STEEL"
     },
     {
-      "z": 4.75,
-      "mid": 11.77,
-      "cluster_median": 12.7,
+      "z": 4.65,
+      "mid": 164.0,
+      "cluster_median": 151.7,
       "cluster": [
-        "Silver Battlefoil",
-        "STEEL",
-        "Alpha Edition"
+        "Colosseum Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
       ],
-      "bobaId": "SBF-10-Doublecheck-Silver Battlefoil-First Edition-STEEL"
+      "bobaId": "CBF-665-Rocket-Colosseum Battlefoil-Roger Clemens Debut-BRAWL"
     },
     {
-      "z": 4.66,
-      "mid": 491.18,
-      "cluster_median": 410.0,
+      "z": 4.65,
+      "mid": 164.0,
+      "cluster_median": 151.7,
       "cluster": [
-        "Inspired Ink Superfoil",
-        "SUPER",
-        "Alpha Edition"
+        "Colosseum Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
       ],
-      "bobaId": "SFA-5-Boz-Inspired Ink Superfoil-Brian Bosworth Debut-SUPER"
+      "bobaId": "CBF-731-Crosbow-Colosseum Battlefoil-First Edition-BRAWL"
     },
     {
-      "z": 4.63,
-      "mid": 194.74,
-      "cluster_median": 287.0,
+      "z": 4.56,
+      "mid": 225.5,
+      "cluster_median": 194.74,
       "cluster": [
         "Inspired Ink Battlefoil",
         "STEEL",
-        "Alpha Edition"
+        "Griffey Edition"
       ],
-      "bobaId": "BFA-20-Boz-Inspired Ink Battlefoil-Brian Bosworth Debut-STEEL"
+      "bobaId": "ADPA-7-All day-Inspired Ink Battlefoil-Adrian Peterson Debut-STEEL"
+    },
+    {
+      "z": 4.56,
+      "mid": 225.5,
+      "cluster_median": 194.74,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "STEEL",
+        "Griffey Edition"
+      ],
+      "bobaId": "CYBA-7-Billhook-Inspired Ink Battlefoil-Chauncey Billups Debut-STEEL"
+    },
+    {
+      "z": 4.56,
+      "mid": 225.5,
+      "cluster_median": 194.74,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "STEEL",
+        "Griffey Edition"
+      ],
+      "bobaId": "DEA-7-ECKS-Inspired Ink Battlefoil-Dennis Eckersley Debut-STEEL"
     },
     {
       "z": 4.55,
@@ -1404,6 +2996,50 @@
       "bobaId": "BF-32-Brawn-Battlefoil-First Edition-HEX"
     },
     {
+      "z": 4.55,
+      "mid": 82.0,
+      "cluster_median": 53.3,
+      "cluster": [
+        "Orange Headlines Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "OHBF-12-Switchblade-Orange Headlines Battlefoil-First Edition-FIRE"
+    },
+    {
+      "z": 4.55,
+      "mid": 82.0,
+      "cluster_median": 53.3,
+      "cluster": [
+        "Orange Headlines Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "OHBF-16-King Tuck-Orange Headlines Battlefoil-First Edition-FIRE"
+    },
+    {
+      "z": 4.55,
+      "mid": 82.0,
+      "cluster_median": 53.3,
+      "cluster": [
+        "Orange Headlines Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "OHBF-23-Marksman-Orange Headlines Battlefoil-First Edition-FIRE"
+    },
+    {
+      "z": 4.53,
+      "mid": 32.8,
+      "cluster_median": 20.5,
+      "cluster": [
+        "Blizzard Battlefoil",
+        "ICE",
+        "Alpha Edition"
+      ],
+      "bobaId": "BLBF-129-Action-Blizzard Battlefoil-2026 Edition-ICE"
+    },
+    {
       "z": 4.45,
       "mid": 410.0,
       "cluster_median": 106.59,
@@ -1415,15 +3051,15 @@
       "bobaId": "BBFA-132-Haymaker-Silver Blast-Spencer Haywood Debut-GLOW"
     },
     {
-      "z": 4.38,
-      "mid": 17.62,
-      "cluster_median": 82.0,
+      "z": 4.42,
+      "mid": 81.18,
+      "cluster_median": 389.49,
       "cluster": [
-        "80's Rad Battlefoil",
-        "BRAWL",
+        "Inspired Ink Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "RAD-780-Bell-Camp-80's Rad Battlefoil-First Edition-BRAWL"
+      "bobaId": "CYBA-4-Billhook-Inspired Ink Battlefoil-Chauncey Billups Debut-GLOW"
     },
     {
       "z": 4.35,
@@ -1448,15 +3084,48 @@
       "bobaId": "LOGO-312-Shells-Logofoil-Donnie Shell Debut-FIRE"
     },
     {
-      "z": 4.21,
-      "mid": 194.74,
-      "cluster_median": 225.5,
+      "z": 4.34,
+      "mid": 574.0,
+      "cluster_median": 265.68,
       "cluster": [
-        "Inspired Ink Battlefoil",
-        "STEEL",
+        "Inspired Ink Superfoil",
+        "SUPER",
         "Griffey Edition"
       ],
-      "bobaId": "ACA-7-Eraser-Inspired Ink Battlefoil-Alysha Clark Debut-STEEL"
+      "bobaId": "GAA-1-Freakshow-Inspired Ink Superfoil-Giannis Antetokounmpo Unmasked-SUPER"
+    },
+    {
+      "z": 4.34,
+      "mid": 194.74,
+      "cluster_median": 81.18,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "ADPA-12-All day-Inspired Ink Battlefoil-Adrian Peterson Debut-BRAWL"
+    },
+    {
+      "z": 4.34,
+      "mid": 194.74,
+      "cluster_median": 81.18,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "BRAWL",
+        "Griffey Edition"
+      ],
+      "bobaId": "JHA-12-Hambone-Inspired Ink Battlefoil-Jack Ham Debut-BRAWL"
+    },
+    {
+      "z": 4.23,
+      "mid": 20.5,
+      "cluster_median": 15.37,
+      "cluster": [
+        "Icon Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-166-Tattoo-Icon Battlefoil-2026 Edition-FIRE"
     },
     {
       "z": 4.16,
@@ -1545,6 +3214,28 @@
         "Griffey Edition"
       ],
       "bobaId": "PG-22-Mr. October-Power Glove Battlefoil-Reggie Jackson Debut-BRAWL"
+    },
+    {
+      "z": 4.11,
+      "mid": 2664.59,
+      "cluster_median": 265.68,
+      "cluster": [
+        "Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "SF-67-Maverick-Superfoil-First Edition-SUPER"
+    },
+    {
+      "z": 4.11,
+      "mid": 2664.59,
+      "cluster_median": 265.68,
+      "cluster": [
+        "Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "SF-71-Maverick-Superfoil-First Edition-SUPER"
     },
     {
       "z": 4.07,
@@ -1636,39 +3327,6 @@
     },
     {
       "z": 4.01,
-      "mid": 49.15,
-      "cluster_median": 225.5,
-      "cluster": [
-        "Battlefoil",
-        "GUM",
-        "Alpha Edition"
-      ],
-      "bobaId": "BGBF-18-Superbaby-Battlefoil-First Edition-GUM"
-    },
-    {
-      "z": 4.01,
-      "mid": 49.15,
-      "cluster_median": 225.5,
-      "cluster": [
-        "Battlefoil",
-        "GUM",
-        "Alpha Edition"
-      ],
-      "bobaId": "BGBF-35-Shepherd-Battlefoil-First Edition-GUM"
-    },
-    {
-      "z": 4.01,
-      "mid": 49.15,
-      "cluster_median": 225.5,
-      "cluster": [
-        "Battlefoil",
-        "GUM",
-        "Alpha Edition"
-      ],
-      "bobaId": "BGBF-36-Ollie-Battlefoil-First Edition-GUM"
-    },
-    {
-      "z": 4.01,
       "mid": 409.18,
       "cluster_median": 307.5,
       "cluster": [
@@ -1723,37 +3381,81 @@
       "bobaId": "RHBF-29-ChetMate-Red Headlines Battlefoil-First Edition-FIRE"
     },
     {
-      "z": 3.96,
-      "mid": 491.18,
-      "cluster_median": 265.68,
+      "z": 3.89,
+      "mid": 217.3,
+      "cluster_median": 82.0,
       "cluster": [
-        "Inspired Ink Superfoil",
-        "SUPER",
+        "80's Rad Battlefoil",
+        "ICE",
         "Griffey Edition"
       ],
-      "bobaId": "ABA-1-Goofin' Off-Inspired Ink Superfoil-Adri\u00e1n Beltr\u00e9 Debut-SUPER"
+      "bobaId": "RAD-394-Bojax-80's Rad Battlefoil-2026 Founding Hero-ICE"
     },
     {
-      "z": 3.96,
-      "mid": 491.18,
-      "cluster_median": 265.68,
+      "z": 3.89,
+      "mid": 217.3,
+      "cluster_median": 82.0,
       "cluster": [
-        "Inspired Ink Superfoil",
-        "SUPER",
+        "80's Rad Battlefoil",
+        "ICE",
         "Griffey Edition"
       ],
-      "bobaId": "GAA-1-Freakshow-Inspired Ink Superfoil-Giannis Antetokounmpo Unmasked-SUPER"
+      "bobaId": "RAD-401-Gigante-80's Rad Battlefoil-Pedro Mart\u00ednez Debut-ICE"
     },
     {
-      "z": 3.96,
-      "mid": 491.18,
-      "cluster_median": 265.68,
+      "z": 3.89,
+      "mid": 217.3,
+      "cluster_median": 82.0,
       "cluster": [
-        "Inspired Ink Superfoil",
-        "SUPER",
+        "80's Rad Battlefoil",
+        "ICE",
         "Griffey Edition"
       ],
-      "bobaId": "RJA-1-Mr. October-Inspired Ink Superfoil-Reggie Jackson Debut-SUPER"
+      "bobaId": "RAD-414-Goofin' Off-80's Rad Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-ICE"
+    },
+    {
+      "z": 3.89,
+      "mid": 217.3,
+      "cluster_median": 82.0,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-431-JAW-JAW-80's Rad Battlefoil-Ron Jaworski Debut-ICE"
+    },
+    {
+      "z": 3.89,
+      "mid": 217.3,
+      "cluster_median": 82.0,
+      "cluster": [
+        "80's Rad Battlefoil",
+        "ICE",
+        "Griffey Edition"
+      ],
+      "bobaId": "RAD-443-Shells-80's Rad Battlefoil-Donnie Shell Debut-ICE"
+    },
+    {
+      "z": 3.87,
+      "mid": 1721.95,
+      "cluster_median": 1537.5,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "GUM",
+        "Alpha Edition"
+      ],
+      "bobaId": "BGA-10-Amon-Ra-Inspired Ink Battlefoil-Amon-Ra St. Brown Debut-GUM"
+    },
+    {
+      "z": 3.87,
+      "mid": 1353.0,
+      "cluster_median": 1537.5,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "GUM",
+        "Alpha Edition"
+      ],
+      "bobaId": "BGA-29-Swoopes-Inspired Ink Battlefoil-Sheryl Swoopes Debut-GUM"
     },
     {
       "z": 3.83,
@@ -1845,6 +3547,61 @@
     },
     {
       "z": 3.81,
+      "mid": 287.0,
+      "cluster_median": 184.5,
+      "cluster": [
+        "Alpha Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABF-377-Superbaby-Alpha Battlefoil-2026 Edition-FIRE"
+    },
+    {
+      "z": 3.81,
+      "mid": 287.0,
+      "cluster_median": 184.5,
+      "cluster": [
+        "Alpha Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABF-378-Javalanche-Alpha Battlefoil-2026 Edition-FIRE"
+    },
+    {
+      "z": 3.81,
+      "mid": 287.0,
+      "cluster_median": 184.5,
+      "cluster": [
+        "Alpha Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABF-391-Action-Alpha Battlefoil-2026 Edition-FIRE"
+    },
+    {
+      "z": 3.81,
+      "mid": 194.74,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "BFA-20-Boz-Inspired Ink Battlefoil-Brian Bosworth Debut-STEEL"
+    },
+    {
+      "z": 3.81,
+      "mid": 256.25,
+      "cluster_median": 225.5,
+      "cluster": [
+        "Inspired Ink Battlefoil",
+        "STEEL",
+        "Alpha Edition"
+      ],
+      "bobaId": "BFA-45-Amon-Ra-Inspired Ink Battlefoil-Amon-Ra St. Brown Debut-STEEL"
+    },
+    {
+      "z": 3.81,
       "mid": 82.0,
       "cluster_median": 311.59,
       "cluster": [
@@ -1866,26 +3623,37 @@
       "bobaId": "CYB-7-Barry \"Cutback\" Sanders-Cyber-2025 Cyber Promo-CYBER"
     },
     {
-      "z": 3.71,
-      "mid": 194.74,
-      "cluster_median": 90.19,
+      "z": 3.78,
+      "mid": 491.18,
+      "cluster_median": 410.0,
       "cluster": [
-        "Inspired Ink Battlefoil",
-        "BRAWL",
-        "Griffey Edition"
+        "Inspired Ink Superfoil",
+        "SUPER",
+        "Alpha Edition"
       ],
-      "bobaId": "ADPA-12-All day-Inspired Ink Battlefoil-Adrian Peterson Debut-BRAWL"
+      "bobaId": "SFA-5-Boz-Inspired Ink Superfoil-Brian Bosworth Debut-SUPER"
     },
     {
-      "z": 3.71,
-      "mid": 194.74,
-      "cluster_median": 90.19,
+      "z": 3.78,
+      "mid": 491.18,
+      "cluster_median": 410.0,
       "cluster": [
-        "Inspired Ink Battlefoil",
-        "BRAWL",
-        "Griffey Edition"
+        "Inspired Ink Superfoil",
+        "SUPER",
+        "Alpha Edition"
       ],
-      "bobaId": "JHA-12-Hambone-Inspired Ink Battlefoil-Jack Ham Debut-BRAWL"
+      "bobaId": "SFA-10-Amon-Ra-Inspired Ink Superfoil-Amon-Ra St. Brown Debut-SUPER"
+    },
+    {
+      "z": 3.7,
+      "mid": 656.0,
+      "cluster_median": 410.0,
+      "cluster": [
+        "Superfoil",
+        "SUPER",
+        "Alpha Edition"
+      ],
+      "bobaId": "SF-36-Shrouded-Superfoil-First Edition-SUPER"
     },
     {
       "z": 3.67,
@@ -2053,37 +3821,70 @@
       "bobaId": "RHBF-58-Action-Red Headlines Battlefoil-2026 Edition-BRAWL"
     },
     {
-      "z": 3.5,
-      "mid": 307.5,
-      "cluster_median": 205.0,
+      "z": 3.55,
+      "mid": 19.67,
+      "cluster_median": 15.37,
       "cluster": [
-        "Inspired Ink Battlefoil",
+        "Icon Battlefoil",
         "FIRE",
-        "Alpha Update"
+        "Griffey Edition"
       ],
-      "bobaId": "BFA-100-Cura\u00e7ao Kid-Inspired Ink Battlefoil-Anduw Jones Debut-FIRE"
+      "bobaId": "IBF-137-Gaveler-Icon Battlefoil-2026 Edition-FIRE"
+    },
+    {
+      "z": 3.55,
+      "mid": 19.67,
+      "cluster_median": 15.37,
+      "cluster": [
+        "Icon Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-148-Cupid-Icon Battlefoil-2026 Edition-FIRE"
+    },
+    {
+      "z": 3.55,
+      "mid": 19.67,
+      "cluster_median": 15.37,
+      "cluster": [
+        "Icon Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-180-Javalanche-Icon Battlefoil-2026 Edition-FIRE"
+    },
+    {
+      "z": 3.55,
+      "mid": 19.67,
+      "cluster_median": 15.37,
+      "cluster": [
+        "Icon Battlefoil",
+        "FIRE",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-193-Action-Icon Battlefoil-2026 Edition-FIRE"
     },
     {
       "z": 3.5,
-      "mid": 307.5,
-      "cluster_median": 205.0,
+      "mid": 225.5,
+      "cluster_median": 184.5,
       "cluster": [
-        "Inspired Ink Battlefoil",
-        "FIRE",
-        "Alpha Update"
+        "Alpha Battlefoil",
+        "ICE",
+        "Griffey Edition"
       ],
-      "bobaId": "BFA-104-Hoge-Ball-Inspired Ink Battlefoil-Merril Hoge Debut-FIRE"
+      "bobaId": "ABF-436-Highway to Helton-Alpha Battlefoil-Todd Helton Debut-ICE"
     },
     {
       "z": 3.5,
-      "mid": 307.5,
-      "cluster_median": 205.0,
+      "mid": 225.5,
+      "cluster_median": 184.5,
       "cluster": [
-        "Inspired Ink Battlefoil",
-        "FIRE",
-        "Alpha Update"
+        "Alpha Battlefoil",
+        "ICE",
+        "Griffey Edition"
       ],
-      "bobaId": "BFA-114-BuckShot-Inspired Ink Battlefoil-Buck Showalter Debut-FIRE"
+      "bobaId": "ABF-451-Ante-de something K-Alpha Battlefoil-Kostas Antetokounmpo Debut-ICE"
     },
     {
       "z": 3.46,
@@ -2097,224 +3898,125 @@
       "bobaId": "OKC-27-ChetMate-Battlefoil-World Champion Debut-STEEL"
     },
     {
-      "z": 3.43,
-      "mid": 278.62,
-      "cluster_median": 338.25,
+      "z": 3.46,
+      "mid": 15.58,
+      "cluster_median": 82.0,
       "cluster": [
-        "Icon Battlefoil",
-        "HEX",
+        "80's Rad Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "IBF-10-Crosbow-Icon Battlefoil-First Edition-HEX"
+      "bobaId": "RAD-251-Zephyr-80's Rad Battlefoil-First Edition-GLOW"
     },
     {
-      "z": 3.43,
-      "mid": 278.62,
-      "cluster_median": 338.25,
+      "z": 3.46,
+      "mid": 15.58,
+      "cluster_median": 82.0,
       "cluster": [
-        "Icon Battlefoil",
-        "HEX",
+        "80's Rad Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "IBF-15-Dart-Board-Icon Battlefoil-First Edition-HEX"
+      "bobaId": "RAD-252-Lumber-80's Rad Battlefoil-First Edition-GLOW"
     },
     {
-      "z": 3.43,
-      "mid": 278.62,
-      "cluster_median": 338.25,
+      "z": 3.46,
+      "mid": 15.58,
+      "cluster_median": 82.0,
       "cluster": [
-        "Icon Battlefoil",
-        "HEX",
+        "80's Rad Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "IBF-20-Maxed Out-Icon Battlefoil-First Edition-HEX"
+      "bobaId": "RAD-253-Golden Bullet-80's Rad Battlefoil-First Edition-GLOW"
     },
     {
-      "z": 3.43,
-      "mid": 278.62,
-      "cluster_median": 338.25,
+      "z": 3.46,
+      "mid": 15.58,
+      "cluster_median": 82.0,
       "cluster": [
-        "Icon Battlefoil",
-        "HEX",
+        "80's Rad Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "IBF-27-Gunner-Icon Battlefoil-First Edition-HEX"
+      "bobaId": "RAD-254-Ozzmosis-80's Rad Battlefoil-First Edition-GLOW"
     },
     {
-      "z": 3.43,
-      "mid": 278.62,
-      "cluster_median": 338.25,
+      "z": 3.46,
+      "mid": 15.58,
+      "cluster_median": 82.0,
       "cluster": [
-        "Icon Battlefoil",
-        "HEX",
+        "80's Rad Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "IBF-37-Brawn-Icon Battlefoil-First Edition-HEX"
+      "bobaId": "RAD-255-DeKap-80's Rad Battlefoil-First Edition-GLOW"
     },
     {
-      "z": 3.43,
-      "mid": 278.62,
-      "cluster_median": 338.25,
+      "z": 3.46,
+      "mid": 15.58,
+      "cluster_median": 82.0,
       "cluster": [
-        "Icon Battlefoil",
-        "HEX",
+        "80's Rad Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "IBF-38-Cicada-Icon Battlefoil-First Edition-HEX"
+      "bobaId": "RAD-256-Bell-Camp-80's Rad Battlefoil-First Edition-GLOW"
     },
     {
-      "z": 3.34,
-      "mid": 6.53,
-      "cluster_median": 410.0,
+      "z": 3.46,
+      "mid": 15.58,
+      "cluster_median": 82.0,
       "cluster": [
-        "Silver Blast",
-        "FIRE",
-        "Alpha Blast"
-      ],
-      "bobaId": "BBFA-59-Frostebite-Silver Blast-Trae Young Debut-FIRE"
-    },
-    {
-      "z": 3.34,
-      "mid": 6.53,
-      "cluster_median": 410.0,
-      "cluster": [
-        "Silver Blast",
-        "FIRE",
-        "Alpha Blast"
-      ],
-      "bobaId": "BBFA-80-Line-Art-Silver Blast-Matt Leinart Debut-FIRE"
-    },
-    {
-      "z": 3.34,
-      "mid": 6.53,
-      "cluster_median": 410.0,
-      "cluster": [
-        "Silver Blast",
-        "FIRE",
-        "Alpha Blast"
-      ],
-      "bobaId": "BBFA-86-Smoke-Silver Blast-Dave Stewart Debut-FIRE"
-    },
-    {
-      "z": 3.34,
-      "mid": 6.53,
-      "cluster_median": 410.0,
-      "cluster": [
-        "Silver Blast",
-        "FIRE",
-        "Alpha Blast"
-      ],
-      "bobaId": "BBFA-92-Bojax-Silver Blast-Founding Hero-FIRE"
-    },
-    {
-      "z": 3.31,
-      "mid": 49.2,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "BRAWL",
+        "80's Rad Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "BLBF-728-Gaveler-Blizzard Battlefoil-2026 Edition-BRAWL"
+      "bobaId": "RAD-257-Bangford-80's Rad Battlefoil-First Edition-GLOW"
     },
     {
-      "z": 3.31,
-      "mid": 49.2,
-      "cluster_median": 32.8,
+      "z": 3.46,
+      "mid": 15.58,
+      "cluster_median": 82.0,
       "cluster": [
-        "Blizzard Battlefoil",
-        "BRAWL",
+        "80's Rad Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "BLBF-729-Victory-Blizzard Battlefoil-2026 Edition-BRAWL"
+      "bobaId": "RAD-258-Forcefield-80's Rad Battlefoil-First Edition-GLOW"
     },
     {
-      "z": 3.31,
-      "mid": 49.2,
-      "cluster_median": 32.8,
+      "z": 3.46,
+      "mid": 15.58,
+      "cluster_median": 82.0,
       "cluster": [
-        "Blizzard Battlefoil",
-        "BRAWL",
+        "80's Rad Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "BLBF-746-Fungi-Blizzard Battlefoil-2026 Edition-BRAWL"
+      "bobaId": "RAD-259-Amoeba-80's Rad Battlefoil-First Edition-GLOW"
     },
     {
-      "z": 3.31,
-      "mid": 49.2,
-      "cluster_median": 32.8,
+      "z": 3.46,
+      "mid": 15.58,
+      "cluster_median": 82.0,
       "cluster": [
-        "Blizzard Battlefoil",
-        "BRAWL",
+        "80's Rad Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "BLBF-752-Doublecheck-Blizzard Battlefoil-2026 Edition-BRAWL"
+      "bobaId": "RAD-261-Go-Cart-80's Rad Battlefoil-First Edition-GLOW"
     },
     {
-      "z": 3.31,
-      "mid": 49.2,
-      "cluster_median": 32.8,
+      "z": 3.46,
+      "mid": 15.58,
+      "cluster_median": 82.0,
       "cluster": [
-        "Blizzard Battlefoil",
-        "BRAWL",
+        "80's Rad Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "BLBF-753-Caliber-Blizzard Battlefoil-2026 Edition-BRAWL"
-    },
-    {
-      "z": 3.31,
-      "mid": 49.2,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "BRAWL",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-757-Tattoo-Blizzard Battlefoil-2026 Edition-BRAWL"
-    },
-    {
-      "z": 3.31,
-      "mid": 49.2,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "BRAWL",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-761-Bandelero-Blizzard Battlefoil-2026 Edition-BRAWL"
-    },
-    {
-      "z": 3.31,
-      "mid": 49.2,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "BRAWL",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-770-Superbaby-Blizzard Battlefoil-2026 Edition-BRAWL"
-    },
-    {
-      "z": 3.31,
-      "mid": 49.2,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "BRAWL",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-771-Javalanche-Blizzard Battlefoil-2026 Edition-BRAWL"
-    },
-    {
-      "z": 3.31,
-      "mid": 49.2,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "BRAWL",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-784-Action-Blizzard Battlefoil-2026 Edition-BRAWL"
+      "bobaId": "RAD-262-Castler-80's Rad Battlefoil-First Edition-GLOW"
     },
     {
       "z": 3.31,
@@ -2383,180 +4085,59 @@
       "bobaId": "HTD-48-Brothers In Arms-Home Team Discount--"
     },
     {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
+      "z": 3.28,
+      "mid": 6.53,
+      "cluster_median": 328.0,
       "cluster": [
-        "Alpha Battlefoil",
+        "Silver Blast",
         "FIRE",
+        "Alpha Blast"
+      ],
+      "bobaId": "BBFA-59-Frostebite-Silver Blast-Trae Young Debut-FIRE"
+    },
+    {
+      "z": 3.28,
+      "mid": 6.53,
+      "cluster_median": 328.0,
+      "cluster": [
+        "Silver Blast",
+        "FIRE",
+        "Alpha Blast"
+      ],
+      "bobaId": "BBFA-80-Line-Art-Silver Blast-Matt Leinart Debut-FIRE"
+    },
+    {
+      "z": 3.28,
+      "mid": 6.53,
+      "cluster_median": 328.0,
+      "cluster": [
+        "Silver Blast",
+        "FIRE",
+        "Alpha Blast"
+      ],
+      "bobaId": "BBFA-86-Smoke-Silver Blast-Dave Stewart Debut-FIRE"
+    },
+    {
+      "z": 3.28,
+      "mid": 6.53,
+      "cluster_median": 328.0,
+      "cluster": [
+        "Silver Blast",
+        "FIRE",
+        "Alpha Blast"
+      ],
+      "bobaId": "BBFA-92-Bojax-Silver Blast-Founding Hero-FIRE"
+    },
+    {
+      "z": 3.28,
+      "mid": 176.3,
+      "cluster_median": 164.0,
+      "cluster": [
+        "Great Grandma's Linoleum Battlefoil",
+        "GLOW",
         "Griffey Edition"
       ],
-      "bobaId": "ABF-376-Canine-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-379-Wild Bill-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-380-Thorn-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-381-Chiller-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-382-Zephyr-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-383-Lumber-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-385-Ozzmosis-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-386-DeKap-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-387-Bell-Camp-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-388-Bangford-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-389-Forcefield-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-390-Amoeba-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-392-Go-Cart-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.3,
-      "mid": 98.4,
-      "cluster_median": 147.6,
-      "cluster": [
-        "Alpha Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "ABF-393-Castler-Alpha Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.29,
-      "mid": 16.39,
-      "cluster_median": 24.58,
-      "cluster": [
-        "Headlines Battlefoil",
-        "STEEL",
-        "Alpha Edition"
-      ],
-      "bobaId": "HBF-3-Gaveler-Headlines Battlefoil-First Edittion-STEEL"
-    },
-    {
-      "z": 3.29,
-      "mid": 16.39,
-      "cluster_median": 24.58,
-      "cluster": [
-        "Headlines Battlefoil",
-        "STEEL",
-        "Alpha Edition"
-      ],
-      "bobaId": "HBF-5-Victory-Headlines Battlefoil-First Edittion-STEEL"
+      "bobaId": "GGL-166-Bells-Great Grandma's Linoleum Battlefoil-George Bell Debut-GLOW"
     },
     {
       "z": 3.23,
@@ -2612,6 +4193,138 @@
         "Alpha Edition"
       ],
       "bobaId": "BF-222-Triple Threat-Battlefoil-First Edition-GLOW"
+    },
+    {
+      "z": 3.2,
+      "mid": 368.59,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-17-Switchblade-Icon Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 3.2,
+      "mid": 368.59,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-18-Cupid-Icon Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.2,
+      "mid": 368.59,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-20-Maxed Out-Icon Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 3.2,
+      "mid": 368.59,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-21-King Tuck-Icon Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 3.2,
+      "mid": 368.59,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-29-D-Harp-Icon Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 3.2,
+      "mid": 368.59,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-34-J-Cam-Icon Battlefoil-First Edition-HEX"
+    },
+    {
+      "z": 3.2,
+      "mid": 368.59,
+      "cluster_median": 338.25,
+      "cluster": [
+        "Icon Battlefoil",
+        "HEX",
+        "Griffey Edition"
+      ],
+      "bobaId": "IBF-36-Tattoo-Icon Battlefoil-2026 Edition-HEX"
+    },
+    {
+      "z": 3.17,
+      "mid": 491.18,
+      "cluster_median": 265.68,
+      "cluster": [
+        "Inspired Ink Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "ABA-1-Goofin' Off-Inspired Ink Superfoil-Adri\u00e1n Beltr\u00e9 Debut-SUPER"
+    },
+    {
+      "z": 3.17,
+      "mid": 491.18,
+      "cluster_median": 265.68,
+      "cluster": [
+        "Inspired Ink Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "EDLCA-1-Cruze Control-Inspired Ink Superfoil-Elly De La Cruz Unmasked-SUPER"
+    },
+    {
+      "z": 3.17,
+      "mid": 491.18,
+      "cluster_median": 265.68,
+      "cluster": [
+        "Inspired Ink Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "MRA-1-Unanimous Sandman-Inspired Ink Superfoil-Mariano Rivera Debut-SUPER"
+    },
+    {
+      "z": 3.17,
+      "mid": 491.18,
+      "cluster_median": 265.68,
+      "cluster": [
+        "Inspired Ink Superfoil",
+        "SUPER",
+        "Griffey Edition"
+      ],
+      "bobaId": "RJA-1-Mr. October-Inspired Ink Superfoil-Reggie Jackson Debut-SUPER"
+    },
+    {
+      "z": 3.16,
+      "mid": 8.19,
+      "cluster_median": 10.25,
+      "cluster": [
+        "Battlefoil",
+        "ALT",
+        "World Champions"
+      ],
+      "bobaId": "PHI-42-Eagle-Eye-Battlefoil-Champions Alt Variation-ALT"
     },
     {
       "z": 3.13,
@@ -2700,152 +4413,28 @@
         "Griffey Edition"
       ],
       "bobaId": "GRILL-123-Ozzmosis-Grillin' Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.13,
-      "mid": 4.09,
-      "cluster_median": 164.0,
-      "cluster": [
-        "Grillin' Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "GRILL-125-Bell-Camp-Grillin' Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.13,
-      "mid": 4.09,
-      "cluster_median": 164.0,
-      "cluster": [
-        "Grillin' Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "GRILL-126-Bangford-Grillin' Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.13,
-      "mid": 4.09,
-      "cluster_median": 164.0,
-      "cluster": [
-        "Grillin' Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "GRILL-130-Go-Cart-Grillin' Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.13,
-      "mid": 4.09,
-      "cluster_median": 164.0,
-      "cluster": [
-        "Grillin' Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "GRILL-131-Castler-Grillin' Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-376-Canine-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-379-Wild Bill-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-380-Thorn-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-381-Chiller-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-382-Zephyr-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-383-Lumber-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-384-Golden Bullet-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-385-Ozzmosis-Blizzard Battlefoil-First Edition-FIRE"
-    },
-    {
-      "z": 3.12,
-      "mid": 20.5,
-      "cluster_median": 32.8,
-      "cluster": [
-        "Blizzard Battlefoil",
-        "FIRE",
-        "Griffey Edition"
-      ],
-      "bobaId": "BLBF-386-DeKap-Blizzard Battlefoil-First Edition-FIRE"
     }
   ],
   "suspect_high": [],
   "outlier_rich_clusters": [],
-  "top_priorities": []
+  "top_priorities": [
+    {
+      "flags_count": 2,
+      "audits": [
+        "cluster_outlier",
+        "suspect_low"
+      ],
+      "bobaId": "GLBF-88-Macho-Grandma's Linoleum Battlefoil-First Edition-HEX",
+      "mid": 4.92
+    },
+    {
+      "flags_count": 2,
+      "audits": [
+        "cluster_outlier",
+        "suspect_low"
+      ],
+      "bobaId": "BLBF-255-DeKap-Blizzard Battlefoil-First Edition-GLOW",
+      "mid": 4.92
+    }
+  ]
 }

@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
-  "generatedAt": "2026-05-29T19:02:43.513026+00:00",
-=======
-  "generatedAt": "2026-05-29T19:14:38.679499+00:00",
->>>>>>> 2e4712a (pricing: same-day refresh — 35 estimates shifted after today's crawl writes settled)
+  "generatedAt": "2026-05-30T14:58:07.015834+00:00",
   "windowDays": 14,
   "rowsAnalyzed": 1,
   "recommendations": [],

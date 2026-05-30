@@ -65,14 +65,21 @@ HISTORY = os.path.join(REPO, "assets", "data", "pricing-audit-history.json")
 
 CRITICAL_RULES = [
     # (path, threshold, comparison, message)
-    ("audit_counts.two_plus_flagged", 1, "absolute-gt-or-equal",
-     "Cards flagged by 2+ audits reappeared (was 0, now {now}). "
+    #
+    # 'growth-or-cross-zero' fires both (a) when the count crosses 0 →
+    # ≥1 (a clean baseline became dirty) AND (b) when an already-dirty
+    # baseline grows further (prev=1 → now=2 etc.). Earlier shape
+    # (`absolute-gt-or-equal` with prev=0 precondition) silently
+    # allowed degradation once a single anomaly slipped through —
+    # caught by Ben after the BLBF-255 anomaly landed in today's row.
+    ("audit_counts.two_plus_flagged", 1, "growth-or-cross-zero",
+     "Cards flagged by 2+ audits grew (was {prev}, now {now}). "
      "Highest-confidence wrong estimates — investigate before shipping."),
-    ("audit_counts.missing_in_covered_clusters", 1, "absolute-gt-or-equal",
-     "Missing-in-covered-cluster reappeared (was {prev}, now {now}). "
+    ("audit_counts.missing_in_covered_clusters", 1, "growth-or-cross-zero",
+     "Missing-in-covered-cluster grew (was {prev}, now {now}). "
      "Wide-gap fallback (#064) regression."),
-    ("audit_counts.outlier_rich_clusters", 1, "absolute-gt-or-equal",
-     "Outlier-rich cluster reappeared (was {prev}, now {now}). "
+    ("audit_counts.outlier_rich_clusters", 1, "growth-or-cross-zero",
+     "Outlier-rich clusters grew (was {prev}, now {now}). "
      "Cluster-level systematic bug — same shape as pre-#064 IIMBF."),
 ]
 
@@ -106,6 +113,13 @@ def check_rule(prev_row, curr_row, path, threshold, mode, msg_tmpl):
     if mode == "absolute-gt-or-equal":
         # Trip when value crosses 0 → positive (regression from clean state).
         if prev == 0 and now >= threshold:
+            return msg_tmpl.format(prev=prev, now=now, delta=delta)
+    elif mode == "growth-or-cross-zero":
+        # Fires on both (a) clean→dirty AND (b) any further growth.
+        # The first guards the regression-free baseline; the second
+        # guards against silent degradation after one anomaly slipped
+        # through (the BLBF-255 trap that motivated this rule).
+        if (prev == 0 and now >= threshold) or (now > prev and now > 0):
             return msg_tmpl.format(prev=prev, now=now, delta=delta)
     elif mode == "delta-gt":
         if delta > threshold:

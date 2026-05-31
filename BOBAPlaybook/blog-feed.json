@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-05-30",
+  "lastUpdated": "2026-05-31",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -13,7 +13,7 @@
       "title": "Join the BoBA Fun on Whatnot",
       "date": "2026-05-27",
       "url": "https://bobattlearena.com/blog/join-the-boba-fun-on-whatnot",
-      "excerpt": "A singles show feels a lot like walking into a card shop. Singles shows are especially useful if: you are hunting a specific BoBA card you want to build out a certain Hero or strategy … Read more &raquo;"
+      "excerpt": "If you are new to Bo Jackson Battle Arena and want one of the most fun, interactive ways to experience the game, collect cards, and connect with the community, Whatnot is one of the best places to sta..."
     },
     {
       "id": "vegas-baby",

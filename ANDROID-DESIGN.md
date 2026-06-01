@@ -8,13 +8,7 @@
 
 ## 0. How to use this document
 
-**Ben's job:** when an Android UI choice contradicts a rule, point at the rule.
-
-**Claude's job:** before proposing any new screen / sheet / dialog / picker / nav level / FAB, quote the rule that justifies it. No fitting rule = needs a new rule (and discussion) before it ships.
-
-**Living document.** §§5–7 follow Material updates (M3 Expressive graduations, Android 17). §§1–4 are principles.
-
-**Cross-platform parity** is governed by DECISIONS.md #005 + #041. Verbs are identical across iOS / web / Android (Find / Learn / Decks / Collection / Purchase); native idiom wins per platform. **Android is its own discipline** — don't port iOS shapes; translate iOS intent into M3 components.
+**Ben:** when a UI choice contradicts a rule, point at the rule. **Claude:** before proposing any new screen / sheet / dialog / picker / nav level / FAB, quote the rule that justifies it — no fitting rule means a new rule (and discussion) before it ships. **Living document:** §§5–7 follow Material updates; §§1–4 are principles. **Parity** (DECISIONS.md #005 + #041): verbs identical across iOS / web / Android; native idiom wins per platform. **Android is its own discipline** — don't port iOS shapes; translate iOS intent into M3 components.
 
 ---
 
@@ -241,34 +235,13 @@ iOS `HintsManager` + `HintBanner` (DECISIONS.md #031) has no direct M3 equivalen
 
 ## 6.10 Walkthroughs — Android position
 
-**Android does NOT ship multi-step anchored walkthroughs.** Use `TooltipBox` for single-step hints and `BOBAHintBanner` for inline teaching. (DECISIONS.md #044.)
-
-iOS walkthroughs exist because tab gestures / fullScreenCover / NavigationStack have novel idioms. Android conventions (NavigationBar, push/back, FAB, ModalBottomSheet) are universally legible — the marginal value of porting iOS's ~600-line walkthrough engine doesn't justify it. M3 ships `TooltipBox` natively + we ship `BOBAHintBanner` (§6.8). Onboarding splash decks rejected (same as iOS §6.10).
-
-Revisit only if a future feature genuinely needs anchored multi-step teaching. Map of iOS walkthroughs → Android replacements:
-
-| iOS walkthrough | Android replacement |
-|---|---|
-| Find / Learn / Decks / Collection / Purchase first visit | `BOBAEmptyState` w/ productive-next-action |
-| Card detail first | `BOBAHintBanner`: *"Long-press to add to a deck"* |
-| Pricing first | `TooltipBox` on the "Market est." chip |
-| Wall first | `BOBAHintBanner`: *"Drag the title to reposition"* |
-| Scan first | `BOBAHintBanner`: *"Aim at one card. Hold steady for 2s."* |
+**Android does NOT ship multi-step anchored walkthroughs** (DECISIONS.md #044). Android conventions (NavigationBar, push/back, FAB, ModalBottomSheet) are universally legible, so porting iOS's ~600-line walkthrough engine isn't worth it. Use `TooltipBox` for single-step hints, `BOBAHintBanner` (§6.8) for inline teaching, `BOBAEmptyState` for first-visit productive actions; onboarding splash decks rejected. Each iOS walkthrough maps to one of those: tab first-visit → EmptyState; card-detail → hint "Long-press to add to a deck"; pricing → tooltip on "Market est."; Wall → hint "Drag the title to reposition"; scan → hint "Aim at one card. Hold steady for 2s." Revisit only if a feature genuinely needs anchored multi-step teaching.
 
 ---
 
 ## 7. Forward-compatibility (Android 17 ready)
 
-Android 17 ships ~Q2 2026 (a few weeks out as of this writing). Leaked design direction: **expanded blur / translucent effects across notification shade + recents**, Material 3 Expressive refinements, more `DropdownMenu` and `Popup` polish. **No navigation paradigm shift expected.**
-
-Rules to inherit Android 17 gains automatically:
-
-1. **Every primary action is an `AppAction`** — Google Assistant, App Actions, Quick Settings tiles, Spotlight Search all consume them.
-2. **Content has stable IDs.** Cards have `bobaId`, decks have UUIDs. Learn articles need slug IDs (`setup.match-flow`) for Assistant summaries / deep links.
-3. **Deep links autoVerify=true** on `bobaplaybook.com/{type}/{id}` — App Links inherit Android 17 system-pickup improvements free.
-4. **Don't hard-code surface alpha or elevation values** — let M3 tokens (`MaterialTheme.colorScheme.*`) resolve so Android 17's translucency expansion is automatic.
-5. **Adopt M3 Expressive APIs as they graduate from `@ExperimentalMaterial3ExpressiveApi`** (currently FAB Menu, Floating Toolbar, Wavy Indicators).
-6. **Don't predict specifics.** Build clean to Android 16; inherit refinements when they ship.
+Android 17 (~Q2 2026) direction: expanded blur/translucency, M3 Expressive refinements, `DropdownMenu`/`Popup` polish; **no navigation paradigm shift expected.** Rules that inherit those gains: (1) **every primary action is an `AppAction`** (Assistant/App Actions/Quick Settings tiles consume them); (2) **content has stable IDs** — `bobaId`, deck UUIDs, Learn slugs (`setup.match-flow`); (3) **deep links `autoVerify=true`** on `bobaplaybook.com/{type}/{id}`; (4) **don't hard-code surface alpha/elevation** — let M3 tokens (`MaterialTheme.colorScheme.*`) resolve so Android 17 translucency is automatic; (5) **adopt M3 Expressive APIs as they graduate** from `@ExperimentalMaterial3ExpressiveApi` (FAB Menu, Floating Toolbar, Wavy Indicators); (6) **don't predict specifics** — build clean to Android 16.
 
 ---
 
@@ -478,13 +451,13 @@ When an iOS change lands that's not pure implementation detail: (1) author updat
 
 ## 15. References
 
-- Material 3: [m3.material.io](https://m3.material.io/) · [M3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3) · [release notes](https://developer.android.com/jetpack/androidx/releases/compose-material3)
-- Compose components index: [developer.android.com/develop/ui/compose/components](https://developer.android.com/develop/ui/compose/components)
-- Adaptive: [Adaptive nav](https://developer.android.com/develop/ui/compose/layouts/adaptive/build-adaptive-navigation) · [List-detail](https://developer.android.com/develop/ui/compose/layouts/adaptive/list-detail) · [Window size classes](https://developer.android.com/develop/ui/compose/layouts/adaptive/use-window-size-classes)
-- Motion: [Shared elements](https://developer.android.com/develop/ui/compose/animation/shared-elements)
-- System: [Predictive back](https://developer.android.com/develop/ui/compose/system/predictive-back) · [Edge-to-edge](https://developer.android.com/codelabs/edge-to-edge) · [Android 16 changes](https://developer.android.com/about/versions/16/behavior-changes-16)
-- Identity / share / scan: [Credential Manager](https://developer.android.com/identity/sign-in/credential-manager) · [ACTION_SEND](https://developer.android.com/training/sharing/send) · [ML Kit Text Recognition v2](https://developers.google.com/ml-kit/vision/text-recognition/v2/android)
-- Theming / a11y: [Typography](https://m3.material.io/styles/typography/applying-type) · [Roboto Flex](https://fonts.google.com/specimen/Roboto+Flex) · [Dynamic colors](https://developer.android.com/develop/ui/views/theming/dynamic-colors) · [WCAG 2.2 AA](https://www.w3.org/WAI/WCAG22/quickref/?levels=a%2Caa)
-- Deep links: [Create](https://developer.android.com/training/app-links/create-deeplinks) · [Verify App Links](https://developer.android.com/training/app-links/verify-android-applinks)
+- Material 3: m3.material.io · M3 in Compose · release notes
+- Compose components index: developer.android.com/develop/ui/compose/components
+- Adaptive: Adaptive nav · List-detail · Window size classes
+- Motion: Shared elements
+- System: Predictive back · Edge-to-edge · Android 16 changes
+- Identity / share / scan: Credential Manager · ACTION_SEND · ML Kit Text Recognition v2
+- Theming / a11y: Typography · Roboto Flex · Dynamic colors · WCAG 2.2 AA
+- Deep links: Create · Verify App Links
 
 Engineering: [ANDROID-DEV.md](./ANDROID-DEV.md).

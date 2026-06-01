@@ -625,34 +625,17 @@ displacing why people open a card (art / current price / collection).
 
 ## 15. Roadmap — refactors implied by ratifying this doc
 
-### Shipped 2026-05-05
+The platform-adoption refactors this doc ratified (Popover API, `<dialog>`
+migration, `prefers-reduced-transparency`, View Transitions, container queries,
+CSS Nesting, Web Share API) **shipped 2026-05-05**. The autonomous parity loop
+**shipped 2026-05-20**: Wall view + Price Overlay, Custom + Auto Rainbows, deck
+wall, Find multi-select → Wall, card-style template gallery. Full per-tick detail
+lives in git history + [PARITY.md](./PARITY.md) — this section is no longer a
+changelog.
 
-- **Popover API** for designation/deck pickers in multi-select bulk-add (`window.bobaShowPopoverMenu` helper). Filter panel stays inline-accordion. Mod panels would fit `<dialog>` better when migrated.
-- **`<dialog>` migration** for all three modal overlays: card-detail, auth, add-collection. Native focus trap + ESC + top-layer + `::backdrop` scrim. Mod panels (admin) deferred — working correctly.
-- **`prefers-reduced-transparency` overrides** in single `@media` block at top of styles.css; drops backdrop-filter on chrome surfaces, bumps to opaque `--boba-surface`.
-- **View Transitions** in `showView()` — feature-detected + `prefers-reduced-motion` aware. `openModalWithHeroZoom` pairs grid cell with modal hero via `view-transition-name: card-hero` (iOS hero-zoom analog).
-- **Container queries** on `.card-item` — `container-type: inline-size; container-name: card-cell;` with `@container` blocks for typography scaling. Same cell at S/M/L density without media-query forks; inherited by public-collection grid.
-- **CSS Nesting pattern** established (incremental, on new popover CSS). Full rewrite of 9000-line file deferred.
-- **Web Share API** — `shareTarget({title,text,url})` helper / `window.bobaShareTarget`. `navigator.share` when available, `clipboard.writeText` + "Link copied!" fallback. AbortError silenced.
-- **Profile picture upload** — DECISIONS.md #040.
-
-### Shipped 2026-05-20 (autonomous parity loop)
-
-- **Wall view** (§14.4 / DESIGN.md §8.8) — canvas-rendered share image (1080×1080) of any Collection scope. Per-designation overlay defaults match iOS (For Sale / Trade / Wanted ON · Personal / Grails OFF). Web Share API + clipboard fallback. R2 CORS configured for `crossOrigin='anonymous'` so `toBlob` doesn't taint the canvas. Tick 5.
-- **Price Overlay** in Wall view — live re-renders on toggle without image reload via `drawWall({showPrices, source})` closure. Tick 6.
-- **Custom Rainbows** (read-only display) — `fetchCustomRainbows()` + `rainbowCriteriaMatches()` verbatim port of iOS RainbowCriteria. Render shared with auto-rainbows via `_renderRainbowRow`. Tick 7.
-- **Per-hero Auto Rainbows** — synthesized one-row-per-owned-hero × catalog, sorted by completion % desc. Tick 8.
-- **Decks "Generate deck wall"** — `db-wall-btn` in deck-builder toolbar reuses the canvas Wall pipeline via a deck-context branch on `openWallSheet` (catalog Cards directly, no user-card-row resolution, price overlay disabled). Tick 9. **Also fixed** `window.Collection` exposure — classic-script `const` at top level doesn't auto-promote to the global object, which made `window.Collection.quickAdd` in app.js silently broken too.
-- **Find multi-select → "Wall these N cards"** — closes the §8.8 wall trio. New `multiselect-wall` action in the bulk-select toolbar calls the same shared `openCardsWallSheet({ title, cards })`. Selection mode stays active so the user can continue without re-selecting. Tick 10.
-- **Card-style deck-template gallery** (§14.3 empty-state — parity with iOS DeckBuilderView.TemplateCard) — 44×60 monogram tile with per-archetype accent color (STEEL / ICE / CYAN / GLOW / BRAWL) + name + description + format pill + chevron. Replaces the prior row of plain text buttons. Click handler accepts both the new `.db-template-card` and legacy `.db-template-btn` selectors so cached pages don't break. Tick 11.
-
-### P2 (when a feature requires it)
-
-- **Decks side-by-side desktop layout** (§14.3) — refactor when Decks gets touched substantively.
-
-### Deferred (see §17)
-
-Walkthroughs on web · Cmd-K palette · Web Push · Two-column desktop split-view.
+**Still open:**
+- **P2 — Decks side-by-side desktop layout** (§14.3): refactor when Decks is touched substantively.
+- **Deferred (see §17):** walkthroughs on web · Cmd-K palette · Web Push · two-column desktop split-view.
 
 ---
 
@@ -768,8 +751,8 @@ will get skipped, and the parity gap will widen silently.
 
 ## 20. References
 
-- **Design language:** [Refactoring UI](https://www.refactoringui.com/) · [Linear](https://linear.app/method) · [Vercel](https://vercel.com/design) · [Apple HIG](https://developer.apple.com/design/human-interface-guidelines/)
-- **Web standards:** [web.dev/baseline](https://web.dev/baseline) · [View Transitions](https://web.dev/articles/view-transitions) · [Container Queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries) · [Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API) · [`<dialog>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog) · [Web Share](https://developer.mozilla.org/en-US/docs/Web/API/Web_Share_API) · [`:has()`](https://developer.mozilla.org/en-US/docs/Web/CSS/:has) · [`prefers-reduced-transparency`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-transparency)
-- **Accessibility:** [WCAG 2.2 AA](https://www.w3.org/WAI/WCAG22/quickref/?levels=a%2Caa) · [Inclusive Components](https://inclusive-components.design/) · [APG](https://www.w3.org/WAI/ARIA/apg/)
-- **Performance / PWA:** [web.dev/measure](https://web.dev/measure) · [PageSpeed Insights](https://pagespeed.web.dev/) · [Learn PWA](https://web.dev/articles/learn/pwa) · [Offline cookbook](https://web.dev/articles/offline-cookbook)
-- **Study:** iOS DESIGN.md · bsky.app (vanilla-JS dark density) · linear.app (Cmd-K) · raycast.com (keyboard-first)
+- **Design language:** Refactoring UI · Linear · Vercel Design · Apple HIG
+- **Web standards:** web.dev/baseline · View Transitions · Container Queries · Popover API · `<dialog>` · Web Share · `:has()` · `prefers-reduced-transparency` (all on MDN / web.dev)
+- **Accessibility:** WCAG 2.2 AA · Inclusive Components · ARIA APG
+- **Performance / PWA:** web.dev/measure · PageSpeed Insights · Learn PWA · Offline cookbook
+- **Study:** iOS DESIGN.md · bsky.app (vanilla-JS dark density) · linear.app · raycast.com

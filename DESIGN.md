@@ -8,17 +8,13 @@
 
 ## 0. How to use this document
 
-**Ben's job:** when a UI choice contradicts a rule, point at the rule.
-
-**Claude's job:** before proposing any new view / sheet / filter / picker / nav level / toolbar item, quote the rule that justifies it. No fitting rule = needs a new rule (and discussion) before it ships.
-
-**Living document.** §§5–7 follow Apple platform changes (update when iOS 27 ships, WWDC 2026 June 8). §§1–4 are principles and shouldn't change.
+**Ben:** when a UI choice contradicts a rule, point at the rule. **Claude:** before proposing any new view / sheet / filter / picker / nav level / toolbar item, quote the rule that justifies it — no fitting rule means a new rule (and discussion) before it ships. **Living document:** §§5–7 follow Apple platform changes (update when iOS 27 ships); §§1–4 are principles and shouldn't change.
 
 ---
 
 ## 1. The six binding principles
 
-0. **Native first.** Every interaction = built-in iOS API before custom code. `.searchable` before custom search bars. `.navigationTransition(.zoom)` before custom modal animation. `.fullScreenCover` + `.matchedTransitionSource` before custom drawers. `Tab(role: .search)` before custom bottom-anchored search pills. If iOS doesn't provide it, accept iOS's pattern over building custom — maintenance cost compounds every iOS update. **The repeated failure mode in this codebase was reaching for custom when native would have done.** Established 2026-05-04 after the v2.038 custom-drawer-flash (12+ iterations) and v2.054→v2.061 forehead-bug (10+ iterations) — both vanished the moment we used the native equivalent.
+0. **Native first.** Every interaction = built-in iOS API before custom code. `.searchable` before custom search bars. `.navigationTransition(.zoom)` before custom modal animation. `.fullScreenCover` + `.matchedTransitionSource` before custom drawers. `Tab(role: .search)` before custom bottom-anchored search pills. If iOS doesn't provide it, accept iOS's pattern over building custom — maintenance cost compounds every iOS update. **The repeated failure mode in this codebase was reaching for custom when native would have done** (the v2.038 custom-drawer-flash and the v2.054→v2.061 forehead-bug each took 10+ iterations and vanished the moment we used the native equivalent).
 
 1. **Each tab owns one verb.** Find = explore · Learn = understand · Decks = build · Collection = own · Purchase = acquire. Verb collision = structural bug; resolve before adding.
 
@@ -28,7 +24,7 @@
 
 4. **Density comes from removing chrome.** Three weights × two sizes = six hierarchy levels with zero added pixels. Every divider/shadow/badge/chip removed = remaining info reads denser. (Tufte / Things 3 / Reeder lineage.)
 
-5. **Liquid Glass = navigation only.** Card grid never gets `.glassEffect()`. Tab bar / toolbar / sheets / floating overlays do. One glass per stacking context. ([WWDC25 219](https://developer.apple.com/videos/play/wwdc2025/219/), [Adopting Liquid Glass](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass))
+5. **Liquid Glass = navigation only.** Card grid never gets `.glassEffect()`. Tab bar / toolbar / sheets / floating overlays do. One glass per stacking context. (WWDC25 219, Adopting Liquid Glass)
 
 ---
 
@@ -70,7 +66,7 @@ If you need a second tab bar, you need a different top-level tab OR `searchScope
 Within a sheet, push with an internal `NavigationStack` to preserve the dismissal contract. Never stack sheet-on-sheet-on-alert.
 
 ### 3.5 Glass-on-glass-on-glass
-One glass per stacking context. Glass cannot sample other glass; layered glass produces muddy backdrops and fails WCAG AA. Use `GlassEffectContainer` for ≥2 co-located glass elements. List rows / cards / content get NO glass — ever. ([conorluddy/LiquidGlassReference](https://github.com/conorluddy/LiquidGlassReference))
+One glass per stacking context. Glass cannot sample other glass; layered glass produces muddy backdrops and fails WCAG AA. Use `GlassEffectContainer` for ≥2 co-located glass elements. List rows / cards / content get NO glass — ever. (conorluddy/LiquidGlassReference)
 
 ### 3.6 Settings dump (every config knob visible at once)
 Progressive disclosure. `Form` + `Section` + `DisclosureGroup`. Default advanced collapsed; lead with the 3 most-changed.
@@ -79,19 +75,19 @@ Progressive disclosure. `Form` + `Section` + `DisclosureGroup`. Default advanced
 A row that looks like a push but is actually a picker destroys chevron trust. Use `Picker(_:selection:)` inline or `Menu` — never a fake push.
 
 ### 3.8 Action tabs (`+`, `Scan`, `Buy` as a tab)
-We don't do this. Find rendered larger than peers is **size differentiation, not an action tab** — it's still a navigation destination. ([Hanin on iOS 26 tab bar anti-patterns](https://medium.com/design-bootcamp/dont-design-junk-in-the-new-ios-26-tab-bar-4de8e842da89))
+We don't do this. Find rendered larger than peers is **size differentiation, not an action tab** — it's still a navigation destination. (Hanin on iOS 26 tab bar anti-patterns)
 
 ### 3.9 Equal-weight horizontal scroll bars
 Horizontal scroll hides content below the fold and doesn't paginate predictably. Use vertical list (`Form` / `LazyVGrid`), `Menu`, or sidebar on iPad. Reserve horizontal scroll for genuinely-content shelves (featured cards, recently-viewed).
 
 ### 3.10 Custom presentation backgrounds on sheets
-Strip every `.presentationBackground` modifier. Let the system apply inset Liquid Glass. ([WWDC25 323](https://developer.apple.com/videos/play/wwdc2025/323/))
+Strip every `.presentationBackground` modifier. Let the system apply inset Liquid Glass. (WWDC25 323)
 
 ### 3.11 Hand-rolled scroll-edge fade overlays
 Use `.scrollEdgeEffectStyle(.soft|.hard, for: .top)` — iOS 26 native. `.hard` for dense scrolls (card grids), `.soft` for reading content.
 
 ### 3.12 The word "pool" to describe cards
-**Never.** Card-game jargon collides with BOBA's collector-first audience. The Decks browsing surface is the **card browser** (or **library**, **catalog**, **your collection** depending on scope). UI copy, labels, placeholders, aria-labels, docs, commits — none use "pool" for cards. Internal code identifiers (`dbRenderGrid`, `_dbBrowser`, `.db-browser-grid`) are exempt — they're not user-visible and renaming is more churn than value. Tournament "pools" (groups of teams in round-robin) is a separate canonical sports term and stays.
+**Never** — it collides with BOBA's collector-first audience. The Decks browsing surface is the **card browser** (or **library** / **catalog** / **your collection** by scope). No user-visible string, doc, or commit uses "pool" for cards; internal code identifiers (`dbRenderGrid`, `_dbBrowser`) are exempt (renaming is more churn than value). Tournament "pools" (round-robin team groups) is a separate canonical sports term and stays.
 
 ---
 
@@ -110,12 +106,12 @@ Each is testable in code review.
 
 ## 5. Liquid Glass usage rules (iOS 26)
 
-1. **Glass = navigation chrome only.** Tab bar, toolbar, sheets, floating overlays, FABs. Lists, cards, content — never. ([WWDC25 219](https://developer.apple.com/videos/play/wwdc2025/219/))
-2. **One glass per stacking context.** Glass cannot sample glass. For ≥2 co-located, wrap in `GlassEffectContainer`. ([conorluddy/LiquidGlassReference](https://github.com/conorluddy/LiquidGlassReference))
+1. **Glass = navigation chrome only.** Tab bar, toolbar, sheets, floating overlays, FABs. Lists, cards, content — never. (WWDC25 219)
+2. **One glass per stacking context.** Glass cannot sample glass. For ≥2 co-located, wrap in `GlassEffectContainer`. (conorluddy/LiquidGlassReference)
 3. **Variants mutually exclusive.** `.regular` (default) · `.clear` (only when bg is media-rich, dim doesn't hurt, fg is bold+bright) · `.identity` (toggle off without layout shift).
 4. **Tinting = primary action only.** Save button gets a tint; deck name field doesn't.
-5. **Strip custom presentation backgrounds.** Sheets get inset Liquid Glass automatically. ([WWDC25 323](https://developer.apple.com/videos/play/wwdc2025/323/))
-6. **`scrollEdgeEffectStyle(.hard)` for dense scrolls** (Find / Decks card browser / Collection grids — Calendar is the canonical reference). `.soft` for reading. ([createwithswift](https://www.createwithswift.com/define-the-scroll-edge-effect-style-of-a-scroll-view-for-liquid-glass/))
+5. **Strip custom presentation backgrounds.** Sheets get inset Liquid Glass automatically. (WWDC25 323)
+6. **`scrollEdgeEffectStyle(.hard)` for dense scrolls** (Find / Decks card browser / Collection grids — Calendar is the canonical reference). `.soft` for reading. (createwithswift)
 7. **Never hard-code glass opacity.** Test all chrome at every iOS 26.1+ Tinted Mode setting; bottom-row grid cells must remain readable when tab bar is near-opaque.
 8. **Test Reduce Transparency / Reduce Motion / Increase Contrast on.** iOS auto-adjusts; don't override — verify content survives.
 9. **Glass over uncontrolled bg (card art) requires `.tint()`** anchored against dominant hue. Without it, material reads muddy.
@@ -127,7 +123,7 @@ Each is testable in code review.
 
 iOS 26's `Tab(role: .search)` + `.searchable` are the center of every dense view.
 
-1. **Find = `Tab(role: .search)`** (full-screen expansion, tab bar minimizes during search). Don't use plain `.searchable` at the top of a regular tab. ([WWDC25 323](https://developer.apple.com/videos/play/wwdc2025/323/), [nilcoalescing](https://nilcoalescing.com/blog/SwiftUISearchEnhancementsIniOSAndiPadOS26/))
+1. **Find = `Tab(role: .search)`** (full-screen expansion, tab bar minimizes during search). Don't use plain `.searchable` at the top of a regular tab. (WWDC25 323, nilcoalescing)
 2. **Every other tab `.searchable` over its own domain.** Decks = decks + browser. Learn = articles + glossary. Collection = owned cards. Purchase = stores + breaks.
 3. **`searchScopes` for orthogonal axes** (Cards vs Heroes vs Decks) — appears only when search is active.
 4. **Search tokens for filter narrowing.** `BOBAFilterToken` enum (hero/element/treatment/cost/format/set). Replaces filter-pill rows.
@@ -151,7 +147,7 @@ One `ScanStore`, one `ScanView` (live single), one `GridScanView` (multi-card st
 | **Decks** | current deck | add immediately | post-capture: dupes + legality |
 | **Collection** | designation chosen at start | add to that designation | post-capture: change designation |
 
-While a session is open, `.tabViewBottomAccessory` shows *"Scanning · 7 cards · tap to review"* across tab switches ([Donny Wals on TabView accessory](https://www.donnywals.com/exploring-tab-bars-on-ios-26-with-liquid-glass/)).
+While a session is open, `.tabViewBottomAccessory` shows *"Scanning · 7 cards · tap to review"* across tab switches (Donny Wals on TabView accessory).
 
 **Anti-pattern:** separate per-tab scan implementations. Use one `ScanCoordinator.start(destination:)`; per-tab button is just a toolbar item.
 
@@ -233,14 +229,7 @@ Every list, grid, search, sheet defines behavior for four states beyond happy pa
 
 ## 6.8 First-run hints
 
-`HintsManager` + `HintBanner` per DECISIONS.md #031.
-
-**Use:** non-obvious behavior the design itself can't cleanly carry (e.g., bonus play ceiling at count ≥7).
-**Don't use:** to compensate for confusing UI — fix the UI instead.
-
-**Visual:** cyan accent, X-dismiss-permanent, distinct from `ContentUnavailableView` (structural, no dismiss) and `BOBAErrorBanner` (orange, attention). Profile has global silence + reset.
-
-**No cascades.** One hint per surface at a time. Hints teach a tip on a known surface; walkthroughs (§6.10) teach a brand-new surface.
+`HintsManager` + `HintBanner` per DECISIONS.md #031. **Use** for non-obvious behavior the design can't cleanly carry (e.g., bonus play ceiling at count ≥7); **don't use** to paper over confusing UI — fix the UI. **Visual:** cyan accent, X-dismiss-permanent, distinct from `ContentUnavailableView` (structural) and `BOBAErrorBanner` (orange, attention); Profile has global silence + reset. **No cascades** — one hint per surface; hints teach a tip on a known surface, walkthroughs (§6.10) teach a brand-new one.
 
 ---
 
@@ -304,21 +293,13 @@ A new feature gets a walkthrough only if it introduces a genuinely new interacti
 
 ### 6.10.1 Walkthrough catalog
 
-Scripts live in `BOBAPlaybook/Components/BOBAWalkthrough.swift` (the `extension BOBAWalkthrough.Script` block). **The code is the source of truth.** A script that exceeds 12 words/step or 5 steps signals either a wrong anchor or a too-complex feature.
+Scripts live in `BOBAPlaybook/Components/BOBAWalkthrough.swift` (`extension BOBAWalkthrough.Script`) — **the code is the source of truth.** A script exceeding 12 words/step or 5 steps signals a wrong anchor or a too-complex feature.
 
 ---
 
 ## 7. Forward-compatibility (iOS 27 ready)
 
-Bloomberg/Gurman April 2026 — iOS 27 (WWDC 2026 June 8) focuses on Siri overhaul, Apple Intelligence integration, Liquid Glass refinement (opacity slider), AI photo editing. **No navigation paradigm shift expected.** ([Bloomberg](https://www.bloomberg.com/news/newsletters/2026-04-19/apple-ios-27-siri-interface-ios-27-details-mac-studio-touch-macbook-release-mo5u23o7))
-
-Rules to inherit iOS 27 gains automatically:
-
-1. **Every primary action is an `AppIntent`** — Spotlight / Siri / Action Button / Shortcuts / iOS 27 Siri all consume them. ([Apple docs](https://developer.apple.com/documentation/appintents/integrating-actions-with-siri-and-apple-intelligence))
-2. **Content has stable IDs.** Cards have `bobaId`, decks have UUIDs. Learn articles need slug IDs (`setup.match-flow`) for AI summaries / deep links.
-3. **Search is central** (§6) — only way to inherit future natural-language search without rewriting IA.
-4. **Don't hard-code glass opacity** — Tinted Mode slider exists (iOS 26.1+), expanding in 27.
-5. **Don't predict iOS 27 specifics.** Build clean to iOS 26; inherit refinements when they ship.
+iOS 27 (WWDC 2026 June 8) focuses on Siri/Apple Intelligence + Liquid Glass refinement (opacity slider); **no navigation paradigm shift expected.** Rules that inherit those gains automatically: (1) **every primary action is an `AppIntent`** (Spotlight/Siri/Action Button/Shortcuts consume them); (2) **content has stable IDs** — `bobaId`, deck UUIDs, Learn article slugs (`setup.match-flow`); (3) **search is central** (§6) — the only path to future natural-language search without an IA rewrite; (4) **don't hard-code glass opacity** (Tinted Mode slider, iOS 26.1+); (5) **don't predict iOS 27 specifics** — build clean to iOS 26, inherit refinements when they ship.
 
 ---
 
@@ -430,19 +411,13 @@ Both lifted from streamer-only gate (DECISIONS.md #036).
 
 ## 9. The redesign roadmap
 
-Original 30-item roadmap is substantially complete (all tab rebuilds shipped, walkthroughs landed, Liquid Glass adopted, scan unified, Wall+Overlay un-gated). Historical roadmap preserved in git at v2.072. Open work tracked in [SCRATCHPAD.md](./SCRATCHPAD.md) — per-feature one-offs at this stage.
+Original 30-item roadmap substantially complete (all tab rebuilds, walkthroughs, Liquid Glass, scan unify, Wall+Overlay un-gate). History in git at v2.072; open work in [SCRATCHPAD.md](./SCRATCHPAD.md).
 
 ---
 
 ## 10. The daily review test
 
-Before any feature ships:
-
-1. **Gruber (§4.6):** could a competent designer recreate this screen from a one-paragraph description? If no, decoration — strip.
-2. **Verb (§1.1):** what verb does this own? Colliding with another tab's verb? Structural bug; resolve first.
-3. **Depth (§1.2):** count nav levels from tab root. If >2, the third should be a scope, sheet, or different tab.
-
-When answer is "no" or "I'm not sure," reread the relevant section. When the doc is silent or contradicts itself, the doc is wrong — propose an edit before proceeding.
+Before any feature ships: **Gruber (§4.6)** — recreatable from a one-paragraph description, or it's decoration. **Verb (§1.1)** — which verb does it own; colliding = structural bug. **Depth (§1.2)** — >2 nav levels from tab root means the third is a scope/sheet/different tab. When the answer is "no"/"unsure," reread the section; when the doc is silent or self-contradicting, fix the doc first.
 
 ---
 
@@ -512,16 +487,10 @@ Two distinct systems — don't mix.
 
 ## 13. References
 
-Sources cited inline above:
-
-- [Apple — Adopting Liquid Glass](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass)
-- [Apple AppIntents — Integrating actions with Siri](https://developer.apple.com/documentation/appintents/integrating-actions-with-siri-and-apple-intelligence)
-- [Apple HIG — Materials / Search / Sheets / Sidebars / Tab Bars / Toolbars](https://developer.apple.com/design/human-interface-guidelines/) (root)
-- [Bloomberg / Gurman — iOS 27 Siri overhaul](https://www.bloomberg.com/news/newsletters/2026-04-19/apple-ios-27-siri-interface-ios-27-details-mac-studio-touch-macbook-release-mo5u23o7)
-- [conorluddy — Liquid Glass Reference (verbatim HIG)](https://github.com/conorluddy/LiquidGlassReference)
-- [createwithswift — `scrollEdgeEffectStyle`](https://www.createwithswift.com/define-the-scroll-edge-effect-style-of-a-scroll-view-for-liquid-glass/)
-- [Donny Wals — iOS 26 tab bars](https://www.donnywals.com/exploring-tab-bars-on-ios-26-with-liquid-glass/)
-- [Hanin — Don't Design Junk in the iOS 26 Tab Bar](https://medium.com/design-bootcamp/dont-design-junk-in-the-new-ios-26-tab-bar-4de8e842da89)
-- [nilcoalescing — SwiftUI search enhancements iOS 26](https://nilcoalescing.com/blog/SwiftUISearchEnhancementsIniOSAndiPadOS26/)
-- [WWDC25 219 — Meet Liquid Glass](https://developer.apple.com/videos/play/wwdc2025/219/)
-- [WWDC25 323 — Build a SwiftUI app with the new design](https://developer.apple.com/videos/play/wwdc2025/323/)
+Sources cited inline above (search by title): Apple — Adopting Liquid Glass ·
+Apple AppIntents (Integrating actions with Siri) · Apple HIG (Materials / Search /
+Sheets / Sidebars / Tab Bars / Toolbars) · Bloomberg/Gurman iOS 27 Siri overhaul ·
+conorluddy Liquid Glass Reference · createwithswift `scrollEdgeEffectStyle` ·
+Donny Wals iOS 26 tab bars · Hanin "Don't Design Junk in the iOS 26 Tab Bar" ·
+nilcoalescing SwiftUI search enhancements iOS 26 · WWDC25 219 (Meet Liquid Glass) ·
+WWDC25 323 (Build a SwiftUI app with the new design).

@@ -321,7 +321,8 @@ Cost + DBS for Plays render BELOW the canonical six.
 | `supabase_schema.sql` | Supabase table definitions |
 | `docs/CARD_SCHEMA.md` | Full cards.json field documentation |
 | `workers/ebay-proxy/worker.js` | Cloudflare Worker: eBay Browse + Marketplace Insights API proxy (deployed: boba-ebay-proxy.benwilkoff.workers.dev). Radish integration removed 2026-05-23 — see DECISIONS.md #056. |
-| `DECISIONS.md` | Architecture decision log |
+| `DECISIONS.md` | Architecture decision log — load-bearing/active decisions only (kept <40K, loaded into context) |
+| `DECISIONS-ARCHIVE.md` | Superseded / foundational / operational-detail decisions — historical record, NOT loaded into context. Decision numbers are stable across both files |
 | `DESIGN.md` | iOS design theory — binding rules for every iOS UI feature |
 | `WEB-DESIGN.md` | Web design theory — binding rules for every web UI feature |
 | `ANDROID-DESIGN.md` | Android design theory — binding rules for every Android UI feature |

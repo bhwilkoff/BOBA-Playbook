@@ -579,13 +579,6 @@
       "coverage_pct": 91.9
     },
     {
-      "weapon": "NONE",
-      "tier": null,
-      "in_catalog": 3,
-      "with_estimate": 3,
-      "coverage_pct": 100.0
-    },
-    {
       "weapon": "ALT",
       "tier": null,
       "in_catalog": 47,
@@ -597,6 +590,13 @@
       "tier": null,
       "in_catalog": 28,
       "with_estimate": 28,
+      "coverage_pct": 100.0
+    },
+    {
+      "weapon": "NONE",
+      "tier": null,
+      "in_catalog": 3,
+      "with_estimate": 3,
       "coverage_pct": 100.0
     }
   ],

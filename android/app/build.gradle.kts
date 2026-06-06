@@ -47,8 +47,13 @@ android {
         // (See ANDROID-DEV.md §13.2). Bumped locally only for sideload smoke-tests.
         // 2026-05-25: bumped to 2 / 0.1.1 for first Play Console closed-testing
         // upload after the bobaId v3 migration + Collection-empty bug fixes.
-        versionCode = 4
-        versionName = "0.1.3"
+        // 2026-06-06: bumped to 5 / 0.1.4 — ships the full pricing parity work
+        // (v2.385–v2.397) that landed AFTER the 0.1.3 cut (2026-05-26): the
+        // marketValue() four-signal resolver, Recent Sales /comps, Listed Range,
+        // estimator-artifact fallback, LOW/AVG/HIGH tri-grid, and the 7-state
+        // render audit (DECISIONS.md #058 · #059 · #062, now in DECISIONS-ARCHIVE.md).
+        versionCode = 5
+        versionName = "0.1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }

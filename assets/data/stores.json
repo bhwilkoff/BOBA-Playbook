@@ -1200,31 +1200,6 @@
     "modifiedAt": "2025-11-21T20:08:58Z"
   },
   {
-    "id": 6817,
-    "name": "Rip Valley",
-    "slug": "rip-valley",
-    "phone": "602-345-07111",
-    "email": "",
-    "website": "https://www.ripvalley.com/",
-    "address": {
-      "full": "1014 North 2nd Street, Phoenix, AZ 85004, USA",
-      "street": "1014 North 2nd Street",
-      "city": "Phoenix",
-      "state": "Arizona",
-      "stateShort": "AZ",
-      "postCode": "85004",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.4592,
-      "lng": -112.071623
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=rip-valley",
-    "modifiedAt": "2025-11-21T20:07:48Z"
-  },
-  {
     "id": 8372,
     "name": "Target - Phoenix",
     "slug": "target-phoenix-2",
@@ -1525,31 +1500,6 @@
     "modifiedAt": "2025-11-21T20:10:22Z"
   },
   {
-    "id": 6694,
-    "name": "Collectors Choice",
-    "slug": "collectors-choice",
-    "phone": "",
-    "email": "",
-    "website": "https://collectorschoicecomics.com/",
-    "address": {
-      "full": "1805 E Elliot Rd, suite 101, Tempe, AZ 85284, USA",
-      "street": "1805 E Elliot Rd, suite 101",
-      "city": "Tempe",
-      "state": "Arizona",
-      "stateShort": "AZ",
-      "postCode": "85284",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.347819,
-      "lng": -111.909724
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=collectors-choice",
-    "modifiedAt": "2025-11-21T20:07:43Z"
-  },
-  {
     "id": 7356,
     "name": "DICK'S Sporting Goods, #362 : Tempe-AZ",
     "slug": "dicks-sporting-goods-232",
@@ -1675,31 +1625,6 @@
     "modifiedAt": "2025-11-21T20:08:35Z"
   },
   {
-    "id": 8169,
-    "name": "CardMules",
-    "slug": "cardmules",
-    "phone": "+1 602-622-6514",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "6256 N 186th Ave, Waddell, AZ 85355, USA",
-      "street": "6256 N 186th Ave",
-      "city": "Waddell",
-      "state": "Arizona",
-      "stateShort": "AZ",
-      "postCode": "85355",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.527443,
-      "lng": -112.460746
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=cardmules",
-    "modifiedAt": "2025-11-21T20:10:26Z"
-  },
-  {
     "id": 8560,
     "name": "Target - Alhambra",
     "slug": "target-alhambra-2",
@@ -1798,31 +1723,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-aliso-viejo",
     "modifiedAt": "2025-11-21T20:07:49Z"
-  },
-  {
-    "id": 6653,
-    "name": "Big Mike's Comix",
-    "slug": "big-mikes-comix",
-    "phone": "",
-    "email": "",
-    "website": "https://www.bigmikescomix.com",
-    "address": {
-      "full": "2820 Shaffer Road, Atwater, CA 95301, USA",
-      "street": "2820 Shaffer Road",
-      "city": "Atwater",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "95301",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 37.362028,
-      "lng": -120.595398
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=big-mikes-comix",
-    "modifiedAt": "2025-11-21T20:07:42Z"
   },
   {
     "id": 8577,
@@ -2400,31 +2300,6 @@
     "modifiedAt": "2025-11-21T20:07:51Z"
   },
   {
-    "id": 6641,
-    "name": "A to Z Collectibles",
-    "slug": "a-to-z-collectibles",
-    "phone": "",
-    "email": "",
-    "website": "https://www.a2zcrds.com/about-us.html",
-    "address": {
-      "full": "1050 Shaw Ave, Clovis, CA 93612, USA",
-      "street": "1050 Shaw Ave",
-      "city": "Clovis",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "93612",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 36.805889,
-      "lng": -119.695182
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=a-to-z-collectibles",
-    "modifiedAt": "2025-11-21T20:07:41Z"
-  },
-  {
     "id": 6665,
     "name": "Calicards & More",
     "slug": "calicards-more",
@@ -2698,31 +2573,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-455",
     "modifiedAt": "2025-11-21T20:09:28Z"
-  },
-  {
-    "id": 6703,
-    "name": "Davis Sports Cards",
-    "slug": "davis-sports-cards",
-    "phone": "530-564-4656",
-    "email": "",
-    "website": "https://daviscardsandgames.com/",
-    "address": {
-      "full": "1790 East 8th Street, Davis, CA 95616, USA",
-      "street": "1790 East 8th Street",
-      "city": "Davis",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "95616",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.552704,
-      "lng": -121.730274
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=davis-sports-cards",
-    "modifiedAt": "2025-11-21T20:07:44Z"
   },
   {
     "id": 8676,
@@ -3148,31 +2998,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-292",
     "modifiedAt": "2025-11-21T20:09:04Z"
-  },
-  {
-    "id": 6609,
-    "name": "Northern Realms Trading Cards",
-    "slug": "northern-realms-trading-cards",
-    "phone": "(707) 382-9699",
-    "email": "",
-    "website": "https://www.facebook.com/61554229079717",
-    "address": {
-      "full": "3300 Broadway St, Ste 206, Eureka, CA 95501, USA",
-      "street": "3300 Broadway St, Ste 206",
-      "city": "Eureka",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "95501",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.779296,
-      "lng": -124.190593
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=northern-realms-trading-cards",
-    "modifiedAt": "2025-11-21T20:07:40Z"
   },
   {
     "id": 7079,
@@ -4823,31 +4648,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-17",
     "modifiedAt": "2025-11-21T20:08:35Z"
-  },
-  {
-    "id": 8121,
-    "name": "The Collectors Ward",
-    "slug": "the-collectors-ward",
-    "phone": "209-341-9389",
-    "email": "",
-    "website": "https://www.facebook.com/p/The-Collectors-Ward-100093670792938/",
-    "address": {
-      "full": "1570 E F St, ste g, Oakdale, CA 95361, USA",
-      "street": "1570 E F St, ste g",
-      "city": "Oakdale",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "95361",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 37.774457,
-      "lng": -120.83011
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=the-collectors-ward",
-    "modifiedAt": "2025-11-21T20:10:25Z"
   },
   {
     "id": 7090,
@@ -7173,31 +6973,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-437",
     "modifiedAt": "2025-11-21T20:09:26Z"
-  },
-  {
-    "id": 6656,
-    "name": "Board Game: Pair-A-Dice",
-    "slug": "board-game-pair-a-dice",
-    "phone": "760-940-0139",
-    "email": "",
-    "website": "https://pairadicegames.com/",
-    "address": {
-      "full": "2020 Hacienda Drive, Vista, CA 92081, USA",
-      "street": "2020 Hacienda Drive",
-      "city": "Vista",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "92081",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.183924,
-      "lng": -117.285017
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=board-game-pair-a-dice",
-    "modifiedAt": "2025-11-21T20:07:42Z"
   },
   {
     "id": 7507,
@@ -10450,31 +10225,6 @@
     "modifiedAt": "2025-11-21T20:08:51Z"
   },
   {
-    "id": 6621,
-    "name": "Showtime Sports Cards & Collectibles",
-    "slug": "showtime-sports-cards-collectibles",
-    "phone": "904-527-8980",
-    "email": "",
-    "website": "https://www.showtimesportscardsofjax.com/",
-    "address": {
-      "full": "9365 Philips Hwy, Ste 106, Jacksonville, FL 32256, USA",
-      "street": "9365 Philips Hwy, Ste 106",
-      "city": "Jacksonville",
-      "state": "Florida",
-      "stateShort": "FL",
-      "postCode": "32256",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 30.197829,
-      "lng": -81.569482
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=showtime-sports-cards-collectibles",
-    "modifiedAt": "2025-11-21T20:07:41Z"
-  },
-  {
     "id": 7786,
     "name": "Target - Jacksonville",
     "slug": "target-jacksonville-2",
@@ -11775,31 +11525,6 @@
     "modifiedAt": "2025-11-21T20:09:08Z"
   },
   {
-    "id": 6580,
-    "name": "Ben's Card World",
-    "slug": "bens-card-world",
-    "phone": "(850) 912-8922",
-    "email": "",
-    "website": "https://benscardworld.com",
-    "address": {
-      "full": "4771 Bayou Blvd, Ste 7, Pensacola, FL 32503, USA",
-      "street": "4771 Bayou Blvd, Ste 7",
-      "city": "Pensacola",
-      "state": "Florida",
-      "stateShort": "FL",
-      "postCode": "32503",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 30.470705,
-      "lng": -87.209386
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=bens-card-world",
-    "modifiedAt": "2025-11-21T20:07:39Z"
-  },
-  {
     "id": 7545,
     "name": "DICK'S Sporting Goods, #1039 : Pensacola-FL",
     "slug": "dicks-sporting-goods-421",
@@ -11823,31 +11548,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-421",
     "modifiedAt": "2025-11-21T20:09:23Z"
-  },
-  {
-    "id": 6750,
-    "name": "Hitman's Cards & More",
-    "slug": "hitmans-cards-more",
-    "phone": "",
-    "email": "",
-    "website": "https://www.facebook.com/people/Hitmans-Cards-and-More/100063577502686/",
-    "address": {
-      "full": "1717 North T Street, Pensacola, FL 32505, USA",
-      "street": "1717 North T Street",
-      "city": "Pensacola",
-      "state": "Florida",
-      "stateShort": "FL",
-      "postCode": "32505",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 30.430399,
-      "lng": -87.246538
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=hitmans-cards-more",
-    "modifiedAt": "2025-11-21T20:07:46Z"
   },
   {
     "id": 8369,
@@ -13375,31 +13075,6 @@
     "modifiedAt": "2025-11-21T20:09:57Z"
   },
   {
-    "id": 6774,
-    "name": "Killerfinds",
-    "slug": "killerfinds",
-    "phone": "470-308-3939",
-    "email": "",
-    "website": "https://hiramgamestore.com/",
-    "address": {
-      "full": "4215 Jimmy Lee Smith Pkwy, Hiram, GA 30141, USA",
-      "street": "4215 Jimmy Lee Smith Pkwy",
-      "city": "Hiram",
-      "state": "Georgia",
-      "stateShort": "GA",
-      "postCode": "30141",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.893506,
-      "lng": -84.756161
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=killerfinds",
-    "modifiedAt": "2025-11-21T20:07:46Z"
-  },
-  {
     "id": 7230,
     "name": "DICK'S House Of Sport, #1664 : Kennesaw-GA",
     "slug": "dicks-house-of-sport-12",
@@ -13673,31 +13348,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-465",
     "modifiedAt": "2025-11-21T20:09:30Z"
-  },
-  {
-    "id": 6726,
-    "name": "Game Castle",
-    "slug": "game-castle",
-    "phone": "",
-    "email": "",
-    "website": "https://www.gamecastlestore.com",
-    "address": {
-      "full": "1081 U.S. 19, Thomaston, GA 30286, USA",
-      "street": "1081 U.S. 19",
-      "city": "Thomaston",
-      "state": "Georgia",
-      "stateShort": "GA",
-      "postCode": "30286",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 32.925314,
-      "lng": -84.335345
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=game-castle",
-    "modifiedAt": "2025-11-21T20:07:45Z"
   },
   {
     "id": 7693,
@@ -15100,31 +14750,6 @@
     "modifiedAt": "2025-11-21T20:09:37Z"
   },
   {
-    "id": 6742,
-    "name": "Grand Slam Sports",
-    "slug": "grand-slam-sports",
-    "phone": "",
-    "email": "",
-    "website": "https://www.grandslamidaho.com",
-    "address": {
-      "full": "2108 Caldwell Blvd, ste 113, Nampa, ID 83651, USA",
-      "street": "2108 Caldwell Blvd, ste 113",
-      "city": "Nampa",
-      "state": "Idaho",
-      "stateShort": "ID",
-      "postCode": "83651",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 43.609248,
-      "lng": -116.605985
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=grand-slam-sports",
-    "modifiedAt": "2025-11-21T20:07:45Z"
-  },
-  {
     "id": 7433,
     "name": "DICK'S Sporting Goods, #636 : Pocatello-ID",
     "slug": "dicks-sporting-goods-309",
@@ -15873,56 +15498,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-glenview",
     "modifiedAt": "2025-11-21T20:07:56Z"
-  },
-  {
-    "id": 6778,
-    "name": "Kyles Sports Cards",
-    "slug": "kyles-sports-cards",
-    "phone": "(618) 876-0221",
-    "email": "",
-    "website": "https://www.facebook.com/kylesbaseballcardsandcomics/",
-    "address": {
-      "full": "3801 Nameoki Rd, ste 16, Granite City, IL 62040, USA",
-      "street": "3801 Nameoki Rd, ste 16",
-      "city": "Granite City",
-      "state": "Illinois",
-      "stateShort": "IL",
-      "postCode": "62040",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.728732,
-      "lng": -90.126554
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=kyles-sports-cards",
-    "modifiedAt": "2025-11-21T20:07:47Z"
-  },
-  {
-    "id": 6836,
-    "name": "State Line Sports Cards",
-    "slug": "state-line-sports-cards",
-    "phone": "(224)-252-2983",
-    "email": "",
-    "website": "https://www.statelinesportscards.com/",
-    "address": {
-      "full": "1864 East Belvidere Road, Grayslake, IL 60030, USA",
-      "street": "1864 East Belvidere Road",
-      "city": "Grayslake",
-      "state": "Illinois",
-      "stateShort": "IL",
-      "postCode": "60030",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.339352,
-      "lng": -88.001469
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=state-line-sports-cards",
-    "modifiedAt": "2025-11-21T20:07:49Z"
   },
   {
     "id": 7088,
@@ -17450,31 +17025,6 @@
     "modifiedAt": "2025-11-21T20:10:21Z"
   },
   {
-    "id": 6623,
-    "name": "Sports Card Zone",
-    "slug": "sports-card-zone",
-    "phone": "815-280-5841",
-    "email": "",
-    "website": "https://thesportscardzone.com/",
-    "address": {
-      "full": "852 Sharp Dr, Unit I, Shorewood, IL 60404, USA",
-      "street": "852 Sharp Dr, Unit I",
-      "city": "Shorewood",
-      "state": "Illinois",
-      "stateShort": "IL",
-      "postCode": "60404",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.535063,
-      "lng": -88.197034
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=sports-card-zone",
-    "modifiedAt": "2025-11-21T20:07:41Z"
-  },
-  {
     "id": 6637,
     "name": "2 Guys Sports Cards",
     "slug": "2-guys-sports-cards",
@@ -18150,31 +17700,6 @@
     "modifiedAt": "2025-11-21T20:08:35Z"
   },
   {
-    "id": 6783,
-    "name": "Main Phase One",
-    "slug": "main-phase-one",
-    "phone": "",
-    "email": "",
-    "website": "https://mainphaseone.com/",
-    "address": {
-      "full": "999 North Congress Avenue, Evansville, IN 47715, USA",
-      "street": "999 North Congress Avenue",
-      "city": "Evansville",
-      "state": "Indiana",
-      "stateShort": "IN",
-      "postCode": "47715",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 37.985999,
-      "lng": -87.499674
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=main-phase-one",
-    "modifiedAt": "2025-11-21T20:07:47Z"
-  },
-  {
     "id": 8694,
     "name": "Target - Evansville",
     "slug": "target-evansville-4",
@@ -18625,31 +18150,6 @@
     "modifiedAt": "2025-11-21T20:07:56Z"
   },
   {
-    "id": 8115,
-    "name": "TCB Games Inc.",
-    "slug": "tcb-games-inc",
-    "phone": "260-358-0690",
-    "email": "",
-    "website": "https://www.tcb.games/",
-    "address": {
-      "full": "44 E Park Dr, Huntington, IN 46750, USA",
-      "street": "44 E Park Dr",
-      "city": "Huntington",
-      "state": "Indiana",
-      "stateShort": "IN",
-      "postCode": "46750",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.88398,
-      "lng": -85.495734
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=tcb-games-inc",
-    "modifiedAt": "2025-11-21T20:10:25Z"
-  },
-  {
     "id": 7382,
     "name": "DICK'S Sporting Goods, #416 : Castleton-IN",
     "slug": "dicks-sporting-goods-258",
@@ -18948,31 +18448,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-muncie",
     "modifiedAt": "2025-11-21T20:10:16Z"
-  },
-  {
-    "id": 6676,
-    "name": "Cardhaus Games LLC",
-    "slug": "cardhaus-games-llc",
-    "phone": "",
-    "email": "",
-    "website": "https://www.cardhaus.com/",
-    "address": {
-      "full": "1636 Slate Run Rd, New Albany, IN 47150, USA",
-      "street": "1636 Slate Run Rd",
-      "city": "New Albany",
-      "state": "Indiana",
-      "stateShort": "IN",
-      "postCode": "47150",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.321971,
-      "lng": -85.801141
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=cardhaus-games-llc",
-    "modifiedAt": "2025-11-21T20:07:43Z"
   },
   {
     "id": 7309,
@@ -20000,31 +19475,6 @@
     "modifiedAt": "2025-11-21T20:09:34Z"
   },
   {
-    "id": 6615,
-    "name": "Redmans Dugout",
-    "slug": "redmans-dugout",
-    "phone": "(270) 651-2308",
-    "email": "",
-    "website": "https://www.facebook.com/redmansdugout/",
-    "address": {
-      "full": "313 Ymca Way, Glasgow, KY 42141, USA",
-      "street": "313 Ymca Way",
-      "city": "Glasgow",
-      "state": "Kentucky",
-      "stateShort": "KY",
-      "postCode": "42141",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 37.011288,
-      "lng": -85.933922
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=redmans-dugout",
-    "modifiedAt": "2025-11-21T20:07:40Z"
-  },
-  {
     "id": 7254,
     "name": "DICK'S Sporting Goods, #187 : Fayette Mall -KY",
     "slug": "dicks-sporting-goods-130",
@@ -20350,31 +19800,6 @@
     "modifiedAt": "2025-11-21T20:07:47Z"
   },
   {
-    "id": 8161,
-    "name": "WinCity Sports Cards",
-    "slug": "wincity-sports-cards",
-    "phone": "",
-    "email": "",
-    "website": "https://www.wincitysportscards.com",
-    "address": {
-      "full": "150 Shoppers Village Drive, Winchester, KY 40391, USA",
-      "street": "150 Shoppers Village Drive",
-      "city": "Winchester",
-      "state": "Kentucky",
-      "stateShort": "KY",
-      "postCode": "40391",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.007518,
-      "lng": -84.213094
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=wincity-sports-cards",
-    "modifiedAt": "2025-11-21T20:10:26Z"
-  },
-  {
     "id": 6664,
     "name": "Cajun Cardboard",
     "slug": "cajun-cardboard",
@@ -20650,31 +20075,6 @@
     "modifiedAt": "2025-11-21T20:09:05Z"
   },
   {
-    "id": 6758,
-    "name": "J&K Trading Cards",
-    "slug": "jk-trading-cards",
-    "phone": "(318) 422-2344",
-    "email": "",
-    "website": "https://www.facebook.com/318tradingcards/",
-    "address": {
-      "full": "721 Broadway Street, Minden, LA 71055, USA",
-      "street": "721 Broadway Street",
-      "city": "Minden",
-      "state": "Louisiana",
-      "stateShort": "LA",
-      "postCode": "71055",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 32.615938,
-      "lng": -93.285647
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=jk-trading-cards",
-    "modifiedAt": "2025-11-21T20:07:46Z"
-  },
-  {
     "id": 7546,
     "name": "DICK'S Sporting Goods, #1040 : Monroe-LA",
     "slug": "dicks-sporting-goods-422",
@@ -20798,31 +20198,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=cajun-breaker-sports-cards-collectibles",
     "modifiedAt": "2025-11-21T20:07:42Z"
-  },
-  {
-    "id": 6807,
-    "name": "Pegasus Collectibles",
-    "slug": "pegasus-collectibles",
-    "phone": "508-657-1240",
-    "email": "",
-    "website": "https://pegasusbrz.com/",
-    "address": {
-      "full": "108 Mechanic St, #15, Bellingham, MA 02019, USA",
-      "street": "108 Mechanic St, #15",
-      "city": "Bellingham",
-      "state": "Massachusetts",
-      "stateShort": "MA",
-      "postCode": "2019",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.082643,
-      "lng": -71.467319
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=pegasus-collectibles",
-    "modifiedAt": "2025-11-21T20:07:48Z"
   },
   {
     "id": 7175,
@@ -22800,31 +22175,6 @@
     "modifiedAt": "2025-11-21T20:09:29Z"
   },
   {
-    "id": 8147,
-    "name": "Two Pair Collectibles",
-    "slug": "two-pair-collectibles",
-    "phone": "410-690-4422",
-    "email": "",
-    "website": "https://twopaircollectibles.com/",
-    "address": {
-      "full": "8223 Elliott Rd, ste 17, Easton, MD 21601, USA",
-      "street": "8223 Elliott Rd, ste 17",
-      "city": "Easton",
-      "state": "Maryland",
-      "stateShort": "MD",
-      "postCode": "21601",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.774468,
-      "lng": -76.054426
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=two-pair-collectibles",
-    "modifiedAt": "2025-11-21T20:10:26Z"
-  },
-  {
     "id": 7738,
     "name": "DICK'S Sporting Goods, #1322 : Ellicott City-MD",
     "slug": "dicks-sporting-goods-614",
@@ -24125,31 +23475,6 @@
     "modifiedAt": "2025-11-21T20:10:16Z"
   },
   {
-    "id": 6592,
-    "name": "Detroit Nation Collectibles",
-    "slug": "detroit-nation-collectibles",
-    "phone": "(313) 697-3553",
-    "email": "",
-    "website": "https://www.facebook.com/groups/235779405474731/",
-    "address": {
-      "full": "2018 N Telegraph Rd, Unit 2, Dearborn, MI 48128, USA",
-      "street": "2018 N Telegraph Rd, Unit 2",
-      "city": "Dearborn",
-      "state": "Michigan",
-      "stateShort": "MI",
-      "postCode": "48124",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.297382,
-      "lng": -83.271432
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=detroit-nation-collectibles",
-    "modifiedAt": "2025-11-21T20:07:39Z"
-  },
-  {
     "id": 6606,
     "name": "MidMich House of Cards",
     "slug": "midmich-house-of-cards",
@@ -24273,31 +23598,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-96",
     "modifiedAt": "2025-11-21T20:08:39Z"
-  },
-  {
-    "id": 6716,
-    "name": "Fanfare",
-    "slug": "fanfare",
-    "phone": "(269) 349-8866",
-    "email": "",
-    "website": "https://fanfareland.com/",
-    "address": {
-      "full": "4308 S Westnedge Ave, Kalamazoo, MI 49008, USA",
-      "street": "4308 S Westnedge Ave",
-      "city": "Kalamazoo",
-      "state": "Michigan",
-      "stateShort": "MI",
-      "postCode": "49008",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.247568,
-      "lng": -85.590083
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=fanfare",
-    "modifiedAt": "2025-11-21T20:07:44Z"
   },
   {
     "id": 8204,
@@ -25825,31 +25125,6 @@
     "modifiedAt": "2025-11-21T20:09:54Z"
   },
   {
-    "id": 8123,
-    "name": "The Fan Zone - St. Cloud",
-    "slug": "the-fan-zone-st-cloud",
-    "phone": "(320) 251-4143",
-    "email": "",
-    "website": "https://www.fanzonemn.com/",
-    "address": {
-      "full": "314 4th Ave NE, Waite Park, MN 56387, USA",
-      "street": "314 4th Ave NE",
-      "city": "Waite Park",
-      "state": "Minnesota",
-      "stateShort": "MN",
-      "postCode": "56387",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 45.559394,
-      "lng": -94.206844
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=the-fan-zone-st-cloud",
-    "modifiedAt": "2025-11-21T20:10:25Z"
-  },
-  {
     "id": 8529,
     "name": "Target - West St Paul",
     "slug": "target-west-st-paul-2",
@@ -25898,31 +25173,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-west-st-paul",
     "modifiedAt": "2025-11-21T20:10:24Z"
-  },
-  {
-    "id": 6715,
-    "name": "Fan Zone in Wilmar",
-    "slug": "fan-zone-in-wilmar",
-    "phone": "(320) 222-9663",
-    "email": "",
-    "website": "https://www.fanzonemn.com/",
-    "address": {
-      "full": "1605 1st St S, Willmar, MN 56201, USA",
-      "street": "1605 1st St S",
-      "city": "Willmar",
-      "state": "Minnesota",
-      "stateShort": "MN",
-      "postCode": "56201",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 45.106363,
-      "lng": -95.040609
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=fan-zone-in-wilmar",
-    "modifiedAt": "2025-11-21T20:07:44Z"
   },
   {
     "id": 8551,
@@ -26250,31 +25500,6 @@
     "modifiedAt": "2025-11-21T20:07:55Z"
   },
   {
-    "id": 6777,
-    "name": "Kugelblitz Gaming",
-    "slug": "kugelblitz-gaming",
-    "phone": "314-343-6161",
-    "email": "",
-    "website": "https://kugelblitzgaming.com/",
-    "address": {
-      "full": "407 Market St, Hermann, MO 65041, USA",
-      "street": "407 Market St",
-      "city": "Hermann",
-      "state": "Missouri",
-      "stateShort": "MO",
-      "postCode": "65041",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.703962,
-      "lng": -91.437608
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=kugelblitz-gaming",
-    "modifiedAt": "2025-11-21T20:07:47Z"
-  },
-  {
     "id": 6711,
     "name": "Elite Collectibles",
     "slug": "elite-collectibles",
@@ -26348,31 +25573,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=gamers-getaway-kc",
     "modifiedAt": "2025-11-21T20:07:45Z"
-  },
-  {
-    "id": 6639,
-    "name": "573 Card Vault",
-    "slug": "573-card-vault",
-    "phone": "",
-    "email": "",
-    "website": "https://www.573cardvault.com",
-    "address": {
-      "full": "503 E Jackson Blvd, Jackson, MO 63755, USA",
-      "street": "503 E Jackson Blvd",
-      "city": "Jackson",
-      "state": "Missouri",
-      "stateShort": "MO",
-      "postCode": "63755",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 37.375578,
-      "lng": -89.663902
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=573-card-vault",
-    "modifiedAt": "2025-11-21T20:07:41Z"
   },
   {
     "id": 8217,
@@ -26500,31 +25700,6 @@
     "modifiedAt": "2025-11-21T20:10:14Z"
   },
   {
-    "id": 8139,
-    "name": "Toys 4 Life",
-    "slug": "toys-4-life",
-    "phone": "(417) 991-9692",
-    "email": "",
-    "website": "https://www.facebook.com/p/Toys-4-Life-100077328205153/",
-    "address": {
-      "full": "1536 W Elm St, unit b, Lebanon, MO 65536, USA",
-      "street": "1536 W Elm St, unit b",
-      "city": "Lebanon",
-      "state": "Missouri",
-      "stateShort": "MO",
-      "postCode": "65536",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 37.656881,
-      "lng": -92.667138
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=toys-4-life",
-    "modifiedAt": "2025-11-21T20:10:25Z"
-  },
-  {
     "id": 7722,
     "name": "DICK'S Sporting Goods, #1301 : Lees Summit-4)",
     "slug": "dicks-sporting-goods-598",
@@ -26573,31 +25748,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-308",
     "modifiedAt": "2025-11-21T20:09:06Z"
-  },
-  {
-    "id": 6720,
-    "name": "Forge and Fire Gaming",
-    "slug": "forge-and-fire-gaming",
-    "phone": "314-293-9833",
-    "email": "",
-    "website": "https://forgeandfiregaming.com/",
-    "address": {
-      "full": "2462 Schuetz Rd, Maryland Heights, MO 63043, USA",
-      "street": "2462 Schuetz Rd",
-      "city": "Maryland Heights",
-      "state": "Missouri",
-      "stateShort": "MO",
-      "postCode": "63043",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.710002,
-      "lng": -90.431815
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=forge-and-fire-gaming",
-    "modifiedAt": "2025-11-21T20:07:44Z"
   },
   {
     "id": 8348,
@@ -26975,31 +26125,6 @@
     "modifiedAt": "2025-11-21T20:07:43Z"
   },
   {
-    "id": 6696,
-    "name": "Collectors Store",
-    "slug": "collectors-store",
-    "phone": "",
-    "email": "",
-    "website": "https://collectorstore.com",
-    "address": {
-      "full": "1106 Jungs Station Road, St. Peters, MO 63303, USA",
-      "street": "1106 Jungs Station Road",
-      "city": "St. Peters",
-      "state": "Missouri",
-      "stateShort": "MO",
-      "postCode": "63303",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.744023,
-      "lng": -90.561946
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=collectors-store",
-    "modifiedAt": "2025-11-21T20:07:43Z"
-  },
-  {
     "id": 6811,
     "name": "RbiCru7 Sports Cards",
     "slug": "rbicru7-sports-cards",
@@ -27350,31 +26475,6 @@
     "modifiedAt": "2025-11-21T20:09:11Z"
   },
   {
-    "id": 6602,
-    "name": "KAB Sports Cards & Collectibles",
-    "slug": "kab-sports-cards-collectibles",
-    "phone": "(406) 702-1509",
-    "email": "",
-    "website": "https://www.kabsportscards.com/",
-    "address": {
-      "full": "2059 Broadwater Ave, Ste C, Billings, MT 59102, USA",
-      "street": "2059 Broadwater Ave, Ste C",
-      "city": "Billings",
-      "state": "Montana",
-      "stateShort": "MT",
-      "postCode": "59102",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 45.777384,
-      "lng": -108.569267
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=kab-sports-cards-collectibles",
-    "modifiedAt": "2025-11-21T20:07:40Z"
-  },
-  {
     "id": 8591,
     "name": "Target - Billings",
     "slug": "target-billings-2",
@@ -27473,31 +26573,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-kalispell",
     "modifiedAt": "2025-11-21T20:07:58Z"
-  },
-  {
-    "id": 6585,
-    "name": "Cardiac Sports and Memorabilia",
-    "slug": "cardiac-sports-and-memorabilia-2",
-    "phone": "(919) 463-5685",
-    "email": "",
-    "website": "https://www.thecardiacs.com",
-    "address": {
-      "full": "1101 Marco Dr, Ste 100, Apex, NC 27502, USA",
-      "street": "1101 Marco Dr, Ste 100",
-      "city": "Apex",
-      "state": "North Carolina",
-      "stateShort": "NC",
-      "postCode": "27502",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 35.717895,
-      "lng": -78.839912
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=cardiac-sports-and-memorabilia-2",
-    "modifiedAt": "2025-11-21T20:07:39Z"
   },
   {
     "id": 7306,
@@ -28325,31 +27400,6 @@
     "modifiedAt": "2025-11-21T20:08:55Z"
   },
   {
-    "id": 6584,
-    "name": "Cardiac Sports and Memorabilia",
-    "slug": "cardiac-sports-and-memorabilia",
-    "phone": "(704) 935-3489",
-    "email": "",
-    "website": "https://www.thecardiacs.com/",
-    "address": {
-      "full": "133 West Ave, Kannapolis, NC 28081, USA",
-      "street": "133 West Ave",
-      "city": "Kannapolis",
-      "state": "North Carolina",
-      "stateShort": "NC",
-      "postCode": "28081",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 35.497345,
-      "lng": -80.625605
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=cardiac-sports-and-memorabilia",
-    "modifiedAt": "2025-11-21T20:07:39Z"
-  },
-  {
     "id": 8243,
     "name": "Target - Kill Devil Hills",
     "slug": "target-kill-devil-hills-2",
@@ -28648,31 +27698,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-140",
     "modifiedAt": "2025-11-21T20:08:50Z"
-  },
-  {
-    "id": 6631,
-    "name": "Triangle Area Trading Cards",
-    "slug": "triangle-area-trading-cards",
-    "phone": "9196150914",
-    "email": "",
-    "website": "https://triangleatc.com/",
-    "address": {
-      "full": "2865 Jones Franklin Rd, Raleigh, NC 27606, USA",
-      "street": "2865 Jones Franklin Rd",
-      "city": "Raleigh",
-      "state": "North Carolina",
-      "stateShort": "NC",
-      "postCode": "27606",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 35.743773,
-      "lng": -78.73851
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=triangle-area-trading-cards",
-    "modifiedAt": "2025-11-21T20:07:41Z"
   },
   {
     "id": 7650,
@@ -29900,31 +28925,6 @@
     "modifiedAt": "2025-11-21T20:10:25Z"
   },
   {
-    "id": 6789,
-    "name": "Mom & Pop Shop",
-    "slug": "mom-pop-shop",
-    "phone": "201-354-9091",
-    "email": "",
-    "website": "https://www.facebook.com/MomandPopShopNow/",
-    "address": {
-      "full": "185 Broadway, Bayonne, NJ 07002, USA",
-      "street": "185 Broadway",
-      "city": "Bayonne",
-      "state": "New Jersey",
-      "stateShort": "NJ",
-      "postCode": "7002",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.652749,
-      "lng": -74.128017
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=mom-pop-shop",
-    "modifiedAt": "2025-11-21T20:07:47Z"
-  },
-  {
     "id": 7303,
     "name": "DICK'S Sporting Goods, #272 : Brick -NJ",
     "slug": "dicks-sporting-goods-179",
@@ -30123,31 +29123,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-170",
     "modifiedAt": "2025-11-21T20:08:52Z"
-  },
-  {
-    "id": 6647,
-    "name": "Attack of the BB Cards",
-    "slug": "attack-of-the-bb-cards",
-    "phone": "",
-    "email": "",
-    "website": "https://attackofthebbcards.com",
-    "address": {
-      "full": "1475 Raritan Road, Clark, NJ 07066, USA",
-      "street": "1475 Raritan Road",
-      "city": "Clark",
-      "state": "New Jersey",
-      "stateShort": "NJ",
-      "postCode": "7066",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.635539,
-      "lng": -74.300156
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=attack-of-the-bb-cards",
-    "modifiedAt": "2025-11-21T20:07:42Z"
   },
   {
     "id": 8635,
@@ -33050,31 +32025,6 @@
     "modifiedAt": "2025-11-21T20:09:57Z"
   },
   {
-    "id": 6597,
-    "name": "Grand Slam Collectibles - Bellport",
-    "slug": "grand-slam-collectibles-bellport",
-    "phone": "631-803-0454",
-    "email": "",
-    "website": "http://www.grandslamcollectibles.com",
-    "address": {
-      "full": "10 Farber Dr, Ste, Bellport, NY 11713, USA",
-      "street": "10 Farber Dr, Ste",
-      "city": "Bellport",
-      "state": "New York",
-      "stateShort": "NY",
-      "postCode": "11713",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.790672,
-      "lng": -72.948928
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=grand-slam-collectibles-bellport",
-    "modifiedAt": "2025-11-21T20:07:40Z"
-  },
-  {
     "id": 7685,
     "name": "DICK'S Sporting Goods, #1237 : Amherst-1)",
     "slug": "dicks-sporting-goods-561",
@@ -33898,31 +32848,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=upstate-sports-cards",
     "modifiedAt": "2025-11-21T20:10:26Z"
-  },
-  {
-    "id": 6739,
-    "name": "Gifts n Glamour",
-    "slug": "gifts-n-glamour",
-    "phone": "",
-    "email": "",
-    "website": "https://www.giftsnglamour.com",
-    "address": {
-      "full": "289 Canada Street, Lake George, NY 12845, USA",
-      "street": "289 Canada Street",
-      "city": "Lake George",
-      "state": "New York",
-      "stateShort": "NY",
-      "postCode": "12845",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 43.425961,
-      "lng": -73.712809
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=gifts-n-glamour",
-    "modifiedAt": "2025-11-21T20:07:45Z"
   },
   {
     "id": 7295,
@@ -35125,31 +34050,6 @@
     "modifiedAt": "2025-11-21T20:10:21Z"
   },
   {
-    "id": 6598,
-    "name": "Grand Slam Collectibles - Selden",
-    "slug": "grand-slam-collectibles-selden",
-    "phone": "",
-    "email": "",
-    "website": "http://www.grandslamcollectibles.com",
-    "address": {
-      "full": "249 Middle Country Rd, Selden, NY 11784, USA",
-      "street": "249 Middle Country Rd",
-      "city": "Selden",
-      "state": "New York",
-      "stateShort": "NY",
-      "postCode": "11784",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.868254,
-      "lng": -73.024915
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=grand-slam-collectibles-selden",
-    "modifiedAt": "2025-11-21T20:07:40Z"
-  },
-  {
     "id": 8462,
     "name": "Target - South Setauket",
     "slug": "target-south-setauket-2",
@@ -35523,31 +34423,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-131",
     "modifiedAt": "2025-11-21T20:08:49Z"
-  },
-  {
-    "id": 6599,
-    "name": "Grand Slam Collectibles - West Islip",
-    "slug": "grand-slam-collectibles-west-islip",
-    "phone": "631-482-1382",
-    "email": "",
-    "website": "http://www.grandslamcollectibles.com",
-    "address": {
-      "full": "282 Higbie Ln, Unit A, West Islip, NY 11795, USA",
-      "street": "282 Higbie Ln, Unit A",
-      "city": "West Islip",
-      "state": "New York",
-      "stateShort": "NY",
-      "postCode": "11795",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.71047,
-      "lng": -73.307356
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=grand-slam-collectibles-west-islip",
-    "modifiedAt": "2025-11-21T20:07:40Z"
   },
   {
     "id": 7572,
@@ -36100,31 +34975,6 @@
     "modifiedAt": "2025-11-21T20:10:24Z"
   },
   {
-    "id": 8166,
-    "name": "Youngstown Sports Cards",
-    "slug": "youngstown-sports-cards",
-    "phone": "330-540-8866",
-    "email": "",
-    "website": "https://youngstowncardshop.com/",
-    "address": {
-      "full": "106 Boardman Poland Rd, Boardman, OH 44512, USA",
-      "street": "106 Boardman Poland Rd",
-      "city": "Boardman",
-      "state": "Ohio",
-      "stateShort": "OH",
-      "postCode": "44512",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.024725,
-      "lng": -80.656925
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=youngstown-sports-cards",
-    "modifiedAt": "2025-11-21T20:10:26Z"
-  },
-  {
     "id": 6784,
     "name": "Marzcardz",
     "slug": "marzcardz",
@@ -36148,31 +34998,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=marzcardz",
     "modifiedAt": "2025-11-21T20:07:47Z"
-  },
-  {
-    "id": 6699,
-    "name": "Comics Games & Stuff",
-    "slug": "comics-games-stuff",
-    "phone": "",
-    "email": "",
-    "website": "https://www.facebook.com/Comicsgamesstuff/",
-    "address": {
-      "full": "103 W Butler St, Bryan, OH 43506, USA",
-      "street": "103 W Butler St",
-      "city": "Bryan",
-      "state": "Ohio",
-      "stateShort": "OH",
-      "postCode": "43506",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.473093,
-      "lng": -84.551253
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=comics-games-stuff",
-    "modifiedAt": "2025-11-21T20:07:44Z"
   },
   {
     "id": 8120,
@@ -37475,31 +36300,6 @@
     "modifiedAt": "2025-11-21T20:10:29Z"
   },
   {
-    "id": 6741,
-    "name": "Goblin Traders Games And Comics",
-    "slug": "goblin-traders-games-and-comics",
-    "phone": "740-237-4581",
-    "email": "",
-    "website": "https://www.goblintraders.net/",
-    "address": {
-      "full": "923 S 3rd St, Ironton, OH 45638, USA",
-      "street": "923 S 3rd St",
-      "city": "Ironton",
-      "state": "Ohio",
-      "stateShort": "OH",
-      "postCode": "45638",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.528422,
-      "lng": -82.67982
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=goblin-traders-games-and-comics",
-    "modifiedAt": "2025-11-21T20:07:45Z"
-  },
-  {
     "id": 7414,
     "name": "DICK'S Sporting Goods, #604 : Lancaster-OH",
     "slug": "dicks-sporting-goods-290",
@@ -37873,31 +36673,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=father-son-sports-cards-collect",
     "modifiedAt": "2025-11-21T20:07:44Z"
-  },
-  {
-    "id": 6578,
-    "name": "Battlegrounds Game Center",
-    "slug": "battlegrounds-game-center",
-    "phone": "(330) 814-3194",
-    "email": "",
-    "website": "https://battlegroundsgamecenter.com/",
-    "address": {
-      "full": "228 S Sycamore St, Ste 100, Ravenna, OH 44266, USA",
-      "street": "228 S Sycamore St, Ste 100",
-      "city": "Ravenna",
-      "state": "Ohio",
-      "stateShort": "OH",
-      "postCode": "44266",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.157094,
-      "lng": -81.23791
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=battlegrounds-game-center",
-    "modifiedAt": "2025-11-21T20:07:39Z"
   },
   {
     "id": 8396,
@@ -38800,31 +37575,6 @@
     "modifiedAt": "2025-11-21T20:08:41Z"
   },
   {
-    "id": 6782,
-    "name": "LTD Cards and Games",
-    "slug": "ltd-cards-and-games",
-    "phone": "",
-    "email": "",
-    "website": "https://www.facebook.com/LTDCardsandGames",
-    "address": {
-      "full": "1237 Garth Brooks Boulevard, Yukon, OK 73099, USA",
-      "street": "1237 Garth Brooks Boulevard",
-      "city": "Yukon",
-      "state": "Oklahoma",
-      "stateShort": "OK",
-      "postCode": "73099",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 35.489633,
-      "lng": -97.757756
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=ltd-cards-and-games",
-    "modifiedAt": "2025-11-21T20:07:47Z"
-  },
-  {
     "id": 7452,
     "name": "DICK'S Sporting Goods, #676 : Bend-OR",
     "slug": "dicks-sporting-goods-328",
@@ -39148,31 +37898,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-326",
     "modifiedAt": "2025-11-21T20:09:09Z"
-  },
-  {
-    "id": 8174,
-    "name": "Smooth Cards & Collectibles",
-    "slug": "smooth-cards-collectibles",
-    "phone": "+1 503-410-8437",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "20959 SW Settlement Dr, Sherwood, OR 97140, USA",
-      "street": "20959 SW Settlement Dr",
-      "city": "Sherwood",
-      "state": "Oregon",
-      "stateShort": "OR",
-      "postCode": "97140",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 45.368096,
-      "lng": -122.86219
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=smooth-cards-collectibles",
-    "modifiedAt": "2025-11-21T20:10:27Z"
   },
   {
     "id": 8449,
@@ -40500,31 +39225,6 @@
     "modifiedAt": "2025-11-21T20:09:54Z"
   },
   {
-    "id": 6770,
-    "name": "Just Press Play",
-    "slug": "just-press-play",
-    "phone": "(717) 299-3333",
-    "email": "",
-    "website": "https://justpressplayonline.com/",
-    "address": {
-      "full": "1637 Lititz Pike, Lancaster, PA 17601, USA",
-      "street": "1637 Lititz Pike",
-      "city": "Lancaster",
-      "state": "Pennsylvania",
-      "stateShort": "PA",
-      "postCode": "17601",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.067575,
-      "lng": -76.305601
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=just-press-play",
-    "modifiedAt": "2025-11-21T20:07:46Z"
-  },
-  {
     "id": 8158,
     "name": "VSM Sports Card Outlet",
     "slug": "vsm-sports-card-outlet",
@@ -40773,31 +39473,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-mechanicsburg",
     "modifiedAt": "2025-11-21T20:10:15Z"
-  },
-  {
-    "id": 6743,
-    "name": "Great Vintage Picks",
-    "slug": "great-vintage-picks",
-    "phone": "(814) 241-4755",
-    "email": "",
-    "website": "https://www.ebay.com/str/greatvintagepicks",
-    "address": {
-      "full": "137 Adams Ave, suite 3, Mineral Point, PA 15942, USA",
-      "street": "137 Adams Ave, suite 3",
-      "city": "Mineral Point",
-      "state": "Pennsylvania",
-      "stateShort": "PA",
-      "postCode": "15942",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.404631,
-      "lng": -78.855312
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=great-vintage-picks",
-    "modifiedAt": "2025-11-21T20:07:45Z"
   },
   {
     "id": 7343,
@@ -42575,31 +41250,6 @@
     "modifiedAt": "2025-11-21T20:10:14Z"
   },
   {
-    "id": 6681,
-    "name": "Central Sports Cards",
-    "slug": "central-sports-cards",
-    "phone": "401-724-2040",
-    "email": "",
-    "website": "http://www.centralsportscards.com/",
-    "address": {
-      "full": "791 Central Ave, Pawtucket, RI 02861, USA",
-      "street": "791 Central Ave",
-      "city": "Pawtucket",
-      "state": "Rhode Island",
-      "stateShort": "RI",
-      "postCode": "2861",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.888143,
-      "lng": -71.352724
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=central-sports-cards",
-    "modifiedAt": "2025-11-21T20:07:43Z"
-  },
-  {
     "id": 8237,
     "name": "DICK'S Sporting Goods, #163 : Smithfield -RI",
     "slug": "dicks-sporting-goods-677",
@@ -43625,31 +42275,6 @@
     "modifiedAt": "2025-11-21T20:10:22Z"
   },
   {
-    "id": 6808,
-    "name": "Playmakers Gaming & Cards",
-    "slug": "playmakers-gaming-cards",
-    "phone": "6057162220",
-    "email": "",
-    "website": "https://playmakersllc.com/",
-    "address": {
-      "full": "2200 N Maple Ave, suite 208a, Rapid City, SD 57701, USA",
-      "street": "2200 N Maple Ave, suite 208a",
-      "city": "Rapid City",
-      "state": "South Dakota",
-      "stateShort": "SD",
-      "postCode": "57701",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 44.078454,
-      "lng": -103.226482
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=playmakers-gaming-cards",
-    "modifiedAt": "2025-11-21T20:07:48Z"
-  },
-  {
     "id": 8391,
     "name": "Target - Rapid City",
     "slug": "target-rapid-city-2",
@@ -44173,31 +42798,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-franklin",
     "modifiedAt": "2025-11-21T20:07:55Z"
-  },
-  {
-    "id": 6753,
-    "name": "House of Games",
-    "slug": "house-of-games",
-    "phone": "(423) 972-6500",
-    "email": "",
-    "website": "https://houseofgames.store/",
-    "address": {
-      "full": "562 Tusculum Blvd, Greeneville, TN 37745, USA",
-      "street": "562 Tusculum Blvd",
-      "city": "Greeneville",
-      "state": "Tennessee",
-      "stateShort": "TN",
-      "postCode": "37745",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 36.17051,
-      "lng": -82.816937
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=house-of-games",
-    "modifiedAt": "2025-11-21T20:07:46Z"
   },
   {
     "id": 6825,
@@ -45175,31 +43775,6 @@
     "modifiedAt": "2025-11-21T20:09:01Z"
   },
   {
-    "id": 8113,
-    "name": "Superior Sports Investments",
-    "slug": "superior-sports-investments",
-    "phone": "682-706-8990",
-    "email": "",
-    "website": "https://superiorsportsinvestments.com/",
-    "address": {
-      "full": "2201 Brookhollow Plaza Drive, #145, Arlington, TX 76006, USA",
-      "street": "2201 Brookhollow Plaza Drive, #145",
-      "city": "Arlington",
-      "state": "Texas",
-      "stateShort": "TX",
-      "postCode": "76006",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 32.763887,
-      "lng": -97.072994
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=superior-sports-investments",
-    "modifiedAt": "2025-11-21T20:10:24Z"
-  },
-  {
     "id": 7352,
     "name": "DICK'S Sporting Goods, #347 : Austin (Domain)-TX",
     "slug": "dicks-sporting-goods-228",
@@ -45725,31 +44300,6 @@
     "modifiedAt": "2025-11-21T20:07:51Z"
   },
   {
-    "id": 8133,
-    "name": "Titan Moon Comics LLC",
-    "slug": "titan-moon-comics-llc",
-    "phone": "512-358-1030",
-    "email": "",
-    "website": "https://www.titanmooncomics.com/",
-    "address": {
-      "full": "200 Buttercup Creek Blvd, #118, Cedar Park, TX 78613, USA",
-      "street": "200 Buttercup Creek Blvd, #118",
-      "city": "Cedar Park",
-      "state": "Texas",
-      "stateShort": "TX",
-      "postCode": "78613",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 30.502512,
-      "lng": -97.821449
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=titan-moon-comics-llc",
-    "modifiedAt": "2025-11-21T20:10:25Z"
-  },
-  {
     "id": 6695,
     "name": "Collectors Row",
     "slug": "collectors-row",
@@ -45873,31 +44423,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-corpus-christi",
     "modifiedAt": "2025-11-21T20:07:53Z"
-  },
-  {
-    "id": 8171,
-    "name": "Competesports",
-    "slug": "competesports",
-    "phone": "+1 608-312-8073",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "11400 Old Lockhart Rd, Creedmoor, TX 78610, USA",
-      "street": "11400 Old Lockhart Rd",
-      "city": "Creedmoor",
-      "state": "Texas",
-      "stateShort": "TX",
-      "postCode": "78610",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 30.113434,
-      "lng": -97.749241
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=competesports",
-    "modifiedAt": "2025-11-21T20:10:26Z"
   },
   {
     "id": 7233,
@@ -48600,31 +47125,6 @@
     "modifiedAt": "2025-11-21T20:10:24Z"
   },
   {
-    "id": 8156,
-    "name": "Venue Sports Cards",
-    "slug": "venue-sports-cards-2",
-    "phone": "(801) 404-4667",
-    "email": "",
-    "website": "https://www.facebook.com/venuesportscardsandcollectibles/",
-    "address": {
-      "full": "1153 East Expressway Lane (1000 North) Spanish Fork, UT 84660",
-      "street": "",
-      "city": "1153 East Expressway Lane (1000 North) Spanish Fork",
-      "state": "Utah",
-      "stateShort": "UT",
-      "postCode": "84660",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.122035,
-      "lng": -111.636969
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=venue-sports-cards-2",
-    "modifiedAt": "2025-11-21T20:10:26Z"
-  },
-  {
     "id": 7714,
     "name": "DICK'S Sporting Goods, #1285 : American Fork-UT",
     "slug": "dicks-sporting-goods-590",
@@ -48748,31 +47248,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-433",
     "modifiedAt": "2025-11-21T20:09:25Z"
-  },
-  {
-    "id": 8124,
-    "name": "The Fun Collector",
-    "slug": "the-fun-collector",
-    "phone": "801-477-0759",
-    "email": "",
-    "website": "https://www.thefuncollector.net/",
-    "address": {
-      "full": "931 Industrial Park Rd, Orem, UT 84057, USA",
-      "street": "931 Industrial Park Rd",
-      "city": "Orem",
-      "state": "Utah",
-      "stateShort": "UT",
-      "postCode": "84057",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.314383,
-      "lng": -111.728368
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=the-fun-collector",
-    "modifiedAt": "2025-11-21T20:10:25Z"
   },
   {
     "id": 7519,
@@ -48923,31 +47398,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-salt-lake-city",
     "modifiedAt": "2025-11-21T20:10:20Z"
-  },
-  {
-    "id": 6804,
-    "name": "Overtime Cards",
-    "slug": "overtime-cards",
-    "phone": "(801) 566-3100",
-    "email": "",
-    "website": "https://www.overtimecardsandcollectibles.com/",
-    "address": {
-      "full": "10673 South State Street, Sandy, UT 84070, USA",
-      "street": "10673 South State Street",
-      "city": "Sandy",
-      "state": "Utah",
-      "stateShort": "UT",
-      "postCode": "84070",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.557598,
-      "lng": -111.890497
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=overtime-cards",
-    "modifiedAt": "2025-11-21T20:07:48Z"
   },
   {
     "id": 8458,
@@ -50098,31 +48548,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-649",
     "modifiedAt": "2025-11-21T20:10:33Z"
-  },
-  {
-    "id": 8138,
-    "name": "Toynado Alley",
-    "slug": "toynado-alley",
-    "phone": "",
-    "email": "",
-    "website": "https://toynadoalley.com/",
-    "address": {
-      "full": "310 Mill St, suite e, Occoquan Historic District, VA 22125, USA",
-      "street": "310 Mill St, suite e",
-      "city": "Occoquan Historic District",
-      "state": "Virginia",
-      "stateShort": "VA",
-      "postCode": "22125",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.684375,
-      "lng": -77.261102
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=toynado-alley",
-    "modifiedAt": "2025-11-21T20:10:25Z"
   },
   {
     "id": 8394,
@@ -51523,56 +49948,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=columbia-hobby",
     "modifiedAt": "2025-11-21T20:07:43Z"
-  },
-  {
-    "id": 6698,
-    "name": "Columbia Sports Cards & More",
-    "slug": "columbia-sports-cards-more",
-    "phone": "360-635-4400",
-    "email": "",
-    "website": "https://columbiasportscard.com/",
-    "address": {
-      "full": "15644 NE Fourth Plain Blvd, Vancouver, WA 98682, USA",
-      "street": "15644 NE Fourth Plain Blvd",
-      "city": "Vancouver",
-      "state": "Washington",
-      "stateShort": "WA",
-      "postCode": "98682",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 45.672486,
-      "lng": -122.511937
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=columbia-sports-cards-more",
-    "modifiedAt": "2025-11-21T20:07:44Z"
-  },
-  {
-    "id": 6795,
-    "name": "New Age Thinking",
-    "slug": "new-age-thinking",
-    "phone": "(360) 891-0866",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "10411 Northeast Fourth Plain Boulevard, Vancouver, WA 98662, USA",
-      "street": "10411 Northeast Fourth Plain Boulevard",
-      "city": "Vancouver",
-      "state": "Washington",
-      "stateShort": "WA",
-      "postCode": "98662",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 45.663058,
-      "lng": -122.565477
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=new-age-thinking",
-    "modifiedAt": "2025-11-21T20:07:47Z"
   },
   {
     "id": 6837,
@@ -53125,31 +51500,6 @@
     "modifiedAt": "2025-11-21T20:07:51Z"
   },
   {
-    "id": 9143,
-    "name": "The Hobbies Shop",
-    "slug": "the-hobbies-shop",
-    "phone": "(681)-252-0861",
-    "email": "",
-    "website": "https://www.thehobbiesshop.net/",
-    "address": {
-      "full": "305 South West Street, Charles Town, WV 25414, USA",
-      "street": "305 South West Street",
-      "city": "Charles Town",
-      "state": "West Virginia",
-      "stateShort": "WV",
-      "postCode": "25414",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 39.28617,
-      "lng": -77.862519
-    },
-    "placeId": "ChIJLc2fVRQBtokR0ZRXDkb1rXo",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=the-hobbies-shop",
-    "modifiedAt": "2026-04-20T19:10:13Z"
-  },
-  {
     "id": 8211,
     "name": "DICK'S Sporting Goods, #108 : Charleston-WV",
     "slug": "dicks-sporting-goods-651",
@@ -53600,31 +51950,6 @@
     "modifiedAt": "2025-11-21T20:07:47Z"
   },
   {
-    "id": 6702,
-    "name": "D-Squared Collectibles",
-    "slug": "d-squared-collectibles",
-    "phone": "(207) 241-2395",
-    "email": "",
-    "website": "https://www.d-squared.org/",
-    "address": {
-      "full": "475 Pleasant Street, Lewiston, Maine 04240, USA",
-      "street": "475 Pleasant Street, Lewiston",
-      "city": "Maine 04240",
-      "state": "",
-      "stateShort": "",
-      "postCode": "4240",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 44.077651,
-      "lng": -70.181601
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=d-squared-collectibles",
-    "modifiedAt": "2025-11-21T20:07:44Z"
-  },
-  {
     "id": 6722,
     "name": "Funko City",
     "slug": "funko-city",
@@ -53775,31 +52100,6 @@
     "modifiedAt": "2025-11-21T20:10:25Z"
   },
   {
-    "id": 6738,
-    "name": "GI Card Shop",
-    "slug": "gi-card-shop",
-    "phone": "(308) 675-2424",
-    "email": "",
-    "website": "https://www.facebook.com/cardshopgi/",
-    "address": {
-      "full": "2418 North Webb Road, Grand Island, Nebraska, USA 68803",
-      "street": "2418 North Webb Road, Grand Island, Nebraska",
-      "city": "USA 68803",
-      "state": "",
-      "stateShort": "",
-      "postCode": "68803",
-      "country": "",
-      "countryShort": ""
-    },
-    "location": {
-      "lat": 40.945351,
-      "lng": -98.379666
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=gi-card-shop",
-    "modifiedAt": "2025-11-21T20:07:45Z"
-  },
-  {
     "id": 6775,
     "name": "Kirby's World",
     "slug": "kirbys-world",
@@ -53823,55 +52123,5 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=kirbys-world",
     "modifiedAt": "2025-11-21T20:07:46Z"
-  },
-  {
-    "id": 8164,
-    "name": "Wolf Den Gaming",
-    "slug": "wolf-den-gaming",
-    "phone": "",
-    "email": "",
-    "website": "https://wolfdentcg.com/pages/contact",
-    "address": {
-      "full": "28604 Interstate 10, Boerne, TX, USA 78006",
-      "street": "28604 Interstate 10, Boerne, TX",
-      "city": "USA 78006",
-      "state": "",
-      "stateShort": "",
-      "postCode": "78006",
-      "country": "",
-      "countryShort": ""
-    },
-    "location": {
-      "lat": 29.722749,
-      "lng": -98.668417
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=wolf-den-gaming",
-    "modifiedAt": "2025-11-21T20:10:26Z"
-  },
-  {
-    "id": 8155,
-    "name": "Venue Sports Cards",
-    "slug": "venue-sports-cards",
-    "phone": "(801) 404-4667",
-    "email": "",
-    "website": "https://www.facebook.com/venuesportscardsandcollectibles/",
-    "address": {
-      "full": "1153 East Expressway Lane (1000 North), Spanish Fork, UT, USA, Utah 84660",
-      "street": "1153 East Expressway Lane (1000 North), Spanish Fork, UT, USA",
-      "city": "Utah 84660",
-      "state": "",
-      "stateShort": "",
-      "postCode": "84660",
-      "country": "",
-      "countryShort": ""
-    },
-    "location": {
-      "lat": 40.122035,
-      "lng": -111.636969
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=venue-sports-cards",
-    "modifiedAt": "2025-11-21T20:10:26Z"
   }
 ]

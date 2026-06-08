@@ -52,8 +52,11 @@ android {
         // marketValue() four-signal resolver, Recent Sales /comps, Listed Range,
         // estimator-artifact fallback, LOW/AVG/HIGH tri-grid, and the 7-state
         // render audit (DECISIONS.md #058 · #059 · #062, now in DECISIONS-ARCHIVE.md).
-        versionCode = 5
-        versionName = "0.1.4"
+        // 2026-06-08: bumped to 6 / 0.1.5 — native debug symbols now embedded
+        // directly in the AAB (BUNDLE-METADATA) + re-signed, so Play Console
+        // stops warning with NO manual symbols upload (DECISIONS.md #043).
+        versionCode = 6
+        versionName = "0.1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -215,6 +218,33 @@ val packageReleaseNativeDebugSymbols = tasks.register<Zip>("packageReleaseNative
 
 tasks.matching { it.name == "bundleRelease" }.configureEach {
     finalizedBy(packageReleaseNativeDebugSymbols)
+}
+
+// ----------------------------------------------------------------------
+// Embed native debug symbols INTO the AAB (the real fix for the warning)
+// ----------------------------------------------------------------------
+// The standalone zip above can only be ingested via the Play Developer API
+// (edits.deobfuscationfiles.upload), which is blocked for us by the Play
+// Console "API access" ACL issue — so manual UI upload was the only path and
+// it doesn't reliably take. Instead, embed the symbols the way AGP itself
+// would, directly in the bundle at
+//   BUNDLE-METADATA/com.android.tools.build.debugsymbols/<abi>/<lib>.so.dbg
+// then re-sign with the upload key. Play reads symbols out of the uploaded
+// bundle automatically, so the warning never fires and NOTHING is uploaded
+// manually. Stripped (BuildID-only) symbols are accepted — verified, since our
+// prior stripped zip cleared the warning. Path/suffix confirmed against AGP's
+// ExtractNativeDebugMetadataTask.kt. Skips gracefully without keystore env
+// (e.g. local debug builds). See android/scripts/embed_native_debug_symbols.sh.
+val embedNativeDebugSymbols = tasks.register<Exec>("embedNativeDebugSymbols") {
+    description = "Inject native debug symbols into the release AAB's BUNDLE-METADATA and re-sign (kills the Play warning, no manual upload)."
+    group = "build"
+    workingDir = rootDir
+    val aab = layout.buildDirectory.file("outputs/bundle/release/app-release.aab")
+    commandLine("bash", "scripts/embed_native_debug_symbols.sh", aab.get().asFile.absolutePath)
+}
+
+tasks.matching { it.name == "bundleRelease" }.configureEach {
+    finalizedBy(embedNativeDebugSymbols)
 }
 
 

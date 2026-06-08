@@ -55,7 +55,36 @@ Tony Dorsett, Marshall Faulk, Warren Moon, Mike Singletary.
 | Distributors (GTS, Midwest, Collection Realm) | ✗ marketing copy, no checklist |
 | Forums (Blowout/Net54/SCF) | ✗ nothing |
 | Radish | read-only signal only (compliance, #056) — not surfaced in search |
-| **Bazooka Vault** | ⚠ catalog gated behind login + Cloudflare Turnstile — **needs Ben's creds** |
+| **Bazooka Vault** | ⚠ catalog gated behind login + Turnstile — pullable via **session-cookie** crawl (see below); needs Ben's cookie |
+
+## Bazooka Vault — how we pull it (investigated 2026-06-08)
+
+The original `bv_scan_results.csv` came from the research-repo `scrape_bazookasvault.py`,
+which **authenticates** and crawls `/cards/{id}` (the embedded JSON carries imageUrl +
+metadata); images then download from the public CDN `images.bazookavault.com`.
+
+Two access methods, evaluated against BV's *current* state:
+
+- **Public GCS bucket listing** (`rescan_gcs_bucket.py`, the "bucket scraping" method):
+  the `cardeio-images` bucket (Cardeio is BV's platform) is still publicly listable, BUT
+  its BoBA slice is **stale** — newest object ~mid-2025, no 2026 Griffey, **no Tecmo**.
+  New art moved to `images.bazookavault.com`, a Cloudflare-fronted image *API* that is
+  **not** bucket-listable. → dead end for Tecmo.
+- **Authenticated `/cards/{id}` crawl** — still works, but BV added a **Turnstile** widget
+  to /login, so an automated email/password form-POST may now be rejected. The robust,
+  Turnstile-proof path is **session-cookie auth**.
+
+**Ready-to-run tool:** `pipeline/scripts/bv_catalog_scraper.py` (cookie-auth).
+  1. Log into bazookavault.com in a browser (you solve Turnstile once).
+  2. DevTools → Cookies → copy `_bazooka_vault_session`.
+  3. `export BV_COOKIE='<value>'`
+  4. `python3 pipeline/scripts/bv_catalog_scraper.py probe --start 17000 --end 40000`
+     (finds the highest valid card ID + set histogram — tells us if Tecmo is loaded yet)
+  5. `python3 .../bv_catalog_scraper.py scan --start <lo> --end <hi> --set "Tecmo"`
+  6. `python3 .../bv_catalog_scraper.py download`  (public CDN, no auth)
+
+  Caveat: BV may not have **loaded** the Tecmo card pages yet pre-release (the checklist
+  isn't public anywhere). `probe` will tell us immediately. Re-run at/after June 18.
 
 ## Tooling built (reusable)
 
@@ -64,10 +93,10 @@ Tony Dorsett, Marshall Faulk, Warren Moon, Mike Singletary.
 
 ## Recommended next steps
 
-1. **Bazooka Vault unlock (highest leverage):** give me your BV login (or a manual
-   catalog export like the original `bv_scan_results.csv`). BV is the catalog partner
-   and typically loads sets at/just-before release — that's where the full checklist +
-   art will appear first. I'll extend the existing BV pipeline to ingest the Tecmo set.
+1. **Bazooka Vault unlock (highest leverage):** paste your `_bazooka_vault_session`
+   cookie (Turnstile-proof — see "Bazooka Vault — how we pull it" above) and run
+   `bv_catalog_scraper.py probe`. BV is the catalog partner and typically loads sets
+   at/just-before release — that's where the full checklist + art will appear first.
 2. **Run `tecmo_release_watch.py` daily** — it will catch the official checklist PDF and
    the first eBay singles the moment they appear; both unlock automated art sourcing.
 3. **On checklist publish:** parse it → mint v3 bobaIds → stage sealed+singles into the

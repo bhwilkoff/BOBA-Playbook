@@ -55,8 +55,12 @@ android {
         // 2026-06-08: bumped to 6 / 0.1.5 — native debug symbols now embedded
         // directly in the AAB (BUNDLE-METADATA) + re-signed, so Play Console
         // stops warning with NO manual symbols upload (DECISIONS.md #043).
-        versionCode = 6
-        versionName = "0.1.5"
+        // 2026-06-08: bumped to 7 / 0.1.6 — fix the embed: the zip step added
+        // directory entries, which AABs forbid (Play rejected 0.1.5 as "invalid
+        // signature" — misleading; the cause was the dir entries). `zip -D` +
+        // a no-directory-entries guard. Verified with bundletool validate.
+        versionCode = 7
+        versionName = "0.1.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }

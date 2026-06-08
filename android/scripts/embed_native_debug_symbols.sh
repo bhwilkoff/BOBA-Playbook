@@ -65,9 +65,13 @@ done
 echo "  [symbols] staged $count .so.dbg files across $(ls "$work"/inject/"$DBG_DIR" | wc -l | tr -d ' ') ABIs"
 
 # 3. Inject into the AAB and re-sign (jarsigner v1 — the AAB signing scheme).
+#    -D is LOAD-BEARING: AABs forbid directory zip entries
+#    ("The bundle zip file contains directory zip entry '…/' which is not
+#    allowed") and Play surfaces that as the misleading "invalid signature"
+#    rejection. -D adds files only, no folder entries.
 #    Drop the old signature first so jarsigner produces a clean one over the
 #    new entry set.
-( cd "$work/inject" && zip -q -r -X "$AAB_ABS" BUNDLE-METADATA )
+( cd "$work/inject" && zip -q -D -X -r "$AAB_ABS" BUNDLE-METADATA )
 zip -qd "$AAB_ABS" 'META-INF/*.SF' 'META-INF/*.RSA' 'META-INF/*.DSA' 'META-INF/*.EC' 2>/dev/null || true
 jarsigner -keystore "$UPLOAD_KEYSTORE_PATH" \
   -storepass "$UPLOAD_KEYSTORE_PASSWORD" -keypass "$KEYPASS" \
@@ -75,6 +79,14 @@ jarsigner -keystore "$UPLOAD_KEYSTORE_PATH" \
   "$AAB_ABS" "$ALIAS" >/dev/null
 jarsigner -verify "$AAB_ABS" >/dev/null && echo "  [symbols] embedded + re-signed OK → $AAB"
 
-# 4. Sanity: confirm the symbols are now in the bundle.
+# 4. Guard: AABs must contain NO directory zip entries, or Play rejects the
+#    upload as "invalid signature". Fail the build loudly if any slipped in.
+if unzip -l "$AAB_ABS" | awk '{print $NF}' | grep -qE '/$'; then
+  echo "  [symbols] ERROR: AAB contains directory zip entries — Play will reject. Aborting." >&2
+  unzip -l "$AAB_ABS" | awk '{print $NF}' | grep -E '/$' >&2
+  exit 1
+fi
+
+# 5. Sanity: confirm the symbols are now in the bundle.
 n="$(unzip -l "$AAB_ABS" | grep -c "$DBG_DIR/.*\.so\.dbg" || true)"
-echo "  [symbols] AAB now contains $n embedded native debug symbol files."
+echo "  [symbols] AAB now contains $n embedded native debug symbol files, 0 directory entries."

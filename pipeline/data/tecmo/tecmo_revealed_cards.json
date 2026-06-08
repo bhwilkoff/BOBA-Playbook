@@ -1,0 +1,33 @@
+{
+  "set": "Tecmo Bowl Edition",
+  "release_year": 2026,
+  "release_date": "2026-06-18",
+  "researched_on": "2026-06-08",
+  "status": "PRE-RELEASE — full checklist NOT yet published publicly. Only an official sneak-peek of autograph/grail/alt-art cards is public. Base 160-card checklist unavailable until BoBA publishes it or Bazooka Vault loads the set.",
+  "set_facts": {
+    "box_config": "Double-Mega: 16 packs / 160 cards / 8 exclusive inserts & parallels per box",
+    "autos": "On-card autographs ONLY (no sticker autos)",
+    "new_features": "Battle Arena's first-ever 8-bit alt-art cards (Tecmo-era styled); SP & SSP chase; reimagined framework redesigned for the Tecmo Bowl collaboration",
+    "grail": "Touchdown! Bo Jackson — 1/1 on-card auto; plus /34 Black Variation with gold-ink signature"
+  },
+  "card_number_format": "hero-initials + number (e.g. DM93 Marino, JE03 Elway) — read from stylized art, VERIFY against official checklist before catalog ingest",
+  "announced_signers": [
+    "Bo Jackson", "John Elway", "Drew Brees", "Lawrence Taylor", "Dak Prescott",
+    "Troy Aikman", "Puka Nacua", "Randy Moss", "Dan Marino", "Steve Young",
+    "Rob Gronkowski", "Ronnie Lott", "Eric Dickerson", "Thurman Thomas", "Jerome Bettis",
+    "Jim Kelly", "Barry Sanders", "Marcus Allen", "Randall Cunningham", "Jim McMahon",
+    "Tony Dorsett", "Marshall Faulk", "Warren Moon", "Mike Singletary"
+  ],
+  "revealed_cards": [
+    {"hero_name": "MARINO", "player": "Dan Marino", "power": 195, "weapon": "HEX", "treatment": "Inspired Ink (Serialized, on-card auto)", "card_number_as_read": "DM93", "serial": null, "art": "9095-marinohexwsig-1.png", "confidence": "art-confirmed; card# uncertain"},
+    {"hero_name": "DUKE OF DENVER", "player": "John Elway", "variation": "Debut", "power": 200, "weapon": "HEX", "treatment": "Inspired Ink (Serialized, on-card auto)", "card_number_as_read": "JE03", "serial": "/13", "art": "9100-untitled-4.png", "confidence": "art-confirmed; card# uncertain"},
+    {"hero_name": "ATTAK", "player": "Dak Prescott", "power": 195, "weapon": "GLOW", "treatment": "Inspired Ink (Serialized, on-card auto)", "card_number_as_read": "DP35", "serial": null, "art": "extra-Double-Mega-Teaser-Cards.png (panel 3)", "confidence": "art-confirmed; card# uncertain"},
+    {"hero_name": "ALLENWRENCH", "player": "Marcus Allen", "power": 170, "weapon": null, "treatment": "alt-art / foil (teaser)", "card_number_as_read": null, "serial": null, "art": "extra-Double-Mega-Teaser-Cards.png (panel 2)", "confidence": "art-confirmed; details partial"},
+    {"hero_name": "TROY OF DALLAS", "player": "Troy Aikman", "power": 175, "weapon": null, "treatment": "alt-art / foil (teaser)", "card_number_as_read": null, "serial": null, "art": "extra-Double-Mega-Teaser-Cards.png (panel 1)", "confidence": "art-confirmed; details partial"},
+    {"hero_name": null, "player": "Barry Sanders", "power": 175, "weapon": null, "treatment": "alt-art (teaser, Lions #20)", "card_number_as_read": null, "serial": null, "art": "extra-Double-Mega-Teaser-Cards.png (panel 4)", "confidence": "art-confirmed; name unread"},
+    {"hero_name": null, "player": "Lawrence Taylor", "power": null, "weapon": null, "treatment": "Inspired Ink (Serialized, on-card auto)", "card_number_as_read": null, "serial": null, "art": "9086-ltautofinal.png", "confidence": "art-confirmed; details partial"},
+    {"hero_name": null, "player": "Eric Dickerson", "power": null, "weapon": null, "treatment": "Inspired Ink (Serialized, on-card auto)", "card_number_as_read": null, "serial": null, "art": "9087-ericdickersonfinal.png", "confidence": "art-confirmed; details partial"},
+    {"hero_name": null, "player": "Randall Cunningham", "power": null, "weapon": "ICE", "treatment": "Inspired Ink (Serialized, on-card auto)", "card_number_as_read": null, "serial": null, "art": "9088-cunninghamice.png", "confidence": "art-confirmed; details partial"},
+    {"hero_name": "TOUCHDOWN! BO JACKSON", "player": "Bo Jackson", "power": null, "weapon": null, "treatment": "Grail — 1/1 on-card auto + /34 Black Variation (gold ink)", "card_number_as_read": null, "serial": "1/1 and /34", "art": "9071-bojackson_34.png, 9082-touchdown-bo-jackson-blog.png", "confidence": "art-confirmed"}
+  ]
+}

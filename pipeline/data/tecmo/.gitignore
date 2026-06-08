@@ -1,0 +1,10 @@
+# Card art / binaries stay off git (DECISIONS.md #011 — images live on R2 only).
+# These are pre-release spoiler images downloaded for analysis.
+art/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.pdf
+# Local watcher state (regenerated each run).
+watch_state.json

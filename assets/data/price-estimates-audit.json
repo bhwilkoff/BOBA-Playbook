@@ -530,18 +530,18 @@
       "coverage_pct": 100.0
     },
     {
-      "weapon": "HEX",
-      "tier": 4,
-      "in_catalog": 2491,
-      "with_estimate": 2183,
-      "coverage_pct": 87.6
-    },
-    {
       "weapon": "GUM",
       "tier": 4,
       "in_catalog": 499,
       "with_estimate": 499,
       "coverage_pct": 100.0
+    },
+    {
+      "weapon": "HEX",
+      "tier": 4,
+      "in_catalog": 2491,
+      "with_estimate": 2183,
+      "coverage_pct": 87.6
     },
     {
       "weapon": "GLOW",
@@ -586,17 +586,17 @@
       "coverage_pct": 100.0
     },
     {
-      "weapon": "ALT",
-      "tier": null,
-      "in_catalog": 47,
-      "with_estimate": 47,
-      "coverage_pct": 100.0
-    },
-    {
       "weapon": "CYBER",
       "tier": null,
       "in_catalog": 28,
       "with_estimate": 28,
+      "coverage_pct": 100.0
+    },
+    {
+      "weapon": "ALT",
+      "tier": null,
+      "in_catalog": 47,
+      "with_estimate": 47,
       "coverage_pct": 100.0
     }
   ],

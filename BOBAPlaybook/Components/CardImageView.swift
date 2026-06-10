@@ -147,7 +147,15 @@ struct CardImageView: View {
         do {
             let (data, _) = try await cardImageSession.data(for: request)
             guard !Task.isCancelled else { return }
-            if let raw = UIImage(data: data) {
+            // Decode + corner-round OFF the main actor. The project's
+            // MainActor default isolation put UIImage(data:) and the
+            // UIGraphicsImageRenderer pass on the main thread for every
+            // arriving image — a burst of thumbs (grid scroll, Other
+            // Versions strip) janked the UI and delayed paint.
+            // BOBACardEntity is a nonisolated enum, so roundedCorners
+            // is safe to call from the detached task.
+            let image = await Task.detached(priority: .userInitiated) { () -> UIImage? in
+                guard let raw = UIImage(data: data) else { return nil }
                 // v2.281 — bake rounded corners into the loaded image.
                 // Pipeline-produced WebPs are lossy VP8 (no alpha) and
                 // admin-uploaded JPEGs have square opaque corners. The
@@ -158,9 +166,11 @@ struct CardImageView: View {
                 // halo around the card's natural rounded edge. Pre-
                 // baking the alpha mask makes those corners truly
                 // transparent so the gradient shows through cleanly.
-                let image = BOBACardEntity.roundedCorners(raw) ?? raw
-                let cost = data.count
-                cardImageCache.setObject(image, forKey: key, cost: cost)
+                return BOBACardEntity.roundedCorners(raw) ?? raw
+            }.value
+            guard !Task.isCancelled else { return }
+            if let image {
+                cardImageCache.setObject(image, forKey: key, cost: data.count)
                 withAnimation(.easeInOut(duration: 0.25)) {
                     loadedImage = image
                 }

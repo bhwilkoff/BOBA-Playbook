@@ -63,9 +63,15 @@ struct CardDetailView: View {
         _card = State(initialValue: card)
     }
 
-    // Other card_numbers with the same hero (same pattern as CollectionCardDetailView)
-    private var variations: [Card] {
-        cardStore.displayCards
+    // Other card_numbers with the same hero (same pattern as CollectionCardDetailView).
+    // @State, not a computed property — the computed form filtered + sorted
+    // all 17K displayCards on EVERY body evaluation (pinch + swipe-nav
+    // animation frames included). Recomputed once per card change via the
+    // .onChange(of: card.id) hook at the body root.
+    @State private var variations: [Card] = []
+
+    private func recomputeVariations() {
+        variations = cardStore.displayCards
             .filter { $0.hero == card.hero && $0.cardNumber != card.cardNumber }
             .sorted {
                 let lImg = $0.imageFile != nil && !$0.imageFile!.isEmpty
@@ -426,6 +432,12 @@ struct CardDetailView: View {
             }
             .onChange(of: cardStore.appliedImageOverridesByCardNumber) {
                 syncFromCardStore()
+            }
+            // Recompute the Other Versions list only when the displayed
+            // card actually changes (initial render + swipe nav) — see
+            // the @State `variations` comment.
+            .onChange(of: card.id, initial: true) {
+                recomputeVariations()
             }
         }
     }
@@ -924,7 +936,12 @@ struct CardDetailView: View {
                 .foregroundStyle(Design.Colors.textMuted)
                 .tracking(1.5)
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Design.Spacing.md) {
+                // LazyHStack, not HStack — popular heroes have 100-150
+                // variants, and a plain HStack instantiated every cell
+                // eagerly, firing 150 simultaneous thumb downloads
+                // through an 8-connection pool. Lazy loads only the
+                // ~4 visible tiles.
+                LazyHStack(spacing: Design.Spacing.md) {
                     // ID is .id (bobaId) not .cardNumber — multiple
                     // variants can share a cardNumber (e.g., themed
                     // foils + Inspired Ink at one number). Non-unique

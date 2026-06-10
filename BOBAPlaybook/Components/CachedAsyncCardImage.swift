@@ -95,7 +95,16 @@ struct CachedAsyncCardImage: View {
         do {
             let (data, _) = try await cardImageSession.data(for: request)
             guard !Task.isCancelled, requestedURL == url else { return }
-            if let loaded = UIImage(data: data) {
+            // Decode OFF the main actor (matches CardImageView).
+            // UIImage(data:) defers bitmap decode to first render —
+            // preparingForDisplay() forces it in the detached task so
+            // the main thread never pays the decode cost.
+            let loaded = await Task.detached(priority: .userInitiated) { () -> UIImage? in
+                guard let raw = UIImage(data: data) else { return nil }
+                return raw.preparingForDisplay() ?? raw
+            }.value
+            guard !Task.isCancelled, requestedURL == url else { return }
+            if let loaded {
                 cardImageCache.setObject(loaded, forKey: key, cost: data.count)
                 image = loaded
                 loadedURL = requestedURL

@@ -93,11 +93,21 @@ struct CollectionCardDetailView: View {
         }
     }
 
-    // Other card_numbers with the same hero (variations/other printings)
-    private var variations: [Card] {
-        guard let card = catalogCard else { return [] }
-        return cardStore.displayCards
-            .filter { $0.hero == card.hero && $0.id != bobaId }
+    // Other card_numbers with the same hero (variations/other printings).
+    // @State, not a computed property — the computed form filtered + sorted
+    // all 17K displayCards on EVERY body evaluation (swipe-nav animation
+    // frames included). Recomputed once per card change via the
+    // .onChange(of: activeBobaId) hook at the body root. Same fix as
+    // Find's CardDetailView, per DESIGN.md §8.6 (surfaces stay in lockstep).
+    @State private var variations: [Card] = []
+
+    private func recomputeVariations() {
+        guard let card = catalogCard else {
+            variations = []
+            return
+        }
+        variations = cardStore.displayCards
+            .filter { $0.hero == card.hero && $0.id != activeBobaId }
             .sorted {
                 let lImg = $0.imageFile != nil && !$0.imageFile!.isEmpty
                 let rImg = $1.imageFile != nil && !$1.imageFile!.isEmpty
@@ -197,6 +207,12 @@ struct CollectionCardDetailView: View {
                     }
             )
             .onAppear { if currentBobaId == nil { currentBobaId = bobaId } }
+            // Recompute the Other Versions list only when the displayed
+            // card actually changes (initial render + swipe nav) — see
+            // the @State `variations` comment.
+            .onChange(of: activeBobaId, initial: true) {
+                recomputeVariations()
+            }
             // STANDARDIZED toolbar setup — IDENTICAL to Find's
             // CardDetailView and Decks's BrowserCardDetailSheet.
             .scrollEdgeEffectStyle(.soft, for: .top)
@@ -807,7 +823,12 @@ struct CollectionCardDetailView: View {
         VStack(alignment: .leading, spacing: Design.Spacing.md) {
             sectionHeader("OTHER VERSIONS (\(variations.count))")
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Design.Spacing.md) {
+                // LazyHStack, not HStack — popular heroes have 100-150
+                // variants, and a plain HStack instantiated every cell
+                // eagerly, firing 150 simultaneous thumb downloads
+                // through an 8-connection pool. Lazy loads only the
+                // ~4 visible tiles.
+                LazyHStack(spacing: Design.Spacing.md) {
                     // ID is .id (bobaId) not .cardNumber — multiple
                     // variants can share a cardNumber. Non-unique
                     // ForEach IDs corrupt SwiftUI identity tracking

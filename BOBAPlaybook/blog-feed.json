@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-06-10",
+  "lastUpdated": "2026-06-11",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,13 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "june-18-release-timing-update",
+      "title": "June 18 Release Timing Update",
+      "date": "2026-06-10",
+      "url": "https://bobattlearena.com/blog/june-18-release-timing-update",
+      "excerpt": "We are happy to report we are largely on track for June 18 for Tecmo Bowl. Here is our best estimate of how the logistics will play out. Hobby Modern Hobby Distribution accounts will ship straig..."
+    },
     {
       "id": "join-the-boba-fun-on-whatnot",
       "title": "Join the BoBA Fun on Whatnot",

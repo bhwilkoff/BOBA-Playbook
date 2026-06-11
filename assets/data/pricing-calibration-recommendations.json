@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-10T10:56:41.569023+00:00",
+  "generatedAt": "2026-06-11T11:20:36.658711+00:00",
   "windowDays": 14,
-  "rowsAnalyzed": 12,
+  "rowsAnalyzed": 13,
   "recommendations": [],
-  "note": "History has 12 rows, need 14 for calibration window. Skipping recommendations."
+  "note": "History has 13 rows, need 14 for calibration window. Skipping recommendations."
 }

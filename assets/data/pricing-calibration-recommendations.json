@@ -1,7 +1,62 @@
 {
-  "generatedAt": "2026-06-11T11:20:36.658711+00:00",
+  "generatedAt": "2026-06-12T11:08:22.033324+00:00",
   "windowDays": 14,
-  "rowsAnalyzed": 13,
-  "recommendations": [],
-  "note": "History has 13 rows, need 14 for calibration window. Skipping recommendations."
+  "rowsAnalyzed": 14,
+  "from": "2026-05-30",
+  "to": "2026-06-12",
+  "recommendations": [
+    {
+      "category": "tier_ordering_inversion",
+      "severity": "high",
+      "weapon_higher": "FIRE",
+      "weapon_lower": "BRAWL",
+      "tier_higher": 2,
+      "tier_lower": 1,
+      "current_median_higher": 53.3,
+      "current_median_lower": 82.0,
+      "ratio": 1.54,
+      "recommendation": "FIRE median ($53.3) below BRAWL median ($82.0) for 14+ days. Consider extending strict-weapon to this tier or adding a weapon-extrapolated fallback (mirrors the tier-4 pattern in DECISIONS.md #064 amend)."
+    },
+    {
+      "category": "tier_ordering_inversion",
+      "severity": "high",
+      "weapon_higher": "ICE",
+      "weapon_lower": "BRAWL",
+      "tier_higher": 2,
+      "tier_lower": 1,
+      "current_median_higher": 41.0,
+      "current_median_lower": 82.0,
+      "ratio": 2.0,
+      "recommendation": "ICE median ($41.0) below BRAWL median ($82.0) for 14+ days. Consider extending strict-weapon to this tier or adding a weapon-extrapolated fallback (mirrors the tier-4 pattern in DECISIONS.md #064 amend)."
+    },
+    {
+      "category": "persistent_low_coverage",
+      "severity": "medium",
+      "weapon": "GLOW",
+      "tier": 3,
+      "days_below_80": 14,
+      "recommendation": "GLOW (tier 3) coverage <80% for 14/14 days. Either tracker data isn't accruing for this weapon (run `scripts/crawl_active_listings.py --treatments` with treatments where GLOW appears; or `scripts/refresh_stale_prices.py --source whatnot`) OR the strict-gate is too aggressive for this weapon's market (consider widening fallback)."
+    },
+    {
+      "category": "persistent_suspect_low",
+      "severity": "medium",
+      "values": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "recommendation": "suspect_low >20 every day for 14 days (values: [200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200]). Either the floor thresholds in audit_estimator.py audit #5 are too generous, OR a real tier-leak bug persists. Investigate the most common flagged treatment+weapon."
+    }
+  ]
 }

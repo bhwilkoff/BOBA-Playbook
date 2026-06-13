@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-06-12",
+  "lastUpdated": "2026-06-13",
   "_schema": {
     "_comment": "Per-event fields. Add real dates as BoBA announces them.",
     "id": "string — stable slug for cross-references",
@@ -31,18 +31,6 @@
       "set": "Tecmo Bowl Edition",
       "url": "https://bobattlearena.com/blog/june-18th-is-going-to-be-worth-the-wait/",
       "_curated": true
-    },
-    {
-      "id": "cardeio-be2acfac-f3bc-42cd-a4f2-2390a6cc9b6e",
-      "kind": "tournament",
-      "title": "Lake County Cards Friday Bo Jackson Battle Arena",
-      "date": "2026-06-12",
-      "url": "https://play.bobattlearena.com/events/be2acfac-f3bc-42cd-a4f2-2390a6cc9b6e",
-      "endDate": "2026-06-13",
-      "location": "Oconomowoc, WI",
-      "formats": [
-        "Playmaker Tournament"
-      ]
     },
     {
       "id": "cardeio-56b8b5e2-f6ee-49fb-a6b8-0a7cd74f17db",

@@ -9,8 +9,15 @@ themselves are on the public CDN `images.bazookavault.com` (no auth to download)
 WHY THIS VERSION: BV now shows a Cloudflare **Turnstile** widget on /login, so an
 automated email/password form-POST may be rejected server-side. The reliable path
 is **session-cookie auth**: log into BV in your browser (you solve Turnstile once),
-copy the `_bazooka_vault_session` cookie, and hand it to this script. We never
-automate Turnstile and we use your real session.
+copy the auth cookies, and hand them to this script. We never automate Turnstile
+and we use your real session.
+
+TWO COOKIES ARE REQUIRED (verified 2026-06-14). BV's Rails app authenticates with
+BOTH `_bazooka_vault_session` AND a companion `user_id` cookie. Sending the session
+cookie alone redirects every `/cards/{id}` to `/login` — looks identical to being
+logged out, with no error. You must pass the FULL request Cookie header containing
+both pairs. (Cookies are URL-encoded as the browser stores them — pass verbatim;
+do NOT url-decode.)
 
 The OTHER historical method — listing the public GCS bucket `cardeio-images`
 (`rescan_gcs_bucket.py`) — is DEAD for new sets: that bucket's BoBA slice stops
@@ -18,10 +25,16 @@ The OTHER historical method — listing the public GCS bucket `cardeio-images`
 `images.bazookavault.com` image API, which is not bucket-listable. So cookie-auth
 crawl is the way in for Tecmo Bowl.
 
-GET YOUR COOKIE:
-  1. Log into bazookavault.com in a browser.
-  2. DevTools → Application/Storage → Cookies → copy the value of `_bazooka_vault_session`.
-  3. export BV_COOKIE='<that value>'        # value only, or the full "name=value" string
+GET YOUR COOKIES (Safari — Network tab is the reliable route):
+  1. Log into bazookavault.com in the browser; open a card page so you're sure
+     you're authenticated.
+  2. Web Inspector (⌥⌘I) → Network tab → ⌘R to reload → click the top document
+     request to `bazookavault.com` → Request → Headers → copy the entire `Cookie`
+     header value (it contains both `_bazooka_vault_session=…` and `user_id=…`).
+     The Storage/Cookies tab silently truncates long values — use Network.
+  3. export BV_COOKIE='<the full Cookie header>'   # both name=value pairs, ;-joined
+     cookie_header() passes it verbatim whenever it contains '=' (which the full
+     header always does), so no further formatting is needed.
 
 USAGE:
   # See current catalog size + set breakdown around the new-set ID range
@@ -61,7 +74,14 @@ _UNSAFE = re.compile(r"[^\w\-.]")
 def cookie_header() -> str:
     c = os.environ.get("BV_COOKIE", "").strip()
     if not c:
-        sys.exit("Set BV_COOKIE (the _bazooka_vault_session value). See file header.")
+        sys.exit("Set BV_COOKIE (the full BV request Cookie header). See file header.")
+    # BV auth needs BOTH _bazooka_vault_session AND user_id (see header). A bare
+    # session value still 'works' syntactically but redirects to /login. Warn if
+    # user_id is absent so the failure mode is obvious instead of silent.
+    if "user_id=" not in c:
+        print("  ! warning: BV_COOKIE has no user_id cookie — BV auth needs both "
+              "_bazooka_vault_session AND user_id; expect /login redirects.",
+              file=sys.stderr)
     return c if "=" in c else f"_bazooka_vault_session={c}"
 
 

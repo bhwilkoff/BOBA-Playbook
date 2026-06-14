@@ -15,8 +15,9 @@
     <!-- Notifications (Android 13+ runtime permission) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Biometric auth -->
-    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- NOTE: USE_BIOMETRIC intentionally NOT declared. BiometricPrompt is
+         M7-polish (PARITY.md §9) and not yet wired; Play flags permissions
+         with no backing feature. Re-add when the biometric gate ships. -->
 
     <!-- Internet (everything cloud-backed) -->
     <uses-permission android:name="android.permission.INTERNET" />

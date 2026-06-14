@@ -4,8 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bobaplaybook.app.feature.decks.DecksViewModel
 import com.bobaplaybook.core.data.catalog.CardRepository
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 
 /**
  * Routes scan matches by invocation context (ANDROID-DESIGN.md §6.5).
@@ -48,8 +46,10 @@ class ScanCoordinator(
         return when (destination) {
             ScanDestination.CARD_DETAIL -> bobaId
             ScanDestination.CURRENT_DECK -> {
-                // Synchronous catalog lookup — already in memory by scan time.
-                val card = runBlocking { cardRepository.cards.first().firstOrNull { it.bobaId == bobaId } }
+                // Synchronous catalog lookup — `cards` is a StateFlow that
+                // always holds the current value (loaded by scan time), so
+                // read `.value` directly instead of blocking the main thread.
+                val card = cardRepository.cards.value.firstOrNull { it.bobaId == bobaId }
                 card?.let { decksViewModel.add(it) }
                 null
             }

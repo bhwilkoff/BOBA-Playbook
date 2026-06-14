@@ -59,8 +59,13 @@ android {
         // directory entries, which AABs forbid (Play rejected 0.1.5 as "invalid
         // signature" — misleading; the cause was the dir entries). `zip -D` +
         // a no-directory-entries guard. Verified with bundletool validate.
-        versionCode = 7
-        versionName = "0.1.6"
+        // 2026-06-14: bumped to 8 / 1.0.0 — first OFFICIAL public production
+        // release. Pre-release audit fixes: dropped runBlocking on the Decks
+        // scan path, removed the unused USE_BIOMETRIC permission (BiometricPrompt
+        // is unshipped M7 polish), and keyed EditCopySheet field state on the
+        // user_card id. Verified 16 KB-aligned (all 64-bit .so LOAD align 0x4000).
+        versionCode = 8
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }

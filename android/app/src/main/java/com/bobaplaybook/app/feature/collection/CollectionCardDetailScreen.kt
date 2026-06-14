@@ -523,16 +523,21 @@ private fun EditCopySheet(
     onDismiss: () -> Unit,
     onSave: (purchase: Double?, asking: Double?, condition: String?, notes: String?, grade: String?, gradingCompany: String?) -> Unit,
 ) {
-    var purchaseText by rememberSaveable { mutableStateOf(entry.userCard.purchasePrice?.toString().orEmpty()) }
-    var askingText by rememberSaveable { mutableStateOf(entry.userCard.askingPrice?.toString().orEmpty()) }
-    var conditionPick by rememberSaveable { mutableStateOf<String?>(entry.userCard.condition) }
+    // Key every field on the user_card id so opening the sheet for a
+    // different copy re-seeds from THAT copy's data — an unkeyed
+    // remember would surface the first-edited copy's stale values
+    // (feedback_state_from_prop_antipattern).
+    val copyId = entry.userCard.id
+    var purchaseText by rememberSaveable(copyId) { mutableStateOf(entry.userCard.purchasePrice?.toString().orEmpty()) }
+    var askingText by rememberSaveable(copyId) { mutableStateOf(entry.userCard.askingPrice?.toString().orEmpty()) }
+    var conditionPick by rememberSaveable(copyId) { mutableStateOf<String?>(entry.userCard.condition) }
     // Tick 256 — grade + gradingCompany now editable post-create. iOS
     // EditCollectionEntrySheet has the same fields; Android was missing
     // them (data layer captured them since the AddToCollection sheet
     // shipped — tick 239 unblocked the domain boundary).
-    var gradingCompanyPick by rememberSaveable { mutableStateOf<String?>(entry.userCard.gradingCompany) }
-    var gradeText by rememberSaveable { mutableStateOf(entry.userCard.grade.orEmpty()) }
-    var notesText by rememberSaveable { mutableStateOf(entry.userCard.notes.orEmpty()) }
+    var gradingCompanyPick by rememberSaveable(copyId) { mutableStateOf<String?>(entry.userCard.gradingCompany) }
+    var gradeText by rememberSaveable(copyId) { mutableStateOf(entry.userCard.grade.orEmpty()) }
+    var notesText by rememberSaveable(copyId) { mutableStateOf(entry.userCard.notes.orEmpty()) }
     val conditions = remember { listOf("Mint", "Near Mint", "Excellent", "Good", "Poor") }
     val gradingCompanies = remember { listOf("PSA", "BGS", "SGC", "CGC") }
 

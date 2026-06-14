@@ -1069,16 +1069,19 @@ private fun String.csvEscape(): String =
     if (any { it == ',' || it == '"' || it == '\n' }) "\"${replace("\"", "\"\"")}\"" else this
 
 /**
- * Import a CSV file produced by [exportDraftAsCsv] (or any system
- * matching the v2 shape — DECISIONS.md #033b). Replaces the current
- * draft. Unknown card_numbers are silently skipped; partial decks
- * still load with the cards we recognize so a user with a slightly
- * stale catalog isn't blocked.
+ * Import a CSV file produced by [exportDraftAsCsv] (full-deck v2 OR
+ * plays-only v1) or any system matching either shape. Replaces the
+ * current draft; unrecognized rows are skipped so a slightly-stale
+ * catalog doesn't block a partial load.
  *
- * Header detection is column-based: we look for `number` (the
- * card_number column) and `name` to set the draft name. Other
- * columns are advisory; the catalog is the source of truth for
- * everything except `number`.
+ * Resolution mirrors the iOS/web v2 importers: the `id` (bobaId)
+ * column wins when present — critical because cardNumbers collide
+ * across weapon/treatment variants under bobaId v3 (DECISIONS.md
+ * #057), so a number-only lookup can pick the wrong variant. Falls
+ * back to `number` / `card#`, stripping the legacy "A - " set prefix
+ * that the v1 slot format emits. Section routing (Heroes / Hot Dogs /
+ * Plays / Bonus) is automatic — each resolved catalog Card carries its
+ * own cardType, which `DeckStore.add` classifies.
  */
 private fun importDraftFromCsv(
     context: android.content.Context,
@@ -1096,27 +1099,37 @@ private fun importDraftFromCsv(
         ?: header.indexOf("card#").takeIf { it >= 0 }
         ?: header.indexOf("cardnumber").takeIf { it >= 0 }
         ?: return
-    val nameIdx = header.indexOf("name")
+    val idIdx = header.indexOf("id").takeIf { it >= 0 }
+    val nameIdx = header.indexOf("name").takeIf { it >= 0 }
+    val byBobaId = catalog.associateBy { it.bobaId }
     val byCardNumber = catalog.associateBy { it.cardNumber }
+    val byName = catalog.groupBy { it.displayName.lowercase() }
+    val v1SetPrefix = Regex("^[A-Z] - ")
 
-    // First non-header row's name field becomes the deck name (if any).
     val cardRows = lines.drop(1)
     if (cardRows.isEmpty()) return
 
     deckViewModel.clear()
+    var added = 0
     cardRows.forEach { row ->
         val cols = parseCsvRow(row)
-        val number = cols.getOrNull(numberIdx) ?: return@forEach
-        val card = byCardNumber[number] ?: return@forEach
-        deckViewModel.add(card)
+        // bobaId (exact) → cardNumber (raw, then "A - " prefix-stripped) →
+        // name (first match). Mirrors the iOS/web v2 importer fallback chain.
+        val card = idIdx?.let { cols.getOrNull(it)?.trim()?.takeIf(String::isNotEmpty)?.let(byBobaId::get) }
+            ?: cols.getOrNull(numberIdx)?.trim()?.let { num ->
+                byCardNumber[num] ?: byCardNumber[num.replace(v1SetPrefix, "")]
+            }
+            ?: nameIdx?.let { cols.getOrNull(it)?.trim()?.lowercase()?.let { n -> byName[n]?.firstOrNull() } }
+            ?: return@forEach
+        if (deckViewModel.add(card) is DeckStore.AddResult.Added) added++
     }
-    if (nameIdx >= 0) {
-        // Use the deck's name from the first row's name column? In iOS the
-        // CSV stores the deck name separately. For now keep "Imported deck"
-        // and let the user rename in the editor.
-        deckViewModel.rename("Imported deck")
-    }
-    android.widget.Toast.makeText(context, "Imported ${cardRows.size} rows", android.widget.Toast.LENGTH_SHORT).show()
+    // The CSV carries per-card names, not a deck name; let the user rename.
+    deckViewModel.rename("Imported deck")
+    android.widget.Toast.makeText(
+        context,
+        "Imported $added of ${cardRows.size} cards",
+        android.widget.Toast.LENGTH_SHORT,
+    ).show()
 }
 
 /** Minimal CSV row parser — handles quoted fields with embedded commas + escaped quotes. */

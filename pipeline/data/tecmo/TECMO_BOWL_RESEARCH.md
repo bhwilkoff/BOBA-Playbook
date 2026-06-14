@@ -58,6 +58,39 @@ We already carry the 4 sealed products (Hobby/Double-Mega Box + Cases) in the ca
 >   GTS/gogts detail pages (403), ICv2 (403), eBay singles (still sealed-only),
 >   media search for `8bit`/`cutback`/`touchdown` (not yet uploaded).
 
+> ## UPDATE 2026-06-14 (c) — Carde.io play API mapped + set-size correction
+> **SET SIZE: "160" is the per-BOX card count, NOT the checklist size.** Tecmo is
+> a HUGE set (every hero × treatment × parallel × serial). When BV loads it the
+> frontier will jump by THOUSANDS of IDs, not ~160 — don't size any crawl/probe
+> around 160. (Reference scale: BV's Griffey slice alone is ~18k rows; our full
+> catalog is 17,974; BV's collectible frontier is ID 17,751.)
+>
+> **play.bobattlearena.com card API — FOUND (public, no auth, paginated):**
+> `https://api.carde.io/api/v1/cards/651f3b0e5f72a5fca3f6fe34?page=N&limit=200`
+> → `{pagination:{totalResults,totalPages,...}, data:[{id,name,slug,element,
+> cardType,subtype,imageUrl}]}`. IDs:
+> - Mongo game id `651f3b0e5f72a5fca3f6fe34` · UUID `e30530dd-73f7-45be-bfe3-1044edec034a`
+>   · slug `bo-jackson-battle-arena`.
+> - App config (also public): `https://play-api.carde.io/v1/app/init?game=bo-jackson-battle-arena`.
+> - Single card: `https://api.carde.io/api/v1/cards/{mongoGameId}/{cardId}`.
+> - The set name is encoded in each card's `slug` prefix (e.g. `alphaedition-sets-rad…`).
+>
+> **BUT it does NOT have Tecmo** — and it LAGS BV: only 2,461 cards, all Alpha
+> Edition / 2024 National Show / World Champions / Sandstorm. It has **no Griffey**
+> even. This is the **gameplay** catalog (deck-buildable definitions), which loads
+> a set LATER than the BV collectible vault. So for Tecmo ART, BV is still the
+> earliest source; the play API is a SECONDARY signal.
+>
+> **Why it still matters:** it's the ONLY public, no-cookie, *structured* BoBA card
+> source (clean hero/element/type/imageUrl + pagination), so it CAN run in the
+> unattended cloud watcher (BV can't — needs a manual cookie). `tecmo_release_watch.py`
+> now polls its `totalResults` count + scans for a Tecmo slug; a jump past the
+> baseline (2,461) or a Tecmo slug fires an alert.
+>
+> **BV ≠ Carde.io-play.** bazookavault.com is a separate Rails app (shares only the
+> `cardeio-images` GCS bucket); it has NO clean paginated public API, so the BV
+> ID-crawl (`bv_catalog_scraper.py`) remains the collectible-side method.
+
 ## TL;DR
 
 **The full Tecmo Bowl checklist is NOT published anywhere public yet.** Only an

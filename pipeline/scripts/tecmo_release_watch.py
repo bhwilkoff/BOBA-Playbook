@@ -35,6 +35,15 @@ from pathlib import Path
 BV_FRONTIER_SEED = 17751
 BV_CARD_JSON_RE = re.compile(r'\{"card":\{"id":\d+.*?"subscriptionType":"[^"]*"\}', re.DOTALL)
 
+# Carde.io PLAY catalog (public, no auth) — the only structured BoBA card API that
+# can run unattended. Mongo game id for "bo-jackson-battle-arena". Baseline count
+# verified 2026-06-14: 2461 cards (Alpha/National Show/World Champions/Sandstorm;
+# no Griffey, no Tecmo — the gameplay catalog lags the BV collectible vault).
+CARDE_GAME_MONGO_ID = "651f3b0e5f72a5fca3f6fe34"
+CARDE_PLAY_SEED = 2461
+CARDE_CARDS_URL = (f"https://api.carde.io/api/v1/cards/{CARDE_GAME_MONGO_ID}"
+                   "?page=1&limit=200")
+
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 OUT = Path(__file__).resolve().parents[1] / "data" / "tecmo"
@@ -161,6 +170,24 @@ def check_bv_frontier(prev_frontier: int) -> dict:
             "new_sets": sets, "tecmo_cards": tecmo}
 
 
+def check_carde_play_catalog(prev_total: int) -> dict:
+    """Poll the public Carde.io PLAY catalog (no auth, cron-safe). Reports the
+    total card count + flags any Tecmo-slugged card. A jump past the baseline
+    means a new set started loading into the gameplay catalog. This LAGS the BV
+    collectible vault, but it's the only structured signal that runs unattended."""
+    try:
+        data = get_json(CARDE_CARDS_URL, timeout=30)
+    except Exception as e:
+        return {"ran": False, "reason": f"carde fetch failed: {e}", "total": prev_total}
+    total = (data.get("pagination") or {}).get("totalResults", prev_total)
+    # First page only carries 200 slugs; a Tecmo card may not be on page 1. The
+    # total-count delta is the cheap trigger; on a delta the caller pulls more.
+    tecmo_on_pg1 = [c for c in (data.get("data") or [])
+                    if "tecmo" in (c.get("slug", "") + c.get("name", "")).lower()]
+    return {"ran": True, "total": total, "prev_total": prev_total,
+            "grew": total - prev_total, "tecmo_pg1": tecmo_on_pg1}
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     prev = json.loads(STATE.read_text()) if STATE.exists() else {}
@@ -169,6 +196,7 @@ def main():
     promo = check_promo_media()
     singles = check_ebay_singles()
     bv = check_bv_frontier(int(prev.get("bv_frontier", BV_FRONTIER_SEED)))
+    carde = check_carde_play_catalog(int(prev.get("carde_play_total", CARDE_PLAY_SEED)))
 
     prev_promo_ids = set(prev.get("promo_ids", []))
     new_promo = [m for m in promo if m["id"] not in prev_promo_ids]
@@ -197,6 +225,12 @@ def main():
     else:
         print(f"BV frontier: not checked — {bv.get('reason')}")
 
+    if carde.get("ran"):
+        print(f"Carde.io play catalog: {carde['total']} cards  | grew +{carde['grew']} "
+              f"since last run" + ("  ⟵ TECMO on page 1!" if carde.get("tecmo_pg1") else ""))
+    else:
+        print(f"Carde.io play catalog: not checked — {carde.get('reason')}")
+
     if new_checklist:
         print("\n*** ACTION: official Tecmo checklist link appeared — parse + ingest. ***")
     if new_singles:
@@ -207,12 +241,16 @@ def main():
     elif bv.get("ran") and bv.get("moved", 0) > 0:
         print(f"\n*** NOTE: BV frontier moved +{bv['moved']} (sets {bv.get('new_sets')}) "
               "but no Tecmo yet — re-check; the set load may be in progress. ***")
+    if carde.get("tecmo_pg1") or (carde.get("ran") and carde.get("grew", 0) > 0):
+        print(f"\n*** NOTE: Carde.io play catalog grew +{carde.get('grew', 0)} — a set is "
+              "loading into the gameplay catalog; pull all pages + check for Tecmo slugs. ***")
 
     new_state = {
         "checklist_links": checklist,
         "promo_ids": [m["id"] for m in promo],
         "ebay_singles": singles,
         "bv_frontier": bv.get("frontier", prev.get("bv_frontier", BV_FRONTIER_SEED)),
+        "carde_play_total": carde.get("total", prev.get("carde_play_total", CARDE_PLAY_SEED)),
     }
     STATE.write_text(json.dumps(new_state, indent=2))
 

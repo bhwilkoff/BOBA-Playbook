@@ -338,15 +338,41 @@ struct SearchView: View {
     /// chain grows past ~135 lines (per `unable to type-check this
     /// expression in reasonable time` error after the v2.050 zoom-
     /// transition wiring).
+    /// Profile toolbar icon. Shows the user's uploaded/Discord avatar as a
+    /// small circle when one exists (parity with Android's avatar in the
+    /// Find TopAppBar); falls back to the generic silhouette when signed
+    /// out or avatar-less. Extracted from `findToolbar` to keep that
+    /// ToolbarContent chain short (type-check budget — see note below).
+    @ViewBuilder
+    private var profileToolbarLabel: some View {
+        if let url = auth.resolvedAvatarURL {
+            AsyncImage(url: url) { phase in
+                if case .success(let img) = phase {
+                    img.resizable().scaledToFill()
+                } else {
+                    Image(systemName: "person.crop.circle")
+                        .font(.system(size: 22))
+                        .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
+                }
+            }
+            .frame(width: 26, height: 26)
+            .clipShape(Circle())
+            .overlay(Circle().strokeBorder(
+                AppIconOption.currentColor(for: selectedIconName).opacity(0.7), lineWidth: 1.5))
+        } else {
+            Image(systemName: "person.crop.circle")
+                .font(.system(size: 22))
+                .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
+        }
+    }
+
     @ToolbarContentBuilder
     private var findToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             Button {
                 showProfile = true
             } label: {
-                Image(systemName: "person.crop.circle")
-                    .font(.system(size: 22))
-                    .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
+                profileToolbarLabel
             }
             .accessibilityLabel("Profile")
             // Tick 387 — pointer-hover tooltip on Find toolbar icons

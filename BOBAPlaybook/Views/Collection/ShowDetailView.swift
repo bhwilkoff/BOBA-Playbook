@@ -169,9 +169,11 @@ struct ShowDetailView: View {
             renameSheet
                 .presentationCompactAdaptation(.popover)
         }
-        .alert("Couldn't finish that", isPresented: .init(
-            get: { actionError != nil }, set: { if !$0 { actionError = nil } }
-        )) { Button("OK") { actionError = nil } } message: { Text(actionError ?? "") }
+        .bobaItemAlert("Couldn't finish that", item: $actionError) { _ in
+            Button("OK") { actionError = nil }
+        } message: { message in
+            Text(message)
+        }
     }
 
     // MARK: - Header + Horizon

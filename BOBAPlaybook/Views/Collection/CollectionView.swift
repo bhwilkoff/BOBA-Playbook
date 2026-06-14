@@ -294,6 +294,7 @@ struct CollectionView: View {
             )
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .bobaMinimizeNavBarOnScroll()
             .navigationDestination(for: CollectionRoute.self) { route in
                 switch route {
                 case .rainbow:
@@ -351,6 +352,7 @@ struct CollectionView: View {
                     )
                     .toolbarBackground(.regularMaterial, for: .navigationBar)
                     .toolbarBackground(.visible, for: .navigationBar)
+                    .bobaMinimizeNavBarOnScroll()
                     .navigationDestination(for: String.self) { bobaId in
                         CollectionCardDetailView(bobaId: bobaId, wrapInNavStack: false)
                             .compactZoomDestination(id: bobaId, in: cardZoomNamespace)

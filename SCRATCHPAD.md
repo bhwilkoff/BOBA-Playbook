@@ -7,6 +7,7 @@
 - **Catalog**: 17,974 cards · ~90% image coverage on R2 · OKC art still pending · 30 invalid-power records repaired
 - **Latest version**: edit `AppVersion.xcconfig` for iOS; Android tracks via `app/build.gradle.kts` versionCode/versionName (CI bumps on tag push)
 - **Hero Shot iteration**: headless CLI runner shipped (`tools/render-hero-shot-variants.sh`) — boots a simulator, renders 4 material variants to `/tmp/hero-shot-variants/grid.png` in ~20-30s
+- **iOS 27 adoption (v2.414)**: building against the iOS 27 SDK with the deployment floor held at 26.4 (DECISIONS.md #066). Additive, all gated `if #available(iOS 27, *)` via `Components/iOS27Compat.swift` helpers: nav-bar minimize-on-scroll (Find/Collection/Decks grids), avatar `contentMarginsRemoved`, pinned-trailing Add on card details, `alert(_:item:)` on the 6 optional alerts, shared-`URLCache` `AsyncImage` session, and `swipeActionsContainer` (fixed the Collection card-detail copies swipe, a silent no-op pre-27). Also migrated `LocationPermissionManager` → `@Observable` (last legacy `ObservableObject`). Deliberately deferred: deck-card `reorderable()` (no meaningful order — heroes are power-grouped) and the live Vision OCR async rewrite (core camera feature, needs on-device validation).
 
 ## Recently shipped — pattern memory pointers
 

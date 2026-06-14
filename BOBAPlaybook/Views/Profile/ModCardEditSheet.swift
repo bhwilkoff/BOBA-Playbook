@@ -220,13 +220,10 @@ struct ModCardEditSheet: View {
                      ? "Changes saved to the catalog."
                      : "Your correction is queued for admin review. You'll see it land in the catalog after approval.")
             }
-            .alert("Submission failed", isPresented: Binding(
-                get: { saveError != nil },
-                set: { if !$0 { saveError = nil } }
-            )) {
+            .bobaItemAlert("Submission failed", item: $saveError) { _ in
                 Button("OK") { saveError = nil }
-            } message: {
-                Text(saveError ?? "")
+            } message: { message in
+                Text(message)
             }
             .fullScreenCover(item: $croppingPayload) { payload in
                 CardCropView(

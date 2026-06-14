@@ -278,10 +278,11 @@ struct SearchView: View {
         .toolbar { findToolbar }
         .toolbarBackground(.regularMaterial, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        // iOS 27: minimize the nav bar as the grid scrolls down, matching the
+        // tab-bar minimize already in play during search. No-op on iOS 26.
+        .bobaMinimizeNavBarOnScroll()
         .overlay(alignment: .top) { quickAddToastOverlay }
-        .alert("Couldn't add that card",
-               isPresented: quickAddErrorPresented,
-               presenting: quickAddError) { _ in
+        .bobaItemAlert("Couldn't add that card", item: $quickAddError) { _ in
             Button("OK") { quickAddError = nil }
         } message: { error in
             Text(error)
@@ -299,16 +300,6 @@ struct SearchView: View {
         .navigationDestination(for: Card.self) { card in
             CardDetailView(card: card, wrapInNavStack: false)
         }
-    }
-
-    /// Stable Binding<Bool> for the quickAdd-error alert — pulled out
-    /// of the body so the inline Binding(get:set:) doesn't blow up
-    /// type inference.
-    private var quickAddErrorPresented: Binding<Bool> {
-        Binding(
-            get: { quickAddError != nil },
-            set: { if !$0 { quickAddError = nil } }
-        )
     }
 
     /// Quick-add success toast — extracted from the body's .overlay so
@@ -369,25 +360,38 @@ struct SearchView: View {
         }
     }
 
+    /// Profile button body, extracted so the iOS 27 `contentMarginsRemoved()`
+    /// branch and the iOS 26 fallback share one definition.
+    @ViewBuilder
+    private var profileButton: some View {
+        Button {
+            showProfile = true
+        } label: {
+            profileToolbarLabel
+        }
+        // Render the avatar as the button itself — no glass capsule
+        // boxing in a smaller image (Apple's nav-bar avatar pattern).
+        .buttonStyle(.plain)
+        .accessibilityLabel("Profile")
+        // Tick 387 — pointer-hover tooltip on Find toolbar icons
+        // (Android tick 384+386 TooltipBox parity). iPad Stage Manager,
+        // Magic Keyboard trackpad, and Mac Catalyst all surface .help()
+        // tooltips natively; iPhone touch users ignore it. Same
+        // affordance shape as the tick-327 Decks tooltips.
+        .help("Profile")
+        .walkthroughAnchor("find.profile")
+    }
+
     @ToolbarContentBuilder
     private var findToolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                showProfile = true
-            } label: {
-                profileToolbarLabel
-            }
-            // Render the avatar as the button itself — no glass capsule
-            // boxing in a smaller image (Apple's nav-bar avatar pattern).
-            .buttonStyle(.plain)
-            .accessibilityLabel("Profile")
-            // Tick 387 — pointer-hover tooltip on Find toolbar icons
-            // (Android tick 384+386 TooltipBox parity). iPad Stage Manager,
-            // Magic Keyboard trackpad, and Mac Catalyst all surface .help()
-            // tooltips natively; iPhone touch users ignore it. Same
-            // affordance shape as the tick-327 Decks tooltips.
-            .help("Profile")
-            .walkthroughAnchor("find.profile")
+        // iOS 27: strip the default toolbar-item margins so the 34pt avatar
+        // circle sits flush in the bar (the v2.412/2.413 fill-the-button goal,
+        // now native). iOS 26 keeps the standard inset.
+        if #available(iOS 27, *) {
+            ToolbarItem(placement: .topBarLeading) { profileButton }
+                .contentMarginsRemoved()
+        } else {
+            ToolbarItem(placement: .topBarLeading) { profileButton }
         }
         ToolbarItem(placement: .principal) {
             BOBAWordmark()

@@ -59,6 +59,12 @@ struct ContentView: View {
         // get a richer in-tab navigation than the system tab sidebar
         // would provide (which is just the 5 tab names).
         .tint(Design.Colors.bobaOrange)
+        // iOS 27: route every AsyncImage in the app (avatars, Discord,
+        // Whatnot / YouTube thumbnails, Learn example art) through the shared
+        // 100/500 MB URLCache session so repeat views load from disk. Card-
+        // catalog grids are unaffected — they use CardImageView's bespoke
+        // NSCache loader. No-op on iOS 26.
+        .bobaSharedImageCache()
         // iPad hardware-keyboard shortcuts — Cmd+1..5 jump to tabs in
         // sidebar order (Find / Learn / Decks / Collection / Purchase).
         // Hidden Button overlay is the standard SwiftUI pattern for

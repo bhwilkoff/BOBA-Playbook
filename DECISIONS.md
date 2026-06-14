@@ -307,6 +307,26 @@ Retires the weapon→print-run table in DECISIONS.md #028. The catalog now carri
 
 ---
 
+## 066 — iOS 27 adopted additively above an iOS 26 deployment floor
+*2026-06-14*
+
+The app builds against the iOS 27 SDK (`SDKROOT = iphoneos27.0`) but keeps `IPHONEOS_DEPLOYMENT_TARGET = 26.4` through fall 2026, because real device share stays meaningfully on iOS 26 until then. So **every iOS-27-only API is adopted additively behind `if #available(iOS 27, *)`, with the iOS 26 behavior preserved as the fallback** — never as a hard floor bump, never as an unconditional call (which fails type-check on the deployment target).
+
+**Principle — newest-OS polish must never cut off the prior-OS user.** A companion app's job is to be in the collector's hand at the table; a release that demands the just-shipped OS strands the majority mid-season. iOS 27 is a *finish*, not a *gate*. The same rule that governs feature parity across platforms (#005) governs OS versions within iOS: pick the native idiom for the newest OS, degrade gracefully on the older one.
+
+**The gate lives in one place.** View-level adoptions route through `Components/iOS27Compat.swift` wrappers (`bobaMinimizeNavBarOnScroll`, `bobaSharedImageCache`, `bobaSwipeActionsContainer`, `bobaItemAlert`) so the `#available` check isn't copy-pasted across call sites; the helper returns `self` unchanged on iOS 26. `ToolbarContent`-level adoptions (`topBarPinnedTrailing`, `contentMarginsRemoved`) can't be a generic modifier, so they're gated inline by branching the `ToolbarItem` around an extracted button builder.
+
+**What was adopted (v2.414):** `toolbarMinimizeBehavior(.onScrollDown)` on the Find / Collection / Decks dense grids; `contentMarginsRemoved()` on the Find profile avatar (the native answer to the v2.412/2.413 fill-the-button work); `topBarPinnedTrailing` on the primary Add action of both card-detail surfaces (survives large Dynamic Type when Mod-edit / Share / Hero-Shot compete); `alert(_:item:)` on the six optional-driven alerts; `asyncImageURLSession` routing every non-card `AsyncImage` through the shared 100/500 MB `URLCache`; `swipeActionsContainer()` to make the Collection card-detail copies-list swipe-to-delete actually fire (it was a silent no-op pre-27 — those rows are a `VStack`, not a `List`). Plus a non-gated cleanup: `LocationPermissionManager` migrated `ObservableObject` → `@Observable` (last legacy observer in the app; `Combine` import dropped).
+
+**Judgment calls — adopt only where there's a real problem to solve.** Three identified APIs were deliberately NOT forced, because forcing them would regress UX or add speculative surface (clarity over cleverness, "fix only the bug"):
+- **`ToolbarOverflowMenu` was NOT swapped in for the hand-rolled `⋯` menus.** Those menus carry active-filter-count badges and custom glyphs that the system overflow affordance erases, and the bars don't actually overflow at default sizes — the existing menus are already DESIGN.md §6.9-compliant. `visibilityPriority` was likewise skipped where items already fit.
+- **Deck-card `reorderable()` was NOT added.** The deck editor presents heroes *grouped/sorted by power* (a computed order) with no persisted or gameplay-meaningful free order, so drag-reorder has no semantic home and would fight the power grouping. The SCRATCHPAD "iPad drag between deck slots" item stays deferred as the nice-to-have it was classed as.
+- **The live Vision OCR scanner was NOT rewritten** to the async `RecognizeTextRequest` API. `VNRecognizeTextRequest` is not deprecated on iOS 27; the live path is a tuned multi-request synchronous pass on a core, camera-dependent feature that can't be validated without a device — rewriting it blind violates the debugging philosophy ("do not iterate blindly on behavior you cannot observe"). Revisit on-device.
+
+**How to apply.** New iOS-27 API → add a gated wrapper to `iOS27Compat.swift` (or branch the `ToolbarItem` inline) with the iOS 26 fallback; never an unconditional call while the floor is 26.x. When the deployment floor eventually rises to 27, delete the `else` branches and inline the new APIs. Don't adopt a newest-OS API that regresses an existing affordance (badges, custom glyphs) or invents a feature with no backing semantics just because the API exists.
+
+---
+
 ## Archived decisions
 
 Moved to [DECISIONS-ARCHIVE.md](./DECISIONS-ARCHIVE.md) — superseded, foundational, or

@@ -306,6 +306,9 @@ These are iOS-only by design; other platforms handle the same need with platform
 | Live Activities / Dynamic Island | 🔮 | Android has no exact equivalent; accept asymmetry |
 | `.matchedTransitionSource` + `.navigationTransition(.zoom)` | ✅ | Web uses View Transitions API; Android uses `sharedBounds` |
 | Hardware-keyboard shortcuts (Cmd+1..5 tabs) | ✅ | Web n/a (browser shortcuts conflict); Android ships Ctrl+1..5 on tablets/Chromebooks |
+| iOS 27 nav-bar minimize-on-scroll (Find / Collection / Decks grids) | ✅ iOS 27 | DECISIONS.md #066. Additive over an iOS 26.4 floor; iOS 26 keeps the static bar. Web `backdrop-filter` header + Android `TopAppBarScrollBehavior` are the parallels (already shipped). |
+| iOS 27 pinned-trailing Add on card detail | ✅ iOS 27 | `.topBarPinnedTrailing` keeps the primary Add action in the bar at large Dynamic Type when Mod-edit / Share / Hero Shot compete; iOS 26 uses `.topBarTrailing`. Web modal / Android `TopAppBar` lay actions out without overflow pressure, so no parallel needed. |
+| iOS 27 swipe-to-remove on Collection card-detail copies list | ✅ iOS 27 | DECISIONS.md #066. `swipeActionsContainer()` makes the per-copy swipe-to-delete fire on the VStack copies list (a silent no-op pre-27). **iOS 26 removes the same copy via the row's edit sheet** — the action exists on both, only the gesture is 27-only. Web/Android remove copies through their own edit affordances. |
 
 ---
 

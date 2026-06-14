@@ -297,9 +297,14 @@ Scripts live in `BOBAPlaybook/Components/BOBAWalkthrough.swift` (`extension BOBA
 
 ---
 
-## 7. Forward-compatibility (iOS 27 ready)
+## 7. Forward-compatibility (iOS 27 adopted; iOS 28 ready)
 
-iOS 27 (WWDC 2026 June 8) focuses on Siri/Apple Intelligence + Liquid Glass refinement (opacity slider); **no navigation paradigm shift expected.** Rules that inherit those gains automatically: (1) **every primary action is an `AppIntent`** (Spotlight/Siri/Action Button/Shortcuts consume them); (2) **content has stable IDs** — `bobaId`, deck UUIDs, Learn article slugs (`setup.match-flow`); (3) **search is central** (§6) — the only path to future natural-language search without an IA rewrite; (4) **don't hard-code glass opacity** (Tinted Mode slider, iOS 26.1+); (5) **don't predict iOS 27 specifics** — build clean to iOS 26, inherit refinements when they ship.
+**iOS 27 shipped (WWDC 2026 June 8) and is adopted** — additively, above an iOS 26.4 deployment floor, per DECISIONS.md #066. It brought no navigation paradigm shift (Siri/Apple Intelligence + Liquid Glass refinement + a set of incremental SwiftUI APIs), so the §§1–6 IA is unchanged; the new APIs are *finishes*, not gates. The adoption pattern is the binding rule going forward:
+
+- **Every iOS-27-only API is gated `if #available(iOS 27, *)` with the iOS 26 behavior preserved as the fallback** — never an unconditional call against the 26.4 floor, never a hard floor bump. The gate lives in one place: view-level wrappers in `Components/iOS27Compat.swift` (`bobaMinimizeNavBarOnScroll`, `bobaSharedImageCache`, `bobaSwipeActionsContainer`, `bobaItemAlert`); `ToolbarContent`-level adoptions (`topBarPinnedTrailing`, `contentMarginsRemoved`) branch the `ToolbarItem` inline. When the floor eventually rises to 27, delete the `else` branches and inline the new APIs.
+- **Adopt only where there's a real problem to solve** (clarity over cleverness, §4.6): don't swap in a newest-OS API that regresses an existing affordance (badges, custom glyphs) or invents a feature with no backing semantics just because the API exists. #066 records the three iOS-27 APIs deliberately *not* forced and why.
+
+Durable rules that keep inheriting platform gains automatically: (1) **every primary action is an `AppIntent`** (Spotlight/Siri/Action Button/Shortcuts consume them); (2) **content has stable IDs** — `bobaId`, deck UUIDs, Learn article slugs (`setup.match-flow`); (3) **search is central** (§6) — the only path to natural-language search without an IA rewrite; (4) **don't hard-code glass opacity** (Tinted Mode slider, iOS 26.1+); (5) **don't predict iOS 28 specifics** — build clean to the current floor, adopt the next OS additively (same #066 pattern) when it ships.
 
 ---
 

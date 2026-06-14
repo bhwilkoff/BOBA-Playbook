@@ -1238,9 +1238,13 @@ function initDeckBuilder(allCards) {
     });
   });
 
-  // CSV download — compatible with deck-builder.bobattlearena.com
+  // CSV download — full-deck v2 (Heroes + Hot Dogs + Plays + Bonus Plays).
+  // exportCSVv2 carries every section so a downloaded deck round-trips
+  // completely; importCSV auto-detects the v2 header. (The legacy
+  // Playbook-only exportCSV stays for deck-builder.bobattlearena.com compat
+  // but is no longer what the download button emits.)
   $('db-csv-btn')?.addEventListener('click', () => {
-    const csv = DB.exportCSV();
+    const csv = DB.exportCSVv2();
     const blob = new Blob([csv], { type: 'text/csv' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');

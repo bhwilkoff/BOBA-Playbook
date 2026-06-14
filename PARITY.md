@@ -93,6 +93,8 @@ When shipping any user-facing feature:
 | 3-column tablet layout (saved / browser / editor) | ✅ iPad | ⏳ desktop | ⏳ M4 polish | `NavigableListDetailPaneScaffold` 3-pane — in v1 from M4 per DECISIONS.md #047 |
 | Template gallery (empty editor) | ✅ | ✅ | ✅ | Web upgraded tick 11 — card-style 5-archetype gallery with per-archetype accent color (STEEL/ICE/CYAN/GLOW/BRAWL) matching iOS TemplateCard. |
 | Generate deck wall (share image) | ✅ | ✅ | ✅ | Web shipped tick 9 — db-wall-btn reuses the canvas Wall pipeline. Android shipped tick 76 — `DeckWallSheet` reuses `WallShareHelper` (same `graphicsLayer.record` capture + FileProvider + ACTION_SEND). Editor exposes IconButton (modal-sheet) + OutlinedButton "Wall" (tablet inline pane); both gated on `draft.cards.isNotEmpty()`. |
+| Export deck (CSV file + text) | ✅ | ✅ | ✅ | **Full-deck v2 CSV** (`id,name,type,release,number,cost,dbs,ability,bonus`; type = `HERO/HD/PL/BPL`) — carries Heroes + Hot Dogs + Plays + Bonus Plays on all three, so a deck exported anywhere re-imports everywhere. Fixed 2026-06-14: iOS (`deckListCSVv2` for copy/export/display) + web (`exportCSVv2` on download; `exportText` plain-text already full) had been emitting the legacy Playbook-only v1; Android (`exportDraftAsCsv`) normalized to canonical tokens + correct `bonus` flag. |
+| Import deck (CSV) | ✅ | ✅ | ✅ | Auto-detects v1 (slot) vs v2 (`id,` header). iOS/web v2 importer routes Heroes + Hot Dogs back into their sections; Android import covers Plays/Bonus (full-section import is a follow-up). |
 | Walkthrough | ✅ | 🚫 | 🚫 | Same skip rule |
 
 ---

@@ -1,7 +1,6 @@
 import SwiftUI
 import MapKit
 import CoreLocation
-import Combine
 
 struct StoreLocatorView: View {
     @State private var store = StoreLocatorStore()
@@ -12,7 +11,7 @@ struct StoreLocatorView: View {
             span:   .init(latitudeDelta: 55, longitudeDelta: 55)
         )
     )
-    @StateObject private var location = LocationPermissionManager()
+    @State private var location = LocationPermissionManager()
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
@@ -395,15 +394,19 @@ struct BOBAPinMarker: View {
 
 // MARK: - Location permission helper
 
+@Observable
 @MainActor
-final class LocationPermissionManager: NSObject, ObservableObject, CLLocationManagerDelegate {
-    private let manager = CLLocationManager()
-    var coordinate: CLLocationCoordinate2D? = nil
+final class LocationPermissionManager: NSObject, CLLocationManagerDelegate {
+    @ObservationIgnored private let manager = CLLocationManager()
+    /// CLLocationCoordinate2D isn't Equatable, so views observe `coordinateTick`
+    /// (bumped on every update) rather than this value directly — kept out of
+    /// observation to preserve that tick-driven update contract.
+    @ObservationIgnored var coordinate: CLLocationCoordinate2D? = nil
     /// Monotonic counter bumped each time `coordinate` changes. Used by
     /// SwiftUI `onChange` since `CLLocationCoordinate2D` isn't Equatable.
-    @Published var coordinateTick: Int = 0
-    @Published var isAuthorized: Bool = false
-    @Published var permissionDenied: Bool = false
+    var coordinateTick: Int = 0
+    var isAuthorized: Bool = false
+    var permissionDenied: Bool = false
 
     override init() {
         super.init()

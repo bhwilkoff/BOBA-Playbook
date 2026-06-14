@@ -256,45 +256,15 @@ struct CardDetailView: View {
                         .foregroundStyle(Design.Colors.textPrimary)
                         .lineLimit(1)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    // Action bar (toolbar Menu form for now; sticky bottom
-                    // glass bar per DESIGN.md §8.6 is a follow-up). Walkthrough
-                    // anchor lives here so the cardDetail.actionBar step
-                    // points at the actual action surface.
-                    Group {
-                        if auth.isAuthenticated {
-                            Menu {
-                                Section("Add \(card.name)") {
-                                    Button {
-                                        showingAddSheet = true
-                                    } label: {
-                                        Label("To Collection", systemImage: "folder.badge.plus")
-                                    }
-                                    if card.isHero || card.isPlay || card.isHotDog {
-                                        Button {
-                                            showingAddToDeck = true
-                                        } label: {
-                                            Label("To Custom Deck", systemImage: "rectangle.stack.badge.plus")
-                                        }
-                                    }
-                                    // Streamers get a third add destination: a
-                                    // Whatnot/live-show prep list.
-                                    if auth.isStreamer {
-                                        Button {
-                                            showingAddToShow = true
-                                        } label: {
-                                            Label("To Show", systemImage: "dot.radiowaves.up.forward")
-                                        }
-                                    }
-                                }
-                            } label: {
-                                addIconLabel
-                            }
-                        } else {
-                            Button { showingSignIn = true } label: { addIconLabel }
-                        }
-                    }
-                    .walkthroughAnchor("cardDetail.actionBar")
+                // Action bar (toolbar Menu form for now; sticky bottom glass
+                // bar per DESIGN.md §8.6 is a follow-up). iOS 27 pins the
+                // primary Add action to the trailing edge so it never collapses
+                // into overflow when Mod-edit + Share compete at large Dynamic
+                // Type; iOS 26 keeps the standard trailing placement.
+                if #available(iOS 27, *) {
+                    ToolbarItem(placement: .topBarPinnedTrailing) { addToolbarButton }
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) { addToolbarButton }
                 }
                 if auth.isMod {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -450,6 +420,49 @@ struct CardDetailView: View {
                     ? (collection.isOwned(bobaId: card.id) ? Color.green : Design.Colors.bobaOrange)
                     : Design.Colors.bobaOrange
             )
+    }
+
+    /// The primary "Add" action — adding to Collection/Deck/Show is the point
+    /// of the card detail. Extracted so the iOS 27 `.topBarPinnedTrailing`
+    /// branch (which keeps it in the bar even when Mod-edit + Share compete at
+    /// large Dynamic Type) and the iOS 26 `.topBarTrailing` fallback share one
+    /// definition.
+    @ViewBuilder
+    private var addToolbarButton: some View {
+        Group {
+            if auth.isAuthenticated {
+                Menu {
+                    Section("Add \(card.name)") {
+                        Button {
+                            showingAddSheet = true
+                        } label: {
+                            Label("To Collection", systemImage: "folder.badge.plus")
+                        }
+                        if card.isHero || card.isPlay || card.isHotDog {
+                            Button {
+                                showingAddToDeck = true
+                            } label: {
+                                Label("To Custom Deck", systemImage: "rectangle.stack.badge.plus")
+                            }
+                        }
+                        // Streamers get a third add destination: a
+                        // Whatnot/live-show prep list.
+                        if auth.isStreamer {
+                            Button {
+                                showingAddToShow = true
+                            } label: {
+                                Label("To Show", systemImage: "dot.radiowaves.up.forward")
+                            }
+                        }
+                    }
+                } label: {
+                    addIconLabel
+                }
+            } else {
+                Button { showingSignIn = true } label: { addIconLabel }
+            }
+        }
+        .walkthroughAnchor("cardDetail.actionBar")
     }
 
     private func showAddedToDeckToast(_ name: String) {

@@ -267,6 +267,7 @@ struct DecksView: View {
             .toolbar { toolbarContent }
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible,         for: .navigationBar)
+            .bobaMinimizeNavBarOnScroll()
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Card.self) { card in
                 BrowserCardDetailSheet(card: card,

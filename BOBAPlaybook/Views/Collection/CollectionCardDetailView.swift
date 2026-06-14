@@ -245,38 +245,13 @@ struct CollectionCardDetailView: View {
                         .help("Hero Shot — share a 3D video of this card")
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    if let card = catalogCard {
-                        // Menu drops from the Add button itself (replaces the
-                        // old iPad popover which anchored to the card art).
-                        Menu {
-                            Section("Add \(card.name)") {
-                                Button {
-                                    showingAddSheet = true
-                                } label: {
-                                    Label("To Collection", systemImage: "folder.badge.plus")
-                                }
-                                if card.isHero || card.isPlay || card.isHotDog {
-                                    Button {
-                                        showingAddToDeck = true
-                                    } label: {
-                                        Label("To Custom Deck", systemImage: "rectangle.stack.badge.plus")
-                                    }
-                                }
-                                // Streamer-only add-to-Show destination.
-                                if auth.isStreamer {
-                                    Button {
-                                        showingAddToShow = true
-                                    } label: {
-                                        Label("To Show", systemImage: "dot.radiowaves.up.forward")
-                                    }
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "plus")
-                                .foregroundStyle(Design.Colors.bobaOrange)
-                        }
-                    }
+                // iOS 27 pins the primary Add action so it never collapses into
+                // overflow when the Hero Shot share button competes at large
+                // Dynamic Type; iOS 26 keeps the standard trailing placement.
+                if #available(iOS 27, *) {
+                    ToolbarItem(placement: .topBarPinnedTrailing) { addToolbarButton }
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) { addToolbarButton }
                 }
             }
             // Hide nav bar background — gradient is the visual top.
@@ -402,6 +377,45 @@ struct CollectionCardDetailView: View {
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Design.Colors.bobaCyan.opacity(0.4), lineWidth: 1))
         .padding(.top, Design.Spacing.md)
         .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    /// The primary "Add" action. Extracted so the iOS 27
+    /// `.topBarPinnedTrailing` branch and the iOS 26 `.topBarTrailing` fallback
+    /// share one definition (keeps Add in the bar even when Hero Shot share
+    /// competes at large Dynamic Type).
+    @ViewBuilder
+    private var addToolbarButton: some View {
+        if let card = catalogCard {
+            // Menu drops from the Add button itself (replaces the
+            // old iPad popover which anchored to the card art).
+            Menu {
+                Section("Add \(card.name)") {
+                    Button {
+                        showingAddSheet = true
+                    } label: {
+                        Label("To Collection", systemImage: "folder.badge.plus")
+                    }
+                    if card.isHero || card.isPlay || card.isHotDog {
+                        Button {
+                            showingAddToDeck = true
+                        } label: {
+                            Label("To Custom Deck", systemImage: "rectangle.stack.badge.plus")
+                        }
+                    }
+                    // Streamer-only add-to-Show destination.
+                    if auth.isStreamer {
+                        Button {
+                            showingAddToShow = true
+                        } label: {
+                            Label("To Show", systemImage: "dot.radiowaves.up.forward")
+                        }
+                    }
+                }
+            } label: {
+                Image(systemName: "plus")
+                    .foregroundStyle(Design.Colors.bobaOrange)
+            }
+        }
     }
 
     private func showAddedToDeckToast(_ name: String) {
@@ -534,6 +548,10 @@ struct CollectionCardDetailView: View {
                         entryRow(entry)
                     }
                 }
+                // iOS 27: enables the per-row swipe-to-remove below — these rows
+                // live in a VStack, not a List, where swipeActions was a no-op
+                // pre-27. iOS 26 users still remove via the row's edit sheet.
+                .bobaSwipeActionsContainer()
             }
         }
     }

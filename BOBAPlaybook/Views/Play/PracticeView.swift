@@ -172,13 +172,12 @@ struct PracticeView: View {
                     // Rules-clarification alert (handoff §6.A): warns
                     // when Recycle / Reload / Return from the Depths
                     // would clear active rest_of_game effects.
-                    .alert(
+                    .bobaItemAlert(
                         "Recycle these plays?",
-                        isPresented: Binding(
-                            get: { store.pendingRecycleCard != nil },
-                            set: { newValue in if !newValue { store.cancelPendingRecycle() } }
-                        ),
-                        presenting: store.pendingRecycleCard
+                        item: Binding(
+                            get: { store.pendingRecycleCard },
+                            set: { newValue in if newValue == nil { store.cancelPendingRecycle() } }
+                        )
                     ) { _ in
                         Button("Recycle", role: .destructive) {
                             store.confirmPendingRecycle()

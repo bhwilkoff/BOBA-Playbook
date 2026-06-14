@@ -456,13 +456,18 @@ const DB = {
     return out;
   },
 
-  exportText() {
+  // opts.playsOnly === true → omit Heroes + Hot Dogs (for external deck
+  // builders that accept only play cards). Default emits the full deck.
+  exportText(opts = {}) {
+    const playsOnly = opts.playsOnly === true;
     const lines = [`# ${this.deckName} (${this.format})`];
     lines.push('');
-    lines.push(`## Heroes (${this.heroes.length})`);
-    const sorted = [...this.heroes].sort((a, b) => (b.power || 0) - (a.power || 0));
-    for (const c of sorted) {
-      lines.push(`${c.hero || c.name} ${c.power} ${c.element} (${c.treatment || 'Base'})`);
+    if (!playsOnly) {
+      lines.push(`## Heroes (${this.heroes.length})`);
+      const sorted = [...this.heroes].sort((a, b) => (b.power || 0) - (a.power || 0));
+      for (const c of sorted) {
+        lines.push(`${c.hero || c.name} ${c.power} ${c.element} (${c.treatment || 'Base'})`);
+      }
     }
     if (this.plays.length) {
       lines.push('');
@@ -474,7 +479,7 @@ const DB = {
       lines.push(`## Bonus Plays (${this.bonusPlays.length})`);
       for (const c of this.bonusPlays) lines.push(`${c.name} (${c.playCost ?? 0} HD)`);
     }
-    if (this.hotDogs.length) {
+    if (!playsOnly && this.hotDogs.length) {
       lines.push('');
       lines.push(`## Hot Dogs (${this.hotDogs.length}/10)`);
       for (const c of this.hotDogs) lines.push(c.name || c.hero);
@@ -1202,14 +1207,22 @@ function initDeckBuilder(allCards) {
     }
   });
 
-  // Export
+  // Export. The "Full deck" toggle (db-export-full, default checked)
+  // switches text + CSV between the full BOBA Playbook deck and a
+  // Plays-only export for external deck builders that take only plays.
+  const dbExportIsFull = () => $('db-export-full')?.checked !== false;
+  const dbRenderExportText = () => {
+    const textEl = $('db-export-text');
+    if (textEl) textEl.value = DB.exportText({ playsOnly: !dbExportIsFull() });
+  };
   $('db-export-btn')?.addEventListener('click', () => {
     const outEl = $('db-export-out');
     if (!outEl) return;
-    const textEl = $('db-export-text');
-    if (textEl) textEl.value = DB.exportText();
+    dbRenderExportText();
     outEl.hidden = !outEl.hidden;
   });
+  // Re-render the preview text the moment the toggle flips.
+  $('db-export-full')?.addEventListener('change', dbRenderExportText);
 
   // Generate Deck Wall — iOS DESIGN.md §8.8 + DECISIONS.md #036.
   // Pulls Heroes + Plays + Hot Dogs from the current builder state
@@ -1238,18 +1251,17 @@ function initDeckBuilder(allCards) {
     });
   });
 
-  // CSV download — full-deck v2 (Heroes + Hot Dogs + Plays + Bonus Plays).
-  // exportCSVv2 carries every section so a downloaded deck round-trips
-  // completely; importCSV auto-detects the v2 header. (The legacy
-  // Playbook-only exportCSV stays for deck-builder.bobattlearena.com compat
-  // but is no longer what the download button emits.)
+  // CSV download. Full deck → exportCSVv2 (Heroes + Hot Dogs + Plays +
+  // Bonus Plays; importCSV auto-detects the v2 header). Plays-only →
+  // exportCSV (the legacy slot format deck-builder.bobattlearena.com accepts).
   $('db-csv-btn')?.addEventListener('click', () => {
-    const csv = DB.exportCSVv2();
+    const full = dbExportIsFull();
+    const csv = full ? DB.exportCSVv2() : DB.exportCSV();
     const blob = new Blob([csv], { type: 'text/csv' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url;
-    a.download = `${DB.deckName.replace(/[^a-z0-9]/gi, '_')}.csv`;
+    a.download = `${DB.deckName.replace(/[^a-z0-9]/gi, '_')}${full ? '' : '_plays'}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     const btn = $('db-csv-btn');

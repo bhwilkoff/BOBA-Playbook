@@ -2427,6 +2427,10 @@
                  sidebar so the import/export controls are immediately
                  visible when the export panel opens. -->
             <div class="db-export-out" id="db-export-out" hidden>
+              <label class="db-export-toggle" style="display:flex;align-items:center;gap:0.45rem;margin-bottom:0.5rem;font-size:0.85rem;cursor:pointer">
+                <input type="checkbox" id="db-export-full" checked>
+                <span>Full BOBA Playbook deck (Heroes + Hot Dogs). Uncheck for Plays-only — for external deck builders that take only play cards.</span>
+              </label>
               <textarea class="db-export-text" id="db-export-text" readonly aria-label="Deck list export"></textarea>
               <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap">
                 <button class="db-copy-btn" id="db-copy-btn">Copy Text</button>

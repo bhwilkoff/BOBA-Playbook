@@ -6,8 +6,9 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 // ─── Canvas dimensions (design at largest device size per family) ───────────
 const IPHONE_W = 1320;
 const IPHONE_H = 2868;
-const IPAD_W = 2064;
-const IPAD_H = 2752;
+// iPad screenshots are LANDSCAPE — canvas is the long edge × short edge.
+const IPAD_W = 2752;
+const IPAD_H = 2064;
 
 // ─── iPhone mockup pre-measured constants ────────────────────────────────────
 const MK_W = 1022;
@@ -28,8 +29,8 @@ const IPHONE_SIZES = [
 ] as const;
 
 const IPAD_SIZES = [
-  { label: '13" iPad', w: 2064, h: 2752 },
-  { label: '12.9" iPad Pro', w: 2048, h: 2732 },
+  { label: '13" iPad', w: 2752, h: 2064 },
+  { label: '12.9" iPad Pro', w: 2732, h: 2048 },
 ] as const;
 
 type ExportSize = { label: string; w: number; h: number };
@@ -410,7 +411,7 @@ function Slide2({ w, h }: { w: number; h: number }) {
         <div style={{ marginTop: w * 0.03, ...body(w * 0.031) }}>
           17,968 cards. Instant search.<br />Filter by Weapon, Treatment, Set.
         </div>
-        <div style={{ marginTop: w * 0.035, display: "flex", gap: w * 0.025, flexWrap: "wrap" }}>
+        <div style={{ marginTop: w * 0.035, display: "flex", gap: w * 0.02, flexWrap: "nowrap" }}>
           <Pill color={C.cyan} w={w}>17,968 cards</Pill>
           <Pill color={C.orange} w={w}>Full images</Pill>
           <Pill color={C.violet} w={w}>Instant search</Pill>
@@ -657,7 +658,7 @@ function Slide6({ w, h }: { w: number; h: number }) {
         <div style={{ marginTop: w * 0.028, ...body(w * 0.031) }}>
           Rookie to playmaker.<br />Rules, strategy, decks.
         </div>
-        <div style={{ marginTop: w * 0.035, display: "flex", gap: w * 0.02, flexWrap: "wrap" }}>
+        <div style={{ marginTop: w * 0.035, display: "flex", gap: w * 0.016, flexWrap: "nowrap" }}>
           <Pill color={C.violet} w={w}>Deck builder</Pill>
           <Pill color={C.orange} w={w}>Format legality</Pill>
           <Pill color={C.cyan} w={w}>Strategy guides</Pill>
@@ -706,7 +707,7 @@ function SlideDecks({ w, h }: { w: number; h: number }) {
           Format legality. Weapon counts.<br />
           Battle Day Score totals.
         </div>
-        <div style={{ marginTop: w * 0.035, display: "flex", gap: w * 0.02, flexWrap: "wrap" }}>
+        <div style={{ marginTop: w * 0.035, display: "flex", gap: w * 0.016, flexWrap: "nowrap" }}>
           <Pill color={C.cyan} w={w}>Format legality</Pill>
           <Pill color={C.orange} w={w}>Battle Day Score</Pill>
           <Pill color={C.violet} w={w}>Save & sync</Pill>
@@ -832,16 +833,30 @@ function IPad({
   alt,
   style,
   placeholder,
+  landscape = false,
 }: {
   src: string;
   alt: string;
   style?: React.CSSProperties;
   placeholder?: string;
+  landscape?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
 
+  // Bezel geometry transposes between orientations so the frame stays even
+  // and the capture fills a 4:3 screen with no black bars. Outer aspect flips
+  // 770/1000 (portrait) ↔ 1000/770 (landscape); the camera moves to the
+  // short (left) edge in landscape.
+  const outerAspect = landscape ? "1000/770" : "770/1000";
+  const screen = landscape
+    ? { left: "2.8%", top: "4%", width: "94.4%", height: "92%" }
+    : { left: "4%", top: "2.8%", width: "92%", height: "94.4%" };
+  const camera: React.CSSProperties = landscape
+    ? { left: "1.2%", top: "50%", transform: "translateY(-50%)", width: "0.65%", height: "0.9%" }
+    : { top: "1.2%", left: "50%", transform: "translateX(-50%)", width: "0.9%", height: "0.65%" };
+
   return (
-    <div style={{ position: "relative", aspectRatio: "770/1000", ...style }}>
+    <div style={{ position: "relative", aspectRatio: outerAspect, ...style }}>
       <div
         style={{
           width: "100%",
@@ -857,11 +872,7 @@ function IPad({
         <div
           style={{
             position: "absolute",
-            top: "1.2%",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "0.9%",
-            height: "0.65%",
+            ...camera,
             borderRadius: "50%",
             background: "#111113",
             border: "1px solid rgba(255,255,255,0.08)",
@@ -883,10 +894,7 @@ function IPad({
         <div
           style={{
             position: "absolute",
-            left: "4%",
-            top: "2.8%",
-            width: "92%",
-            height: "94.4%",
+            ...screen,
             borderRadius: "2.2% / 1.6%",
             overflow: "hidden",
             background: C.surface,
@@ -956,381 +964,284 @@ function IPad({
   );
 }
 
-// ─── iPad slides ──────────────────────────────────────────────────────────────
-// Same narrative arc as the iPhone slides; mockup proportions adjusted for the
-// wider iPad canvas (3:4 vs iPhone's 9:19.5). All caption sizing stays
-// canvas-relative so headlines look the same proportional weight on both.
+// ─── iPad slides (LANDSCAPE) ──────────────────────────────────────────────────
+// Same narrative arc as the iPhone slides, recomposed for the landscape iPad
+// canvas (2752×2064): a vertically-centered text column on one side, the
+// landscape device on the other. Typography sizes off `h` (≈ the old portrait
+// width) so headline/pill weights match the iPhone set instead of doubling
+// with the now-wider `w`. Sides alternate slide-to-slide for rhythm.
 
-// iPad Slide 1 — Hero
+type PadPill = { color: string; text: string };
+
+// Shared landscape feature layout: text column + device, no wrapping pills.
+function IPadFeature({
+  w, h, bg, glows, side = "left",
+  sub, subColor = C.orange, head, copy, pills, extra,
+  src, alt, placeholder,
+}: {
+  w: number; h: number; bg?: string; glows?: React.ReactNode; side?: "left" | "right";
+  sub: string; subColor?: string; head: string; copy: string; pills: PadPill[];
+  extra?: React.ReactNode;
+  src: string; alt: string; placeholder: string;
+}) {
+  const textLeft = side === "left";
+  // Pills size off a reduced base so three fit on ONE line inside the column.
+  const pillBase = h * 0.6;
+  return (
+    <div style={{ position: "relative", width: w, height: h, overflow: "hidden", background: bg ?? C.bg }}>
+      <GridLines w={w} h={h} />
+      <ScanlineOverlay w={w} h={h} />
+      {glows}
+
+      {/* Text column — vertically centered */}
+      <div style={{
+        position: "absolute", top: 0, bottom: 0,
+        left: textLeft ? w * 0.055 : "auto",
+        right: textLeft ? "auto" : w * 0.055,
+        width: w * 0.42,
+        display: "flex", flexDirection: "column", justifyContent: "center",
+        zIndex: 10,
+      }}>
+        <div style={label(sub, h, subColor)}>{sub}</div>
+        <div style={{ marginTop: h * 0.022, ...headline(h * 0.072) }}>{head}</div>
+        <div style={{ marginTop: h * 0.024, ...body(h * 0.026) }}>{copy}</div>
+        {extra}
+        <div style={{ marginTop: h * 0.03, display: "flex", gap: h * 0.014, flexWrap: "nowrap" }}>
+          {pills.map((p) => (
+            <Pill key={p.text} color={p.color} w={pillBase}>{p.text}</Pill>
+          ))}
+        </div>
+      </div>
+
+      {/* Device — vertically centered on the opposite side, bleeding off-edge */}
+      <IPad
+        landscape
+        src={src}
+        alt={alt}
+        placeholder={placeholder}
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: textLeft ? "auto" : -w * 0.02,
+          right: textLeft ? -w * 0.02 : "auto",
+          transform: "translateY(-50%)",
+          width: w * 0.50,
+          zIndex: 2,
+        }}
+      />
+    </div>
+  );
+}
+
+// iPad Slide 1 — Hero (landscape: brand/tagline left, device right)
 function IPadSlide1({ w, h }: { w: number; h: number }) {
   return (
     <div style={{ position: "relative", width: w, height: h, background: C.bg, overflow: "hidden" }}>
       <GridLines w={w} h={h} />
       <ScanlineOverlay w={w} h={h} />
 
-      <OrangeGlow style={{ width: w * 1.0, height: w * 1.0, top: h * 0.55, left: -w * 0.2 }} />
-      <CyanGlow style={{ width: w * 0.7, height: w * 0.7, top: -w * 0.15, right: -w * 0.15 }} />
-      <VioletGlow style={{ width: w * 0.5, height: w * 0.5, top: h * 0.30, left: w * 0.5 }} />
+      <OrangeGlow style={{ width: w * 0.7, height: w * 0.7, top: h * 0.45, left: -w * 0.15 }} />
+      <CyanGlow style={{ width: w * 0.5, height: w * 0.5, top: -w * 0.12, right: -w * 0.12 }} />
+      <VioletGlow style={{ width: w * 0.35, height: w * 0.35, top: h * 0.2, left: w * 0.46 }} />
 
-      {/* Brand at top */}
+      {/* Brand + tagline — left column, vertically centered */}
       <div style={{
-        position: "absolute", top: h * 0.05, left: 0, right: 0, zIndex: 10,
-        display: "flex", flexDirection: "column", alignItems: "center", gap: w * 0.014,
+        position: "absolute", top: 0, bottom: 0, left: w * 0.06, width: w * 0.42,
+        display: "flex", flexDirection: "column", justifyContent: "center", zIndex: 10,
       }}>
-        <img src="/icon.png" alt="BOBA Playbook" style={{ width: w * 0.11, height: w * 0.11, borderRadius: w * 0.024 }} />
-        <span style={label("BOBA PLAYBOOK", w)}>BOBA PLAYBOOK</span>
+        <div style={{ display: "flex", alignItems: "center", gap: h * 0.022 }}>
+          <img src="/icon.png" alt="BOBA Playbook" style={{ width: h * 0.12, height: h * 0.12, borderRadius: h * 0.026 }} />
+          <span style={label("BOBA PLAYBOOK", h)}>BOBA PLAYBOOK</span>
+        </div>
+        <div style={{ marginTop: h * 0.04, ...headline(h * 0.11) }}>
+          Search. Scan. Collect. Play.
+        </div>
+        <div style={{ marginTop: h * 0.028, ...body(h * 0.03) }}>
+          The ultimate BOBA companion app — now first-class on iPad.
+        </div>
       </div>
 
-      {/* iPad — width w*0.55 → height = w*0.55*1000/770 = w*0.714 = 1473px = h*0.535 */}
+      {/* Device — right side, vertically centered, bleeding off-edge */}
       <IPad
+        landscape
         src="/screenshots-ipad/home.png"
         alt="iPad home screen"
         placeholder="Drop iPad home screenshot"
         style={{
-          position: "absolute",
-          width: w * 0.55,
-          top: h * 0.18,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 2,
+          position: "absolute", top: "50%", right: -w * 0.04,
+          transform: "translateY(-50%)", width: w * 0.52, zIndex: 2,
         }}
       />
-
-      {/* Bottom gradient — covers bottom 30% so tagline is legible */}
-      <div style={{
-        position: "absolute",
-        bottom: 0, left: 0, right: 0,
-        height: h * 0.30,
-        background: `linear-gradient(to top, ${C.bg} 50%, transparent)`,
-        zIndex: 5,
-        pointerEvents: "none",
-      }} />
-
-      {/* Tagline */}
-      <div style={{
-        position: "absolute",
-        bottom: h * 0.06,
-        left: 0, right: 0,
-        textAlign: "center",
-        zIndex: 10,
-      }}>
-        <div style={headline(w * 0.075)}>
-          Search. Scan. Collect. Play.
-        </div>
-        <div style={{ marginTop: w * 0.018, ...body(w * 0.026) }}>
-          The ultimate BOBA companion app
-        </div>
-      </div>
     </div>
   );
 }
 
-// iPad Slide 2 — Search
+// iPad Slide 2 — Search (text right, device left)
 function IPadSlide2({ w, h }: { w: number; h: number }) {
   return (
-    <div style={{ position: "relative", width: w, height: h, background: C.bg, overflow: "hidden" }}>
-      <GridLines w={w} h={h} />
-      <ScanlineOverlay w={w} h={h} />
-
-      <CyanGlow style={{ width: w * 0.9, height: w * 0.9, top: -w * 0.25, left: -w * 0.15 }} />
-      <OrangeGlow style={{ width: w * 0.6, height: w * 0.6, bottom: 0, right: -w * 0.05 }} />
-
-      {/* Caption top — safe zone h*0.06 → ~h*0.36 */}
-      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.10, right: w * 0.10, zIndex: 10 }}>
-        <div style={label("Search", w)}>THE FULL COLLECTION</div>
-        <div style={{ marginTop: w * 0.02, ...headline(w * 0.095) }}>
-          Every Card. At Your Fingertips.
-        </div>
-        <div style={{ marginTop: w * 0.022, ...body(w * 0.025) }}>
-          17,968 cards. Instant search. Filter by Weapon, Treatment, Set.
-        </div>
-        <div style={{ marginTop: w * 0.025, display: "flex", gap: w * 0.018, flexWrap: "wrap" }}>
-          <Pill color={C.cyan} w={w}>17,968 cards</Pill>
-          <Pill color={C.orange} w={w}>Full images</Pill>
-          <Pill color={C.violet} w={w}>Instant search</Pill>
-        </div>
-      </div>
-
-      {/* iPad — width w*0.62, top h*0.40 → bottom h*0.40 + 0.62*1000/770*w/h = bleeds */}
-      <IPad
-        src="/screenshots-ipad/search.png"
-        alt="iPad search screen"
-        placeholder="Drop iPad search screenshot"
-        style={{
-          position: "absolute",
-          width: w * 0.62,
-          top: h * 0.40,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 2,
-        }}
-      />
-    </div>
+    <IPadFeature
+      w={w} h={h} side="right"
+      glows={<>
+        <CyanGlow style={{ width: w * 0.7, height: w * 0.7, top: -w * 0.18, right: -w * 0.12 }} />
+        <OrangeGlow style={{ width: w * 0.5, height: w * 0.5, bottom: -w * 0.1, left: -w * 0.05 }} />
+      </>}
+      sub="THE FULL COLLECTION"
+      head="Every card. At your fingertips."
+      copy="17,968 cards. Instant search. Filter by Weapon, Treatment, Set."
+      pills={[
+        { color: C.cyan, text: "17,968 cards" },
+        { color: C.orange, text: "Full images" },
+        { color: C.violet, text: "Instant search" },
+      ]}
+      src="/screenshots-ipad/search.png"
+      alt="iPad search screen"
+      placeholder="Drop iPad search screenshot"
+    />
   );
 }
 
-// iPad Slide 3 — Scan
+// iPad Slide 3 — Scan (text left, device right)
 function IPadSlide3({ w, h }: { w: number; h: number }) {
   return (
-    <div style={{ position: "relative", width: w, height: h, overflow: "hidden",
-      background: `linear-gradient(160deg, #080810 0%, #0D0820 50%, #080810 100%)` }}>
-      <GridLines w={w} h={h} />
-      <ScanlineOverlay w={w} h={h} />
-
-      <VioletGlow style={{ width: w * 1.0, height: w * 1.0, top: h * 0.3, left: -w * 0.2 }} />
-      <CyanGlow style={{ width: w * 0.7, height: w * 0.7, top: -w * 0.1, right: -w * 0.15 }} />
-
-      {/* Caption top — label + headline */}
-      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.10, right: w * 0.10, zIndex: 10 }}>
-        <div style={label("Scan", w, C.violet)}>CAMERA · ON-DEVICE</div>
-        <div style={{ marginTop: w * 0.02, ...headline(w * 0.095) }}>
-          Point. Shoot. Add.
-        </div>
-      </div>
-
-      {/* iPad */}
-      <IPad
-        src="/screenshots-ipad/scan.png"
-        alt="iPad scan screen"
-        placeholder="Drop iPad scan screenshot"
-        style={{
-          position: "absolute",
-          width: w * 0.55,
-          top: h * 0.24,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 2,
-        }}
-      />
-
-      {/* Bottom gradient fade */}
-      <div style={{
-        position: "absolute",
-        bottom: 0, left: 0, right: 0,
-        height: h * 0.22,
-        background: `linear-gradient(to top, ${C.bg} 50%, transparent)`,
-        zIndex: 5,
-        pointerEvents: "none",
-      }} />
-
-      {/* Bottom caption */}
-      <div style={{
-        position: "absolute",
-        bottom: h * 0.06,
-        left: w * 0.10, right: w * 0.10,
-        zIndex: 10,
-      }}>
-        <div style={body(w * 0.025)}>
-          Identifies any card in real time. No uploads. Entirely on-device.
-        </div>
-        <div style={{ marginTop: w * 0.018, display: "flex", gap: w * 0.018 }}>
-          <Pill color={C.violet} w={w}>Vision OCR</Pill>
-          <Pill color={C.cyan} w={w}>Private</Pill>
-        </div>
-      </div>
-    </div>
+    <IPadFeature
+      w={w} h={h} side="left"
+      bg={`linear-gradient(160deg, #080810 0%, #0D0820 50%, #080810 100%)`}
+      glows={<>
+        <VioletGlow style={{ width: w * 0.75, height: w * 0.75, top: h * 0.25, left: -w * 0.15 }} />
+        <CyanGlow style={{ width: w * 0.5, height: w * 0.5, top: -w * 0.08, right: -w * 0.12 }} />
+      </>}
+      sub="CAMERA · ON-DEVICE" subColor={C.violet}
+      head="Point. Shoot. Add."
+      copy="Identifies any card in real time. No uploads. Entirely on-device."
+      pills={[
+        { color: C.violet, text: "Vision OCR" },
+        { color: C.cyan, text: "Private" },
+      ]}
+      src="/screenshots-ipad/scan.png"
+      alt="iPad scan screen"
+      placeholder="Drop iPad scan screenshot"
+    />
   );
 }
 
-// iPad Slide 4 — Collect (single iPad showing NavigationSplitView)
+// iPad Slide 4 — Collect (text left, device right)
 function IPadSlide4({ w, h }: { w: number; h: number }) {
   return (
-    <div style={{ position: "relative", width: w, height: h, background: C.bg, overflow: "hidden" }}>
-      <GridLines w={w} h={h} />
-      <ScanlineOverlay w={w} h={h} />
-
-      <OrangeGlow style={{ width: w * 0.9, height: w * 0.9, bottom: -w * 0.15, right: -w * 0.15 }} />
-      <CyanGlow style={{ width: w * 0.5, height: w * 0.5, top: -w * 0.05, left: -w * 0.05 }} />
-
-      {/* Caption */}
-      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.10, right: w * 0.10, zIndex: 10 }}>
-        <div style={label("Collect", w)}>YOUR COLLECTION</div>
-        <div style={{ marginTop: w * 0.02, ...headline(w * 0.09) }}>
-          Track what you own.
-        </div>
-        <div style={{ marginTop: w * 0.022, ...body(w * 0.025) }}>
-          Personal · For Sale · For Trade · Wanted · Grails
-        </div>
-        <div style={{ marginTop: w * 0.025, display: "flex", gap: w * 0.018, flexWrap: "wrap" }}>
-          <Pill color={C.orange} w={w}>5 designations</Pill>
-          <Pill color={C.cyan} w={w}>Cloud sync</Pill>
-          <Pill color={C.violet} w={w}>Swipe to delete</Pill>
-        </div>
-      </div>
-
-      {/* iPad */}
-      <IPad
-        src="/screenshots-ipad/collect.png"
-        alt="iPad collection screen"
-        placeholder="Drop iPad collection screenshot"
-        style={{
-          position: "absolute",
-          width: w * 0.62,
-          top: h * 0.42,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 2,
-        }}
-      />
-    </div>
+    <IPadFeature
+      w={w} h={h} side="left"
+      glows={<>
+        <OrangeGlow style={{ width: w * 0.7, height: w * 0.7, bottom: -w * 0.12, right: -w * 0.12 }} />
+        <CyanGlow style={{ width: w * 0.45, height: w * 0.45, top: -w * 0.05, left: -w * 0.05 }} />
+      </>}
+      sub="YOUR COLLECTION"
+      head="Track what you own."
+      copy="Personal · For Sale · For Trade · Wanted · Grails"
+      pills={[
+        { color: C.orange, text: "5 designations" },
+        { color: C.cyan, text: "Cloud sync" },
+        { color: C.violet, text: "Swipe to delete" },
+      ]}
+      src="/screenshots-ipad/collect.png"
+      alt="iPad collection screen"
+      placeholder="Drop iPad collection screenshot"
+    />
   );
 }
 
-// iPad Slide 5 — Pricing
+// iPad Slide 5 — Pricing (text right, device left)
 function IPadSlide5({ w, h }: { w: number; h: number }) {
   return (
-    <div style={{ position: "relative", width: w, height: h, overflow: "hidden",
-      background: `linear-gradient(170deg, #080810 0%, #100808 60%, #080810 100%)` }}>
-      <GridLines w={w} h={h} />
-      <ScanlineOverlay w={w} h={h} />
-
-      <OrangeGlow style={{ width: w * 0.8, height: w * 0.8, top: h * 0.5, left: w * 0.05 }} />
-      <VioletGlow style={{ width: w * 0.5, height: w * 0.5, top: -w * 0.05, right: -w * 0.05 }} />
-
-      {/* Caption + price widget */}
-      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.10, right: w * 0.10, zIndex: 10 }}>
-        <div style={label("Pricing", w, C.orange)}>RECENT SOLD COMPS</div>
-        <div style={{ marginTop: w * 0.02, ...headline(w * 0.09) }}>
-          Real sales. Real prices.
-        </div>
-        <div style={{ marginTop: w * 0.022, ...body(w * 0.025) }}>
-          Live market estimate plus recent sold listings, per card.
-        </div>
-
+    <IPadFeature
+      w={w} h={h} side="right"
+      bg={`linear-gradient(170deg, #080810 0%, #100808 60%, #080810 100%)`}
+      glows={<>
+        <OrangeGlow style={{ width: w * 0.6, height: w * 0.6, top: h * 0.45, right: w * 0.02 }} />
+        <VioletGlow style={{ width: w * 0.4, height: w * 0.4, top: -w * 0.05, left: -w * 0.05 }} />
+      </>}
+      sub="RECENT SOLD COMPS" subColor={C.orange}
+      head="Real sales. Real prices."
+      copy="Live market estimate plus recent sold listings, per card."
+      extra={
         <div style={{
-          marginTop: w * 0.028,
+          marginTop: h * 0.03,
           background: C.surface,
           border: `1px solid ${C.glassBorder}`,
-          borderRadius: w * 0.025,
-          padding: `${w * 0.025}px ${w * 0.04}px`,
+          borderRadius: h * 0.025,
+          padding: `${h * 0.022}px ${h * 0.04}px`,
           display: "flex",
-          justifyContent: "space-between",
-          maxWidth: w * 0.55,
+          gap: h * 0.045,
+          alignSelf: "flex-start",
         }}>
           {[
-            { label: "LOW", value: "$4.99", color: C.cyan },
-            { label: "AVG", value: "$12.50", color: C.orange },
-            { label: "HIGH", value: "$28.00", color: C.violet },
-          ].map(({ label: l, value, color }) => (
+            { l: "LOW", v: "$4.99", c: C.cyan },
+            { l: "AVG", v: "$12.50", c: C.orange },
+            { l: "HIGH", v: "$28.00", c: C.violet },
+          ].map(({ l, v, c }) => (
             <div key={l} style={{ textAlign: "center" }}>
-              <div style={{ fontFamily: "var(--font-chakra)", fontSize: w * 0.016, fontWeight: 700, color: C.textMuted, letterSpacing: "0.15em" }}>{l}</div>
-              <div style={{ fontFamily: "var(--font-bebas)", fontSize: w * 0.052, color, letterSpacing: "0.02em", lineHeight: 1.1 }}>{value}</div>
+              <div style={{ fontFamily: "var(--font-chakra)", fontSize: h * 0.018, fontWeight: 700, color: C.textMuted, letterSpacing: "0.15em" }}>{l}</div>
+              <div style={{ fontFamily: "var(--font-bebas)", fontSize: h * 0.055, color: c, letterSpacing: "0.02em", lineHeight: 1.1 }}>{v}</div>
             </div>
           ))}
         </div>
-
-        <div style={{ marginTop: w * 0.022, display: "flex", gap: w * 0.018, flexWrap: "wrap" }}>
-          <Pill color={C.orange} w={w}>Recent sales</Pill>
-          <Pill color={C.cyan} w={w}>Live market data</Pill>
-        </div>
-      </div>
-
-      {/* iPad — bleeds off bottom */}
-      <IPad
-        src="/screenshots-ipad/pricing.png"
-        alt="iPad pricing screen"
-        placeholder="Drop iPad pricing screenshot"
-        style={{
-          position: "absolute",
-          width: w * 0.60,
-          top: h * 0.45,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 2,
-        }}
-      />
-    </div>
+      }
+      pills={[
+        { color: C.orange, text: "Recent sales" },
+        { color: C.cyan, text: "Live market data" },
+      ]}
+      src="/screenshots-ipad/pricing.png"
+      alt="iPad pricing screen"
+      placeholder="Drop iPad pricing screenshot"
+    />
   );
 }
 
-// iPad Slide 6 — Play
+// iPad Slide 6 — Play (text left, device right)
 function IPadSlide6({ w, h }: { w: number; h: number }) {
   return (
-    <div style={{ position: "relative", width: w, height: h, overflow: "hidden",
-      background: `linear-gradient(150deg, #080810 0%, #080818 50%, #0A0810 100%)` }}>
-      <GridLines w={w} h={h} />
-      <ScanlineOverlay w={w} h={h} />
-
-      <VioletGlow style={{ width: w * 1.0, height: w * 1.0, top: h * 0.1, left: -w * 0.25 }} />
-      <OrangeGlow style={{ width: w * 0.6, height: w * 0.6, bottom: 0, right: -w * 0.05 }} />
-
-      {/* Caption */}
-      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.10, right: w * 0.10, zIndex: 10 }}>
-        <div style={label("Play", w, C.violet)}>RULES · STRATEGY · DECKS</div>
-        <div style={{ marginTop: w * 0.02, ...headline(w * 0.09) }}>
-          Know the rules. Win the game.
-        </div>
-        <div style={{ marginTop: w * 0.022, ...body(w * 0.025) }}>
-          Rookie to playmaker. Rules, strategy, decks.
-        </div>
-        <div style={{ marginTop: w * 0.025, display: "flex", gap: w * 0.018, flexWrap: "wrap" }}>
-          <Pill color={C.violet} w={w}>Deck builder</Pill>
-          <Pill color={C.orange} w={w}>Format legality</Pill>
-          <Pill color={C.cyan} w={w}>Strategy guides</Pill>
-        </div>
-      </div>
-
-      {/* iPad — top h*0.36, width w*0.62, centered, bleeds */}
-      <IPad
-        src="/screenshots-ipad/play.png"
-        alt="iPad play screen"
-        placeholder="Drop iPad decks screenshot"
-        style={{
-          position: "absolute",
-          width: w * 0.62,
-          top: h * 0.36,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 2,
-        }}
-      />
-    </div>
+    <IPadFeature
+      w={w} h={h} side="left"
+      bg={`linear-gradient(150deg, #080810 0%, #080818 50%, #0A0810 100%)`}
+      glows={<>
+        <VioletGlow style={{ width: w * 0.75, height: w * 0.75, top: h * 0.1, left: -w * 0.18 }} />
+        <OrangeGlow style={{ width: w * 0.45, height: w * 0.45, bottom: -w * 0.05, right: -w * 0.05 }} />
+      </>}
+      sub="RULES · STRATEGY · DECKS" subColor={C.violet}
+      head="Know the rules. Win the game."
+      copy="Rookie to playmaker. Rules, strategy, decks."
+      pills={[
+        { color: C.violet, text: "Deck builder" },
+        { color: C.orange, text: "Format legality" },
+        { color: C.cyan, text: "Strategy guides" },
+      ]}
+      src="/screenshots-ipad/play.png"
+      alt="iPad play screen"
+      placeholder="Drop iPad play screenshot"
+    />
   );
 }
 
-// iPad Slide 7 — Decks (deck builder)
+// iPad Slide 7 — Decks (text right, device left)
 function IPadSlideDecks({ w, h }: { w: number; h: number }) {
   return (
-    <div style={{ position: "relative", width: w, height: h, overflow: "hidden",
-      background: `linear-gradient(155deg, #080810 0%, #0A0A20 50%, #080810 100%)` }}>
-      <GridLines w={w} h={h} />
-      <ScanlineOverlay w={w} h={h} />
-
-      <CyanGlow style={{ width: w * 0.9, height: w * 0.9, top: h * 0.05, right: -w * 0.20 }} />
-      <OrangeGlow style={{ width: w * 0.6, height: w * 0.6, bottom: 0, left: -w * 0.05 }} />
-      <VioletGlow style={{ width: w * 0.4, height: w * 0.4, top: h * 0.4, left: w * 0.5 }} />
-
-      {/* Caption */}
-      <div style={{ position: "absolute", top: h * 0.06, left: w * 0.10, right: w * 0.10, zIndex: 10 }}>
-        <div style={label("Decks", w, C.cyan)}>DECK BUILDER</div>
-        <div style={{ marginTop: w * 0.02, ...headline(w * 0.09) }}>
-          Build legal. Battle ready.
-        </div>
-        <div style={{ marginTop: w * 0.022, ...body(w * 0.025) }}>
-          Saved decks · Pool · Editor — three columns, drag-and-drop.
-        </div>
-        <div style={{ marginTop: w * 0.025, display: "flex", gap: w * 0.018, flexWrap: "wrap" }}>
-          <Pill color={C.cyan} w={w}>Format legality</Pill>
-          <Pill color={C.orange} w={w}>Drag-drop</Pill>
-          <Pill color={C.violet} w={w}>Battle Day Score</Pill>
-        </div>
-      </div>
-
-      {/* iPad — bleeds off bottom */}
-      <IPad
-        src="/screenshots-ipad/decks.png"
-        alt="iPad decks 3-column"
-        placeholder="Drop iPad decks 3-column screenshot"
-        style={{
-          position: "absolute",
-          width: w * 0.62,
-          top: h * 0.40,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 2,
-        }}
-      />
-    </div>
+    <IPadFeature
+      w={w} h={h} side="right"
+      bg={`linear-gradient(155deg, #080810 0%, #0A0A20 50%, #080810 100%)`}
+      glows={<>
+        <CyanGlow style={{ width: w * 0.7, height: w * 0.7, top: h * 0.05, right: -w * 0.15 }} />
+        <OrangeGlow style={{ width: w * 0.45, height: w * 0.45, bottom: -w * 0.05, left: -w * 0.05 }} />
+      </>}
+      sub="DECK BUILDER" subColor={C.cyan}
+      head="Build legal. Battle ready."
+      copy="Saved decks · Pool · Editor — three columns, drag-and-drop."
+      pills={[
+        { color: C.cyan, text: "Format legality" },
+        { color: C.orange, text: "Drag-drop" },
+        { color: C.violet, text: "Battle Day Score" },
+      ]}
+      src="/screenshots-ipad/decks.png"
+      alt="iPad decks 3-column"
+      placeholder="Drop iPad decks 3-column screenshot"
+    />
   );
 }
 
@@ -1353,55 +1264,50 @@ function IPadSlide7({ w, h }: { w: number; h: number }) {
       <GridLines w={w} h={h} />
       <ScanlineOverlay w={w} h={h} />
 
-      <OrangeGlow style={{ width: w * 0.7, height: w * 0.7, top: h * 0.3, left: -w * 0.15 }} />
-      <CyanGlow style={{ width: w * 0.6, height: w * 0.6, top: h * 0.2, right: -w * 0.15 }} />
-      <VioletGlow style={{ width: w * 0.4, height: w * 0.4, bottom: h * 0.1, left: w * 0.3 }} />
+      <OrangeGlow style={{ width: w * 0.5, height: w * 0.5, top: h * 0.1, left: -w * 0.1 }} />
+      <CyanGlow style={{ width: w * 0.45, height: w * 0.45, top: -w * 0.1, right: -w * 0.1 }} />
+      <VioletGlow style={{ width: w * 0.3, height: w * 0.3, bottom: -w * 0.05, left: w * 0.42 }} />
 
-      {/* App icon + wordmark */}
+      {/* Header — icon + wordmark + headline, centered at top */}
       <div style={{
         position: "absolute",
-        top: h * 0.06,
+        top: h * 0.08,
         left: 0,
         right: 0,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: w * 0.014,
-      }}>
-        <img
-          src="/icon.png"
-          alt="BOBA Playbook"
-          style={{ width: w * 0.14, height: w * 0.14, borderRadius: w * 0.03 }}
-        />
-        <div style={headline(w * 0.058)}>BOBA PLAYBOOK</div>
-      </div>
-
-      {/* Headline */}
-      <div style={{
-        position: "absolute",
-        top: h * 0.26,
-        left: 0,
-        right: 0,
+        gap: h * 0.016,
+        zIndex: 10,
         textAlign: "center",
         padding: `0 ${w * 0.08}px`,
       }}>
-        <div style={headline(w * 0.105)}>
+        <div style={{ display: "flex", alignItems: "center", gap: h * 0.02 }}>
+          <img
+            src="/icon.png"
+            alt="BOBA Playbook"
+            style={{ width: h * 0.1, height: h * 0.1, borderRadius: h * 0.022 }}
+          />
+          <div style={headline(h * 0.06)}>BOBA PLAYBOOK</div>
+        </div>
+        <div style={{ marginTop: h * 0.012, ...headline(h * 0.085) }}>
           And so much more.
         </div>
-        <div style={{ marginTop: w * 0.02, ...body(w * 0.027) }}>
+        <div style={body(h * 0.028)}>
           Everything you need for BOBA. Made by fans.
         </div>
       </div>
 
-      {/* Feature grid — 2-col, larger cards on the wider iPad canvas */}
+      {/* Feature grid — 4-col × 2-row on the wide landscape canvas */}
       <div style={{
         position: "absolute",
-        top: h * 0.46,
-        left: w * 0.10,
-        right: w * 0.10,
+        bottom: h * 0.1,
+        left: w * 0.06,
+        right: w * 0.06,
         display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: w * 0.025,
+        gridTemplateColumns: "repeat(4, 1fr)",
+        gap: h * 0.022,
+        zIndex: 10,
       }}>
         {features.map(({ icon, text }) => (
           <div
@@ -1409,15 +1315,15 @@ function IPadSlide7({ w, h }: { w: number; h: number }) {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: w * 0.025,
+              gap: h * 0.018,
               background: C.surface,
               border: `1px solid ${C.glassBorder}`,
-              borderRadius: w * 0.022,
-              padding: `${w * 0.026}px ${w * 0.03}px`,
+              borderRadius: h * 0.02,
+              padding: `${h * 0.022}px ${h * 0.024}px`,
             }}
           >
-            <span style={{ fontSize: w * 0.04 }}>{icon}</span>
-            <span style={{ fontFamily: "var(--font-chakra)", fontSize: w * 0.026, fontWeight: 500, color: C.textPrimary }}>{text}</span>
+            <span style={{ fontSize: h * 0.035 }}>{icon}</span>
+            <span style={{ fontFamily: "var(--font-chakra)", fontSize: h * 0.022, fontWeight: 500, color: C.textPrimary }}>{text}</span>
           </div>
         ))}
       </div>
@@ -1612,7 +1518,13 @@ function ScreenshotPreview({
 type Device = "iphone" | "ipad";
 
 export default function ScreenshotsClient() {
-  const [device, setDevice] = useState<Device>("iphone");
+  const [device, setDevice] = useState<Device>(() => {
+    if (typeof window !== "undefined") {
+      const d = new URLSearchParams(window.location.search).get("device");
+      if (d === "ipad" || d === "iphone") return d;
+    }
+    return "iphone";
+  });
   const [sizeIdx, setSizeIdx] = useState(0);
 
   const sizes: readonly ExportSize[] = device === "iphone" ? IPHONE_SIZES : IPAD_SIZES;
@@ -1742,7 +1654,7 @@ export default function ScreenshotsClient() {
         <code style={{ color: C.textPrimary, background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: 3 }}>
           home / search / scan / collect / collect-2 / pricing / play / decks.png
         </code>.
-        Drop iPad captures (portrait, ideally 2048×2732 from 12.9&quot; iPad Pro) into{" "}
+        Drop iPad captures (LANDSCAPE, ideally 2732×2048 from 12.9&quot; iPad Pro) into{" "}
         <code style={{ color: C.textPrimary, background: "rgba(255,255,255,0.05)", padding: "1px 6px", borderRadius: 3 }}>
           tools/screenshots/public/screenshots-ipad/
         </code>{" "}

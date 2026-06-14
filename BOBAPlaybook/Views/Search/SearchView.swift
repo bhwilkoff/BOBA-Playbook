@@ -345,24 +345,27 @@ struct SearchView: View {
     /// ToolbarContent chain short (type-check budget — see note below).
     @ViewBuilder
     private var profileToolbarLabel: some View {
+        let ring = AppIconOption.currentColor(for: selectedIconName)
         if let url = auth.resolvedAvatarURL {
+            // The photo IS the button: fills the toolbar icon footprint,
+            // circular-clipped, with the chosen icon color as the outline.
             AsyncImage(url: url) { phase in
                 if case .success(let img) = phase {
                     img.resizable().scaledToFill()
                 } else {
                     Image(systemName: "person.crop.circle")
-                        .font(.system(size: 22))
-                        .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
+                        .resizable().scaledToFit()
+                        .foregroundStyle(ring)
                 }
             }
-            .frame(width: 26, height: 26)
+            .frame(width: 34, height: 34)
             .clipShape(Circle())
-            .overlay(Circle().strokeBorder(
-                AppIconOption.currentColor(for: selectedIconName).opacity(0.7), lineWidth: 1.5))
+            .overlay(Circle().strokeBorder(ring, lineWidth: 2))
         } else {
+            // Signed-out / no avatar: the silhouette glyph is its own circle.
             Image(systemName: "person.crop.circle")
-                .font(.system(size: 22))
-                .foregroundStyle(AppIconOption.currentColor(for: selectedIconName))
+                .font(.system(size: 30))
+                .foregroundStyle(ring)
         }
     }
 
@@ -374,6 +377,9 @@ struct SearchView: View {
             } label: {
                 profileToolbarLabel
             }
+            // Render the avatar as the button itself — no glass capsule
+            // boxing in a smaller image (Apple's nav-bar avatar pattern).
+            .buttonStyle(.plain)
             .accessibilityLabel("Profile")
             // Tick 387 — pointer-hover tooltip on Find toolbar icons
             // (Android tick 384+386 TooltipBox parity). iPad Stage Manager,

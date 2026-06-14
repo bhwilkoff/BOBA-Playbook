@@ -1604,6 +1604,10 @@ struct DeckManagementSheet: View {
     @State private var copied = false
     @State private var showImportPicker = false
     @State private var importBanner: String?
+    // Export format: false = full BOBA Playbook deck (Heroes + Hot Dogs +
+    // Plays + Bonus); true = Plays-only for external deck builders that take
+    // only play cards. Sticky across launches.
+    @AppStorage("bp_deckExportPlaysOnly_v1") private var exportPlaysOnly = false
 
     var body: some View {
         if wrapInNavStack {
@@ -1767,7 +1771,7 @@ struct DeckManagementSheet: View {
             // Action toolbar
             HStack(spacing: Design.Spacing.sm) {
                 Button {
-                    UIPasteboard.general.string = store.deckListCSVv2
+                    UIPasteboard.general.string = exportPlaysOnly ? store.deckListCSV : store.deckListCSVv2
                     copied = true
                     Task { try? await Task.sleep(nanoseconds: 2_000_000_000); copied = false }
                 } label: {
@@ -1803,7 +1807,17 @@ struct DeckManagementSheet: View {
                 .padding(.bottom, Design.Spacing.sm)
             }
 
-            Text("Full deck export — Heroes, Plays, Bonus Plays, and Hot Dogs. Re-imports completely into BOBA Playbook.")
+            Picker("Export format", selection: $exportPlaysOnly) {
+                Text("Full deck").tag(false)
+                Text("Plays only").tag(true)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, Design.Spacing.md)
+            .padding(.bottom, Design.Spacing.xs)
+
+            Text(exportPlaysOnly
+                 ? "Plays + Bonus Plays only — the format the official deck-builder.bobattlearena.com accepts."
+                 : "Full BOBA Playbook deck — Heroes, Plays, Bonus Plays, and Hot Dogs. Re-imports completely into BOBA Playbook.")
                 .font(Design.Fonts.mono(10))
                 .foregroundStyle(Design.Colors.textMuted)
                 .padding(.horizontal, Design.Spacing.md)
@@ -1813,7 +1827,7 @@ struct DeckManagementSheet: View {
             Divider().background(Design.Colors.glass)
 
             ScrollView {
-                Text(store.deckListCSVv2)
+                Text(exportPlaysOnly ? store.deckListCSV : store.deckListCSVv2)
                     .font(Design.Fonts.mono(11))
                     .foregroundStyle(Design.Colors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1863,11 +1877,11 @@ struct DeckManagementSheet: View {
         let safeName = store.deckName
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: " ", with: "-")
-        return "boba-deck-\(safeName).csv"
+        return "boba-deck-\(safeName)\(exportPlaysOnly ? "-plays" : "").csv"
     }
 
     private func csvExportURL() -> URL {
-        let csv = store.deckListCSVv2
+        let csv = exportPlaysOnly ? store.deckListCSV : store.deckListCSVv2
         let dir = FileManager.default.temporaryDirectory
         let url = dir.appendingPathComponent(csvExportFilename())
         try? csv.write(to: url, atomically: true, encoding: .utf8)

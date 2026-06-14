@@ -92,7 +92,7 @@ extension View {
 /// `bobaSharedImageCache()`). Backed by `URLCache.shared`, which the app
 /// configures at launch to 100 MB memory / 500 MB disk.
 enum BOBAImageCache {
-    nonisolated(unsafe) static let session: URLSession = {
+    nonisolated static let session: URLSession = {
         let config = URLSessionConfiguration.default
         config.urlCache = .shared
         config.requestCachePolicy = .returnCacheDataElseLoad

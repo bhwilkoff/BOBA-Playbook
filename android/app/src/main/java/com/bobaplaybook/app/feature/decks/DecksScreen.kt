@@ -973,17 +973,37 @@ private fun DecksPoolSearchPill(
  */
 private fun exportDraftAsCsv(context: android.content.Context, draft: DeckDraft) {
     val header = "id,name,type,release,number,cost,dbs,ability,bonus"
-    val rows = draft.cards.map { c ->
+    // Canonical v2 classification — matches iOS deckListCSVv2 + web exportCSVv2
+    // so a deck exported on ANY platform re-imports completely on all three
+    // (Heroes + Hot Dogs were previously emitted with raw cardType + the HD
+    // cost in the bonus column, which other clients' importers don't route).
+    fun isBonusPlay(c: Card): Boolean =
+        c.cardType.contains("Play", ignoreCase = true) &&
+            (c.cardNumber.startsWith("BPL") || c.treatment == "Bonus Plays" || c.isBonusPlay == true)
+    fun typeToken(c: Card): String = when {
+        c.isHero       -> "HERO"
+        c.isHotDog     -> "HD"
+        isBonusPlay(c) -> "BPL"
+        else           -> "PL"
+    }
+    // Emit in the same section order as iOS/web: Heroes, Hot Dogs, Plays, Bonus.
+    fun sectionRank(c: Card): Int = when {
+        c.isHero       -> 0
+        c.isHotDog     -> 1
+        isBonusPlay(c) -> 3
+        else           -> 2
+    }
+    val rows = draft.cards.sortedBy { sectionRank(it) }.map { c ->
         listOf(
             c.bobaId,
             c.displayName.csvEscape(),
-            c.cardType.csvEscape(),
+            typeToken(c),
             c.set.csvEscape(),
             c.cardNumber.csvEscape(),
             c.cost?.toString().orEmpty(),
             c.dbs?.toString().orEmpty(),
             "",  // ability — not in catalog model today
-            (c.hd ?: 0).toString(),
+            isBonusPlay(c).toString(),
         ).joinToString(",")
     }
     val csv = (listOf(header) + rows).joinToString("\n")

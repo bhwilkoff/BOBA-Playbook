@@ -1767,7 +1767,7 @@ struct DeckManagementSheet: View {
             // Action toolbar
             HStack(spacing: Design.Spacing.sm) {
                 Button {
-                    UIPasteboard.general.string = store.deckListCSV
+                    UIPasteboard.general.string = store.deckListCSVv2
                     copied = true
                     Task { try? await Task.sleep(nanoseconds: 2_000_000_000); copied = false }
                 } label: {
@@ -1803,7 +1803,7 @@ struct DeckManagementSheet: View {
                 .padding(.bottom, Design.Spacing.sm)
             }
 
-            Text("CSV format matches the official deckbuilder at deck-builder.bobattlearena.com. Playbook + Bonus Plays only — heroes + hot dogs stay in the builder.")
+            Text("Full deck export — Heroes, Plays, Bonus Plays, and Hot Dogs. Re-imports completely into BOBA Playbook.")
                 .font(Design.Fonts.mono(10))
                 .foregroundStyle(Design.Colors.textMuted)
                 .padding(.horizontal, Design.Spacing.md)
@@ -1813,7 +1813,7 @@ struct DeckManagementSheet: View {
             Divider().background(Design.Colors.glass)
 
             ScrollView {
-                Text(store.deckListCSV)
+                Text(store.deckListCSVv2)
                     .font(Design.Fonts.mono(11))
                     .foregroundStyle(Design.Colors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1867,7 +1867,7 @@ struct DeckManagementSheet: View {
     }
 
     private func csvExportURL() -> URL {
-        let csv = store.deckListCSV
+        let csv = store.deckListCSVv2
         let dir = FileManager.default.temporaryDirectory
         let url = dir.appendingPathComponent(csvExportFilename())
         try? csv.write(to: url, atomically: true, encoding: .utf8)

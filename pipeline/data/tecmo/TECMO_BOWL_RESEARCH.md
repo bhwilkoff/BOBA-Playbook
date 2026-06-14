@@ -4,6 +4,23 @@
 We already carry the 4 sealed products (Hobby/Double-Mega Box + Cases) in the catalog;
 **zero individual cards** — that's the gap this research targets.
 
+> ## UPDATE 2026-06-14 — BV crawl run with Ben's cookie: Tecmo NOT loaded yet
+> Authenticated against BV (two-cookie auth confirmed: `_bazooka_vault_session`
+> **+** `user_id`; session alone silently redirects to /login — see
+> `bv_catalog_scraper.py` header). Findings (4 days before the June 18 drop):
+> - **Highest valid BV card ID = 17751.** IDs 17752+ return HTTP 500 (BV errors on
+>   non-existent records), so nothing is hidden above the frontier.
+> - Our existing `bv_scan_results.csv` already covered IDs 1–17743; the frontier
+>   moved only **8 IDs** since (a 160-card set would jump it ~160+).
+> - The entire recent band (16000–17751, 1,752 cards) is **set='Griffey'** — zero
+>   `set='Tecmo'`, zero "8-bit"/"Tecmo" keyword hits. The newest 8 IDs are Griffey
+>   "The Kid" promo placeholders (P-1…P-10, card-back art).
+> - The revealed-hero keyword matches (e.g. "Troy of Dallas" = Aikman) are all
+>   **Griffey-set** cards of players who also appear in Tecmo — false positives.
+> **Conclusion:** BV has not loaded the Tecmo set (not even hidden) as of 2026-06-14.
+> BV loads sets at/just-before release — **re-run `bv_catalog_scraper.py probe`
+> at/after June 18.** Cookie required each run (rotates/expires).
+
 ## TL;DR
 
 **The full Tecmo Bowl checklist is NOT published anywhere public yet.** Only an

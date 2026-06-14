@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-06-13",
+  "lastUpdated": "2026-06-14",
   "_schema": {
     "_comment": "Per-event fields. Add real dates as BoBA announces them.",
     "id": "string — stable slug for cross-references",
@@ -33,11 +33,11 @@
       "_curated": true
     },
     {
-      "id": "cardeio-56b8b5e2-f6ee-49fb-a6b8-0a7cd74f17db",
+      "id": "cardeio-8f9dd631-d45f-4f9d-926a-5709fd7d5e6d",
       "kind": "tournament",
-      "title": "T-roy's  Bo Jackson Battle Arena Regional",
-      "date": "2026-06-13",
-      "url": "https://play.bobattlearena.com/events/56b8b5e2-f6ee-49fb-a6b8-0a7cd74f17db",
+      "title": "T-roy's Double Blaster Sealed",
+      "date": "2026-06-14",
+      "url": "https://play.bobattlearena.com/events/8f9dd631-d45f-4f9d-926a-5709fd7d5e6d",
       "endDate": "2026-06-14",
       "location": "Galax, VA",
       "formats": [

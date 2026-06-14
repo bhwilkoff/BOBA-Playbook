@@ -21,6 +21,43 @@ We already carry the 4 sealed products (Hobby/Double-Mega Box + Cases) in the ca
 > BV loads sets at/just-before release — **re-run `bv_catalog_scraper.py probe`
 > at/after June 18.** Cookie required each run (rotates/expires).
 
+> ## UPDATE 2026-06-14 (b) — deeper promo-art harvest + new channel leads
+> A second research pass (web + promo media API) past the original ~10 cards.
+> **Still no full ~160-card checklist anywhere** (tcdb / Beckett / Cardboard
+> Connection / Ludex all empty; `bobattlearena.com/checklists/tecmo-bowl/` → 404;
+> no Tecmo Collector-Guide PDF — only the Griffey set has one). But card numbers
+> were read off the official auto art (verify against the official checklist
+> before catalog ingest, per `feedback_card_data_truth_from_image`):
+>
+> | Player | Hero name | Card # (art-read) | Power | Weapon | Treatment / Serial | Art URL (promo.bobattlearena.com/wp-content/uploads/2026/03/) |
+> |---|---|---|---|---|---|---|
+> | John Elway | Duke of Denver | JE43 | 200 | HEX | Inspired Ink on-card auto (Debut) | ElwayHex-1.png |
+> | Dan Marino | Marino | DM93 | 195 | HEX | Inspired Ink on-card auto | MarinoHexwsig.png |
+> | Eric Dickerson | Goggles | EDAS | 175 | FIRE | Inspired Ink auto · 29/50 · "HOF 99" | ericdickersonfinal.png |
+> | Lawrence Taylor | Fear Himself | LTA4 | 190 | GLOW | Inspired Ink auto · 5/25 (Debut) | ltautofinal.png |
+> | Bo Jackson | Touchdown! Bo Jackson | TBJ-R prefix | 250/200 | — | Superfoil 1/1 auto + Battlefoil /34 | Touchdown-Bo-Jackson-Blog.png |
+>
+> - **Card-number scheme:** base autos = hero-initials+number (JE43, DM93); an
+>   autograph-series code appears on some (EDAS, LTA4 = initials + "AS"/"A#").
+>   Feed both shapes to the scan regex when the set ingests.
+> - **Hero names corrected/added:** Dickerson = "Goggles", Taylor = "Fear Himself"
+>   (the earlier doc left these blank). A **"Cutback"** hero exists (player IG
+>   tease, instagram.com/p/DV9Ij5rD1DL/) — likely a RB (Faulk/Thomas), art not yet
+>   found. NOTE the earlier doc listed Elway as "JE03"; art-read here is "JE43" —
+>   reconcile at ingest.
+> - **Goldmine channel:** `promo.bobattlearena.com/wp-json/wp/v2/media?search=<surname>`
+>   returns full-res (~1100×1500) card PNGs and gets new art BEFORE the checklist
+>   page. The daily watcher + the `tecmo-release-watch` cloud routine now poll it
+>   per-signer. Art lives under /uploads/2026/03/ and /2026/06/.
+> - **New lead — `play.bobattlearena.com/cards`** (Blokpax-backed card DB,
+>   JS-rendered): the Tecmo records will likely populate here at/near launch with
+>   full structured data. Its XHR/JSON endpoint isn't found yet (`/api/cards?set=tecmo`
+>   → 404). Worth finding the real API — it could be a cleaner full-checklist
+>   source than the BV ID-crawl. (BV itself is also a Blokpax/Cardeio-class SPA.)
+> - **Dead ends (don't repeat):** tcdb/Beckett/Cardboard Connection/Ludex/SCI,
+>   GTS/gogts detail pages (403), ICv2 (403), eBay singles (still sealed-only),
+>   media search for `8bit`/`cutback`/`touchdown` (not yet uploaded).
+
 ## TL;DR
 
 **The full Tecmo Bowl checklist is NOT published anywhere public yet.** Only an

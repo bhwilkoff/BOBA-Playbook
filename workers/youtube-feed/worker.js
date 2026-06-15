@@ -203,10 +203,17 @@ async function refreshFeeds(env) {
       items.map(it => ({ ...it, priority: c.priority, sourceChannel: c.handle }))
     )
   );
-  const searchFetch = fetchSearchResults(apiKey, env.SEARCH_QUERY || "Bo Jackson Battle Arena")
+  const query = env.SEARCH_QUERY || "Bo Jackson Battle Arena";
+  const searchFetch = fetchSearchResults(apiKey, query)
     .then(items => items.map(it => ({ ...it, priority: 9, sourceChannel: null })));
+  // Dedicated live/upcoming discovery — the only reliable source for the
+  // "Upcoming Live" feed (see fetchLiveAndUpcoming). Priority 8 so a
+  // channel-sourced copy still wins on dedupe, but it beats plain search.
+  const liveFetch = fetchLiveAndUpcoming(apiKey, query)
+    .then(items => items.map(it => ({ ...it, priority: 8, sourceChannel: null })));
 
-  const fetched = await Promise.all([searchFetch, ...channelFetches]);
+  const fetched = await Promise.all([searchFetch, liveFetch, ...channelFetches]);
+  const liveUpcomingCandidates = (await liveFetch).length;
 
   // 3. Dedupe by videoId. When the same video appears in multiple
   //    sources (search + channel), keep the lowest priority value
@@ -273,6 +280,12 @@ async function refreshFeeds(env) {
       lastStartedAt: startedAt,
       durationMs: Date.now() - new Date(startedAt).getTime(),
       seenVideoCount: allIds.length,
+      // Raw count of IDs returned by the eventType=live|upcoming search,
+      // BEFORE categorize() drops stale/zombie placeholders. If this is >0
+      // but categorized.upcoming is 0, the streams were filtered as stale
+      // (see categorize); if this is 0, there were simply no live/scheduled
+      // BoBA broadcasts at refresh time.
+      liveUpcomingCandidates,
       categorized: {
         upcoming:   upcoming.length,
         vertical:   vertical.length,
@@ -388,6 +401,57 @@ async function fetchSearchResults(apiKey, query) {
     channelTitle: it.snippet?.channelTitle,
     thumbnails:   it.snippet?.thumbnails,
   })).filter(x => x.videoId);
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK: - Live + upcoming broadcasts (the "Upcoming Live" feed)
+// ════════════════════════════════════════════════════════════════
+//
+// This is the ONLY reliable source for the upcoming/live feed.
+// The other two sources structurally miss scheduled streams:
+//   - Channel uploads (`playlistItems` on the uploads playlist) do
+//     NOT include a scheduled livestream until it actually starts or
+//     completes — so a stream scheduled for next week is invisible.
+//   - The plain text search is `order=date`, which surfaces recently
+//     *published* videos; a livestream event created weeks before its
+//     scheduled time ranks by its creation date and falls off the
+//     first page, so it's missed too.
+// YouTube's documented way to discover live/scheduled broadcasts is
+// `search.list` with `eventType=live` / `eventType=upcoming` (both
+// require `type=video`). Without it, "Upcoming Live" only ever filled
+// by luck (a stream happening to be live during a 4-hour refresh).
+// Cost: 100 quota units per eventType = 200 units/refresh added.
+// Results merge into the same pipeline; `categorize()` already routes
+// `liveBroadcastContent === "live" | "upcoming"` into the upcoming feed.
+async function fetchLiveAndUpcoming(apiKey, query) {
+  const eventTypes = ["live", "upcoming"];
+  const lists = await Promise.all(eventTypes.map(async (eventType) => {
+    const params = new URLSearchParams({
+      part:       "snippet",
+      q:          query,
+      type:       "video",
+      eventType,
+      order:      "date",
+      maxResults: "25",
+      key:        apiKey,
+    });
+    const r = await fetch(`${YT_API}/search?${params}`);
+    if (!r.ok) {
+      console.error(`live/upcoming search failed (${eventType}):`, await r.text());
+      return [];
+    }
+    const j = await r.json();
+    return (j.items || []).map(it => ({
+      videoId:      it.id?.videoId,
+      publishedAt:  it.snippet?.publishedAt,
+      title:        it.snippet?.title,
+      description:  it.snippet?.description,
+      channelId:    it.snippet?.channelId,
+      channelTitle: it.snippet?.channelTitle,
+      thumbnails:   it.snippet?.thumbnails,
+    })).filter(x => x.videoId);
+  }));
+  return lists.flat();
 }
 
 // ════════════════════════════════════════════════════════════════

@@ -1412,7 +1412,7 @@ function ScreenshotPreview({
       // renders with a blank device screen. Re-encoding opaque shots as
       // JPEG drops them to well under 1 MB; assets with transparency
       // (mockup frame, app icon) keep PNG so their alpha survives.
-      const MAX_EDGE = 2752; // never upscale past the largest export width
+      const MAX_EDGE = 2048; // plenty for the device-screen area at 2752 export; keeps data URLs small for Safari
       const imgs = Array.from(el.querySelectorAll("img"));
       for (const img of imgs) {
         if (img.src.startsWith("data:")) continue;
@@ -1462,8 +1462,18 @@ function ScreenshotPreview({
         style: { transform: "none", transformOrigin: "top left" },
       };
 
-      // Single capture — images are already data URLs, no warm-up needed
-      const dataUrl = await htmlToImage.toPng(el, opts);
+      // Warm-up passes. html-to-image renders the slide into an SVG
+      // <foreignObject> and loads it as an image; WebKit/Safari decodes the
+      // embedded data-URL <img> tags ASYNCHRONOUSLY, so the FIRST toPng pass
+      // captures before the screenshot has painted — producing a blank device
+      // screen. Chrome decodes synchronously and is fine on pass 1, but Safari
+      // needs the earlier passes to prime the decode. We run a few passes and
+      // keep only the last. (Do NOT collapse to a single capture — that's what
+      // silently broke the Safari export.)
+      let dataUrl = "";
+      for (let pass = 0; pass < 3; pass++) {
+        dataUrl = await htmlToImage.toPng(el, opts);
+      }
 
       const safeLabel = exportSize.label.replace(/"/g, "in").replace(/\s+/g, "-");
       const link = document.createElement("a");

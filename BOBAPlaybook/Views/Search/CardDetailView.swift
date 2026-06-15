@@ -261,11 +261,17 @@ struct CardDetailView: View {
                 // primary Add action to the trailing edge so it never collapses
                 // into overflow when Mod-edit + Share compete at large Dynamic
                 // Type; iOS 26 keeps the standard trailing placement.
+                // `.topBarPinnedTrailing` is an iOS-27-SDK symbol, so it's
+                // compile-gated (DECISIONS.md #066) — GM builds use the 26 path.
+                #if IOS27_SDK
                 if #available(iOS 27, *) {
                     ToolbarItem(placement: .topBarPinnedTrailing) { addToolbarButton }
                 } else {
                     ToolbarItem(placement: .topBarTrailing) { addToolbarButton }
                 }
+                #else
+                ToolbarItem(placement: .topBarTrailing) { addToolbarButton }
+                #endif
                 if auth.isMod {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {

@@ -386,13 +386,18 @@ struct SearchView: View {
     private var findToolbar: some ToolbarContent {
         // iOS 27: strip the default toolbar-item margins so the 34pt avatar
         // circle sits flush in the bar (the v2.412/2.413 fill-the-button goal,
-        // now native). iOS 26 keeps the standard inset.
+        // now native). iOS 26 keeps the standard inset. `.contentMarginsRemoved()`
+        // is an iOS-27-SDK symbol, so it's compile-gated (DECISIONS.md #066).
+        #if IOS27_SDK
         if #available(iOS 27, *) {
             ToolbarItem(placement: .topBarLeading) { profileButton }
                 .contentMarginsRemoved()
         } else {
             ToolbarItem(placement: .topBarLeading) { profileButton }
         }
+        #else
+        ToolbarItem(placement: .topBarLeading) { profileButton }
+        #endif
         ToolbarItem(placement: .principal) {
             BOBAWordmark()
         }

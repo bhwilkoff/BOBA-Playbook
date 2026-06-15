@@ -3,5 +3,17 @@
 // Xcode identity panel; that creates a per-target override that shadows
 // this file and causes targets to drift apart again.
 
-MARKETING_VERSION = 2.415
-CURRENT_PROJECT_VERSION = 677
+MARKETING_VERSION = 2.416
+CURRENT_PROJECT_VERSION = 678
+
+// iOS 27 SDK gate (DECISIONS.md #066 amendment). The app adopts iOS-27-only
+// APIs additively, but those symbols don't exist in the iOS 26 SDK shipped
+// with the public GM Xcode — so a GM build (the only kind App Store Connect
+// accepts; beta-Xcode builds are rejected) won't compile them. This defines
+// the `IOS27_SDK` Swift compilation condition ONLY when building against the
+// iOS/sim 27 SDK (beta Xcode). Every iOS-27 API call is wrapped in
+// `#if IOS27_SDK`, with the iOS 26 fallback in `#else`, so the project builds
+// on BOTH SDKs: beta keeps the iOS-27 finishes, GM compiles the 26 fallback.
+// When Xcode 27 reaches GM, this flag (and the #else branches) can be removed.
+OTHER_SWIFT_FLAGS[sdk=iphoneos27*] = $(inherited) -D IOS27_SDK
+OTHER_SWIFT_FLAGS[sdk=iphonesimulator27*] = $(inherited) -D IOS27_SDK

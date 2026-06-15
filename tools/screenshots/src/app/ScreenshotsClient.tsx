@@ -1404,6 +1404,15 @@ function ScreenshotPreview({
       // in some environments — the export renders with empty img slots
       // (mockup frame missing, screenshot missing). Inlining the bytes
       // before capture sidesteps the fetcher entirely.
+      //
+      // We RE-ENCODE through a canvas rather than inlining the raw bytes.
+      // The iPad screenshots are 2732×2048 PNGs at 14–16 MB each; a raw
+      // base64 inline (~19 MB string) overflows html-to-image's SVG
+      // <foreignObject> embed and silently fails to decode — the slide
+      // renders with a blank device screen. Re-encoding opaque shots as
+      // JPEG drops them to well under 1 MB; assets with transparency
+      // (mockup frame, app icon) keep PNG so their alpha survives.
+      const MAX_EDGE = 2752; // never upscale past the largest export width
       const imgs = Array.from(el.querySelectorAll("img"));
       for (const img of imgs) {
         if (img.src.startsWith("data:")) continue;
@@ -1411,12 +1420,27 @@ function ScreenshotPreview({
           const resp = await fetch(img.src);
           if (!resp.ok) continue;
           const blob = await resp.blob();
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const r = new FileReader();
-            r.onloadend = () => resolve(r.result as string);
-            r.onerror = () => reject(r.error);
-            r.readAsDataURL(blob);
-          });
+          const bmp = await createImageBitmap(blob);
+          const scaleDown = Math.min(1, MAX_EDGE / Math.max(bmp.width, bmp.height));
+          const cw = Math.round(bmp.width * scaleDown);
+          const ch = Math.round(bmp.height * scaleDown);
+          const canvas = document.createElement("canvas");
+          canvas.width = cw;
+          canvas.height = ch;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(bmp, 0, 0, cw, ch);
+          bmp.close();
+
+          // Probe corners + center for transparency. Opaque → JPEG (tiny);
+          // any transparency → PNG (preserve alpha).
+          let hasAlpha = false;
+          for (const [px, py] of [[0, 0], [cw - 1, 0], [0, ch - 1], [cw - 1, ch - 1], [cw >> 1, ch >> 1]]) {
+            if (ctx.getImageData(px, py, 1, 1).data[3] < 255) { hasAlpha = true; break; }
+          }
+          const dataUrl = hasAlpha
+            ? canvas.toDataURL("image/png")
+            : canvas.toDataURL("image/jpeg", 0.95);
+
           originalSrcs.set(img, img.src);
           img.src = dataUrl;
           // Wait for the swapped-in src to be ready to paint

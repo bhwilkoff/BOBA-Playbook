@@ -325,6 +325,21 @@ The app builds against the iOS 27 SDK (`SDKROOT = iphoneos27.0`) but keeps `IPHO
 
 **How to apply.** New iOS-27 API → add a gated wrapper to `iOS27Compat.swift` (or branch the `ToolbarItem` inline) with the iOS 26 fallback; never an unconditional call while the floor is 26.x. When the deployment floor eventually rises to 27, delete the `else` branches and inline the new APIs. Don't adopt a newest-OS API that regresses an existing affordance (badges, custom glyphs) or invents a feature with no backing semantics just because the API exists.
 
+### 066 amendment (2026-06-15) — the runtime gate needs a COMPILE-TIME companion (`#if IOS27_SDK`)
+
+`if #available(iOS 27, *)` is a *runtime* gate — it still requires the called symbol to exist in the SDK you compile against. The iOS-27 APIs we adopted (`asyncImageURLSession`, `swipeActionsContainer`, `alert(_:item:)`, `.topBarPinnedTrailing`, `.contentMarginsRemoved`, `toolbarMinimizeBehavior(_:for: .navigationBar)`) exist only in the **iOS 27 SDK**, which ships solely with the **beta** Xcode. So the project compiled *only* under beta Xcode — and **App Store Connect rejects every build made with a beta Xcode** ("must be built with the latest public GM Xcode and SDKs"). That made the app unsubmittable: GM Xcode couldn't compile it, beta Xcode could but couldn't be accepted.
+
+**Fix — gate iOS-27 SDK symbols at compile time, not just runtime.** `AppVersion.xcconfig` defines a Swift compilation condition that exists *only* when building against the 27 SDK:
+
+```
+OTHER_SWIFT_FLAGS[sdk=iphoneos27*] = $(inherited) -D IOS27_SDK
+OTHER_SWIFT_FLAGS[sdk=iphonesimulator27*] = $(inherited) -D IOS27_SDK
+```
+
+Every iOS-27 API call is wrapped `#if IOS27_SDK` (keeping the existing runtime `if #available(iOS 27, *)` inside) with the iOS 26 path in `#else`. Result: the project builds on **both** SDKs — GM Xcode 26 compiles the 26 fallback (submittable); beta Xcode 27 keeps the iOS-27 finishes for on-device testing. `SDKROOT` stays the generic `iphoneos` (never pin `iphoneos27.0` — that hard-requires beta Xcode and re-breaks GM builds).
+
+**Why this is load-bearing:** without the compile-time gate, the codebase silently requires beta Xcode, and the *next* App Store submission fails the same way — the rejection only surfaces at submit time, long after the build "worked" locally. **How to apply:** any new iOS-27 SDK symbol gets BOTH gates — `#if IOS27_SDK` (compiles on GM) around `if #available(iOS 27, *)` (correct on-device behavior). Releases are built by **Xcode Cloud with the latest *release* Xcode** (workflow → Environment → Xcode version = "Latest Release", NOT a beta seed). When Xcode 27 reaches GM, drop the `-D IOS27_SDK` flag and every `#if IOS27_SDK`/`#else` (keep the runtime `#available`), then the deployment floor can rise to 27 on its own schedule.
+
 ---
 
 ## Archived decisions

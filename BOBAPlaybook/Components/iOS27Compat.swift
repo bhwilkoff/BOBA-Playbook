@@ -20,11 +20,15 @@ extension View {
     /// the tab bar already uses during search. No-op on iOS 26.
     @ViewBuilder
     func bobaMinimizeNavBarOnScroll() -> some View {
+        #if IOS27_SDK
         if #available(iOS 27, *) {
             self.toolbarMinimizeBehavior(.onScrollDown, for: .navigationBar)
         } else {
             self
         }
+        #else
+        self
+        #endif
     }
 
     /// Routes the `AsyncImage` views in this subtree through the app's tuned
@@ -37,11 +41,15 @@ extension View {
     /// loaders, which already layer an NSCache + scroll debounce on top.
     @ViewBuilder
     func bobaSharedImageCache() -> some View {
+        #if IOS27_SDK
         if #available(iOS 27, *) {
             self.asyncImageURLSession(BOBAImageCache.session)
         } else {
             self
         }
+        #else
+        self
+        #endif
     }
 
     /// Enables `swipeActions` on rows inside a non-`List` scrollable container
@@ -51,11 +59,15 @@ extension View {
     /// reachable through their other affordances).
     @ViewBuilder
     func bobaSwipeActionsContainer() -> some View {
+        #if IOS27_SDK
         if #available(iOS 27, *) {
             self.swipeActionsContainer()
         } else {
             self
         }
+        #else
+        self
+        #endif
     }
 
     /// Presents an alert driven by an optional value, passing the unwrapped
@@ -71,6 +83,7 @@ extension View {
         @ViewBuilder actions: @escaping (T) -> A,
         @ViewBuilder message: @escaping (T) -> M
     ) -> some View {
+        #if IOS27_SDK
         if #available(iOS 27, *) {
             self.alert(title, item: item, actions: actions, message: message)
         } else {
@@ -85,6 +98,18 @@ extension View {
                 message: message
             )
         }
+        #else
+        self.alert(
+            title,
+            isPresented: Binding(
+                get: { item.wrappedValue != nil },
+                set: { if !$0 { item.wrappedValue = nil } }
+            ),
+            presenting: item.wrappedValue,
+            actions: actions,
+            message: message
+        )
+        #endif
     }
 }
 

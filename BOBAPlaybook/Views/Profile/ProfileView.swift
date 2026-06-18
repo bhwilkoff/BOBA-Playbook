@@ -260,9 +260,27 @@ struct ProfileView: View {
                     .clipShape(RoundedRectangle(cornerRadius: Design.Radius.md))
             }
             Spacer()
+            Text(Self.affiliationDisclaimer)
+                .font(Design.Fonts.mono(11))
+                .foregroundStyle(Design.Colors.textMuted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Design.Spacing.xl)
+                .padding(.bottom, Design.Spacing.lg)
         }
         .frame(maxWidth: .infinity)
     }
+
+    /// Non-affiliation disclaimer shown to every user (signed-out landing +
+    /// About section) and mirrored in the App Store description. BOBA Playbook
+    /// is an independent companion utility; the brand owner (Imagination
+    /// Mining Company) confirmed it's fine so long as it doesn't claim BoBA's
+    /// IP or embed the playable game — both of which this line + the
+    /// admin-gated practice executor (DECISIONS.md #033/#048) honor.
+    static let affiliationDisclaimer =
+        "BOBA Playbook is an unofficial, fan-made companion app. It is not "
+        + "affiliated with, endorsed by, or sponsored by Bo Jackson Battle "
+        + "Arena or Imagination Mining Company. All card names, imagery, and "
+        + "game content are the property of their respective owners."
 
     // MARK: - Signed in
 
@@ -956,6 +974,10 @@ struct ProfileView: View {
                 Label("About", systemImage: "info.circle")
                     .foregroundStyle(Design.Colors.textPrimary)
             }
+        } footer: {
+            Text(Self.affiliationDisclaimer)
+                .font(Design.Fonts.mono(11))
+                .foregroundStyle(Design.Colors.textMuted)
         }
         .alert("Version copied", isPresented: $showingVersionCopiedToast) {
             Button("OK", role: .cancel) {}

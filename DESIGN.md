@@ -186,7 +186,10 @@ iPad ships as first-class. Every new view declares its regular-width adaptation;
 | `.tabViewBottomAccessory` | Auto-adapts in iOS 26 |
 | `.matchedTransitionSource` + `.zoom` | System push (see §6.6.2) |
 | `.fullScreenCover` for content | NavigationSplitView detail column |
-| `.sheet` for actions (Profile, picker) | Popover via `.presentationCompactAdaptation(.popover)` |
+| `.sheet` for a **leaf** picker (filters, reaction) | Popover via `.presentationCompactAdaptation(.popover)` |
+| `.sheet` for a surface that **re-presents** (Profile) | **Stay a sheet on iPad — do NOT adapt to popover** |
+
+**Popover adaptation is for LEAF surfaces only.** A sheet that adapts to `.presentationCompactAdaptation(.popover)` on iPad must not itself present another sheet / `fullScreenCover` — **a modal presented from inside a popover silently no-ops on iPad.** Profile is the cautionary tale: it was a popover on iPad and presents Sign In / role request / privacy / avatar-crop / Practice as nested modals, so tapping "Sign In" on iPad did nothing → App Store rejection 2.1(a) (Submission 71738157, iPad Air M3, June 2026). Rule: if a surface re-presents, it stays a plain `.sheet` on every size class; only true leaves (filter panel, reaction picker, single-action menus) take the popover adaptation.
 
 **TabView style.** Do NOT apply `.tabViewStyle(.sidebarAdaptable)`. iPadOS 26's sidebar mode (which `.sidebarAdaptable` opts into) puts the tab list in a left sidebar, which then visually competes with our per-tab `NavigationSplitView` sidebars (saved decks, lens picker, mode picker, category list). Floating tab pill stays on every device; iPad gets richer in-tab navigation via per-tab `NavigationSplitView` than the system tab sidebar (which is just 5 tab names) would provide.
 

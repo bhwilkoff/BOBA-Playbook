@@ -86,10 +86,16 @@ struct SearchView: View {
         // drives the centralized fullScreenCover.
         .sheet(isPresented: $showProfile) {
             ProfileView()
-                // iPad: adapt to popover anchored on the trigger button
-                // (DESIGN.md §6.6 — sheets for actions become popovers
-                // on regular width). Compact width keeps sheet behavior.
-                .presentationCompactAdaptation(.popover)
+            // NOTE: Profile is a plain sheet on every size class — it must
+            // NOT become a popover on iPad. ProfileView presents many nested
+            // modals (Sign In, role request, privacy/terms, avatar crop,
+            // Practice / House of BoBA covers), and a sheet presented from
+            // INSIDE a popover silently no-ops on iPad — which is exactly the
+            // "no response after tapping the sign in button" App Store review
+            // rejection (2.1(a), Submission 71738157, iPad Air M3). Leaf
+            // pickers that present nothing further (filters) still adapt to
+            // popover; surfaces that re-present must stay sheets. See
+            // DESIGN.md §6.6.
         }
         .walkthroughOverlay($walkthrough)
         // Tick 272 — iPad keyboard shortcut for Surprise Me. Cmd+Shift+R

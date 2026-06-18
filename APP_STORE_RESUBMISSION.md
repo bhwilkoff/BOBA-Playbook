@@ -53,13 +53,14 @@ If any of these fail, stop and tell Claude — do not resubmit.
 
 ## Phase 2 — App Store listing metadata
 
-- [ ] **Version field — must match the binary.** App Store Connect only lets you attach a build whose `CFBundleShortVersionString` equals the version record's number. The binary's value is `MARKETING_VERSION` in `AppVersion.xcconfig` = **`2.418`** — so **create/use an App Store version record named `2.418`** and attach the build to it. You can NOT attach this binary to the old rejected `1.0` record. (If you specifically want the store to read `1.0`, set `MARKETING_VERSION = 1.0` in `AppVersion.xcconfig` and rebuild first.) The build NUMBER bumps automatically via `ci_post_clone.sh` from the latest TestFlight build, so it stays unique and > 273.
-- [ ] **Description:** add the non-affiliation disclaimer as the **last paragraph** (paste verbatim):
+**→ The exact, copy-paste text for every field is in [`APP_STORE_METADATA.md`](./APP_STORE_METADATA.md).** Open it alongside App Store Connect and paste field by field. The load-bearing points:
 
-  > BOBA Playbook is an unofficial, fan-made companion app. It is not affiliated with, endorsed by, or sponsored by Bo Jackson Battle Arena or Imagination Mining Company. All card names, imagery, and game content are the property of their respective owners.
-
-- [ ] **(Recommended) Subtitle / promotional text:** lead with the companion framing, e.g. *"Unofficial companion for BoBA collectors — search, scan, collect."* This proactively defuses 4.1.
-- [ ] Screenshots: no change required, but if any screenshot shows the Practice/battle simulator, swap it out (keep gameplay out of the public-facing store presence — see Phase 4).
+- [ ] **Version record must equal the binary** — create a version named **`2.418`** (= `MARKETING_VERSION`); you cannot reuse the rejected `1.0` record. Build number auto-increments via `ci_post_clone.sh`.
+- [ ] **Name decision** — submit as `BOBA Playbook` with the unofficial-companion subtitle/description framing (metadata §0); rename options are the 4.1 fallback only.
+- [ ] **Description** — paste the full text from metadata §2; the non-affiliation disclaimer **must remain the last paragraph**.
+- [ ] **Subtitle, Promotional Text, Keywords, What's New** — all in metadata §2.
+- [ ] **Screenshots** — no Practice/battle-simulator surface (metadata §5).
+- [ ] **App Privacy + Age Rating (4+)** — answers in metadata §6–§7.
 
 ---
 

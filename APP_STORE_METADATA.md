@@ -111,26 +111,94 @@ BOBA Playbook is an unofficial, fan-made companion app. It is not affiliated wit
 
 ---
 
-## 3. App Review Information (this is where 4.1 is won — see runbook Phase 3/4)
+## 3. App Review Information
+
+> **Notes ≠ Resolution Center.** The *Resolution Center* reply is your conversation
+> with the reviewer who rejected you (the full 4.1 argument lives there — runbook
+> Phase 4). The *App Review Information → Notes* field below is a persistent
+> "how to review this build" guide that a **fresh reviewer** reads first. It
+> concisely states how each prior item is resolved + how to verify it, then guides
+> testing. Don't paste the Resolution Center argument here verbatim.
 
 | Field | Value |
 |---|---|
 | **Sign-in required** | **Yes** |
-| **Demo Username** | `<demo account email>` |
-| **Demo Password** | `<demo account password>` |
+| **Demo Username** | `appreview@bobaplaybook.com` |
+| **Demo Password** | *(in App Store Connect — kept out of this public repo)* |
 | **First / Last name** | `<your name>` |
 | **Phone** | `<your phone>` |
 | **Email** | `ben@bobaplaybook.com` |
 
-> ⚠️ Confirm the demo account signs in **on a fresh install** before submitting — the reviewer uses exactly these. Verify password typing works on iPad (the bug that was just fixed).
+> ⚠️ Confirm the demo account signs in **on a fresh install** before submitting — the reviewer uses exactly these. Verify password typing works on iPad (the bug that was just fixed). Sign in with Apple also works.
 
-### Notes (paste the full reply — verbatim from runbook Phase 4)
-Paste the three-part reply (4.1, 2.1(a), 5.1.1(v)) from `APP_STORE_RESUBMISSION.md` Phase 4. Summary of what it says:
-- **4.1:** independent unofficial companion utility (precedent: TCGplayer/Collectr/ManaBox); no official BoBA app exists to copy; rights holder (Doug Huskey, VP Collectibles, Imagination Mining Company) has acknowledged the app on the stated conditions (no IP claim, no playable game), both met; disclaimer added in-app and in the description.
-- **2.1(a):** iPad sign-in + password-field bugs fixed; verified on iPad Air 11" (M3).
-- **5.1.1(v):** account deletion is reachable in-app (Profile → Delete Account → confirm by typing username); screen recording attached.
+### Notes — paste this into App Review Information → Notes
 
-### Attachments
+```
+RESUBMISSION — this build addresses every item from Submission
+71738157-0b8a-4f07-8e55-eaf74920e97f (reviewed 1.0 / build 273). How to verify each:
+
+• 2.1(a) Sign-in unresponsive on iPad — FIXED. Find tab → Profile icon (top-left)
+  → "Sign In / Create Account": the sign-in screen now appears on iPad. (The Profile
+  surface was adapting to a popover and the sheet presented from it didn't show; it is
+  a standard sheet on all devices now. A separate bug that dismissed the keyboard while
+  typing the password is also fixed.) Use the demo account below — password entry works.
+
+• 5.1.1(v) Account deletion — reachable in-app. Sign in, then Profile → Delete Account
+  → Continue → type your username to confirm → Delete Account. This permanently deletes
+  the account and all associated data, with no website or customer-service step. A screen
+  recording is attached. It was previously unreachable only because of the iPad sign-in
+  bug above.
+
+• 4.1(a)/4.1(c) Copycats — this is an independent, unofficial companion utility for the
+  Bo Jackson Battle Arena (BoBA) trading card game: a catalog, collection, and deck
+  tracker, the same category as TCGplayer, Collectr, and ManaBox. There is no official
+  BoBA app to copy. The rights holder (Doug Huskey, VP of Collectibles, Imagination
+  Mining Company) has acknowledged the app on the conditions that it makes no IP claim
+  and contains no playable game — both met. Documentary evidence is attached. A
+  non-affiliation disclaimer appears on the Profile screen, in Profile → About, and as
+  the last paragraph of the App Store description. Our full response is in the Resolution
+  Center thread.
+
+DEMO ACCOUNT
+Email: appreview@bobaplaybook.com
+Password: <demo password — fill from App Store Connect>
+(Sign in with Apple also works.)
+
+WHAT WORKS WITHOUT AN ACCOUNT
+• Find — search 31,000+ cards, card detail, live pricing
+• Learn — rules, strategy, glossary, tournament reference
+• Decks — build a draft deck (saving requires sign-in)
+• Purchase — Whatnot upcoming breaks, Find a Store map
+• Scan — on-device card identification (no upload, no account)
+
+KEY FLOWS TO TEST
+1. Scan — Find tab → camera icon in the search bar. iOS Vision OCR + on-device image
+   fingerprinting identify the card; the recognition step makes no network call and
+   uploads no image. "Grid" mode handles multi-card photos.
+2. Pricing — tap any card with art → scroll to Pricing. eBay Browse data is proxied via
+   a Cloudflare Worker; no payment is processed in-app for any card.
+3. Universal Links — any bobaplaybook.com URL (a card link, or a /u/{username} public
+   collection) opens in-app on iOS 17+ via the AASA at
+   /.well-known/apple-app-site-association.
+4. iPad — sign-in works (see 2.1(a)). Floating tab bar on every device; tabs use
+   NavigationSplitView (Decks is 3-column); Cmd+1..5 switch tabs from a hardware
+   keyboard; drag a card from the card browser into the deck editor.
+
+SAFETY / USER-GENERATED CONTENT (Guidelines 1.2 & 5.1.1)
+• Published report contact: ben@bobaplaybook.com, shown in Profile → About; reports route
+  there with a 48-hour response commitment.
+• UGC surfaces in this build: usernames (client + server banned-words gating; reserved
+  terms blocked), opt-in public collections (users can hide individual designations),
+  profile avatar (server-gated to our own storage bucket), and an optional Discord handle.
+  No free-form messaging or trading in this build.
+```
+
+### Resolution Center (separate from Notes)
+Reply on the existing rejection thread with the full three-part argument from
+`APP_STORE_RESUBMISSION.md` **Phase 4** (the detailed 4.1 / 2.1(a) / 5.1.1(v) response).
+That's the place for the full argument — the Notes above just orient a fresh reviewer.
+
+### Attachments (App Review Information)
 - The **two Discord screenshots** (Doug Huskey / IMC acknowledgment) — your 4.1 evidence.
 - A **screen recording on a physical device** of the account-deletion flow (Apple asked for this).
 - *(Optional, stronger)* a one-line email from Doug/IMC confirming the same.

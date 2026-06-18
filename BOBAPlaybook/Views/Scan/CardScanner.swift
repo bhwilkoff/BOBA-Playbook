@@ -105,10 +105,17 @@ final class CardScanner: NSObject, @unchecked Sendable {
 
     // MARK: - Regex
 
-    /// Strict: exact card format — BF-208, GLBF-276, ALTA-01, RAD-104
+    /// Strict: card format with an OPTIONAL separator — covers both the
+    /// hyphenated catalog convention (BF-208, GLBF-276, ALTA-01) AND hyphen-less
+    /// sets like Tecmo Bowl Edition (BF1, SF72, JE43), which the cards print and
+    /// the catalog stores without a hyphen. The catalog-validation gate in
+    /// extractCardNumber keeps the looser pattern from inventing numbers — only
+    /// candidates present in cardNumberSet are returned. Verified on the real
+    /// Vision pathway via tools/ocr_probe.swift against the Tecmo art: alpha
+    /// card-number reads went 0→17 of 25, zero regression on hyphenated cards.
     private static let strictRegex: NSRegularExpression = {
         try! NSRegularExpression(
-            pattern: #"#?([A-Z]{1,6}-[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)"#
+            pattern: #"#?([A-Z]{1,6}-?[A-Z]?\d{1,4}(?:[/-]\d{1,4})?)"#
         )
     }()
 
@@ -637,8 +644,13 @@ extension CardScanner: AVCaptureVideoDataOutputSampleBufferDelegate {
                     guard cand.count >= 1, cand.count <= 4,
                           cand.allSatisfy({ $0.isNumber })
                     else { continue }
-                    let combined = "\(p)-\(cand)"
-                    if cardNumberSet.contains(combined) { return combined }
+                    // Try hyphenated (BF-4 — catalog convention) AND hyphen-less
+                    // (BF4 — Tecmo convention); both validated against the catalog
+                    // so an incidental adjacency can't invent a card number.
+                    let hyph = "\(p)-\(cand)"
+                    if cardNumberSet.contains(hyph) { return hyph }
+                    let bare = "\(p)\(cand)"
+                    if cardNumberSet.contains(bare) { return bare }
                 }
             }
         }

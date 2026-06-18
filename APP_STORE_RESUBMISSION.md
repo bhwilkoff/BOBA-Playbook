@@ -19,7 +19,7 @@ Code is on `main` in commits **`52a35f9f`** and **`d15cf77b`** (internal version
 Build from `main` and you get these for free; none touch the rejection-relevant surfaces (auth, disclaimer, deletion):
 
 - **Tecmo Bowl Edition set added** — +13,339 cards (catalog 17,974 → 31,313, ~90% imaged). Searchable with full stats; art ships on the CDN. Good "What's New" copy: *"Added the full Tecmo Bowl Edition set."*
-- **Scan recognizes the new set** — `feature-prints.bin` (the on-device scan fingerprint index) rebuilt to cover Tecmo. *Note:* the OCR card-number regex (`CardScanner.swift`) doesn't match Tecmo's no-hyphen formats (`BF1`, `JE43`, plain `1`); scan still resolves these via image-fingerprint + hero-name, but the regex is worth tuning on-device later (don't blind-edit a camera path).
+- **Scan recognizes the new set** — `feature-prints.bin` (the on-device scan fingerprint index) rebuilt to cover Tecmo (+13,334 prints), AND `CardScanner.swift`'s OCR card-number regex extended to accept Tecmo's hyphen-less formats (`BF1`, `SF72`, `JE43`) in addition to the hyphenated convention. Validated on the actual Vision pathway via `tools/ocr_probe.swift` (alpha card-number reads 0→17 of 25 on degraded-model OCR; higher on-device with the full E5 model). Pure-numeric base-set cards (1–240) still lean on fingerprint + hero-name where the printed number competes with the power stat — same difficulty class as existing pure-numeric cards, not Tecmo-specific.
 - **Card images carry no source attribution** (catalog ships `imageFile` only) — privacy/IP hygiene; irrelevant to review but noted for completeness.
 
 Suggested **"What's New" release notes:** *"Added the full Tecmo Bowl Edition set. Fixed sign-in and password entry on iPad."*

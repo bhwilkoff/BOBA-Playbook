@@ -85,7 +85,7 @@ pipeline/scripts/bv_api_harvest.py
 pipeline/scripts/bv_tecmo_backfill.py
 pipeline/scripts/scrape_promo_tecmo.py
 pipeline/scripts/tecmo_release_watch.py
-pipeline/scripts/stage_a_scrape_src.py
+pipeline/scripts/stage_a_scrape_bv.py
 scripts/import_tecmo_bowl.py
 pipeline/data/tecmo/
-pipeline/data/scan_results.csv
+pipeline/data/bv_scan_results.csv

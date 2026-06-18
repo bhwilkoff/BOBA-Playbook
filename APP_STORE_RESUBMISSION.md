@@ -14,6 +14,16 @@ The four rejection items and where each is handled:
 
 Code is on `main` in commits **`52a35f9f`** and **`d15cf77b`** (internal version **2.418 / build 680**).
 
+### Also in this build (landed after the rejection fixes — all on `main`)
+
+Build from `main` and you get these for free; none touch the rejection-relevant surfaces (auth, disclaimer, deletion):
+
+- **Tecmo Bowl Edition set added** — +13,339 cards (catalog 17,974 → 31,313, ~90% imaged). Searchable with full stats; art ships on the CDN. Good "What's New" copy: *"Added the full Tecmo Bowl Edition set."*
+- **Scan recognizes the new set** — `feature-prints.bin` (the on-device scan fingerprint index) rebuilt to cover Tecmo. *Note:* the OCR card-number regex (`CardScanner.swift`) doesn't match Tecmo's no-hyphen formats (`BF1`, `JE43`, plain `1`); scan still resolves these via image-fingerprint + hero-name, but the regex is worth tuning on-device later (don't blind-edit a camera path).
+- **Card images carry no source attribution** (catalog ships `imageFile` only) — privacy/IP hygiene; irrelevant to review but noted for completeness.
+
+Suggested **"What's New" release notes:** *"Added the full Tecmo Bowl Edition set. Fixed sign-in and password entry on iPad."*
+
 ---
 
 ## Phase 0 — Verify the fixes on a real device (do this FIRST)
@@ -43,7 +53,7 @@ If any of these fail, stop and tell Claude — do not resubmit.
 
 ## Phase 2 — App Store listing metadata
 
-- [ ] **Version field:** your call — it's a free-text field independent of the binary. Keeping **"1.0"** is fine. (Make sure the build attaches to whatever version string you choose.)
+- [ ] **Version field — must match the binary.** App Store Connect only lets you attach a build whose `CFBundleShortVersionString` equals the version record's number. The binary's value is `MARKETING_VERSION` in `AppVersion.xcconfig` = **`2.418`** — so **create/use an App Store version record named `2.418`** and attach the build to it. You can NOT attach this binary to the old rejected `1.0` record. (If you specifically want the store to read `1.0`, set `MARKETING_VERSION = 1.0` in `AppVersion.xcconfig` and rebuild first.) The build NUMBER bumps automatically via `ci_post_clone.sh` from the latest TestFlight build, so it stays unique and > 273.
 - [ ] **Description:** add the non-affiliation disclaimer as the **last paragraph** (paste verbatim):
 
   > BOBA Playbook is an unofficial, fan-made companion app. It is not affiliated with, endorsed by, or sponsored by Bo Jackson Battle Arena or Imagination Mining Company. All card names, imagery, and game content are the property of their respective owners.

@@ -3391,6 +3391,15 @@ dialog.modal-overlay[open] {
   padding: 0 var(--sp-1);
 }
 
+/* Non-affiliation disclaimer — App Store Guideline 4.1 (iOS/web/Android
+   parity). Small, muted, centered footnote on the signed-out landing +
+   the About section. Must read as informational fine print, never chrome. */
+.profile-affiliation-disclaimer {
+  font-family: var(--font-mono); font-size: 0.7rem; line-height: 1.5;
+  color: var(--boba-text-muted); text-align: center;
+  margin: var(--sp-3) auto 0; max-width: 34rem; padding: 0 var(--sp-2);
+}
+
 /* Tick 333 — keyboard shortcuts cheat sheet. Hidden on small touch
    viewports (no physical keyboard) so mobile Safari users don't see
    shortcuts that don't apply to them. */

@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -379,12 +380,39 @@ private fun SignedOutContent(authManager: AuthManager) {
         }
         Spacer(Modifier.height(8.dp))
         LegalLinks(context)
+        Spacer(Modifier.height(12.dp))
+        AffiliationDisclaimer()
     }
 }
 
 private enum class AuthMode(val label: String) {
     SIGN_IN("Sign in"),
     SIGN_UP("Create account"),
+}
+
+/** Non-affiliation disclaimer — identical copy across iOS / web / Android
+ *  (iOS: ProfileView.affiliationDisclaimer; web: profile-affiliation-disclaimer).
+ *  Shown on the signed-out landing + the About area, and mirrored in store
+ *  listings, to remove any "misleading association" (Play / App Store
+ *  Guideline 4.1). Honors the rights holder's conditions: no IP claim, no
+ *  playable game. */
+const val AFFILIATION_DISCLAIMER =
+    "BOBA Playbook is an unofficial, fan-made companion app. It is not " +
+    "affiliated with, endorsed by, or sponsored by Bo Jackson Battle " +
+    "Arena or Imagination Mining Company. All card names, imagery, and " +
+    "game content are the property of their respective owners."
+
+@Composable
+private fun AffiliationDisclaimer() {
+    Text(
+        text = AFFILIATION_DISCLAIMER,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+    )
 }
 
 @Composable
@@ -979,6 +1007,13 @@ private fun SignedInContent(
                         scope.launch { appSnackbar?.showSnackbar("Version copied: $v") }
                     },
             )
+        }
+
+        // Non-affiliation disclaimer (App Store / Play Guideline 4.1 —
+        // iOS/web/Android parity). Same copy + low-emphasis treatment as the
+        // signed-out landing.
+        item("affiliation-disclaimer") {
+            AffiliationDisclaimer()
         }
 
         // Tick 334 — Keyboard shortcuts cheat sheet (web tick 333 parity).

@@ -1535,12 +1535,25 @@ const Collection = (() => {
     const view = document.getElementById('view-profile');
     if (!view) return;
 
+    // Non-affiliation disclaimer — identical copy across iOS / web / Android
+    // (iOS: ProfileView.affiliationDisclaimer). Shown on the signed-out
+    // landing + the About section, and mirrored in the App Store / web
+    // marketing copy, to remove any "misleading association" (App Store
+    // Guideline 4.1). Honors the rights holder's conditions: no IP claim,
+    // no playable game.
+    const affiliationDisclaimer =
+      'BOBA Playbook is an unofficial, fan-made companion app. It is not '
+      + 'affiliated with, endorsed by, or sponsored by Bo Jackson Battle '
+      + 'Arena or Imagination Mining Company. All card names, imagery, and '
+      + 'game content are the property of their respective owners.';
+
     if (!Auth.isAuthenticated()) {
       view.innerHTML = `
         <div class="view-inner auth-gate">
           <h2 class="view-heading">Profile</h2>
           <p class="view-subtitle">Sign in to save your collection and sync across devices.</p>
           <button class="btn-primary" id="profile-signin-btn">Sign In / Create Account</button>
+          <p class="profile-affiliation-disclaimer">${affiliationDisclaimer}</p>
         </div>`;
       view.querySelector('#profile-signin-btn')
         ?.addEventListener('click', () => Auth.open());
@@ -1774,6 +1787,7 @@ const Collection = (() => {
               <span>Copy email address</span>
             </button>
           </div>
+          <p class="profile-affiliation-disclaimer">${affiliationDisclaimer}</p>
         </div>
 
         <!-- Tick 333 — Keyboard shortcuts cheat sheet. Surfaces the

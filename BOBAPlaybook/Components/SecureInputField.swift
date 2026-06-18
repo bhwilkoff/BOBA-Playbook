@@ -60,12 +60,18 @@ struct SecureInputField: UIViewRepresentable {
             field.isSecureTextEntry = isSecure
         }
 
-        // First-responder management
-        DispatchQueue.main.async {
-            if focused && !field.isFirstResponder {
+        // First-responder management: ONLY programmatically focus when a
+        // caller explicitly asks (focused == true). We must NOT resign when
+        // focused == false — that is the DEFAULT, and updateUIView runs on
+        // every keystroke (the text binding changes each character), so an
+        // auto-resign here yanks the keyboard away the instant the user types
+        // the first character of their password. That was the "password field
+        // ejects me out of the field" sign-in bug (App Store review, June
+        // 2026, Submission 71738157). The user taps to focus and taps away /
+        // submits to resign; UIKit handles that natively.
+        if focused && !field.isFirstResponder {
+            DispatchQueue.main.async {
                 field.becomeFirstResponder()
-            } else if !focused && field.isFirstResponder {
-                field.resignFirstResponder()
             }
         }
     }

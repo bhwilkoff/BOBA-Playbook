@@ -71,7 +71,6 @@ When you toggle "Public collection" on in Profile, your collection becomes share
 
 BOBA Playbook is one tool in a growing ecosystem. These others are excellent and worth knowing:
 
-- **[the card source](https://redacted-source)** — card database and collection management
 - **[Bo Jackson Battle Arena](https://bobattlearena.com)** — the official game site
 
 ---

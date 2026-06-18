@@ -30,12 +30,18 @@ const API = (() => {
     return `${CDN_BASE}/sealed/optimized/${imageFile}`;
   }
 
+  // Sets whose art lives only under full/ (no thumbs/ tier) — grids serve the
+  // full image directly so we keep a single copy on the CDN.
+  function isFullOnlySet(card) {
+    return card.set === 'Tecmo Bowl Edition';
+  }
+
   // Resolves the correct URL based on card type
   function cardThumbUrl(card) {
     if (!card.imageFile) return null;
-    return card.cardType === 'Sealed Product'
-      ? sealedThumbUrl(card.imageFile)
-      : thumbUrl(card.imageFile);
+    if (card.cardType === 'Sealed Product') return sealedThumbUrl(card.imageFile);
+    if (isFullOnlySet(card)) return fullUrl(card.imageFile);
+    return thumbUrl(card.imageFile);
   }
 
   function cardFullUrl(card) {
@@ -52,6 +58,8 @@ const API = (() => {
   /// grids" rule. nil when the card has no imageFile.
   function cardImageSrcset(card) {
     if (!card.imageFile) return null;
+    // Full-only sets have a single tier — no meaningful thumb/full pairing.
+    if (isFullOnlySet(card)) return null;
     const t = cardThumbUrl(card);
     const f = cardFullUrl(card);
     if (!t || !f) return null;

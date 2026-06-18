@@ -67,6 +67,13 @@ fun BOBACardCell(
      */
     isSealed: Boolean = false,
     /**
+     * Routes both tiers to /full/ (the set ships a single full-quality tier
+     * with no /thumbs/). When true, grids serve the full image directly so the
+     * CDN keeps one copy. iOS CDN.fullOnly + web isFullOnlySet parity. Pass
+     * `fullOnly = CDN.isFullOnly(card)` from call sites that have the Card.
+     */
+    fullOnly: Boolean = false,
+    /**
      * Optional print-run badge surfaced as a top-trailing corner chip
      * (`/5` / `/10` / `/25` / `/50` / `SSP` / `Serial`). Default null
      * means no chip — call sites opt in by passing `card.printRunLabel`.
@@ -101,7 +108,7 @@ fun BOBACardCell(
             BOBACardPlaceholder(label = contentDescription ?: "Image pending")
         } else {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val url = if (forceFullRes || maxWidth >= 160.dp) {
+                val url = if (forceFullRes || fullOnly || maxWidth >= 160.dp) {
                     if (isSealed) CDN.sealedFullUrl(imageFile) else CDN.fullUrl(imageFile)
                 } else {
                     if (isSealed) CDN.sealedThumbUrl(imageFile) else CDN.thumbUrl(imageFile)

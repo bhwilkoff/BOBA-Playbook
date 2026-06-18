@@ -39,11 +39,22 @@ object CDN {
         imageFile?.takeIf { it.isNotEmpty() }?.let { "$BASE/sealed/optimized/$it" }
 
     /**
-     * Card-aware thumb URL. Sealed products route to /sealed/thumbs/;
-     * regular cards to /thumbs/. iOS CDN.thumbURL(for:) parity.
+     * Sets whose art lives only under `full/` (no `thumbs/` tier). Grids serve
+     * the full image directly so the CDN keeps a single copy. iOS CDN.fullOnly
+     * + web isFullOnlySet parity.
      */
-    fun thumbUrl(card: Card): String? =
-        if (card.isSealed) sealedThumbUrl(card.imageFile) else thumbUrl(card.imageFile)
+    fun isFullOnly(card: Card): Boolean = card.set == "Tecmo Bowl Edition"
+
+    /**
+     * Card-aware thumb URL. Sealed products route to /sealed/thumbs/;
+     * full-only sets to /full/; regular cards to /thumbs/.
+     * iOS CDN.thumbURL(for:) parity.
+     */
+    fun thumbUrl(card: Card): String? = when {
+        card.isSealed -> sealedThumbUrl(card.imageFile)
+        isFullOnly(card) -> fullUrl(card.imageFile)
+        else -> thumbUrl(card.imageFile)
+    }
 
     /**
      * Card-aware full-resolution URL. Sealed products route to

@@ -26,7 +26,18 @@ enum CDN {
     static func thumbURL(for card: Card, override: String? = nil) -> URL? {
         let file = override ?? card.imageFile
         guard let f = file, !f.isEmpty else { return nil }
-        return card.isSealed ? sealedThumb(for: f) : thumb(for: f)
+        if card.isSealed { return sealedThumb(for: f) }
+        // Some sets ship a single full-quality tier only (no separate thumb) —
+        // serve the full image in grids too. Keeps one copy on the CDN; the
+        // source art is already grid-sized.
+        if fullOnly(card) { return full(for: f) }
+        return thumb(for: f)
+    }
+
+    /// Sets whose art lives only under `full/` (no `thumbs/` tier). Grids serve
+    /// the full image directly for these.
+    static func fullOnly(_ card: Card) -> Bool {
+        card.set == "Tecmo Bowl Edition"
     }
     static func fullURL(for card: Card, override: String? = nil) -> URL? {
         let file = override ?? card.imageFile

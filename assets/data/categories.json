@@ -158,18 +158,22 @@
       ]
     },
     "Promo Cards": {
-      "count": 111,
+      "count": 117,
       "subSets": [
+        "2025 Apex",
         "2025 Release",
         "CJ Maddux",
         "Cyber",
         "Day One Promo",
+        "First Reward Promo",
         "Rookie Power Up",
         "Sidekicks"
       ],
       "treatments": [
         "80's Rad Battlefoil",
+        "Alt Art Battlefoil",
         "Cyber",
+        "Exclusive Battlefoil",
         "Grandma's Linoleum Battlefoil",
         "Mixtape Battlefoil",
         "Prize & Promos",
@@ -191,11 +195,47 @@
       ]
     },
     "Tecmo Bowl Edition": {
-      "count": 4,
+      "count": 13343,
       "subSets": [
         "2026 Release"
       ],
-      "treatments": []
+      "treatments": [
+        "8-Bit Alt Art",
+        "80's 8-Bit Rad Battlefoil",
+        "Alpha Battlefoil",
+        "Alt Art Battlefoil",
+        "Base Set",
+        "Battlefoil",
+        "Big Pixel Battlefoil",
+        "Billy and CJ Cameo Alts",
+        "Blow On It Battlefoil",
+        "Blue Battlefoil",
+        "Bonus Plays",
+        "Endzone Battlefoil",
+        "Gold Coin Flip Battlefoil",
+        "Green Battlefoil",
+        "Halftime Alts",
+        "Helmet Icon Battlefoil",
+        "Helmets Battlefoil",
+        "Hotdogs",
+        "Inspired Ink Battlefoil",
+        "Inspired Ink Superfoil",
+        "Logofoil",
+        "Orange Battlefoil",
+        "Pink Battlefoil",
+        "Pixel Helmet Alt",
+        "Plays",
+        "Rage Quit Battlefoil",
+        "Red Battlefoil",
+        "Scoreboard Battlefoil",
+        "Silver Battlefoil",
+        "Silver Coin Flip Battlefoil",
+        "Skyline Battlefoil",
+        "Sore Thumb Battlefoil",
+        "Superfoil",
+        "Tecmo Bowl Logofoil",
+        "Tecmo News Battlefoil"
+      ]
     },
     "World Champions": {
       "count": 148,
@@ -215,6 +255,37 @@
     }
   },
   "treatments": {
+    "8-Bit Alt Art": {
+      "count": 45,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "ALT1-Bojax-8-Bit Alt Art-Tecmo Bowl-ALT",
+        "ALT2-Attak-8-Bit Alt Art-Unmasked-ALT",
+        "ALT3-Pukadot-8-Bit Alt Art-Unmasked-ALT",
+        "ALT4-Duke of Denver-8-Bit Alt Art-Debut-ALT",
+        "ALT5-Breesus-8-Bit Alt Art-Debut-ALT"
+      ]
+    },
+    "80's 8-Bit Rad Battlefoil": {
+      "count": 798,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "R1-Bojax-80's 8-Bit Rad Battlefoil-Tecmo Bowl-HEX",
+        "R2-Attak-80's 8-Bit Rad Battlefoil-Unmasked-HEX",
+        "R3-Pukadot-80's 8-Bit Rad Battlefoil-Unmasked-HEX",
+        "R4-Duke of Denver-80's 8-Bit Rad Battlefoil-Debut-HEX",
+        "R5-Brees-80's 8-Bit Rad Battlefoil-Debut-HEX"
+      ]
+    },
     "80's Rad Battlefoil": {
       "count": 1690,
       "elements": [
@@ -234,7 +305,7 @@
       ]
     },
     "Alpha Battlefoil": {
-      "count": 786,
+      "count": 1586,
       "elements": [
         "BRAWL",
         "FIRE",
@@ -251,8 +322,19 @@
         "ABF-5-Cruze Control-Alpha Battlefoil-Elly De La Cruz Unmasked-HEX"
       ]
     },
+    "Alt Art Battlefoil": {
+      "count": 3,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "Top 8-Bojax-Alt Art Battlefoil-2025 World Championships Top 8-ALT",
+        "BIL1-Billy-Alt Art Battlefoil-Tecmo Bowl with Bo and LT-ALT",
+        "CJ1-CJ-Alt Art Battlefoil-I Win Again lil Bro-ALT"
+      ]
+    },
     "Base Set": {
-      "count": 555,
+      "count": 795,
       "elements": [
         "BRAWL",
         "FIRE",
@@ -268,7 +350,7 @@
       ]
     },
     "Battlefoil": {
-      "count": 1028,
+      "count": 1449,
       "elements": [
         "ALT",
         "BRAWL",
@@ -288,6 +370,24 @@
         "BF-2-Showtime-Battlefoil-First Edition-GLOW"
       ]
     },
+    "Big Pixel Battlefoil": {
+      "count": 798,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "BP1-Bojax-Big Pixel Battlefoil-Tecmo Bowl-HEX",
+        "BP2-Attak-Big Pixel Battlefoil-Unmasked-HEX",
+        "BP3-Pukadot-Big Pixel Battlefoil-Unmasked-HEX",
+        "BP4-Duke of Denver-Big Pixel Battlefoil-Debut-HEX",
+        "BP5-Brees-Big Pixel Battlefoil-Debut-HEX"
+      ]
+    },
     "Billy Cameo Alt Arts": {
       "count": 5,
       "elements": [
@@ -299,6 +399,16 @@
         "ALT-3-Johnny Heckler-Billy Cameo Alt Arts-Randy Quaid (Co-Starring Billy)-ALT",
         "ALT-4-X.L.-Billy Cameo Alt Arts-Huntin' W/CJ & Billy-ALT",
         "ALT-5-Sensei-Billy Cameo Alt Arts-Billy BOBA KAI-ALT"
+      ]
+    },
+    "Billy and CJ Cameo Alts": {
+      "count": 2,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "Billy1-Billy-Billy and CJ Cameo Alts-Tecmo Bowl With Bo and LT-ALT",
+        "CJ1-CJ-Billy and CJ Cameo Alts-I Win Again Little Bro-ALT"
       ]
     },
     "Blizzard Battlefoil": {
@@ -319,8 +429,26 @@
         "BLBF-2-Showtime-Blizzard Battlefoil-First Edition-GLOW"
       ]
     },
+    "Blow On It Battlefoil": {
+      "count": 798,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "BO1-Bojax-Blow On It Battlefoil-Tecmo Bowl-HEX",
+        "BO2-Attak-Blow On It Battlefoil-Unmasked-HEX",
+        "BO3-Pukadot-Blow On It Battlefoil-Unmasked-HEX",
+        "BO4-Duke of Denver-Blow On It Battlefoil-Debut-HEX",
+        "BO5-Brees-Blow On It Battlefoil-Debut-HEX"
+      ]
+    },
     "Blue Battlefoil": {
-      "count": 308,
+      "count": 441,
       "elements": [
         "ICE"
       ],
@@ -372,7 +500,7 @@
       ]
     },
     "Bonus Plays": {
-      "count": 50,
+      "count": 75,
       "elements": [],
       "sampleBobaIds": [
         "BPL-1-Member Bounce-Bonus Plays-First Edition-",
@@ -452,6 +580,33 @@
         "CYB-5-The Kid-Cyber-2025 Cyber Promo-CYBER"
       ]
     },
+    "Endzone Battlefoil": {
+      "count": 266,
+      "elements": [
+        "FIRE",
+        "ICE"
+      ],
+      "sampleBobaIds": [
+        "EZ1-Bojax-Endzone Battlefoil-Tecmo Bowl-FIRE",
+        "EZ2-Attak-Endzone Battlefoil-Unmasked-FIRE",
+        "EZ3-Pukadot-Endzone Battlefoil-Unmasked-FIRE",
+        "EZ4-Duke of Denver-Endzone Battlefoil-Debut-FIRE",
+        "EZ5-Brees-Endzone Battlefoil-Debut-FIRE"
+      ]
+    },
+    "Exclusive Battlefoil": {
+      "count": 5,
+      "elements": [
+        "GLOW"
+      ],
+      "sampleBobaIds": [
+        "Promo-A.I.-Exclusive Battlefoil--GLOW",
+        "Promo-Amon-Ra-Exclusive Battlefoil--GLOW",
+        "Promo-Bojax-Exclusive Battlefoil--GLOW",
+        "Promo-Brandi-Exclusive Battlefoil--GLOW",
+        "Promo-Cruschman-Exclusive Battlefoil--GLOW"
+      ]
+    },
     "Fire Tracks Battlefoil": {
       "count": 232,
       "elements": [
@@ -463,6 +618,24 @@
         "FT-2-The Kid-Fire Tracks Battlefoil-Cover Hero-FIRE",
         "FT-3-Emmitt-164-Fire Tracks Battlefoil-Emmitt Smith Debut-FIRE",
         "FT-3-Dr. J-Fire Tracks Battlefoil-Julius Erving Debut-FIRE"
+      ]
+    },
+    "Gold Coin Flip Battlefoil": {
+      "count": 798,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "GC1-Bojax-Gold Coin Flip Battlefoil-Tecmo Bowl-HEX",
+        "GC2-Attak-Gold Coin Flip Battlefoil-Unmasked-HEX",
+        "GC3-Pukadot-Gold Coin Flip Battlefoil-Unmasked-HEX",
+        "GC4-Duke of Denver-Gold Coin Flip Battlefoil-Debut-HEX",
+        "GC5-Brees-Gold Coin Flip Battlefoil-Debut-HEX"
       ]
     },
     "Grandma's Linoleum Battlefoil": {
@@ -515,7 +688,7 @@
       ]
     },
     "Green Battlefoil": {
-      "count": 308,
+      "count": 441,
       "elements": [
         "GLOW"
       ],
@@ -553,6 +726,19 @@
         "GRILL-5-Cruze Control-Grillin' Battlefoil-Elly De La Cruz Unmasked-FIRE"
       ]
     },
+    "Halftime Alts": {
+      "count": 5,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "HT1-Kathy Tecmo-Halftime Alts-Tecmo Bowl Halftime-ALT",
+        "HT2-The Pom-Poms-Halftime Alts-Tecmo Bowl Halftime-ALT",
+        "HT3-Cindy Tecmo-Halftime Alts-Tecmo Bowl Halftime-ALT",
+        "HT4-Drum Major-Halftime Alts-Tecmo Bowl Halftime-ALT",
+        "HT5-The Flyers-Halftime Alts-Tecmo Bowl Halftime-ALT"
+      ]
+    },
     "Headlines Battlefoil": {
       "count": 165,
       "elements": [
@@ -564,6 +750,42 @@
         "HBF-1-Maverick-Headlines Battlefoil-First Edition-STEEL",
         "HBF-2-Merlomes-Headlines Battlefoil-First Edition-STEEL",
         "HBF-2-Matata-Headlines Battlefoil-First Edittion-STEEL"
+      ]
+    },
+    "Helmet Icon Battlefoil": {
+      "count": 396,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "HI1-Sevenring-Helmet Icon Battlefoil-First Edition-HEX",
+        "HI2-Joe Cool-Helmet Icon Battlefoil-First Edition-HEX",
+        "HI3-Neon-Helmet Icon Battlefoil-First Edition-HEX",
+        "HI4-Sheriff-Helmet Icon Battlefoil-First Edition-HEX",
+        "HI5-Sweetest of Sweet-Helmet Icon Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Helmets Battlefoil": {
+      "count": 798,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "H1-Bojax-Helmets Battlefoil-Tecmo Bowl-HEX",
+        "H2-Attak-Helmets Battlefoil-Unmasked-HEX",
+        "H3-Pukadot-Helmets Battlefoil-Unmasked-HEX",
+        "H4-Duke of Denver-Helmets Battlefoil-Debut-HEX",
+        "H5-Brees-Helmets Battlefoil-Debut-HEX"
       ]
     },
     "Home Team Discount": {
@@ -580,9 +802,7 @@
     "Hot Dog": {
       "count": 137,
       "elements": [
-        "FIRE",
-        "HEX",
-        "ICE"
+        "NONE"
       ],
       "sampleBobaIds": [
         "HD-1-Dirty Water Dan-Hot Dog--",
@@ -590,6 +810,17 @@
         "HD-3-Sammy Sausage-Hot Dog--",
         "HD-4-Dijon Don-Hot Dog-Griffey Edition-",
         "HD-5-Coney Carl-Hot Dog-Griffey Edition-"
+      ]
+    },
+    "Hotdogs": {
+      "count": 40,
+      "elements": [],
+      "sampleBobaIds": [
+        "HD1-Dirty Water Dan-Hotdogs--",
+        "HD2-Grillbert-Hotdogs--",
+        "HD3-Sammy Sausage-Hotdogs--",
+        "HD4-Dijon Don-Hotdogs--",
+        "HD5-Coney Carl-Hotdogs--"
       ]
     },
     "Icon Battlefoil": {
@@ -611,7 +842,7 @@
       ]
     },
     "Inspired Ink Battlefoil": {
-      "count": 756,
+      "count": 1286,
       "elements": [
         "ALT",
         "BRAWL",
@@ -624,10 +855,10 @@
       ],
       "sampleBobaIds": [
         "AAA-12-Ante-de-something A-Inspired Ink Battlefoil-Alex Antetokounmpo Debut-BRAWL",
-        "ABA-3-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut-HEX",
-        "ABA-4-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut-GLOW",
-        "ABA-5-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut-FIRE",
-        "ABA-6-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut-ICE"
+        "ABA-3-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-HEX",
+        "ABA-4-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-GLOW",
+        "ABA-5-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-FIRE",
+        "ABA-6-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-ICE"
       ]
     },
     "Inspired Ink Bubble Gum Battlefoil": {
@@ -637,7 +868,7 @@
         "HEX"
       ],
       "sampleBobaIds": [
-        "ABA-2-Goofin' Off-Inspired Ink Bubble Gum Battlefoil-Adrián Beltré Debut-GUM",
+        "ABA-2-Goofin' Off-Inspired Ink Bubble Gum Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-GUM",
         "ACA-2-Eraser-Inspired Ink Bubble Gum Battlefoil-Alysha Clark Debut-GUM",
         "ADPA-2-All day-Inspired Ink Bubble Gum Battlefoil-Adrian Peterson Debut-GUM",
         "BGA-1-BoJax-Inspired Ink Bubble Gum Battlefoil-Founding Hero Alpha Update-GUM",
@@ -650,7 +881,7 @@
         "STEEL"
       ],
       "sampleBobaIds": [
-        "ABA-8-Goofin' Off-Inspired Ink Metallic Battlefoil-Adrián Beltré Debut-STEEL",
+        "ABA-8-Goofin' Off-Inspired Ink Metallic Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-STEEL",
         "ACA-8-Eraser-Inspired Ink Metallic Battlefoil-Alysha Clark Debut-STEEL",
         "ADPA-8-All day-Inspired Ink Metallic Battlefoil-Adrian Peterson Debut-STEEL",
         "BWA-8-Bern Baby, Bern-Inspired Ink Metallic Battlefoil-Bernie Williams Debut-STEEL",
@@ -658,13 +889,13 @@
       ]
     },
     "Inspired Ink Superfoil": {
-      "count": 134,
+      "count": 200,
       "elements": [
         "SUPER"
       ],
       "sampleBobaIds": [
         "AAA-1-Ante-de-something A-Inspired Ink Superfoil-Alex Antetokounmpo Debut-SUPER",
-        "ABA-1-Goofin' Off-Inspired Ink Superfoil-Adrián Beltré Debut-SUPER",
+        "ABA-1-Goofin' Off-Inspired Ink Superfoil-Adri\u00e1n Beltr\u00e9 Debut-SUPER",
         "ACA-1-Eraser-Inspired Ink Superfoil-Alysha Clark Debut-SUPER",
         "ADPA-1-All day-Inspired Ink Superfoil-Adrian Peterson Debut-SUPER",
         "BWA-1-Bern Baby, Bern-Inspired Ink Superfoil-Bernie Williams Debut-SUPER"
@@ -681,15 +912,15 @@
         "STEEL"
       ],
       "sampleBobaIds": [
-        "LA-30-二百-Kanjifoil-Champions Kanji Variation-ALT",
-        "LA-31-百八十五-Kanjifoil-Champions Kanji Variation-HEX",
-        "LA-32-百四十-Kanjifoil-Champions Kanji Variation-GLOW",
-        "LA-33-百三十五-Kanjifoil-Champions Kanji Variation-FIRE",
-        "LA-34-百三十五-Kanjifoil-Champions Kanji Variation-ICE"
+        "LA-30-\u4e8c\u767e-Kanjifoil-Champions Kanji Variation-ALT",
+        "LA-31-\u767e\u516b\u5341\u4e94-Kanjifoil-Champions Kanji Variation-HEX",
+        "LA-32-\u767e\u56db\u5341-Kanjifoil-Champions Kanji Variation-GLOW",
+        "LA-33-\u767e\u4e09\u5341\u4e94-Kanjifoil-Champions Kanji Variation-FIRE",
+        "LA-34-\u767e\u4e09\u5341\u4e94-Kanjifoil-Champions Kanji Variation-ICE"
       ]
     },
     "Logofoil": {
-      "count": 786,
+      "count": 1584,
       "elements": [
         "BRAWL",
         "FIRE",
@@ -738,7 +969,7 @@
       ]
     },
     "Orange Battlefoil": {
-      "count": 308,
+      "count": 441,
       "elements": [
         "FIRE"
       ],
@@ -823,7 +1054,7 @@
       ]
     },
     "Pink Battlefoil": {
-      "count": 308,
+      "count": 441,
       "elements": [
         "HEX"
       ],
@@ -848,8 +1079,21 @@
         "BL-P4-Leducky-Pink Blast-Brandi Chastain Debut-HEX"
       ]
     },
+    "Pixel Helmet Alt": {
+      "count": 144,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "P34-Bo Jackson-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P35-Dak Prescott-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P36-Puka Nacua-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P37-John Elway-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P38-Drew Brees-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Plays": {
-      "count": 405,
+      "count": 605,
       "elements": [],
       "sampleBobaIds": [
         "BPL-1-Copycat-Plays-First Edition-",
@@ -892,8 +1136,21 @@
         "P-5-The Kid-Prize & Promos-2026 Release Day Promo-FIRE"
       ]
     },
+    "Rage Quit Battlefoil": {
+      "count": 45,
+      "elements": [
+        "ALT"
+      ],
+      "sampleBobaIds": [
+        "RQ1-BoJax-Rage Quit Battlefoil-Tecmo Bowl-ALT",
+        "RQ2-Attak-Rage Quit Battlefoil-Unmasked-ALT",
+        "RQ3-Pukadot-Rage Quit Battlefoil-Unmasked-ALT",
+        "RQ4-Duke of Denver-Rage Quit Battlefoil-Debut-ALT",
+        "RQ5-Breesus-Rage Quit Battlefoil-Debut-ALT"
+      ]
+    },
     "Red Battlefoil": {
-      "count": 131,
+      "count": 264,
       "elements": [
         "BRAWL"
       ],
@@ -932,6 +1189,24 @@
         "RPU-5-Victory-Rookie Power Up-2025 Rookie Power Up Promo-ALT"
       ]
     },
+    "Scoreboard Battlefoil": {
+      "count": 798,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "SB1-Bojax-Scoreboard Battlefoil-Tecmo Bowl-HEX",
+        "SB2-Attak-Scoreboard Battlefoil-Unmasked-HEX",
+        "SB3-Pukadot-Scoreboard Battlefoil-Unmasked-HEX",
+        "SB4-Duke of Denver-Scoreboard Battlefoil-Debut-HEX",
+        "SB5-Brees-Scoreboard Battlefoil-Debut-HEX"
+      ]
+    },
     "Serialized Battlefoil": {
       "count": 7,
       "elements": [
@@ -963,11 +1238,11 @@
         "ALTA-01-Billy the Kid-Sidekicks-Emilio Estevez (Co-Starring Bily)-ALT",
         "FFA-1-Flavor Flav-Sidekicks-Flavor Flav Debut-SUPER",
         "FFA-2-Flavor Flav-Sidekicks-Flavor Flav Debut-GUM",
-        "FFA-3-Flavor Flav-Sidekicks-Flavor Flav Debut"
+        "FFA-3-FLAV-Sidekicks-Flavor Flav Debut-HEX"
       ]
     },
     "Silver Battlefoil": {
-      "count": 236,
+      "count": 369,
       "elements": [
         "STEEL"
       ],
@@ -995,6 +1270,39 @@
         "BBFA-5-Young-Gunner-Silver Blast-Steve Young Debut-FIRE"
       ]
     },
+    "Silver Coin Flip Battlefoil": {
+      "count": 798,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "SC1-Bojax-Silver Coin Flip Battlefoil-Tecmo Bowl-HEX",
+        "SC2-Attak-Silver Coin Flip Battlefoil-Unmasked-HEX",
+        "SC3-Pukadot-Silver Coin Flip Battlefoil-Unmasked-HEX",
+        "SC4-Duke of Denver-Silver Coin Flip Battlefoil-Debut-HEX",
+        "SC5-Brees-Silver Coin Flip Battlefoil-Debut-HEX"
+      ]
+    },
+    "Skyline Battlefoil": {
+      "count": 399,
+      "elements": [
+        "FIRE",
+        "GLOW",
+        "ICE"
+      ],
+      "sampleBobaIds": [
+        "S1-Bojax-Skyline Battlefoil-Tecmo Bowl-GLOW",
+        "S2-Attak-Skyline Battlefoil-Unmasked-GLOW",
+        "S3-Pukadot-Skyline Battlefoil-Unmasked-GLOW",
+        "S4-Duke of Denver-Skyline Battlefoil-Debut-GLOW",
+        "S5-Brees-Skyline Battlefoil-Debut-GLOW"
+      ]
+    },
     "Slime Battlefoil": {
       "count": 131,
       "elements": [
@@ -1006,6 +1314,24 @@
         "SL-3-Dr. J-Slime Battlefoil-Julius Erving Debut-GLOW",
         "SL-4-Freakshow-Slime Battlefoil-Giannis Antetokounmpo Unmasked-GLOW",
         "SL-5-Cruze Control-Slime Battlefoil-Elly De La Cruz Unmasked-GLOW"
+      ]
+    },
+    "Sore Thumb Battlefoil": {
+      "count": 798,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "ST1-Bojax-Sore Thumb Battlefoil-Tecmo Bowl-HEX",
+        "ST2-Attak-Sore Thumb Battlefoil-Unmasked-HEX",
+        "ST3-Pukadot-Sore Thumb Battlefoil-Unmasked-HEX",
+        "ST4-Duke of Denver-Sore Thumb Battlefoil-Debut-HEX",
+        "ST5-Brees-Sore Thumb Battlefoil-Debut-HEX"
       ]
     },
     "Sour Apple": {
@@ -1022,8 +1348,9 @@
       ]
     },
     "Superfoil": {
-      "count": 309,
+      "count": 446,
       "elements": [
+        "GUM",
         "SUPER"
       ],
       "sampleBobaIds": [
@@ -1033,15 +1360,51 @@
         "SF-1-The Kid-Superfoil-Cover Hero-SUPER",
         "SF-2-Magic-Superfoil-Magic Johnson Debut-SUPER"
       ]
+    },
+    "Tecmo Bowl Logofoil": {
+      "count": 798,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "TL1-Bojax-Tecmo Bowl Logofoil-Tecmo Bowl-HEX",
+        "TL2-Attak-Tecmo Bowl Logofoil-Unmasked-HEX",
+        "TL3-Pukadot-Tecmo Bowl Logofoil-Unmasked-HEX",
+        "TL4-Duke of Denver-Tecmo Bowl Logofoil-Debut-HEX",
+        "TL5-Brees-Tecmo Bowl Logofoil-Debut-HEX"
+      ]
+    },
+    "Tecmo News Battlefoil": {
+      "count": 798,
+      "elements": [
+        "BRAWL",
+        "FIRE",
+        "GLOW",
+        "HEX",
+        "ICE",
+        "STEEL"
+      ],
+      "sampleBobaIds": [
+        "N1-Bojax-Tecmo News Battlefoil-Tecmo Bowl-HEX",
+        "N2-Attak-Tecmo News Battlefoil-Unmasked-HEX",
+        "N3-Pukadot-Tecmo News Battlefoil-Unmasked-HEX",
+        "N4-Duke of Denver-Tecmo News Battlefoil-Debut-HEX",
+        "N5-Brees-Tecmo News Battlefoil-Debut-HEX"
+      ]
     }
   },
   "elements": {
     "ALT": {
-      "count": 47,
+      "count": 290,
       "rarity": "Champion Alt"
     },
     "BRAWL": {
-      "count": 1619,
+      "count": 3606,
       "rarity": "Common"
     },
     "CYBER": {
@@ -1049,35 +1412,71 @@
       "rarity": "Common"
     },
     "FIRE": {
-      "count": 3234,
+      "count": 5488,
       "rarity": "Common"
     },
     "GLOW": {
-      "count": 2696,
+      "count": 4776,
       "rarity": "Ultra Rare"
     },
     "GUM": {
-      "count": 493,
+      "count": 631,
       "rarity": "Ultra Ultra Rare"
     },
     "HEX": {
-      "count": 2476,
+      "count": 4413,
       "rarity": "Super Ultra Rare"
     },
     "ICE": {
-      "count": 3252,
+      "count": 5487,
       "rarity": "Rare SP"
     },
+    "NONE": {
+      "count": 3,
+      "rarity": "Non-weapon"
+    },
     "STEEL": {
-      "count": 2974,
+      "count": 4974,
       "rarity": "Common"
     },
     "SUPER": {
-      "count": 455,
+      "count": 653,
       "rarity": "Mythic"
     }
   },
   "heroes": {
+    "(Blue/Red)": {
+      "count": 1,
+      "athletes": [],
+      "bobaIds": [
+        "Logofoil-(Blue/Red)-Alpha Battlefoil--"
+      ]
+    },
+    "(Grey/Green)": {
+      "count": 1,
+      "athletes": [],
+      "bobaIds": [
+        "Tecmo Bowl Logofoil-(Grey/Green)-Alpha Battlefoil--"
+      ]
+    },
+    "A Bear": {
+      "count": 101,
+      "athletes": [
+        "Bobby Hebert"
+      ],
+      "bobaIds": [
+        "118-A Bear-Base Set-First Edition-ICE",
+        "178-A Bear-Base Set-First Edition-STEEL",
+        "238-A Bear-Base Set-First Edition-BRAWL",
+        "58-A Bear-Base Set-First Edition-FIRE",
+        "BF118-A Bear-Battlefoil-First Edition-GLOW",
+        "BF178-A Bear-Battlefoil-First Edition-FIRE",
+        "BF238-A Bear-Battlefoil-First Edition-ICE",
+        "BF298-A Bear-Battlefoil-First Edition-STEEL",
+        "BF358-A Bear-Battlefoil-First Edition-BRAWL",
+        "BF58-A Bear-Battlefoil-First Edition-HEX"
+      ]
+    },
     "A.C.": {
       "count": 6,
       "athletes": [
@@ -1093,7 +1492,7 @@
       ]
     },
     "A.I.": {
-      "count": 33,
+      "count": 34,
       "athletes": [
         "Allen Iverson"
       ],
@@ -1162,6 +1561,24 @@
         "BF-35-Aeronaut-Battlefoil-First Edition-HEX",
         "BF-95-Aeronaut-Battlefoil-First Edition-GLOW",
         "BGBF-38-Aeronaut-Bubble Gum Battlefoil-First Edition-GUM"
+      ]
+    },
+    "Afterbern": {
+      "count": 93,
+      "athletes": [
+        "Bernie Kosar"
+      ],
+      "bobaIds": [
+        "BKA1-Afterbern-Inspired Ink Superfoil-Debut-SUPER",
+        "BKA2-Afterbern-Inspired Ink Battlefoil-Debut-GUM",
+        "BKA3-Afterbern-Inspired Ink Battlefoil-Debut-HEX",
+        "BKA4-Afterbern-Inspired Ink Battlefoil-Debut-GLOW",
+        "BKA5-Afterbern-Inspired Ink Battlefoil-Debut-FIRE",
+        "BKA6-Afterbern-Inspired Ink Battlefoil-Debut-ICE",
+        "BKA7-Afterbern-Inspired Ink Battlefoil-Debut-STEEL",
+        "BKA8-Afterbern-Inspired Ink Battlefoil-Debut-STEEL",
+        "BKA9-Afterbern-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF29-Afterbern-Superfoil-Debut-SUPER"
       ]
     },
     "Air Ace": {
@@ -1237,7 +1654,7 @@
       ]
     },
     "Allenwrench": {
-      "count": 32,
+      "count": 127,
       "athletes": [
         "Marcus Allen"
       ],
@@ -1272,6 +1689,24 @@
         "BLBF-47-Altitude-Blizzard Battlefoil-Jozy Altidore Debut-HEX"
       ]
     },
+    "Amigo One": {
+      "count": 93,
+      "athletes": [
+        "Mark Jackson"
+      ],
+      "bobaIds": [
+        "MJA1-Amigo One-Inspired Ink Superfoil-Debut-SUPER",
+        "MJA2-Amigo One-Inspired Ink Battlefoil-Debut-GUM",
+        "MJA3-Amigo One-Inspired Ink Battlefoil-Debut-HEX",
+        "MJA4-Amigo One-Inspired Ink Battlefoil-Debut-GLOW",
+        "MJA5-Amigo One-Inspired Ink Battlefoil-Debut-FIRE",
+        "MJA6-Amigo One-Inspired Ink Battlefoil-Debut-ICE",
+        "MJA7-Amigo One-Inspired Ink Battlefoil-Debut-STEEL",
+        "MJA8-Amigo One-Inspired Ink Battlefoil-Debut-STEEL",
+        "MJA9-Amigo One-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF52-Amigo One-Superfoil-Debut-SUPER"
+      ]
+    },
     "Amoeba": {
       "count": 82,
       "athletes": [
@@ -1291,7 +1726,7 @@
       ]
     },
     "Amon-Ra": {
-      "count": 34,
+      "count": 35,
       "athletes": [
         "Amon-Ra St. Brown"
       ],
@@ -1375,8 +1810,20 @@
         "BLBF-57-Ante-de-something T-Blizzard Battlefoil-Thanasis Antetokounmpo Debut-HEX"
       ]
     },
+    "Art Monk": {
+      "count": 4,
+      "athletes": [
+        "Art Monk"
+      ],
+      "bobaIds": [
+        "P105-Art Monk-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P141-Art Monk-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P177-Art Monk-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P69-Art Monk-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Attak": {
-      "count": 46,
+      "count": 141,
       "athletes": [
         "Dak Prescott"
       ],
@@ -1502,6 +1949,24 @@
         "ABF-781-Bangford-Alpha Battlefoil-First Edition-BRAWL"
       ]
     },
+    "Bank Robber": {
+      "count": 93,
+      "athletes": [
+        "Carl Banks"
+      ],
+      "bobaIds": [
+        "CBA1-Bank Robber-Inspired Ink Superfoil-Debut-SUPER",
+        "CBA2-Bank Robber-Inspired Ink Battlefoil-Debut-GUM",
+        "CBA3-Bank Robber-Inspired Ink Battlefoil-Debut-HEX",
+        "CBA4-Bank Robber-Inspired Ink Battlefoil-Debut-GLOW",
+        "CBA5-Bank Robber-Inspired Ink Battlefoil-Debut-FIRE",
+        "CBA6-Bank Robber-Inspired Ink Battlefoil-Debut-ICE",
+        "CBA7-Bank Robber-Inspired Ink Battlefoil-Debut-STEEL",
+        "CBA8-Bank Robber-Inspired Ink Battlefoil-Debut-STEEL",
+        "CBA9-Bank Robber-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF54-Bank Robber-Superfoil-Debut-SUPER"
+      ]
+    },
     "Barnacle": {
       "count": 46,
       "athletes": [
@@ -1521,7 +1986,7 @@
       ]
     },
     "Barreler": {
-      "count": 37,
+      "count": 138,
       "athletes": [
         "Cooper Kupp"
       ],
@@ -1556,9 +2021,22 @@
         "BGA-5-Barry \"Cutback\" Sanders-Inspired Ink Bubble Gum Battlefoil-Barry Sanders Debut-GUM"
       ]
     },
-    "Bayou": {
-      "count": 46,
+    "Barry Sanders": {
+      "count": 4,
       "athletes": [
+        "Barry Sanders"
+      ],
+      "bobaIds": [
+        "P126-Barry Sanders-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P162-Barry Sanders-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P54-Barry Sanders-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P90-Barry Sanders-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
+    "Bayou": {
+      "count": 147,
+      "athletes": [
+        "Ja'Marr Chase",
         "Ja'marr Chase"
       ],
       "bobaIds": [
@@ -1718,9 +2196,28 @@
         "BLBF-33-Billhook-Blizzard Battlefoil-Chauncey Billups Debut-HEX"
       ]
     },
-    "Billy": {
-      "count": 13,
+    "Billiard": {
+      "count": 101,
       "athletes": [
+        "Dalton Hillard"
+      ],
+      "bobaIds": [
+        "112-Billiard-Base Set-First Edition-ICE",
+        "172-Billiard-Base Set-First Edition-STEEL",
+        "232-Billiard-Base Set-First Edition-BRAWL",
+        "52-Billiard-Base Set-First Edition-FIRE",
+        "BF112-Billiard-Battlefoil-First Edition-GLOW",
+        "BF172-Billiard-Battlefoil-First Edition-FIRE",
+        "BF232-Billiard-Battlefoil-First Edition-ICE",
+        "BF292-Billiard-Battlefoil-First Edition-STEEL",
+        "BF352-Billiard-Battlefoil-First Edition-BRAWL",
+        "BF52-Billiard-Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Billy": {
+      "count": 15,
+      "athletes": [
+        "Billy The Pug",
         "Billy the Pug"
       ],
       "bobaIds": [
@@ -1764,8 +2261,26 @@
         "BGBF-43-Bionic-Battlefoil-First Edition-GUM"
       ]
     },
+    "Biscuit": {
+      "count": 93,
+      "athletes": [
+        "Cornelius Bennett"
+      ],
+      "bobaIds": [
+        "COBA1-Biscuit-Inspired Ink Superfoil-Debut-SUPER",
+        "COBA2-Biscuit-Inspired Ink Battlefoil-Debut-GUM",
+        "COBA3-Biscuit-Inspired Ink Battlefoil-Debut-HEX",
+        "COBA4-Biscuit-Inspired Ink Battlefoil-Debut-GLOW",
+        "COBA5-Biscuit-Inspired Ink Battlefoil-Debut-FIRE",
+        "COBA6-Biscuit-Inspired Ink Battlefoil-Debut-ICE",
+        "COBA7-Biscuit-Inspired Ink Battlefoil-Debut-STEEL",
+        "COBA8-Biscuit-Inspired Ink Battlefoil-Debut-STEEL",
+        "COBA9-Biscuit-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF56-Biscuit-Superfoil-Debut-SUPER"
+      ]
+    },
     "Bison": {
-      "count": 50,
+      "count": 153,
       "athletes": [
         "John Allen",
         "Josh Allen"
@@ -1801,8 +2316,22 @@
         "BGA-22-Blockhale-Inspired Ink Battlefoil-Kevin McHale Debut-GUM"
       ]
     },
+    "Bo Jackson": {
+      "count": 6,
+      "athletes": [
+        "Bo Jackson"
+      ],
+      "bobaIds": [
+        "P106-Bo Jackson-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P142-Bo Jackson-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P34-Bo Jackson-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P70-Bo Jackson-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "TBJ-B-Bo Jackson-Inspired Ink Battlefoil-Touchdown-",
+        "TBJ-G-Bo Jackson-Inspired Ink Battlefoil-Touchdown-"
+      ]
+    },
     "BoJax": {
-      "count": 53,
+      "count": 55,
       "athletes": [
         "Bo Jackson"
       ],
@@ -1820,7 +2349,7 @@
       ]
     },
     "Bojax": {
-      "count": 99,
+      "count": 186,
       "athletes": [
         "Bo Jackson"
       ],
@@ -1911,7 +2440,7 @@
       ]
     },
     "Boom": {
-      "count": 39,
+      "count": 132,
       "athletes": [
         "Boomer Esiason"
       ],
@@ -1946,7 +2475,7 @@
         "BGA-13-Boshpit-Inspired Ink Battlefoil-Chris Bosh Debut-GUM"
       ]
     },
-    "Boston Stongboy": {
+    "Boston Strongboy": {
       "count": 70,
       "athletes": [
         "Jim Rice"
@@ -1983,7 +2512,7 @@
       ]
     },
     "Boz": {
-      "count": 33,
+      "count": 128,
       "athletes": [
         "Brian Bosworth"
       ],
@@ -2001,7 +2530,7 @@
       ]
     },
     "Brandi": {
-      "count": 13,
+      "count": 14,
       "athletes": [
         "Brandi Chastain",
         "Chastain"
@@ -2034,8 +2563,9 @@
       ]
     },
     "Brawn": {
-      "count": 82,
+      "count": 183,
       "athletes": [
+        "A.J. Brown",
         "AJ Brown"
       ],
       "bobaIds": [
@@ -2049,6 +2579,34 @@
         "ABF-496-Brawn-Alpha Battlefoil-First Edition-ICE",
         "ABF-627-Brawn-Alpha Battlefoil-First Edition-STEEL",
         "ABF-758-Brawn-Alpha Battlefoil-First Edition-BRAWL"
+      ]
+    },
+    "Brees": {
+      "count": 92,
+      "athletes": [
+        "Drew Brees"
+      ],
+      "bobaIds": [
+        "DBA1-Brees-Inspired Ink Superfoil-Debut-SUPER",
+        "DBA2-Brees-Inspired Ink Battlefoil-Debut-GUM",
+        "DBA3-Brees-Inspired Ink Battlefoil-Debut-HEX",
+        "DBA4-Brees-Inspired Ink Battlefoil-Debut-GLOW",
+        "DBA5-Brees-Inspired Ink Battlefoil-Debut-FIRE",
+        "DBA6-Brees-Inspired Ink Battlefoil-Debut-ICE",
+        "DBA7-Brees-Inspired Ink Battlefoil-Debut-STEEL",
+        "DBA9-Brees-Inspired Ink Battlefoil-Debut-BRAWL",
+        "P5-Brees-Pink Battlefoil-Debut-HEX",
+        "SF4-Brees-Superfoil-Debut-SUPER"
+      ]
+    },
+    "Breesus": {
+      "count": 2,
+      "athletes": [
+        "Drew Brees"
+      ],
+      "bobaIds": [
+        "ALT5-Breesus-8-Bit Alt Art-Debut-ALT",
+        "RQ5-Breesus-Rage Quit Battlefoil-Debut-ALT"
       ]
     },
     "Breeze": {
@@ -2069,8 +2627,20 @@
         "BGBF-56-Breeze-Bubble Gum Battlefoil-First Edition-GUM"
       ]
     },
+    "Brian Bosworth": {
+      "count": 4,
+      "athletes": [
+        "Brian Bosworth"
+      ],
+      "bobaIds": [
+        "P128-Brian Bosworth-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P164-Brian Bosworth-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P56-Brian Bosworth-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P92-Brian Bosworth-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "BrockNess": {
-      "count": 82,
+      "count": 183,
       "athletes": [
         "Brock Bowers"
       ],
@@ -2085,6 +2655,18 @@
         "ABF-614-BrockNess-Alpha Battlefoil-First Edition-STEEL",
         "ABF-745-BrockNess-Alpha Battlefoil-First Edition-BRAWL",
         "ABF-90-BrockNess-Alpha Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Bruce Smith": {
+      "count": 4,
+      "athletes": [
+        "Bruce Smith"
+      ],
+      "bobaIds": [
+        "P133-Bruce Smith-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P169-Bruce Smith-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P61-Bruce Smith-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P97-Bruce Smith-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
       ]
     },
     "BuckShot": {
@@ -2142,7 +2724,7 @@
       ]
     },
     "Bus": {
-      "count": 39,
+      "count": 134,
       "athletes": [
         "Jerome Bettis"
       ],
@@ -2177,6 +2759,24 @@
         "BLBF-67-Butterfly Sting-Blizzard Battlefoil-First Edition-HEX"
       ]
     },
+    "Buttman": {
+      "count": 101,
+      "athletes": [
+        "Marion Butts"
+      ],
+      "bobaIds": [
+        "158-Buttman-Base Set-First Edition-STEEL",
+        "218-Buttman-Base Set-First Edition-BRAWL",
+        "38-Buttman-Base Set-First Edition-FIRE",
+        "98-Buttman-Base Set-First Edition-ICE",
+        "BF158-Buttman-Battlefoil-First Edition-FIRE",
+        "BF218-Buttman-Battlefoil-First Edition-ICE",
+        "BF278-Buttman-Battlefoil-First Edition-STEEL",
+        "BF338-Buttman-Battlefoil-First Edition-BRAWL",
+        "BF38-Buttman-Battlefoil-First Edition-HEX",
+        "BF98-Buttman-Battlefoil-First Edition-GLOW"
+      ]
+    },
     "C.C.": {
       "count": 39,
       "athletes": [
@@ -2195,6 +2795,16 @@
         "BGBF-9-C.C.-Battlefoil-First Edition-GUM"
       ]
     },
+    "CJ": {
+      "count": 2,
+      "athletes": [
+        "CJ Maddux"
+      ],
+      "bobaIds": [
+        "CJ1-CJ-Alt Art Battlefoil-I Win Again lil Bro-ALT",
+        "CJ1-CJ-Billy and CJ Cameo Alts-I Win Again Little Bro-ALT"
+      ]
+    },
     "CJ Maddux": {
       "count": 28,
       "athletes": [
@@ -2211,6 +2821,35 @@
         "CJ-7-CJ Maddux-Battlefoil-First Edition-STEEL",
         "CJ-8-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo-STEEL",
         "CJ-9-CJ Maddux-Grandma's Linoleum Battlefoil-2025 CJ Maddux Promo-FIRE"
+      ]
+    },
+    "COBRA": {
+      "count": 3,
+      "athletes": [
+        "Paul Skenes"
+      ],
+      "bobaIds": [
+        "GBF-41-COBRA-Green Battlefoil-First Edition-GLOW",
+        "OBF-41-COBRA-Orange Battlefoil-First Edition-FIRE",
+        "PBF-41-COBRA-Pink Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Calf Roper": {
+      "count": 93,
+      "athletes": [
+        "Eric Metcalf"
+      ],
+      "bobaIds": [
+        "EMA1-Calf Roper-Inspired Ink Superfoil-Debut-SUPER",
+        "EMA2-Calf Roper-Inspired Ink Battlefoil-Debut-GUM",
+        "EMA3-Calf Roper-Inspired Ink Battlefoil-Debut-HEX",
+        "EMA4-Calf Roper-Inspired Ink Battlefoil-Debut-GLOW",
+        "EMA5-Calf Roper-Inspired Ink Battlefoil-Debut-FIRE",
+        "EMA6-Calf Roper-Inspired Ink Battlefoil-Debut-ICE",
+        "EMA7-Calf Roper-Inspired Ink Battlefoil-Debut-STEEL",
+        "EMA8-Calf Roper-Inspired Ink Battlefoil-Debut-STEEL",
+        "EMA9-Calf Roper-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF49-Calf Roper-Superfoil-Debut-SUPER"
       ]
     },
     "Caliber": {
@@ -2285,6 +2924,24 @@
         "ABF-769-Canine-Alpha Battlefoil-First Edition-BRAWL"
       ]
     },
+    "Cannon": {
+      "count": 101,
+      "athletes": [
+        "Rich Gannon"
+      ],
+      "bobaIds": [
+        "108-Cannon-Base Set-First Edition-ICE",
+        "168-Cannon-Base Set-First Edition-STEEL",
+        "228-Cannon-Base Set-First Edition-BRAWL",
+        "48-Cannon-Base Set-First Edition-FIRE",
+        "BF108-Cannon-Battlefoil-First Edition-GLOW",
+        "BF168-Cannon-Battlefoil-First Edition-FIRE",
+        "BF228-Cannon-Battlefoil-First Edition-ICE",
+        "BF288-Cannon-Battlefoil-First Edition-STEEL",
+        "BF348-Cannon-Battlefoil-First Edition-BRAWL",
+        "BF48-Cannon-Battlefoil-First Edition-HEX"
+      ]
+    },
     "Captain Hook": {
       "count": 70,
       "athletes": [
@@ -2301,6 +2958,24 @@
         "BLBF-172-Captain Hook-Blizzard Battlefoil-Jack Morris Debut-GLOW",
         "BLBF-303-Captain Hook-Blizzard Battlefoil-Jack Morris Debut-FIRE",
         "BLBF-41-Captain Hook-Blizzard Battlefoil-Jack Morris Debut-HEX"
+      ]
+    },
+    "Carrier": {
+      "count": 93,
+      "athletes": [
+        "Mark Carrier"
+      ],
+      "bobaIds": [
+        "MCA1-Carrier-Inspired Ink Superfoil-Debut-SUPER",
+        "MCA2-Carrier-Inspired Ink Battlefoil-Debut-GUM",
+        "MCA3-Carrier-Inspired Ink Battlefoil-Debut-HEX",
+        "MCA4-Carrier-Inspired Ink Battlefoil-Debut-GLOW",
+        "MCA5-Carrier-Inspired Ink Battlefoil-Debut-FIRE",
+        "MCA6-Carrier-Inspired Ink Battlefoil-Debut-ICE",
+        "MCA7-Carrier-Inspired Ink Battlefoil-Debut-STEEL",
+        "MCA8-Carrier-Inspired Ink Battlefoil-Debut-STEEL",
+        "MCA9-Carrier-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF51-Carrier-Superfoil-Debut-SUPER"
       ]
     },
     "Carroller": {
@@ -2373,6 +3048,48 @@
         "BF-154-Cha-Ching-Battlefoil-First Edition-ICE",
         "BF-155-Cha-Ching-Battlefoil-First Edition-STEEL",
         "BGBF-31-Cha-Ching-Battlefoil-First Edition-GUM"
+      ]
+    },
+    "Chanesaw": {
+      "count": 101,
+      "athletes": [
+        "Devon Achane"
+      ],
+      "bobaIds": [
+        "152-Chanesaw-Base Set-First Edition-STEEL",
+        "212-Chanesaw-Base Set-First Edition-BRAWL",
+        "32-Chanesaw-Base Set-First Edition-FIRE",
+        "92-Chanesaw-Base Set-First Edition-ICE",
+        "BF152-Chanesaw-Battlefoil-First Edition-FIRE",
+        "BF212-Chanesaw-Battlefoil-First Edition-ICE",
+        "BF272-Chanesaw-Battlefoil-First Edition-STEEL",
+        "BF32-Chanesaw-Battlefoil-First Edition-HEX",
+        "BF332-Chanesaw-Battlefoil-First Edition-BRAWL",
+        "BF92-Chanesaw-Battlefoil-First Edition-GLOW"
+      ]
+    },
+    "Charles Haley": {
+      "count": 4,
+      "athletes": [
+        "Charles Haley"
+      ],
+      "bobaIds": [
+        "P101-Charles Haley-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P137-Charles Haley-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P173-Charles Haley-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P65-Charles Haley-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
+    "Charles Mann": {
+      "count": 4,
+      "athletes": [
+        "Charles Mann"
+      ],
+      "bobaIds": [
+        "P135-Charles Mann-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P171-Charles Mann-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P63-Charles Mann-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P99-Charles Mann-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
       ]
     },
     "Cheetah": {
@@ -2502,6 +3219,18 @@
         "BGBF-6-Chosen-Bubble Gum Battlefoil-First Edition-GUM"
       ]
     },
+    "Christian Okoye": {
+      "count": 4,
+      "athletes": [
+        "Christian Okoye"
+      ],
+      "bobaIds": [
+        "P113-Christian Okoye-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P149-Christian Okoye-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P41-Christian Okoye-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P77-Christian Okoye-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Cicada": {
       "count": 82,
       "athletes": [
@@ -2518,6 +3247,31 @@
         "ABF-497-Cicada-Alpha Battlefoil-First Edition-ICE",
         "ABF-628-Cicada-Alpha Battlefoil-First Edition-STEEL",
         "ABF-759-Cicada-Alpha Battlefoil-First Edition-BRAWL"
+      ]
+    },
+    "Cindy Tecmo": {
+      "count": 1,
+      "athletes": [],
+      "bobaIds": [
+        "HT3-Cindy Tecmo-Halftime Alts-Tecmo Bowl Halftime-ALT"
+      ]
+    },
+    "Claymore": {
+      "count": 93,
+      "athletes": [
+        "Clay Matthews Jr."
+      ],
+      "bobaIds": [
+        "CLMA1-Claymore-Inspired Ink Superfoil-Debut-SUPER",
+        "CLMA2-Claymore-Inspired Ink Battlefoil-Debut-GUM",
+        "CLMA3-Claymore-Inspired Ink Battlefoil-Debut-HEX",
+        "CLMA4-Claymore-Inspired Ink Battlefoil-Debut-GLOW",
+        "CLMA5-Claymore-Inspired Ink Battlefoil-Debut-FIRE",
+        "CLMA6-Claymore-Inspired Ink Battlefoil-Debut-ICE",
+        "CLMA7-Claymore-Inspired Ink Battlefoil-Debut-STEEL",
+        "CLMA8-Claymore-Inspired Ink Battlefoil-Debut-STEEL",
+        "CLMA9-Claymore-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF55-Claymore-Superfoil-Debut-SUPER"
       ]
     },
     "Clutch": {
@@ -2554,6 +3308,24 @@
         "BF-54-Cobra-Battlefoil-First Edition-ICE",
         "BF-55-Cobra-Battlefoil-First Edition-STEEL",
         "BGBF-11-Cobra-Battlefoil-First Edition-GUM"
+      ]
+    },
+    "Coinslot": {
+      "count": 101,
+      "athletes": [
+        "Daniel Jones"
+      ],
+      "bobaIds": [
+        "151-Coinslot-Base Set-First Edition-STEEL",
+        "211-Coinslot-Base Set-First Edition-BRAWL",
+        "31-Coinslot-Base Set-First Edition-FIRE",
+        "91-Coinslot-Base Set-First Edition-ICE",
+        "BF151-Coinslot-Battlefoil-First Edition-FIRE",
+        "BF211-Coinslot-Battlefoil-First Edition-ICE",
+        "BF271-Coinslot-Battlefoil-First Edition-STEEL",
+        "BF31-Coinslot-Battlefoil-First Edition-HEX",
+        "BF331-Coinslot-Battlefoil-First Edition-BRAWL",
+        "BF91-Coinslot-Battlefoil-First Edition-GLOW"
       ]
     },
     "Coopanova": {
@@ -2646,6 +3418,24 @@
         "BGBF-26-Crews-Missle-Bubble Gum Battlefoil-First Edition-GUM"
       ]
     },
+    "Criscross": {
+      "count": 101,
+      "athletes": [
+        "Cris Carter"
+      ],
+      "bobaIds": [
+        "159-Criscross-Base Set-First Edition-STEEL",
+        "219-Criscross-Base Set-First Edition-BRAWL",
+        "39-Criscross-Base Set-First Edition-FIRE",
+        "99-Criscross-Base Set-First Edition-ICE",
+        "BF159-Criscross-Battlefoil-First Edition-FIRE",
+        "BF219-Criscross-Battlefoil-First Edition-ICE",
+        "BF279-Criscross-Battlefoil-First Edition-STEEL",
+        "BF339-Criscross-Battlefoil-First Edition-BRAWL",
+        "BF39-Criscross-Battlefoil-First Edition-HEX",
+        "BF99-Criscross-Battlefoil-First Edition-GLOW"
+      ]
+    },
     "Crosbow": {
       "count": 82,
       "athletes": [
@@ -2665,7 +3455,7 @@
       ]
     },
     "Cruschman": {
-      "count": 32,
+      "count": 33,
       "athletes": [
         "Adley Rutschman"
       ],
@@ -2736,22 +3526,58 @@
         "ABF-84-Cupid-Alpha Battlefoil-2026 Edition-HEX"
       ]
     },
-    "Curaçao Kid": {
+    "Cura\u00e7ao Kid": {
       "count": 39,
       "athletes": [
         "Anduw Jones"
       ],
       "bobaIds": [
-        "BBF-24-Curaçao Kid-Blue Battlefoil-Anduw Jones Debut-ICE",
-        "BBFA-117-Curaçao Kid-Silver Blast-Anduw Jones Debut-GLOW",
-        "BBFA-156-Curaçao Kid-Silver Blast-Anduw Jones Debut-FIRE",
-        "BBFA-195-Curaçao Kid-Silver Blast-Anduw Jones Debut-ICE",
-        "BFA-100-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut-FIRE",
-        "BFA-138-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut-ICE",
-        "BFA-176-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut-STEEL",
-        "BFA-24-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut-HEX",
-        "BFA-62-Curaçao Kid-Inspired Ink Battlefoil-Anduw Jones Debut-GLOW",
-        "BGA-24-Curaçao Kid-Inspired Ink Bubble Gum Battlefoil-Anduw Jones Debut-GUM"
+        "BBF-24-Cura\u00e7ao Kid-Blue Battlefoil-Anduw Jones Debut-ICE",
+        "BBFA-117-Cura\u00e7ao Kid-Silver Blast-Anduw Jones Debut-GLOW",
+        "BBFA-156-Cura\u00e7ao Kid-Silver Blast-Anduw Jones Debut-FIRE",
+        "BBFA-195-Cura\u00e7ao Kid-Silver Blast-Anduw Jones Debut-ICE",
+        "BFA-100-Cura\u00e7ao Kid-Inspired Ink Battlefoil-Anduw Jones Debut-FIRE",
+        "BFA-138-Cura\u00e7ao Kid-Inspired Ink Battlefoil-Anduw Jones Debut-ICE",
+        "BFA-176-Cura\u00e7ao Kid-Inspired Ink Battlefoil-Anduw Jones Debut-STEEL",
+        "BFA-24-Cura\u00e7ao Kid-Inspired Ink Battlefoil-Anduw Jones Debut-HEX",
+        "BFA-62-Cura\u00e7ao Kid-Inspired Ink Battlefoil-Anduw Jones Debut-GLOW",
+        "BGA-24-Cura\u00e7ao Kid-Inspired Ink Bubble Gum Battlefoil-Anduw Jones Debut-GUM"
+      ]
+    },
+    "Curt Locker": {
+      "count": 93,
+      "athletes": [
+        "Curt Warner"
+      ],
+      "bobaIds": [
+        "CWA1-Curt Locker-Inspired Ink Superfoil-Debut-SUPER",
+        "CWA2-Curt Locker-Inspired Ink Battlefoil-Debut-GUM",
+        "CWA3-Curt Locker-Inspired Ink Battlefoil-Debut-HEX",
+        "CWA4-Curt Locker-Inspired Ink Battlefoil-Debut-GLOW",
+        "CWA5-Curt Locker-Inspired Ink Battlefoil-Debut-FIRE",
+        "CWA6-Curt Locker-Inspired Ink Battlefoil-Debut-ICE",
+        "CWA7-Curt Locker-Inspired Ink Battlefoil-Debut-STEEL",
+        "CWA8-Curt Locker-Inspired Ink Battlefoil-Debut-STEEL",
+        "CWA9-Curt Locker-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF48-Curt Locker-Superfoil-Debut-SUPER"
+      ]
+    },
+    "Cutback": {
+      "count": 95,
+      "athletes": [
+        "Barry Sanders"
+      ],
+      "bobaIds": [
+        "BSA1-Cutback-Inspired Ink Superfoil-Tecmo Bowl-SUPER",
+        "BSA2-Cutback-Inspired Ink Battlefoil-Tecmo Bowl-GUM",
+        "BSA3-Cutback-Inspired Ink Battlefoil-Tecmo Bowl-HEX",
+        "BSA4-Cutback-Inspired Ink Battlefoil-Tecmo Bowl-GLOW",
+        "BSA5-Cutback-Inspired Ink Battlefoil-Tecmo Bowl-FIRE",
+        "BSA6-Cutback-Inspired Ink Battlefoil-Tecmo Bowl-ICE",
+        "BSA7-Cutback-Inspired Ink Battlefoil-Tecmo Bowl-STEEL",
+        "BSA8-Cutback-Inspired Ink Battlefoil-Tecmo Bowl-STEEL",
+        "BSA9-Cutback-Inspired Ink Battlefoil-Tecmo Bowl-BRAWL",
+        "SF20-Cutback-Superfoil-Tecmo Bowl-SUPER"
       ]
     },
     "D-Harp": {
@@ -2790,8 +3616,62 @@
         "BGBF-58-D-Hop-Bubble Gum Battlefoil-First Edition-GUM"
       ]
     },
+    "Dak Prescott": {
+      "count": 4,
+      "athletes": [
+        "Dak Prescott"
+      ],
+      "bobaIds": [
+        "P107-Dak Prescott-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P143-Dak Prescott-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P35-Dak Prescott-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P71-Dak Prescott-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
+    "Dan Marino": {
+      "count": 4,
+      "athletes": [
+        "Dan Marino"
+      ],
+      "bobaIds": [
+        "P114-Dan Marino-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P150-Dan Marino-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P42-Dan Marino-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P78-Dan Marino-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
+    "Darn Old": {
+      "count": 101,
+      "athletes": [
+        "Sam Darnold"
+      ],
+      "bobaIds": [
+        "13-Darn Old-Base Set-First Edition-FIRE",
+        "133-Darn Old-Base Set-First Edition-STEEL",
+        "193-Darn Old-Base Set-First Edition-BRAWL",
+        "73-Darn Old-Base Set-First Edition-ICE",
+        "BF13-Darn Old-Battlefoil-First Edition-HEX",
+        "BF133-Darn Old-Battlefoil-First Edition-FIRE",
+        "BF193-Darn Old-Battlefoil-First Edition-ICE",
+        "BF253-Darn Old-Battlefoil-First Edition-STEEL",
+        "BF313-Darn Old-Battlefoil-First Edition-BRAWL",
+        "BF73-Darn Old-Battlefoil-First Edition-GLOW"
+      ]
+    },
+    "Darrelle Revis": {
+      "count": 4,
+      "athletes": [
+        "Darrelle Revis"
+      ],
+      "bobaIds": [
+        "P118-Darrelle Revis-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P154-Darrelle Revis-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P46-Darrelle Revis-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P82-Darrelle Revis-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Dart-Board": {
-      "count": 82,
+      "count": 185,
       "athletes": [
         "Jaxson Dart"
       ],
@@ -2841,11 +3721,16 @@
       ]
     },
     "DeVaulta": {
-      "count": 6,
+      "count": 107,
       "athletes": [
+        "DeVonta Smith",
         "Devonte Smith"
       ],
       "bobaIds": [
+        "102-DeVaulta-Base Set-First Edition-ICE",
+        "162-DeVaulta-Base Set-First Edition-STEEL",
+        "222-DeVaulta-Base Set-First Edition-BRAWL",
+        "42-DeVaulta-Base Set-First Edition-FIRE",
         "PHI-14-DeVaulta-Battlefoil-World Champions Debut-GLOW",
         "PHI-19-DeVaulta-Battlefoil-World Champions Debut-FIRE",
         "PHI-24-DeVaulta-Battlefoil-World Champions Debut-ICE",
@@ -2870,6 +3755,24 @@
         "BFA-34-Deep Freeze-Inspired Ink Battlefoil-George Gervin Debut-HEX",
         "BFA-72-Deep Freeze-Inspired Ink Battlefoil-George Gervin Debut-GLOW",
         "BGA-34-Deep Freeze-Inspired Ink Bubble Gum Battlefoil-George Gervin Debut-GUM"
+      ]
+    },
+    "Dentist": {
+      "count": 95,
+      "athletes": [
+        "Richard Dent"
+      ],
+      "bobaIds": [
+        "RDA1-Dentist-Inspired Ink Superfoil-Debut-SUPER",
+        "RDA2-Dentist-Inspired Ink Battlefoil-Debut-GUM",
+        "RDA3-Dentist-Inspired Ink Battlefoil-Debut-HEX",
+        "RDA4-Dentist-Inspired Ink Battlefoil-Debut-GLOW",
+        "RDA5-Dentist-Inspired Ink Battlefoil-Debut-FIRE",
+        "RDA6-Dentist-Inspired Ink Battlefoil-Debut-ICE",
+        "RDA7-Dentist-Inspired Ink Battlefoil-Debut-STEEL",
+        "RDA8-Dentist-Inspired Ink Battlefoil-Debut-STEEL",
+        "RDA9-Dentist-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF27-Dentist-Superfoil-Debut-SUPER"
       ]
     },
     "Destroya": {
@@ -2998,6 +3901,43 @@
         "BGBF-30-Draco-Battlefoil-First Edition-GUM"
       ]
     },
+    "Drew Brees": {
+      "count": 4,
+      "athletes": [
+        "Drew Brees"
+      ],
+      "bobaIds": [
+        "P110-Drew Brees-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P146-Drew Brees-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P38-Drew Brees-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P74-Drew Brees-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
+    "Drum Major": {
+      "count": 1,
+      "athletes": [],
+      "bobaIds": [
+        "HT4-Drum Major-Halftime Alts-Tecmo Bowl Halftime-ALT"
+      ]
+    },
+    "Duke of Denver": {
+      "count": 95,
+      "athletes": [
+        "John Elway"
+      ],
+      "bobaIds": [
+        "JEA1-Duke of Denver-Inspired Ink Superfoil-Debut-SUPER",
+        "JEA2-Duke of Denver-Inspired Ink Battlefoil-Debut-GUM",
+        "JEA3-Duke of Denver-Inspired Ink Battlefoil-Debut-HEX",
+        "JEA4-Duke of Denver-Inspired Ink Battlefoil-Debut-GLOW",
+        "JEA5-Duke of Denver-Inspired Ink Battlefoil-Debut-FIRE",
+        "JEA6-Duke of Denver-Inspired Ink Battlefoil-Debut-ICE",
+        "JEA7-Duke of Denver-Inspired Ink Battlefoil-Debut-STEEL",
+        "JEA8-Duke of Denver-Inspired Ink Battlefoil-Debut-STEEL",
+        "JEA9-Duke of Denver-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF3-Duke of Denver-Superfoil-Debut-SUPER"
+      ]
+    },
     "Dumper": {
       "count": 82,
       "athletes": [
@@ -3034,6 +3974,24 @@
         "BLBF-64-Dunker-Blizzard Battlefoil-John Starks Debut-HEX"
       ]
     },
+    "Dwight Noise": {
+      "count": 93,
+      "athletes": [
+        "Dwight Stephenson"
+      ],
+      "bobaIds": [
+        "DWSA1-Dwight Noise-Inspired Ink Superfoil-Debut-SUPER",
+        "DWSA2-Dwight Noise-Inspired Ink Battlefoil-Debut-GUM",
+        "DWSA3-Dwight Noise-Inspired Ink Battlefoil-Debut-HEX",
+        "DWSA4-Dwight Noise-Inspired Ink Battlefoil-Debut-GLOW",
+        "DWSA5-Dwight Noise-Inspired Ink Battlefoil-Debut-FIRE",
+        "DWSA6-Dwight Noise-Inspired Ink Battlefoil-Debut-ICE",
+        "DWSA7-Dwight Noise-Inspired Ink Battlefoil-Debut-STEEL",
+        "DWSA8-Dwight Noise-Inspired Ink Battlefoil-Debut-STEEL",
+        "DWSA9-Dwight Noise-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF59-Dwight Noise-Superfoil-Debut-SUPER"
+      ]
+    },
     "ECKS": {
       "count": 70,
       "athletes": [
@@ -3053,7 +4011,7 @@
       ]
     },
     "Eagle-Eye": {
-      "count": 49,
+      "count": 150,
       "athletes": [
         "Jalen Hurts"
       ],
@@ -3070,8 +4028,20 @@
         "BGBF-22-Eagle-Eye-Battlefoil-First Edition-GUM"
       ]
     },
+    "Emmitt Smith": {
+      "count": 4,
+      "athletes": [
+        "Emmitt Smith"
+      ],
+      "bobaIds": [
+        "P119-Emmitt Smith-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P155-Emmitt Smith-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P47-Emmitt Smith-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P83-Emmitt Smith-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Emmitt-164": {
-      "count": 41,
+      "count": 136,
       "athletes": [
         "Emmitt Smith"
       ],
@@ -3104,6 +4074,18 @@
         "ACA-2-Eraser-Inspired Ink Bubble Gum Battlefoil-Alysha Clark Debut-GUM",
         "ACA-3-Eraser-Inspired Ink Battlefoil-Alysha Clark Debut-HEX",
         "ACA-4-Eraser-Inspired Ink Battlefoil-Alysha Clark Debut-GLOW"
+      ]
+    },
+    "Eric Dickerson": {
+      "count": 4,
+      "athletes": [
+        "Eric Dickerson"
+      ],
+      "bobaIds": [
+        "P121-Eric Dickerson-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P157-Eric Dickerson-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P49-Eric Dickerson-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P85-Eric Dickerson-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
       ]
     },
     "Escape Artist": {
@@ -3142,6 +4124,34 @@
         "BGBF-28-Exterminaber-Bubble Gum Battlefoil-First Edition-GUM"
       ]
     },
+    "FLAV": {
+      "count": 2,
+      "athletes": [
+        "Flavor Flav"
+      ],
+      "bobaIds": [
+        "FFA-3-FLAV-Sidekicks-Flavor Flav Debut-HEX",
+        "FFA-6-FLAV-Sidekicks-Flavor Flav Debut-ICE"
+      ]
+    },
+    "Fear Himself": {
+      "count": 95,
+      "athletes": [
+        "Lawrence Taylor"
+      ],
+      "bobaIds": [
+        "LTA1-Fear Himself-Inspired Ink Superfoil-Debut-SUPER",
+        "LTA2-Fear Himself-Inspired Ink Battlefoil-Debut-GUM",
+        "LTA3-Fear Himself-Inspired Ink Battlefoil-Debut-HEX",
+        "LTA4-Fear Himself-Inspired Ink Battlefoil-Debut-GLOW",
+        "LTA5-Fear Himself-Inspired Ink Battlefoil-Debut-FIRE",
+        "LTA6-Fear Himself-Inspired Ink Battlefoil-Debut-ICE",
+        "LTA7-Fear Himself-Inspired Ink Battlefoil-Debut-STEEL",
+        "LTA8-Fear Himself-Inspired Ink Battlefoil-Debut-STEEL",
+        "LTA9-Fear Himself-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF5-Fear Himself-Superfoil-Debut-SUPER"
+      ]
+    },
     "Fingers": {
       "count": 70,
       "athletes": [
@@ -3158,6 +4168,24 @@
         "BLBF-157-Fingers-Blizzard Battlefoil-Rollie Fingers Debut-GLOW",
         "BLBF-26-Fingers-Blizzard Battlefoil-Rollie Fingers Debut-HEX",
         "BLBF-288-Fingers-Blizzard Battlefoil-Rollie Fingers Debut-FIRE"
+      ]
+    },
+    "First Leap": {
+      "count": 101,
+      "athletes": [
+        "LeRoy Butler"
+      ],
+      "bobaIds": [
+        "104-First Leap-Base Set-First Edition-ICE",
+        "164-First Leap-Base Set-First Edition-STEEL",
+        "224-First Leap-Base Set-First Edition-BRAWL",
+        "44-First Leap-Base Set-First Edition-FIRE",
+        "BF104-First Leap-Battlefoil-First Edition-GLOW",
+        "BF164-First Leap-Battlefoil-First Edition-FIRE",
+        "BF224-First Leap-Battlefoil-First Edition-ICE",
+        "BF284-First Leap-Battlefoil-First Edition-STEEL",
+        "BF344-First Leap-Battlefoil-First Edition-BRAWL",
+        "BF44-First Leap-Battlefoil-First Edition-HEX"
       ]
     },
     "Flav": {
@@ -3179,19 +4207,35 @@
       ]
     },
     "Flavor Flav": {
-      "count": 8,
+      "count": 6,
       "athletes": [
         "Flavor Flav"
       ],
       "bobaIds": [
         "FFA-1-Flavor Flav-Sidekicks-Flavor Flav Debut-SUPER",
         "FFA-2-Flavor Flav-Sidekicks-Flavor Flav Debut-GUM",
-        "FFA-3-Flavor Flav-Sidekicks-Flavor Flav Debut",
         "FFA-4-Flavor Flav-Sidekicks-Flavor Flav Debut-GLOW",
         "FFA-5-Flavor Flav-Sidekicks-Flavor Flav Debut-FIRE",
-        "FFA-6-Flavor Flav-Sidekicks-Flavor Flav Debut",
         "FFA-7-Flavor Flav-Sidekicks-Flavor Flav Debut-STEEL",
         "FFA-8-Flavor Flav-Sidekicks-Flavor Flav Debut-BRAWL"
+      ]
+    },
+    "Flippa": {
+      "count": 101,
+      "athletes": [
+        "Flipper Anderson"
+      ],
+      "bobaIds": [
+        "114-Flippa-Base Set-First Edition-ICE",
+        "174-Flippa-Base Set-First Edition-STEEL",
+        "234-Flippa-Base Set-First Edition-BRAWL",
+        "54-Flippa-Base Set-First Edition-FIRE",
+        "BF114-Flippa-Battlefoil-First Edition-GLOW",
+        "BF174-Flippa-Battlefoil-First Edition-FIRE",
+        "BF234-Flippa-Battlefoil-First Edition-ICE",
+        "BF294-Flippa-Battlefoil-First Edition-STEEL",
+        "BF354-Flippa-Battlefoil-First Edition-BRAWL",
+        "BF54-Flippa-Battlefoil-First Edition-HEX"
       ]
     },
     "Flutie": {
@@ -3268,6 +4312,42 @@
         "BBF-4-Freakshow-Blue Battlefoil-Giannis Antetokounmpo Unmasked-ICE"
       ]
     },
+    "Friday": {
+      "count": 101,
+      "athletes": [
+        "Deebo Samuel"
+      ],
+      "bobaIds": [
+        "105-Friday-Base Set-First Edition-ICE",
+        "165-Friday-Base Set-First Edition-STEEL",
+        "225-Friday-Base Set-First Edition-BRAWL",
+        "45-Friday-Base Set-First Edition-FIRE",
+        "BF105-Friday-Battlefoil-First Edition-GLOW",
+        "BF165-Friday-Battlefoil-First Edition-FIRE",
+        "BF225-Friday-Battlefoil-First Edition-ICE",
+        "BF285-Friday-Battlefoil-First Edition-STEEL",
+        "BF345-Friday-Battlefoil-First Edition-BRAWL",
+        "BF45-Friday-Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Fridge": {
+      "count": 95,
+      "athletes": [
+        "William Perry"
+      ],
+      "bobaIds": [
+        "SF42-Fridge-Superfoil-Debut-SUPER",
+        "WPA1-Fridge-Inspired Ink Superfoil-Debut-SUPER",
+        "WPA2-Fridge-Inspired Ink Battlefoil-Debut-GUM",
+        "WPA3-Fridge-Inspired Ink Battlefoil-Debut-HEX",
+        "WPA4-Fridge-Inspired Ink Battlefoil-Debut-GLOW",
+        "WPA5-Fridge-Inspired Ink Battlefoil-Debut-FIRE",
+        "WPA6-Fridge-Inspired Ink Battlefoil-Debut-ICE",
+        "WPA7-Fridge-Inspired Ink Battlefoil-Debut-STEEL",
+        "WPA8-Fridge-Inspired Ink Battlefoil-Debut-STEEL",
+        "WPA9-Fridge-Inspired Ink Battlefoil-Debut-BRAWL"
+      ]
+    },
     "Frostbite": {
       "count": 24,
       "athletes": [
@@ -3303,6 +4383,24 @@
         "BL-S21-Frostebite-Silver Blast-Trae Young Debut-STEEL"
       ]
     },
+    "Full Moon": {
+      "count": 93,
+      "athletes": [
+        "Warren Moon"
+      ],
+      "bobaIds": [
+        "SF36-Full Moon-Superfoil-Debut-SUPER",
+        "WMA1-Full Moon-Inspired Ink Superfoil-Debut-SUPER",
+        "WMA2-Full Moon-Inspired Ink Battlefoil-Debut-GUM",
+        "WMA3-Full Moon-Inspired Ink Battlefoil-Debut-HEX",
+        "WMA4-Full Moon-Inspired Ink Battlefoil-Debut-GLOW",
+        "WMA5-Full Moon-Inspired Ink Battlefoil-Debut-FIRE",
+        "WMA6-Full Moon-Inspired Ink Battlefoil-Debut-ICE",
+        "WMA7-Full Moon-Inspired Ink Battlefoil-Debut-STEEL",
+        "WMA8-Full Moon-Inspired Ink Battlefoil-Debut-STEEL",
+        "WMA9-Full Moon-Inspired Ink Battlefoil-Debut-BRAWL"
+      ]
+    },
     "Fungi": {
       "count": 119,
       "athletes": [
@@ -3319,6 +4417,24 @@
         "ABF-222-Fungi-Alpha Battlefoil-2026 Edition-GLOW",
         "ABF-353-Fungi-Alpha Battlefoil-2026 Edition-FIRE",
         "ABF-91-Fungi-Alpha Battlefoil-2026 Edition-HEX"
+      ]
+    },
+    "Furnest": {
+      "count": 101,
+      "athletes": [
+        "Earnest Byner"
+      ],
+      "bobaIds": [
+        "109-Furnest-Base Set-First Edition-ICE",
+        "169-Furnest-Base Set-First Edition-STEEL",
+        "229-Furnest-Base Set-First Edition-BRAWL",
+        "49-Furnest-Base Set-First Edition-FIRE",
+        "BF109-Furnest-Battlefoil-First Edition-GLOW",
+        "BF169-Furnest-Battlefoil-First Edition-FIRE",
+        "BF229-Furnest-Battlefoil-First Edition-ICE",
+        "BF289-Furnest-Battlefoil-First Edition-STEEL",
+        "BF349-Furnest-Battlefoil-First Edition-BRAWL",
+        "BF49-Furnest-Battlefoil-First Edition-HEX"
       ]
     },
     "Gambler": {
@@ -3342,19 +4458,19 @@
     "Game Over": {
       "count": 70,
       "athletes": [
-        "Éric Gagné"
+        "\u00c9ric Gagn\u00e9"
       ],
       "bobaIds": [
-        "ABF-193-Game Over-Alpha Battlefoil-Éric Gagné Debut-GLOW",
-        "ABF-324-Game Over-Alpha Battlefoil-Éric Gagné Debut-FIRE",
-        "ABF-455-Game Over-Alpha Battlefoil-Éric Gagné Debut-ICE",
-        "ABF-586-Game Over-Alpha Battlefoil-Éric Gagné Debut-STEEL",
-        "ABF-62-Game Over-Alpha Battlefoil-Éric Gagné Debut-HEX",
-        "ABF-717-Game Over-Alpha Battlefoil-Éric Gagné Debut-BRAWL",
-        "BBF-62-Game Over-Blue Battlefoil-Éric Gagné Debut-ICE",
-        "BLBF-193-Game Over-Blizzard Battlefoil-Éric Gagné Debut-GLOW",
-        "BLBF-324-Game Over-Blizzard Battlefoil-Éric Gagné Debut-FIRE",
-        "BLBF-62-Game Over-Blizzard Battlefoil-Éric Gagné Debut-HEX"
+        "ABF-193-Game Over-Alpha Battlefoil-\u00c9ric Gagn\u00e9 Debut-GLOW",
+        "ABF-324-Game Over-Alpha Battlefoil-\u00c9ric Gagn\u00e9 Debut-FIRE",
+        "ABF-455-Game Over-Alpha Battlefoil-\u00c9ric Gagn\u00e9 Debut-ICE",
+        "ABF-586-Game Over-Alpha Battlefoil-\u00c9ric Gagn\u00e9 Debut-STEEL",
+        "ABF-62-Game Over-Alpha Battlefoil-\u00c9ric Gagn\u00e9 Debut-HEX",
+        "ABF-717-Game Over-Alpha Battlefoil-\u00c9ric Gagn\u00e9 Debut-BRAWL",
+        "BBF-62-Game Over-Blue Battlefoil-\u00c9ric Gagn\u00e9 Debut-ICE",
+        "BLBF-193-Game Over-Blizzard Battlefoil-\u00c9ric Gagn\u00e9 Debut-GLOW",
+        "BLBF-324-Game Over-Blizzard Battlefoil-\u00c9ric Gagn\u00e9 Debut-FIRE",
+        "BLBF-62-Game Over-Blizzard Battlefoil-\u00c9ric Gagn\u00e9 Debut-HEX"
       ]
     },
     "Game Time": {
@@ -3411,6 +4527,24 @@
         "BLBF-289-Gator-Blizzard Battlefoil-Steve Spurrier Debut-FIRE"
       ]
     },
+    "Gaultfather": {
+      "count": 93,
+      "athletes": [
+        "Willie Gault"
+      ],
+      "bobaIds": [
+        "SF65-Gaultfather-Superfoil-Debut-SUPER",
+        "WGA1-Gaultfather-Inspired Ink Superfoil-Debut-SUPER",
+        "WGA2-Gaultfather-Inspired Ink Battlefoil-Debut-GUM",
+        "WGA3-Gaultfather-Inspired Ink Battlefoil-Debut-HEX",
+        "WGA4-Gaultfather-Inspired Ink Battlefoil-Debut-GLOW",
+        "WGA5-Gaultfather-Inspired Ink Battlefoil-Debut-FIRE",
+        "WGA6-Gaultfather-Inspired Ink Battlefoil-Debut-ICE",
+        "WGA7-Gaultfather-Inspired Ink Battlefoil-Debut-STEEL",
+        "WGA8-Gaultfather-Inspired Ink Battlefoil-Debut-STEEL",
+        "WGA9-Gaultfather-Inspired Ink Battlefoil-Debut-BRAWL"
+      ]
+    },
     "Gaveler": {
       "count": 120,
       "athletes": [
@@ -3450,19 +4584,19 @@
     "Gigante": {
       "count": 70,
       "athletes": [
-        "Pedro Martínez"
+        "Pedro Mart\u00ednez"
       ],
       "bobaIds": [
-        "ABF-139-Gigante-Alpha Battlefoil-Pedro Martínez Debut-GLOW",
-        "ABF-270-Gigante-Alpha Battlefoil-Pedro Martínez Debut-FIRE",
-        "ABF-401-Gigante-Alpha Battlefoil-Pedro Martínez Debut-ICE",
-        "ABF-532-Gigante-Alpha Battlefoil-Pedro Martínez Debut-STEEL",
-        "ABF-663-Gigante-Alpha Battlefoil-Pedro Martínez Debut-BRAWL",
-        "ABF-8-Gigante-Alpha Battlefoil-Pedro Martínez Debut-HEX",
-        "BBF-8-Gigante-Blue Battlefoil-Pedro Martínez Debut-ICE",
-        "BLBF-139-Gigante-Blizzard Battlefoil-Pedro Martínez Debut-GLOW",
-        "BLBF-270-Gigante-Blizzard Battlefoil-Pedro Martínez Debut-FIRE",
-        "BLBF-8-Gigante-Blizzard Battlefoil-Pedro Martínez Debut-HEX"
+        "ABF-139-Gigante-Alpha Battlefoil-Pedro Mart\u00ednez Debut-GLOW",
+        "ABF-270-Gigante-Alpha Battlefoil-Pedro Mart\u00ednez Debut-FIRE",
+        "ABF-401-Gigante-Alpha Battlefoil-Pedro Mart\u00ednez Debut-ICE",
+        "ABF-532-Gigante-Alpha Battlefoil-Pedro Mart\u00ednez Debut-STEEL",
+        "ABF-663-Gigante-Alpha Battlefoil-Pedro Mart\u00ednez Debut-BRAWL",
+        "ABF-8-Gigante-Alpha Battlefoil-Pedro Mart\u00ednez Debut-HEX",
+        "BBF-8-Gigante-Blue Battlefoil-Pedro Mart\u00ednez Debut-ICE",
+        "BLBF-139-Gigante-Blizzard Battlefoil-Pedro Mart\u00ednez Debut-GLOW",
+        "BLBF-270-Gigante-Blizzard Battlefoil-Pedro Mart\u00ednez Debut-FIRE",
+        "BLBF-8-Gigante-Blizzard Battlefoil-Pedro Mart\u00ednez Debut-HEX"
       ]
     },
     "Gigawitt": {
@@ -3515,7 +4649,7 @@
       ]
     },
     "Goggles": {
-      "count": 39,
+      "count": 134,
       "athletes": [
         "Eric Dickerson"
       ],
@@ -3533,7 +4667,7 @@
       ]
     },
     "Golden Bullet": {
-      "count": 82,
+      "count": 183,
       "athletes": [
         "Matthew Golden"
       ],
@@ -3553,19 +4687,19 @@
     "Goofin' Off": {
       "count": 70,
       "athletes": [
-        "Adrián Beltré"
+        "Adri\u00e1n Beltr\u00e9"
       ],
       "bobaIds": [
-        "ABA-1-Goofin' Off-Inspired Ink Superfoil-Adrián Beltré Debut-SUPER",
-        "ABA-12-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut-BRAWL",
-        "ABA-2-Goofin' Off-Inspired Ink Bubble Gum Battlefoil-Adrián Beltré Debut-GUM",
-        "ABA-3-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut-HEX",
-        "ABA-4-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut-GLOW",
-        "ABA-5-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut-FIRE",
-        "ABA-6-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut-ICE",
-        "ABA-7-Goofin' Off-Inspired Ink Battlefoil-Adrián Beltré Debut-STEEL",
-        "ABA-8-Goofin' Off-Inspired Ink Metallic Battlefoil-Adrián Beltré Debut-STEEL",
-        "ABF-21-Goofin' Off-Alpha Battlefoil-Adrián Beltré Debut-HEX"
+        "ABA-1-Goofin' Off-Inspired Ink Superfoil-Adri\u00e1n Beltr\u00e9 Debut-SUPER",
+        "ABA-12-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-BRAWL",
+        "ABA-2-Goofin' Off-Inspired Ink Bubble Gum Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-GUM",
+        "ABA-3-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-HEX",
+        "ABA-4-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-GLOW",
+        "ABA-5-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-FIRE",
+        "ABA-6-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-ICE",
+        "ABA-7-Goofin' Off-Inspired Ink Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-STEEL",
+        "ABA-8-Goofin' Off-Inspired Ink Metallic Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-STEEL",
+        "ABF-21-Goofin' Off-Alpha Battlefoil-Adri\u00e1n Beltr\u00e9 Debut-HEX"
       ]
     },
     "Grand-Ma-Ma": {
@@ -3604,6 +4738,24 @@
         "BGBF-57-Gravedigger-Bubble Gum Battlefoil-First Edition-GUM"
       ]
     },
+    "Green Light": {
+      "count": 93,
+      "athletes": [
+        "Harold Green"
+      ],
+      "bobaIds": [
+        "HGA1-Green Light-Inspired Ink Superfoil-Debut-SUPER",
+        "HGA2-Green Light-Inspired Ink Battlefoil-Debut-GUM",
+        "HGA3-Green Light-Inspired Ink Battlefoil-Debut-HEX",
+        "HGA4-Green Light-Inspired Ink Battlefoil-Debut-GLOW",
+        "HGA5-Green Light-Inspired Ink Battlefoil-Debut-FIRE",
+        "HGA6-Green Light-Inspired Ink Battlefoil-Debut-ICE",
+        "HGA7-Green Light-Inspired Ink Battlefoil-Debut-STEEL",
+        "HGA8-Green Light-Inspired Ink Battlefoil-Debut-STEEL",
+        "HGA9-Green Light-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF60-Green Light-Superfoil-Debut-SUPER"
+      ]
+    },
     "Green-Machine": {
       "count": 33,
       "athletes": [
@@ -3640,6 +4792,24 @@
         "BGBF-38-Grin-Battlefoil-First Edition-GUM"
       ]
     },
+    "Gronk": {
+      "count": 95,
+      "athletes": [
+        "Rob Gronkowski"
+      ],
+      "bobaIds": [
+        "RGA1-Gronk-Inspired Ink Superfoil-Debut-SUPER",
+        "RGA2-Gronk-Inspired Ink Battlefoil-Debut-GUM",
+        "RGA3-Gronk-Inspired Ink Battlefoil-Debut-HEX",
+        "RGA4-Gronk-Inspired Ink Battlefoil-Debut-GLOW",
+        "RGA5-Gronk-Inspired Ink Battlefoil-Debut-FIRE",
+        "RGA6-Gronk-Inspired Ink Battlefoil-Debut-ICE",
+        "RGA7-Gronk-Inspired Ink Battlefoil-Debut-STEEL",
+        "RGA8-Gronk-Inspired Ink Battlefoil-Debut-STEEL",
+        "RGA9-Gronk-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF10-Gronk-Superfoil-Debut-SUPER"
+      ]
+    },
     "Gunner": {
       "count": 82,
       "athletes": [
@@ -3656,6 +4826,24 @@
         "ABF-617-Gunner-Alpha Battlefoil-First Edition-STEEL",
         "ABF-748-Gunner-Alpha Battlefoil-First Edition-BRAWL",
         "ABF-93-Gunner-Alpha Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Haley's Comet": {
+      "count": 95,
+      "athletes": [
+        "Charles Haley"
+      ],
+      "bobaIds": [
+        "CHA1-Haley's Comet-Inspired Ink Superfoil-Debut-SUPER",
+        "CHA2-Haley's Comet-Inspired Ink Battlefoil-Debut-GUM",
+        "CHA3-Haley's Comet-Inspired Ink Battlefoil-Debut-HEX",
+        "CHA4-Haley's Comet-Inspired Ink Battlefoil-Debut-GLOW",
+        "CHA5-Haley's Comet-Inspired Ink Battlefoil-Debut-FIRE",
+        "CHA6-Haley's Comet-Inspired Ink Battlefoil-Debut-ICE",
+        "CHA7-Haley's Comet-Inspired Ink Battlefoil-Debut-STEEL",
+        "CHA8-Haley's Comet-Inspired Ink Battlefoil-Debut-STEEL",
+        "CHA9-Haley's Comet-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF34-Haley's Comet-Superfoil-Debut-SUPER"
       ]
     },
     "Haliburst": {
@@ -3710,6 +4898,42 @@
         "BLBF-173-Hambone-Blizzard Battlefoil-Jack Ham Debut-GLOW",
         "BLBF-304-Hambone-Blizzard Battlefoil-Jack Ham Debut-FIRE",
         "BLBF-42-Hambone-Blizzard Battlefoil-Jack Ham Debut-HEX"
+      ]
+    },
+    "Hammer": {
+      "count": 101,
+      "athletes": [
+        "Omarion Hampton"
+      ],
+      "bobaIds": [
+        "116-Hammer-Base Set-First Edition-ICE",
+        "176-Hammer-Base Set-First Edition-STEEL",
+        "236-Hammer-Base Set-First Edition-BRAWL",
+        "56-Hammer-Base Set-First Edition-FIRE",
+        "BF116-Hammer-Battlefoil-First Edition-GLOW",
+        "BF176-Hammer-Battlefoil-First Edition-FIRE",
+        "BF236-Hammer-Battlefoil-First Edition-ICE",
+        "BF296-Hammer-Battlefoil-First Edition-STEEL",
+        "BF356-Hammer-Battlefoil-First Edition-BRAWL",
+        "BF56-Hammer-Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Hands": {
+      "count": 194,
+      "athletes": [
+        "Jerry Rice"
+      ],
+      "bobaIds": [
+        "1-Hands-Base Set-First Edition-FIRE",
+        "121-Hands-Base Set-First Edition-STEEL",
+        "181-Hands-Base Set-First Edition-BRAWL",
+        "61-Hands-Base Set-First Edition-ICE",
+        "BF1-Hands-Battlefoil-First Edition-HEX",
+        "BF121-Hands-Battlefoil-First Edition-FIRE",
+        "BF181-Hands-Battlefoil-First Edition-ICE",
+        "BF241-Hands-Battlefoil-First Edition-STEEL",
+        "BF301-Hands-Battlefoil-First Edition-BRAWL",
+        "BF61-Hands-Battlefoil-First Edition-GLOW"
       ]
     },
     "Hard-Drive": {
@@ -3807,6 +5031,24 @@
         "BLBF-45-Herro-Blizzard Battlefoil-Tyler Herro Debut-HEX"
       ]
     },
+    "Highjump": {
+      "count": 93,
+      "athletes": [
+        "Alonzo Highsmith"
+      ],
+      "bobaIds": [
+        "AHA1-Highjump-Inspired Ink Superfoil-Debut-SUPER",
+        "AHA2-Highjump-Inspired Ink Battlefoil-Debut-GUM",
+        "AHA3-Highjump-Inspired Ink Battlefoil-Debut-HEX",
+        "AHA4-Highjump-Inspired Ink Battlefoil-Debut-GLOW",
+        "AHA5-Highjump-Inspired Ink Battlefoil-Debut-FIRE",
+        "AHA6-Highjump-Inspired Ink Battlefoil-Debut-ICE",
+        "AHA7-Highjump-Inspired Ink Battlefoil-Debut-STEEL",
+        "AHA8-Highjump-Inspired Ink Battlefoil-Debut-STEEL",
+        "AHA9-Highjump-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF47-Highjump-Superfoil-Debut-SUPER"
+      ]
+    },
     "Highway to Helton": {
       "count": 70,
       "athletes": [
@@ -3825,6 +5067,24 @@
         "BLBF-43-Highway to Helton-Blizzard Battlefoil-Todd Helton Debut-HEX"
       ]
     },
+    "Hillicopter": {
+      "count": 101,
+      "athletes": [
+        "Drew Hill"
+      ],
+      "bobaIds": [
+        "120-Hillicopter-Base Set-First Edition-ICE",
+        "180-Hillicopter-Base Set-First Edition-STEEL",
+        "240-Hillicopter-Base Set-First Edition-BRAWL",
+        "60-Hillicopter-Base Set-First Edition-FIRE",
+        "BF120-Hillicopter-Battlefoil-First Edition-GLOW",
+        "BF180-Hillicopter-Battlefoil-First Edition-FIRE",
+        "BF240-Hillicopter-Battlefoil-First Edition-ICE",
+        "BF300-Hillicopter-Battlefoil-First Edition-STEEL",
+        "BF360-Hillicopter-Battlefoil-First Edition-BRAWL",
+        "BF60-Hillicopter-Battlefoil-First Edition-HEX"
+      ]
+    },
     "Hitstick": {
       "count": 6,
       "athletes": [
@@ -3837,6 +5097,24 @@
         "SSE-3-Hitstick-Battlefoil-Sandstorm Edition-SUPER",
         "SSE-6-Hitstick-Paper & Battlefoil-Sandstorm Edition-HEX",
         "SSE-9-Hitstick-Paper & Battlefoil-Sandstorm Edition-GLOW"
+      ]
+    },
+    "Hitt Man": {
+      "count": 95,
+      "athletes": [
+        "Ronnie Lott"
+      ],
+      "bobaIds": [
+        "RLA1-Hitt Man-Inspired Ink Superfoil-Debut-SUPER",
+        "RLA2-Hitt Man-Inspired Ink Battlefoil-Debut-GUM",
+        "RLA3-Hitt Man-Inspired Ink Battlefoil-Debut-HEX",
+        "RLA4-Hitt Man-Inspired Ink Battlefoil-Debut-GLOW",
+        "RLA5-Hitt Man-Inspired Ink Battlefoil-Debut-FIRE",
+        "RLA6-Hitt Man-Inspired Ink Battlefoil-Debut-ICE",
+        "RLA7-Hitt Man-Inspired Ink Battlefoil-Debut-STEEL",
+        "RLA8-Hitt Man-Inspired Ink Battlefoil-Debut-STEEL",
+        "RLA9-Hitt Man-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF11-Hitt Man-Superfoil-Debut-SUPER"
       ]
     },
     "Hoge-Ball": {
@@ -3875,6 +5153,42 @@
         "ABF-767-Homestead-Alpha Battlefoil-First Edition-BRAWL"
       ]
     },
+    "Hot Rod": {
+      "count": 101,
+      "athletes": [
+        "Rodney Hampton"
+      ],
+      "bobaIds": [
+        "110-Hot Rod-Base Set-First Edition-ICE",
+        "170-Hot Rod-Base Set-First Edition-STEEL",
+        "230-Hot Rod-Base Set-First Edition-BRAWL",
+        "50-Hot Rod-Base Set-First Edition-FIRE",
+        "BF110-Hot Rod-Battlefoil-First Edition-GLOW",
+        "BF170-Hot Rod-Battlefoil-First Edition-FIRE",
+        "BF230-Hot Rod-Battlefoil-First Edition-ICE",
+        "BF290-Hot Rod-Battlefoil-First Edition-STEEL",
+        "BF350-Hot Rod-Battlefoil-First Edition-BRAWL",
+        "BF50-Hot Rod-Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Hot Sauce": {
+      "count": 101,
+      "athletes": [
+        "Sauce Gardener"
+      ],
+      "bobaIds": [
+        "103-Hot Sauce-Base Set-First Edition-ICE",
+        "163-Hot Sauce-Base Set-First Edition-STEEL",
+        "223-Hot Sauce-Base Set-First Edition-BRAWL",
+        "43-Hot Sauce-Base Set-First Edition-FIRE",
+        "BF103-Hot Sauce-Battlefoil-First Edition-GLOW",
+        "BF163-Hot Sauce-Battlefoil-First Edition-FIRE",
+        "BF223-Hot Sauce-Battlefoil-First Edition-ICE",
+        "BF283-Hot Sauce-Battlefoil-First Edition-STEEL",
+        "BF343-Hot Sauce-Battlefoil-First Edition-BRAWL",
+        "BF43-Hot Sauce-Battlefoil-First Edition-HEX"
+      ]
+    },
     "HowBout'em": {
       "count": 39,
       "athletes": [
@@ -3893,8 +5207,20 @@
         "BGA-14-HowBout'em-Inspired Ink Bubble Gum Battlefoil-Jimmy Johnson Debut-GUM"
       ]
     },
+    "Howie Long": {
+      "count": 4,
+      "athletes": [
+        "Howie Long"
+      ],
+      "bobaIds": [
+        "P122-Howie Long-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P158-Howie Long-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P50-Howie Long-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P86-Howie Long-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Howietzer": {
-      "count": 39,
+      "count": 134,
       "athletes": [
         "Howie Long"
       ],
@@ -3909,6 +5235,36 @@
         "BFA-54-Howietzer-Inspired Ink Battlefoil-Howie Long Debut-GLOW",
         "BFA-92-Howietzer-Inspired Ink Battlefoil-Howie Long Debut-FIRE",
         "BGA-16-Howietzer-Inspired Ink Bubble Gum Battlefoil-Howie Long Debut-GUM"
+      ]
+    },
+    "Ickey": {
+      "count": 95,
+      "athletes": [
+        "Ickey Woods"
+      ],
+      "bobaIds": [
+        "IWA1-Ickey-Inspired Ink Superfoil-Debut-SUPER",
+        "IWA2-Ickey-Inspired Ink Battlefoil-Debut-GUM",
+        "IWA3-Ickey-Inspired Ink Battlefoil-Debut-HEX",
+        "IWA4-Ickey-Inspired Ink Battlefoil-Debut-GLOW",
+        "IWA5-Ickey-Inspired Ink Battlefoil-Debut-FIRE",
+        "IWA6-Ickey-Inspired Ink Battlefoil-Debut-ICE",
+        "IWA7-Ickey-Inspired Ink Battlefoil-Debut-STEEL",
+        "IWA8-Ickey-Inspired Ink Battlefoil-Debut-STEEL",
+        "IWA9-Ickey-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF35-Ickey-Superfoil-Debut-SUPER"
+      ]
+    },
+    "Ickey Woods": {
+      "count": 4,
+      "athletes": [
+        "Ickey Woods"
+      ],
+      "bobaIds": [
+        "P102-Ickey Woods-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P138-Ickey Woods-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P174-Ickey Woods-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P66-Ickey Woods-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
       ]
     },
     "InVinceable": {
@@ -3927,6 +5283,42 @@
         "BFA-29-InVinceable-Inspired Ink Battlefoil-Vince Young Debut-HEX",
         "BFA-67-InVinceable-Inspired Ink Battlefoil-Vince Young Debut-GLOW",
         "BGA-29-InVinceable-Inspired Ink Bubble Gum Battlefoil-Vince Young Debut-GUM"
+      ]
+    },
+    "Incredible Faulk": {
+      "count": 95,
+      "athletes": [
+        "Marshall Faulk"
+      ],
+      "bobaIds": [
+        "MFA1-Incredible Faulk-Inspired Ink Superfoil-Debut-SUPER",
+        "MFA2-Incredible Faulk-Inspired Ink Battlefoil-Debut-GUM",
+        "MFA3-Incredible Faulk-Inspired Ink Battlefoil-Debut-HEX",
+        "MFA4-Incredible Faulk-Inspired Ink Battlefoil-Debut-GLOW",
+        "MFA5-Incredible Faulk-Inspired Ink Battlefoil-Debut-FIRE",
+        "MFA6-Incredible Faulk-Inspired Ink Battlefoil-Debut-ICE",
+        "MFA7-Incredible Faulk-Inspired Ink Battlefoil-Debut-STEEL",
+        "MFA8-Incredible Faulk-Inspired Ink Battlefoil-Debut-STEEL",
+        "MFA9-Incredible Faulk-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF31-Incredible Faulk-Superfoil-Debut-SUPER"
+      ]
+    },
+    "Island Time": {
+      "count": 95,
+      "athletes": [
+        "Darrelle Revis"
+      ],
+      "bobaIds": [
+        "DRA1-Island Time-Inspired Ink Superfoil-Debut-SUPER",
+        "DRA3-Island Time-Inspired Ink Battlefoil-Debut-HEX",
+        "DRA4-Island Time-Inspired Ink Battlefoil-Debut-GLOW",
+        "DRA5-Island Time-Inspired Ink Battlefoil-Debut-FIRE",
+        "DRA6-Island Time-Inspired Ink Battlefoil-Debut-ICE",
+        "DRA7-Island Time-Inspired Ink Battlefoil-Debut-STEEL",
+        "DRA9-Island Time-Inspired Ink Battlefoil-Debut-BRAWL",
+        "DSA2-Island Time-Inspired Ink Battlefoil-Debut-GUM",
+        "DSA8-Island Time-Inspired Ink Battlefoil-Debut-STEEL",
+        "SF12-Island Time-Superfoil-Debut-SUPER"
       ]
     },
     "J-Cam": {
@@ -3962,7 +5354,7 @@
       ]
     },
     "J-Jetts": {
-      "count": 50,
+      "count": 151,
       "athletes": [
         "Justin Jefferson"
       ],
@@ -4069,6 +5461,24 @@
         "ABF-378-Javalanche-Alpha Battlefoil-2026 Edition-FIRE"
       ]
     },
+    "Jax-In-the-Box": {
+      "count": 101,
+      "athletes": [
+        "Jaxon Smith-Njigba"
+      ],
+      "bobaIds": [
+        "135-Jax-In-the-Box-Base Set-First Edition-STEEL",
+        "15-Jax-In-the-Box-Base Set-First Edition-FIRE",
+        "195-Jax-In-the-Box-Base Set-First Edition-BRAWL",
+        "75-Jax-In-the-Box-Base Set-First Edition-ICE",
+        "BF135-Jax-In-the-Box-Battlefoil-First Edition-FIRE",
+        "BF15-Jax-In-the-Box-Battlefoil-First Edition-HEX",
+        "BF195-Jax-In-the-Box-Battlefoil-First Edition-ICE",
+        "BF255-Jax-In-the-Box-Battlefoil-First Edition-STEEL",
+        "BF315-Jax-In-the-Box-Battlefoil-First Edition-BRAWL",
+        "BF75-Jax-In-the-Box-Battlefoil-First Edition-GLOW"
+      ]
+    },
     "Jaybird": {
       "count": 47,
       "athletes": [
@@ -4088,7 +5498,7 @@
       ]
     },
     "Jeanetic": {
-      "count": 82,
+      "count": 183,
       "athletes": [
         "Ashton Jeanty"
       ],
@@ -4141,6 +5551,60 @@
         "BGBF-28-Jeeves-Battlefoil-First Edition-GUM"
       ]
     },
+    "Jerome Bettis": {
+      "count": 4,
+      "athletes": [
+        "Jerome Bettis"
+      ],
+      "bobaIds": [
+        "P124-Jerome Bettis-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P160-Jerome Bettis-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P52-Jerome Bettis-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P88-Jerome Bettis-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
+    "Jim Kelly": {
+      "count": 4,
+      "athletes": [
+        "Jim Kelly"
+      ],
+      "bobaIds": [
+        "P125-Jim Kelly-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P161-Jim Kelly-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P53-Jim Kelly-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P89-Jim Kelly-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
+    "Jim McMahon": {
+      "count": 4,
+      "athletes": [
+        "Jim McMahon"
+      ],
+      "bobaIds": [
+        "P131-Jim McMahon-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P167-Jim McMahon-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P59-Jim McMahon-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P95-Jim McMahon-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
+    "Joe Cool": {
+      "count": 194,
+      "athletes": [
+        "Joe Montana"
+      ],
+      "bobaIds": [
+        "122-Joe Cool-Base Set-First Edition-STEEL",
+        "182-Joe Cool-Base Set-First Edition-BRAWL",
+        "2-Joe Cool-Base Set-First Edition-FIRE",
+        "62-Joe Cool-Base Set-First Edition-ICE",
+        "BF122-Joe Cool-Battlefoil-First Edition-FIRE",
+        "BF182-Joe Cool-Battlefoil-First Edition-ICE",
+        "BF2-Joe Cool-Battlefoil-First Edition-HEX",
+        "BF242-Joe Cool-Battlefoil-First Edition-STEEL",
+        "BF302-Joe Cool-Battlefoil-First Edition-BRAWL",
+        "BF62-Joe Cool-Battlefoil-First Edition-GLOW"
+      ]
+    },
     "Joey Jawz": {
       "count": 39,
       "athletes": [
@@ -4159,6 +5623,18 @@
         "BGA-11-Joey Jawz-Inspired Ink Bubble Gum Battlefoil-Joey Chestnut Debut-GUM"
       ]
     },
+    "John Elway": {
+      "count": 4,
+      "athletes": [
+        "John Elway"
+      ],
+      "bobaIds": [
+        "P109-John Elway-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P145-John Elway-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P37-John Elway-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P73-John Elway-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Johnny Heckler": {
       "count": 1,
       "athletes": [
@@ -4166,6 +5642,24 @@
       ],
       "bobaIds": [
         "ALT-3-Johnny Heckler-Billy Cameo Alt Arts-Randy Quaid (Co-Starring Billy)-ALT"
+      ]
+    },
+    "Jolly Roger": {
+      "count": 93,
+      "athletes": [
+        "Roger Craig"
+      ],
+      "bobaIds": [
+        "ROCA1-Jolly Roger-Inspired Ink Superfoil-Debut-SUPER",
+        "ROCA2-Jolly Roger-Inspired Ink Battlefoil-Debut-GUM",
+        "ROCA3-Jolly Roger-Inspired Ink Battlefoil-Debut-HEX",
+        "ROCA4-Jolly Roger-Inspired Ink Battlefoil-Debut-GLOW",
+        "ROCA5-Jolly Roger-Inspired Ink Battlefoil-Debut-FIRE",
+        "ROCA6-Jolly Roger-Inspired Ink Battlefoil-Debut-ICE",
+        "ROCA7-Jolly Roger-Inspired Ink Battlefoil-Debut-STEEL",
+        "ROCA8-Jolly Roger-Inspired Ink Battlefoil-Debut-STEEL",
+        "ROCA9-Jolly Roger-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF66-Jolly Roger-Superfoil-Debut-SUPER"
       ]
     },
     "Joystick": {
@@ -4186,6 +5680,24 @@
         "BLBF-55-Joystick-Blizzard Battlefoil-Dante Hall Debut-HEX"
       ]
     },
+    "Judkernaught": {
+      "count": 101,
+      "athletes": [
+        "Quinshon Judkins"
+      ],
+      "bobaIds": [
+        "149-Judkernaught-Base Set-First Edition-STEEL",
+        "209-Judkernaught-Base Set-First Edition-BRAWL",
+        "29-Judkernaught-Base Set-First Edition-FIRE",
+        "89-Judkernaught-Base Set-First Edition-ICE",
+        "BF149-Judkernaught-Battlefoil-First Edition-FIRE",
+        "BF209-Judkernaught-Battlefoil-First Edition-ICE",
+        "BF269-Judkernaught-Battlefoil-First Edition-STEEL",
+        "BF29-Judkernaught-Battlefoil-First Edition-HEX",
+        "BF329-Judkernaught-Battlefoil-First Edition-BRAWL",
+        "BF89-Judkernaught-Battlefoil-First Edition-GLOW"
+      ]
+    },
     "Juice": {
       "count": 46,
       "athletes": [
@@ -4202,6 +5714,24 @@
         "BF-27-Juice-Battlefoil-First Edition-HEX",
         "BF-87-Juice-Battlefoil-First Edition-GLOW",
         "BGBF-30-Juice-Bubble Gum Battlefoil-First Edition-GUM"
+      ]
+    },
+    "K-Mack": {
+      "count": 93,
+      "athletes": [
+        "Kevin Mack"
+      ],
+      "bobaIds": [
+        "KMA1-K-Mack-Inspired Ink Superfoil-Debut-SUPER",
+        "KMA2-K-Mack-Inspired Ink Battlefoil-Debut-GUM",
+        "KMA3-K-Mack-Inspired Ink Battlefoil-Debut-HEX",
+        "KMA4-K-Mack-Inspired Ink Battlefoil-Debut-GLOW",
+        "KMA5-K-Mack-Inspired Ink Battlefoil-Debut-FIRE",
+        "KMA6-K-Mack-Inspired Ink Battlefoil-Debut-ICE",
+        "KMA7-K-Mack-Inspired Ink Battlefoil-Debut-STEEL",
+        "KMA8-K-Mack-Inspired Ink Battlefoil-Debut-STEEL",
+        "KMA9-K-Mack-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF61-K-Mack-Superfoil-Debut-SUPER"
       ]
     },
     "KAT": {
@@ -4222,6 +5752,13 @@
         "BGA-17-KAT-Inspired Ink Battlefoil-Karl-Anthony Towns Debut-GUM"
       ]
     },
+    "Kathy Tecmo": {
+      "count": 1,
+      "athletes": [],
+      "bobaIds": [
+        "HT1-Kathy Tecmo-Halftime Alts-Tecmo Bowl Halftime-ALT"
+      ]
+    },
     "Kettle-Bell": {
       "count": 82,
       "athletes": [
@@ -4240,22 +5777,40 @@
         "ABF-762-Kettle-Bell-Alpha Battlefoil-First Edition-BRAWL"
       ]
     },
+    "Key Keeper": {
+      "count": 93,
+      "athletes": [
+        "Luke Kuechly"
+      ],
+      "bobaIds": [
+        "LKA1-Key Keeper-Inspired Ink Superfoil-Debut-SUPER",
+        "LKA2-Key Keeper-Inspired Ink Battlefoil-Debut-GUM",
+        "LKA3-Key Keeper-Inspired Ink Battlefoil-Debut-HEX",
+        "LKA4-Key Keeper-Inspired Ink Battlefoil-Debut-GLOW",
+        "LKA5-Key Keeper-Inspired Ink Battlefoil-Debut-FIRE",
+        "LKA6-Key Keeper-Inspired Ink Battlefoil-Debut-ICE",
+        "LKA7-Key Keeper-Inspired Ink Battlefoil-Debut-STEEL",
+        "LKA8-Key Keeper-Inspired Ink Battlefoil-Debut-STEEL",
+        "LKA9-Key Keeper-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF38-Key Keeper-Superfoil-Debut-SUPER"
+      ]
+    },
     "King Felix": {
       "count": 70,
       "athletes": [
-        "Félix Hernández"
+        "F\u00e9lix Hern\u00e1ndez"
       ],
       "bobaIds": [
-        "ABF-146-King Felix-Alpha Battlefoil-Félix Hernández Debut-GLOW",
-        "ABF-15-King Felix-Alpha Battlefoil-Félix Hernández Debut-HEX",
-        "ABF-277-King Felix-Alpha Battlefoil-Félix Hernández Debut-FIRE",
-        "ABF-408-King Felix-Alpha Battlefoil-Félix Hernández Debut-ICE",
-        "ABF-539-King Felix-Alpha Battlefoil-Félix Hernández Debut-STEEL",
-        "ABF-670-King Felix-Alpha Battlefoil-Félix Hernández Debut-BRAWL",
-        "BBF-15-King Felix-Blue Battlefoil-Félix Hernández Debut-ICE",
-        "BLBF-146-King Felix-Blizzard Battlefoil-Félix Hernández Debut-GLOW",
-        "BLBF-15-King Felix-Blizzard Battlefoil-Félix Hernández Debut-HEX",
-        "BLBF-277-King Felix-Blizzard Battlefoil-Félix Hernández Debut-FIRE"
+        "ABF-146-King Felix-Alpha Battlefoil-F\u00e9lix Hern\u00e1ndez Debut-GLOW",
+        "ABF-15-King Felix-Alpha Battlefoil-F\u00e9lix Hern\u00e1ndez Debut-HEX",
+        "ABF-277-King Felix-Alpha Battlefoil-F\u00e9lix Hern\u00e1ndez Debut-FIRE",
+        "ABF-408-King Felix-Alpha Battlefoil-F\u00e9lix Hern\u00e1ndez Debut-ICE",
+        "ABF-539-King Felix-Alpha Battlefoil-F\u00e9lix Hern\u00e1ndez Debut-STEEL",
+        "ABF-670-King Felix-Alpha Battlefoil-F\u00e9lix Hern\u00e1ndez Debut-BRAWL",
+        "BBF-15-King Felix-Blue Battlefoil-F\u00e9lix Hern\u00e1ndez Debut-ICE",
+        "BLBF-146-King Felix-Blizzard Battlefoil-F\u00e9lix Hern\u00e1ndez Debut-GLOW",
+        "BLBF-15-King Felix-Blizzard Battlefoil-F\u00e9lix Hern\u00e1ndez Debut-HEX",
+        "BLBF-277-King Felix-Blizzard Battlefoil-F\u00e9lix Hern\u00e1ndez Debut-FIRE"
       ]
     },
     "King Henrik": {
@@ -4292,6 +5847,24 @@
         "ABF-611-King Tuck-Alpha Battlefoil-First Edition-STEEL",
         "ABF-742-King Tuck-Alpha Battlefoil-First Edition-BRAWL",
         "ABF-87-King Tuck-Alpha Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Krieghawk": {
+      "count": 93,
+      "athletes": [
+        "Dave Krieg"
+      ],
+      "bobaIds": [
+        "DKA1-Krieghawk-Inspired Ink Superfoil-Debut-SUPER",
+        "DKA2-Krieghawk-Inspired Ink Battlefoil-Debut-GUM",
+        "DKA3-Krieghawk-Inspired Ink Battlefoil-Debut-HEX",
+        "DKA4-Krieghawk-Inspired Ink Battlefoil-Debut-GLOW",
+        "DKA5-Krieghawk-Inspired Ink Battlefoil-Debut-FIRE",
+        "DKA6-Krieghawk-Inspired Ink Battlefoil-Debut-ICE",
+        "DKA7-Krieghawk-Inspired Ink Battlefoil-Debut-STEEL",
+        "DKA8-Krieghawk-Inspired Ink Battlefoil-Debut-STEEL",
+        "DKA9-Krieghawk-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF45-Krieghawk-Superfoil-Debut-SUPER"
       ]
     },
     "Kurse": {
@@ -4349,7 +5922,7 @@
       ]
     },
     "Lawman": {
-      "count": 46,
+      "count": 147,
       "athletes": [
         "Trevor Lawrence"
       ],
@@ -4364,6 +5937,18 @@
         "BF-290-Lawman-Battlefoil-First Edition-STEEL",
         "BF-50-Lawman-Battlefoil-First Edition-HEX",
         "BGBF-53-Lawman-Bubble Gum Battlefoil-First Edition-GUM"
+      ]
+    },
+    "Lawrence Taylor": {
+      "count": 4,
+      "athletes": [
+        "Lawrence Taylor"
+      ],
+      "bobaIds": [
+        "P111-Lawrence Taylor-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P147-Lawrence Taylor-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P39-Lawrence Taylor-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P75-Lawrence Taylor-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
       ]
     },
     "LeBoss": {
@@ -4508,6 +6093,24 @@
         "LA-7-MVFREE-Paper & Battlefoil-World Champion Debut-GLOW"
       ]
     },
+    "Machine Gun": {
+      "count": 95,
+      "athletes": [
+        "Jim Kelly"
+      ],
+      "bobaIds": [
+        "JKA1-Machine Gun-Inspired Ink Superfoil-Debut-SUPER",
+        "JKA2-Machine Gun-Inspired Ink Battlefoil-Debut-GUM",
+        "JKA3-Machine Gun-Inspired Ink Battlefoil-Debut-HEX",
+        "JKA4-Machine Gun-Inspired Ink Battlefoil-Debut-GLOW",
+        "JKA5-Machine Gun-Inspired Ink Battlefoil-Debut-FIRE",
+        "JKA6-Machine Gun-Inspired Ink Battlefoil-Debut-ICE",
+        "JKA7-Machine Gun-Inspired Ink Battlefoil-Debut-STEEL",
+        "JKA8-Machine Gun-Inspired Ink Battlefoil-Debut-STEEL",
+        "JKA9-Machine Gun-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF19-Machine Gun-Superfoil-Debut-SUPER"
+      ]
+    },
     "Macho": {
       "count": 82,
       "athletes": [
@@ -4562,6 +6165,24 @@
         "BGA-2-Magic-Inspired Ink Bubble Gum Battlefoil-Magic Johnson Debut-GUM"
       ]
     },
+    "Majik Man": {
+      "count": 101,
+      "athletes": [
+        "Don Majkowski"
+      ],
+      "bobaIds": [
+        "117-Majik Man-Base Set-First Edition-ICE",
+        "177-Majik Man-Base Set-First Edition-STEEL",
+        "237-Majik Man-Base Set-First Edition-BRAWL",
+        "57-Majik Man-Base Set-First Edition-FIRE",
+        "BF117-Majik Man-Battlefoil-First Edition-GLOW",
+        "BF177-Majik Man-Battlefoil-First Edition-FIRE",
+        "BF237-Majik Man-Battlefoil-First Edition-ICE",
+        "BF297-Majik Man-Battlefoil-First Edition-STEEL",
+        "BF357-Majik Man-Battlefoil-First Edition-BRAWL",
+        "BF57-Majik Man-Battlefoil-First Edition-HEX"
+      ]
+    },
     "Man of Steal": {
       "count": 32,
       "athletes": [
@@ -4580,8 +6201,38 @@
         "BGA-31-Man of Steal-Inspired Ink Battlefoil-Vince Coleman Debut-GUM"
       ]
     },
+    "Mann-O-War": {
+      "count": 95,
+      "athletes": [
+        "Charles Mann"
+      ],
+      "bobaIds": [
+        "CMA1-Mann-O-War-Inspired Ink Superfoil-Debut-SUPER",
+        "CMA2-Mann-O-War-Inspired Ink Battlefoil-Debut-GUM",
+        "CMA3-Mann-O-War-Inspired Ink Battlefoil-Debut-HEX",
+        "CMA4-Mann-O-War-Inspired Ink Battlefoil-Debut-GLOW",
+        "CMA5-Mann-O-War-Inspired Ink Battlefoil-Debut-FIRE",
+        "CMA6-Mann-O-War-Inspired Ink Battlefoil-Debut-ICE",
+        "CMA7-Mann-O-War-Inspired Ink Battlefoil-Debut-STEEL",
+        "CMA8-Mann-O-War-Inspired Ink Battlefoil-Debut-STEEL",
+        "CMA9-Mann-O-War-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF32-Mann-O-War-Superfoil-Debut-SUPER"
+      ]
+    },
+    "Marcus Allen": {
+      "count": 4,
+      "athletes": [
+        "Marcus Allen"
+      ],
+      "bobaIds": [
+        "P129-Marcus Allen-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P165-Marcus Allen-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P57-Marcus Allen-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P93-Marcus Allen-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Marino": {
-      "count": 41,
+      "count": 136,
       "athletes": [
         "Dan Marino"
       ],
@@ -4614,6 +6265,18 @@
         "ABF-618-Marksman-Alpha Battlefoil-First Edition-STEEL",
         "ABF-749-Marksman-Alpha Battlefoil-First Edition-BRAWL",
         "ABF-94-Marksman-Alpha Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Marshall Faulk": {
+      "count": 4,
+      "athletes": [
+        "Marshall Faulk"
+      ],
+      "bobaIds": [
+        "P134-Marshall Faulk-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P170-Marshall Faulk-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P62-Marshall Faulk-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P98-Marshall Faulk-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
       ]
     },
     "Marverati": {
@@ -4689,7 +6352,7 @@
       ]
     },
     "McArmyKnife": {
-      "count": 53,
+      "count": 154,
       "athletes": [
         "Christian McCaffery",
         "Christian McCaffrey"
@@ -4705,6 +6368,24 @@
         "BF-259-McArmyKnife-Battlefoil-First Edition-STEEL",
         "BF-79-McArmyKnife-Battlefoil-First Edition-GLOW",
         "BGBF-22-McArmyKnife-Bubble Gum Battlefoil-First Edition-GUM"
+      ]
+    },
+    "McVillain": {
+      "count": 101,
+      "athletes": [
+        "Tetairoa McMillan"
+      ],
+      "bobaIds": [
+        "147-McVillain-Base Set-First Edition-STEEL",
+        "207-McVillain-Base Set-First Edition-BRAWL",
+        "27-McVillain-Base Set-First Edition-FIRE",
+        "87-McVillain-Base Set-First Edition-ICE",
+        "BF147-McVillain-Battlefoil-First Edition-FIRE",
+        "BF207-McVillain-Battlefoil-First Edition-ICE",
+        "BF267-McVillain-Battlefoil-First Edition-STEEL",
+        "BF27-McVillain-Battlefoil-First Edition-HEX",
+        "BF327-McVillain-Battlefoil-First Edition-BRAWL",
+        "BF87-McVillain-Battlefoil-First Edition-GLOW"
       ]
     },
     "Mean-Joe": {
@@ -4726,7 +6407,7 @@
       ]
     },
     "Merlomes": {
-      "count": 54,
+      "count": 157,
       "athletes": [
         "Patrick Mahomes"
       ],
@@ -4797,6 +6478,108 @@
         "BGBF-7-Midas-Bubble Gum Battlefoil-First Edition-GUM"
       ]
     },
+    "Mike Singletary": {
+      "count": 4,
+      "athletes": [
+        "Mike Singletary"
+      ],
+      "bobaIds": [
+        "P104-Mike Singletary-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P140-Mike Singletary-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P176-Mike Singletary-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P68-Mike Singletary-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
+    "MoD": {
+      "count": 101,
+      "athletes": [
+        "Reggie White"
+      ],
+      "bobaIds": [
+        "11-MoD-Base Set-First Edition-FIRE",
+        "131-MoD-Base Set-First Edition-STEEL",
+        "191-MoD-Base Set-First Edition-BRAWL",
+        "71-MoD-Base Set-First Edition-ICE",
+        "BF11-MoD-Battlefoil-First Edition-HEX",
+        "BF131-MoD-Battlefoil-First Edition-FIRE",
+        "BF191-MoD-Battlefoil-First Edition-ICE",
+        "BF251-MoD-Battlefoil-First Edition-STEEL",
+        "BF311-MoD-Battlefoil-First Edition-BRAWL",
+        "BF71-MoD-Battlefoil-First Edition-GLOW"
+      ]
+    },
+    "Monk": {
+      "count": 95,
+      "athletes": [
+        "Art Monk"
+      ],
+      "bobaIds": [
+        "AMA1-Monk-Inspired Ink Superfoil-Debut-SUPER",
+        "AMA2-Monk-Inspired Ink Battlefoil-Debut-GUM",
+        "AMA3-Monk-Inspired Ink Battlefoil-Debut-HEX",
+        "AMA4-Monk-Inspired Ink Battlefoil-Debut-GLOW",
+        "AMA5-Monk-Inspired Ink Battlefoil-Debut-FIRE",
+        "AMA6-Monk-Inspired Ink Battlefoil-Debut-ICE",
+        "AMA7-Monk-Inspired Ink Battlefoil-Debut-STEEL",
+        "AMA8-Monk-Inspired Ink Battlefoil-Debut-STEEL",
+        "AMA9-Monk-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF44-Monk-Superfoil-Debut-SUPER"
+      ]
+    },
+    "Moose": {
+      "count": 101,
+      "athletes": [
+        "Daryl Johnston"
+      ],
+      "bobaIds": [
+        "119-Moose-Base Set-First Edition-ICE",
+        "179-Moose-Base Set-First Edition-STEEL",
+        "239-Moose-Base Set-First Edition-BRAWL",
+        "59-Moose-Base Set-First Edition-FIRE",
+        "BF119-Moose-Battlefoil-First Edition-GLOW",
+        "BF179-Moose-Battlefoil-First Edition-FIRE",
+        "BF239-Moose-Battlefoil-First Edition-ICE",
+        "BF299-Moose-Battlefoil-First Edition-STEEL",
+        "BF359-Moose-Battlefoil-First Edition-BRAWL",
+        "BF59-Moose-Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Mossed": {
+      "count": 95,
+      "athletes": [
+        "Randy Moss"
+      ],
+      "bobaIds": [
+        "RMA1-Mossed-Inspired Ink Superfoil-Debut-SUPER",
+        "RMA2-Mossed-Inspired Ink Battlefoil-Debut-GUM",
+        "RMA3-Mossed-Inspired Ink Battlefoil-Debut-HEX",
+        "RMA4-Mossed-Inspired Ink Battlefoil-Debut-GLOW",
+        "RMA5-Mossed-Inspired Ink Battlefoil-Debut-FIRE",
+        "RMA6-Mossed-Inspired Ink Battlefoil-Debut-ICE",
+        "RMA7-Mossed-Inspired Ink Battlefoil-Debut-STEEL",
+        "RMA8-Mossed-Inspired Ink Battlefoil-Debut-STEEL",
+        "RMA9-Mossed-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF6-Mossed-Superfoil-Debut-SUPER"
+      ]
+    },
+    "Mountain Drew": {
+      "count": 93,
+      "athletes": [
+        "Drew Bledsoe"
+      ],
+      "bobaIds": [
+        "DRBA1-Mountain Drew-Inspired Ink Superfoil-Debut-SUPER",
+        "DRBA2-Mountain Drew-Inspired Ink Battlefoil-Debut-GUM",
+        "DRBA3-Mountain Drew-Inspired Ink Battlefoil-Debut-HEX",
+        "DRBA4-Mountain Drew-Inspired Ink Battlefoil-Debut-GLOW",
+        "DRBA5-Mountain Drew-Inspired Ink Battlefoil-Debut-FIRE",
+        "DRBA6-Mountain Drew-Inspired Ink Battlefoil-Debut-ICE",
+        "DRBA7-Mountain Drew-Inspired Ink Battlefoil-Debut-STEEL",
+        "DRBA8-Mountain Drew-Inspired Ink Battlefoil-Debut-STEEL",
+        "DRBA9-Mountain Drew-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF58-Mountain Drew-Superfoil-Debut-SUPER"
+      ]
+    },
     "Mr. Clean": {
       "count": 70,
       "athletes": [
@@ -4816,7 +6599,7 @@
       ]
     },
     "Mr. Irrelevant": {
-      "count": 46,
+      "count": 147,
       "athletes": [
         "Brock Purdy"
       ],
@@ -4849,6 +6632,24 @@
         "BLBF-153-Mr. October-Blizzard Battlefoil-Reggie Jackson Debut-GLOW",
         "BLBF-22-Mr. October-Blizzard Battlefoil-Reggie Jackson Debut-HEX",
         "BLBF-284-Mr. October-Blizzard Battlefoil-Reggie Jackson Debut-FIRE"
+      ]
+    },
+    "Muffin Man": {
+      "count": 101,
+      "athletes": [
+        "Baker Mayfield"
+      ],
+      "bobaIds": [
+        "144-Muffin Man-Base Set-First Edition-STEEL",
+        "204-Muffin Man-Base Set-First Edition-BRAWL",
+        "24-Muffin Man-Base Set-First Edition-FIRE",
+        "84-Muffin Man-Base Set-First Edition-ICE",
+        "BF144-Muffin Man-Battlefoil-First Edition-FIRE",
+        "BF204-Muffin Man-Battlefoil-First Edition-ICE",
+        "BF24-Muffin Man-Battlefoil-First Edition-HEX",
+        "BF264-Muffin Man-Battlefoil-First Edition-STEEL",
+        "BF324-Muffin Man-Battlefoil-First Edition-BRAWL",
+        "BF84-Muffin Man-Battlefoil-First Edition-GLOW"
       ]
     },
     "Muggsy": {
@@ -4905,22 +6706,94 @@
         "BGBF-13-Mustang-Bubble Gum Battlefoil-First Edition-GUM"
       ]
     },
+    "Myracle": {
+      "count": 101,
+      "athletes": [
+        "Jahmyr Gibbs"
+      ],
+      "bobaIds": [
+        "138-Myracle-Base Set-First Edition-STEEL",
+        "18-Myracle-Base Set-First Edition-FIRE",
+        "198-Myracle-Base Set-First Edition-BRAWL",
+        "78-Myracle-Base Set-First Edition-ICE",
+        "BF138-Myracle-Battlefoil-First Edition-FIRE",
+        "BF18-Myracle-Battlefoil-First Edition-HEX",
+        "BF198-Myracle-Battlefoil-First Edition-ICE",
+        "BF258-Myracle-Battlefoil-First Edition-STEEL",
+        "BF318-Myracle-Battlefoil-First Edition-BRAWL",
+        "BF78-Myracle-Battlefoil-First Edition-GLOW"
+      ]
+    },
+    "Neon": {
+      "count": 91,
+      "athletes": [
+        "Deion Sanders"
+      ],
+      "bobaIds": [
+        "B70-Neon-Blue Battlefoil-First Edition-ICE",
+        "BG3-Neon-Superfoil-First Edition-GUM",
+        "G70-Neon-Green Battlefoil-First Edition-GLOW",
+        "O70-Neon-Orange Battlefoil-First Edition-FIRE",
+        "P70-Neon-Pink Battlefoil-First Edition-HEX",
+        "R203-Neon-80's 8-Bit Rad Battlefoil-First Edition-GLOW",
+        "R70-Neon-80's 8-Bit Rad Battlefoil-First Edition-HEX",
+        "R70-Neon-Red Battlefoil-First Edition-BRAWL",
+        "S70-Neon-Silver Battlefoil-First Edition-STEEL",
+        "SF69-Neon-Superfoil-First Edition-SUPER"
+      ]
+    },
     "Nice Game Pretty Boy": {
       "count": 70,
       "athletes": [
-        "Keith Hernández"
+        "Keith Hern\u00e1ndez"
       ],
       "bobaIds": [
-        "ABF-13-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hernández Debut-HEX",
-        "ABF-144-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hernández Debut-GLOW",
-        "ABF-275-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hernández Debut-FIRE",
-        "ABF-406-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hernández Debut-ICE",
-        "ABF-537-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hernández Debut-STEEL",
-        "ABF-668-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hernández Debut-BRAWL",
-        "BBF-13-Nice Game Pretty Boy-Blue Battlefoil-Keith Hernández Debut-ICE",
-        "BLBF-13-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hernández Debut-HEX",
-        "BLBF-144-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hernández Debut-GLOW",
-        "BLBF-275-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hernández Debut-FIRE"
+        "ABF-13-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hern\u00e1ndez Debut-HEX",
+        "ABF-144-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hern\u00e1ndez Debut-GLOW",
+        "ABF-275-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hern\u00e1ndez Debut-FIRE",
+        "ABF-406-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hern\u00e1ndez Debut-ICE",
+        "ABF-537-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hern\u00e1ndez Debut-STEEL",
+        "ABF-668-Nice Game Pretty Boy-Alpha Battlefoil-Keith Hern\u00e1ndez Debut-BRAWL",
+        "BBF-13-Nice Game Pretty Boy-Blue Battlefoil-Keith Hern\u00e1ndez Debut-ICE",
+        "BLBF-13-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hern\u00e1ndez Debut-HEX",
+        "BLBF-144-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hern\u00e1ndez Debut-GLOW",
+        "BLBF-275-Nice Game Pretty Boy-Blizzard Battlefoil-Keith Hern\u00e1ndez Debut-FIRE"
+      ]
+    },
+    "Nigerian Nightmare": {
+      "count": 95,
+      "athletes": [
+        "Christian Okoye"
+      ],
+      "bobaIds": [
+        "COA1-Nigerian Nightmare-Inspired Ink Superfoil-Debut-SUPER",
+        "COA2-Nigerian Nightmare-Inspired Ink Battlefoil-Debut-GUM",
+        "COA3-Nigerian Nightmare-Inspired Ink Battlefoil-Debut-HEX",
+        "COA4-Nigerian Nightmare-Inspired Ink Battlefoil-Debut-GLOW",
+        "COA5-Nigerian Nightmare-Inspired Ink Battlefoil-Debut-FIRE",
+        "COA6-Nigerian Nightmare-Inspired Ink Battlefoil-Debut-ICE",
+        "COA7-Nigerian Nightmare-Inspired Ink Battlefoil-Debut-STEEL",
+        "COA8-Nigerian Nightmare-Inspired Ink Battlefoil-Debut-STEEL",
+        "COA9-Nigerian Nightmare-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF7-Nigerian Nightmare-Superfoil-Debut-SUPER"
+      ]
+    },
+    "Novacaine": {
+      "count": 93,
+      "athletes": [
+        "Jay Novacek"
+      ],
+      "bobaIds": [
+        "JNA1-Novacaine-Inspired Ink Superfoil-Debut-SUPER",
+        "JNA2-Novacaine-Inspired Ink Battlefoil-Debut-GUM",
+        "JNA3-Novacaine-Inspired Ink Battlefoil-Debut-HEX",
+        "JNA4-Novacaine-Inspired Ink Battlefoil-Debut-GLOW",
+        "JNA5-Novacaine-Inspired Ink Battlefoil-Debut-FIRE",
+        "JNA6-Novacaine-Inspired Ink Battlefoil-Debut-ICE",
+        "JNA7-Novacaine-Inspired Ink Battlefoil-Debut-STEEL",
+        "JNA8-Novacaine-Inspired Ink Battlefoil-Debut-STEEL",
+        "JNA9-Novacaine-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF50-Novacaine-Superfoil-Debut-SUPER"
       ]
     },
     "Ollie": {
@@ -4980,19 +6853,19 @@
     "PG-D3": {
       "count": 70,
       "athletes": [
-        "Pierre Garçon"
+        "Pierre Gar\u00e7on"
       ],
       "bobaIds": [
-        "ABF-194-PG-D3-Alpha Battlefoil-Pierre Garçon Debut-GLOW",
-        "ABF-325-PG-D3-Alpha Battlefoil-Pierre Garçon Debut-FIRE",
-        "ABF-456-PG-D3-Alpha Battlefoil-Pierre Garçon Debut-ICE",
-        "ABF-587-PG-D3-Alpha Battlefoil-Pierre Garçon Debut-STEEL",
-        "ABF-63-PG-D3-Alpha Battlefoil-Pierre Garçon Debut-HEX",
-        "ABF-718-PG-D3-Alpha Battlefoil-Pierre Garçon Debut-BRAWL",
-        "BBF-63-PG-D3-Blue Battlefoil-Pierre Garçon Debut-ICE",
-        "BLBF-194-PG-D3-Blizzard Battlefoil-Pierre Garçon Debut-GLOW",
-        "BLBF-325-PG-D3-Blizzard Battlefoil-Pierre Garçon Debut-FIRE",
-        "BLBF-63-PG-D3-Blizzard Battlefoil-Pierre Garçon Debut-HEX"
+        "ABF-194-PG-D3-Alpha Battlefoil-Pierre Gar\u00e7on Debut-GLOW",
+        "ABF-325-PG-D3-Alpha Battlefoil-Pierre Gar\u00e7on Debut-FIRE",
+        "ABF-456-PG-D3-Alpha Battlefoil-Pierre Gar\u00e7on Debut-ICE",
+        "ABF-587-PG-D3-Alpha Battlefoil-Pierre Gar\u00e7on Debut-STEEL",
+        "ABF-63-PG-D3-Alpha Battlefoil-Pierre Gar\u00e7on Debut-HEX",
+        "ABF-718-PG-D3-Alpha Battlefoil-Pierre Gar\u00e7on Debut-BRAWL",
+        "BBF-63-PG-D3-Blue Battlefoil-Pierre Gar\u00e7on Debut-ICE",
+        "BLBF-194-PG-D3-Blizzard Battlefoil-Pierre Gar\u00e7on Debut-GLOW",
+        "BLBF-325-PG-D3-Blizzard Battlefoil-Pierre Gar\u00e7on Debut-FIRE",
+        "BLBF-63-PG-D3-Blizzard Battlefoil-Pierre Gar\u00e7on Debut-HEX"
       ]
     },
     "Palmer": {
@@ -5065,6 +6938,24 @@
         "BFA-85-Peek-A-Boo-Inspired Ink Battlefoil-Picabo Street Debut-FIRE",
         "BFA-9-Peek-A-Boo-Inspired Ink Battlefoil-Picabo Street Debut-HEX",
         "BGA-9-Peek-A-Boo-Inspired Ink Bubble Gum Battlefoil-Picabo Street Debut-GUM"
+      ]
+    },
+    "Pepper Spray": {
+      "count": 93,
+      "athletes": [
+        "Pepper Johnson"
+      ],
+      "bobaIds": [
+        "PJA1-Pepper Spray-Inspired Ink Superfoil-Debut-SUPER",
+        "PJA2-Pepper Spray-Inspired Ink Battlefoil-Debut-GUM",
+        "PJA3-Pepper Spray-Inspired Ink Battlefoil-Debut-HEX",
+        "PJA4-Pepper Spray-Inspired Ink Battlefoil-Debut-GLOW",
+        "PJA5-Pepper Spray-Inspired Ink Battlefoil-Debut-FIRE",
+        "PJA6-Pepper Spray-Inspired Ink Battlefoil-Debut-ICE",
+        "PJA7-Pepper Spray-Inspired Ink Battlefoil-Debut-STEEL",
+        "PJA8-Pepper Spray-Inspired Ink Battlefoil-Debut-STEEL",
+        "PJA9-Pepper Spray-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF62-Pepper Spray-Superfoil-Debut-SUPER"
       ]
     },
     "Peppers": {
@@ -5144,8 +7035,26 @@
         "SSE-8-Pet-Dog-Paper & Battlefoil-Sandstorm Edition-GLOW"
       ]
     },
+    "Philament": {
+      "count": 93,
+      "athletes": [
+        "Phil Simms"
+      ],
+      "bobaIds": [
+        "PSA1-Philament-Inspired Ink Superfoil-Debut-SUPER",
+        "PSA2-Philament-Inspired Ink Battlefoil-Debut-GUM",
+        "PSA3-Philament-Inspired Ink Battlefoil-Debut-HEX",
+        "PSA4-Philament-Inspired Ink Battlefoil-Debut-GLOW",
+        "PSA5-Philament-Inspired Ink Battlefoil-Debut-FIRE",
+        "PSA6-Philament-Inspired Ink Battlefoil-Debut-ICE",
+        "PSA7-Philament-Inspired Ink Battlefoil-Debut-STEEL",
+        "PSA8-Philament-Inspired Ink Battlefoil-Debut-STEEL",
+        "PSA9-Philament-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF37-Philament-Superfoil-Debut-SUPER"
+      ]
+    },
     "Phoenix": {
-      "count": 47,
+      "count": 148,
       "athletes": [
         "Bo Nix"
       ],
@@ -5216,6 +7125,18 @@
         "BLBF-31-Pudge-Blizzard Battlefoil-Carlton Fisk Debut-HEX"
       ]
     },
+    "Puka Nacua": {
+      "count": 4,
+      "athletes": [
+        "Puka Nacua"
+      ],
+      "bobaIds": [
+        "P108-Puka Nacua-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P144-Puka Nacua-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P36-Puka Nacua-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P72-Puka Nacua-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "PukaDot": {
       "count": 46,
       "athletes": [
@@ -5232,6 +7153,78 @@
         "BF-285-PukaDot-Battlefoil-First Edition-STEEL",
         "BF-45-PukaDot-Battlefoil-First Edition-HEX",
         "BGBF-48-PukaDot-Bubble Gum Battlefoil-First Edition-GUM"
+      ]
+    },
+    "Pukadot": {
+      "count": 95,
+      "athletes": [
+        "Puka Nacua"
+      ],
+      "bobaIds": [
+        "PNA1-Pukadot-Inspired Ink Superfoil-Unmasked-SUPER",
+        "PNA2-Pukadot-Inspired Ink Battlefoil-Unmasked-GUM",
+        "PNA3-Pukadot-Inspired Ink Battlefoil-Unmasked-HEX",
+        "PNA4-Pukadot-Inspired Ink Battlefoil-Unmasked-GLOW",
+        "PNA5-Pukadot-Inspired Ink Battlefoil-Unmasked-FIRE",
+        "PNA6-Pukadot-Inspired Ink Battlefoil-Unmasked-ICE",
+        "PNA7-Pukadot-Inspired Ink Battlefoil-Unmasked-STEEL",
+        "PNA8-Pukadot-Inspired Ink Battlefoil-Unmasked-STEEL",
+        "PNA9-Pukadot-Inspired Ink Battlefoil-Unmasked-BRAWL",
+        "SF2-Pukadot-Superfoil-Unmasked-SUPER"
+      ]
+    },
+    "Quads": {
+      "count": 101,
+      "athletes": [
+        "Saquon Barkley"
+      ],
+      "bobaIds": [
+        "12-Quads-Base Set-First Edition-FIRE",
+        "132-Quads-Base Set-First Edition-STEEL",
+        "192-Quads-Base Set-First Edition-BRAWL",
+        "72-Quads-Base Set-First Edition-ICE",
+        "BF12-Quads-Battlefoil-First Edition-HEX",
+        "BF132-Quads-Battlefoil-First Edition-FIRE",
+        "BF192-Quads-Battlefoil-First Edition-ICE",
+        "BF252-Quads-Battlefoil-First Edition-STEEL",
+        "BF312-Quads-Battlefoil-First Edition-BRAWL",
+        "BF72-Quads-Battlefoil-First Edition-GLOW"
+      ]
+    },
+    "Quarter Staff": {
+      "count": 101,
+      "athletes": [
+        "Matthew Stafford"
+      ],
+      "bobaIds": [
+        "148-Quarter Staff-Base Set-First Edition-STEEL",
+        "208-Quarter Staff-Base Set-First Edition-BRAWL",
+        "28-Quarter Staff-Base Set-First Edition-FIRE",
+        "88-Quarter Staff-Base Set-First Edition-ICE",
+        "BF148-Quarter Staff-Battlefoil-First Edition-FIRE",
+        "BF208-Quarter Staff-Battlefoil-First Edition-ICE",
+        "BF268-Quarter Staff-Battlefoil-First Edition-STEEL",
+        "BF28-Quarter Staff-Battlefoil-First Edition-HEX",
+        "BF328-Quarter Staff-Battlefoil-First Edition-BRAWL",
+        "BF88-Quarter Staff-Battlefoil-First Edition-GLOW"
+      ]
+    },
+    "Quick Draw": {
+      "count": 93,
+      "athletes": [
+        "Mike Quick"
+      ],
+      "bobaIds": [
+        "MQA1-Quick Draw-Inspired Ink Superfoil-Debut-SUPER",
+        "MQA2-Quick Draw-Inspired Ink Battlefoil-Debut-GUM",
+        "MQA3-Quick Draw-Inspired Ink Battlefoil-Debut-HEX",
+        "MQA4-Quick Draw-Inspired Ink Battlefoil-Debut-GLOW",
+        "MQA5-Quick Draw-Inspired Ink Battlefoil-Debut-FIRE",
+        "MQA6-Quick Draw-Inspired Ink Battlefoil-Debut-ICE",
+        "MQA7-Quick Draw-Inspired Ink Battlefoil-Debut-STEEL",
+        "MQA8-Quick Draw-Inspired Ink Battlefoil-Debut-STEEL",
+        "MQA9-Quick Draw-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF53-Quick Draw-Superfoil-Debut-SUPER"
       ]
     },
     "Rainestorm": {
@@ -5288,6 +7281,60 @@
         "BLBF-287-Ramponage-Blizzard Battlefoil-Christie Pearce Rampone Debut-FIRE"
       ]
     },
+    "Randall Cunningham": {
+      "count": 4,
+      "athletes": [
+        "Randall Cunningham"
+      ],
+      "bobaIds": [
+        "P130-Randall Cunningham-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P166-Randall Cunningham-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P58-Randall Cunningham-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P94-Randall Cunningham-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
+    "Randy Moss": {
+      "count": 4,
+      "athletes": [
+        "Randy Moss"
+      ],
+      "bobaIds": [
+        "P112-Randy Moss-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P148-Randy Moss-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P40-Randy Moss-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P76-Randy Moss-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
+    "Reindeer Hunter": {
+      "count": 101,
+      "athletes": [
+        "Myles Garrett"
+      ],
+      "bobaIds": [
+        "129-Reindeer Hunter-Base Set-First Edition-STEEL",
+        "189-Reindeer Hunter-Base Set-First Edition-BRAWL",
+        "69-Reindeer Hunter-Base Set-First Edition-ICE",
+        "9-Reindeer Hunter-Base Set-First Edition-FIRE",
+        "BF129-Reindeer Hunter-Battlefoil-First Edition-FIRE",
+        "BF189-Reindeer Hunter-Battlefoil-First Edition-ICE",
+        "BF249-Reindeer Hunter-Battlefoil-First Edition-STEEL",
+        "BF309-Reindeer Hunter-Battlefoil-First Edition-BRAWL",
+        "BF69-Reindeer Hunter-Battlefoil-First Edition-GLOW",
+        "BF9-Reindeer Hunter-Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Richard Dent": {
+      "count": 4,
+      "athletes": [
+        "Richard Dent"
+      ],
+      "bobaIds": [
+        "P132-Richard Dent-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P168-Richard Dent-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P60-Richard Dent-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P96-Richard Dent-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Risarcher": {
       "count": 46,
       "athletes": [
@@ -5304,6 +7351,18 @@
         "BF-299-Risarcher-Battlefoil-First Edition-STEEL",
         "BF-59-Risarcher-Battlefoil-First Edition-HEX",
         "BGBF-62-Risarcher-Bubble Gum Battlefoil-First Edition-GUM"
+      ]
+    },
+    "Rob Gronkowski": {
+      "count": 4,
+      "athletes": [
+        "Rob Gronkowski"
+      ],
+      "bobaIds": [
+        "P116-Rob Gronkowski-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P152-Rob Gronkowski-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P44-Rob Gronkowski-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P80-Rob Gronkowski-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
       ]
     },
     "Robin Hood": {
@@ -5340,6 +7399,24 @@
         "BLBF-10-Rocket-Blizzard Battlefoil-Roger Clemens Debut-HEX",
         "BLBF-141-Rocket-Blizzard Battlefoil-Roger Clemens Debut-GLOW",
         "BLBF-272-Rocket-Blizzard Battlefoil-Roger Clemens Debut-FIRE"
+      ]
+    },
+    "Rockhead": {
+      "count": 101,
+      "athletes": [
+        "Chris Doleman"
+      ],
+      "bobaIds": [
+        "100-Rockhead-Base Set-First Edition-ICE",
+        "160-Rockhead-Base Set-First Edition-STEEL",
+        "220-Rockhead-Base Set-First Edition-BRAWL",
+        "40-Rockhead-Base Set-First Edition-FIRE",
+        "BF100-Rockhead-Battlefoil-First Edition-GLOW",
+        "BF160-Rockhead-Battlefoil-First Edition-FIRE",
+        "BF220-Rockhead-Battlefoil-First Edition-ICE",
+        "BF280-Rockhead-Battlefoil-First Edition-STEEL",
+        "BF340-Rockhead-Battlefoil-First Edition-BRAWL",
+        "BF40-Rockhead-Battlefoil-First Edition-HEX"
       ]
     },
     "Rockstar": {
@@ -5396,6 +7473,18 @@
         "BLBF-61-Rollin'-Blizzard Battlefoil-Scott Rolen Debut-HEX"
       ]
     },
+    "Ronnie Lott": {
+      "count": 4,
+      "athletes": [
+        "Ronnie Lott"
+      ],
+      "bobaIds": [
+        "P117-Ronnie Lott-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P153-Ronnie Lott-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P45-Ronnie Lott-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P81-Ronnie Lott-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Rook": {
       "count": 82,
       "athletes": [
@@ -5412,6 +7501,24 @@
         "ABF-503-Rook-Alpha Battlefoil-First Edition-ICE",
         "ABF-634-Rook-Alpha Battlefoil-First Edition-STEEL",
         "ABF-765-Rook-Alpha Battlefoil-First Edition-BRAWL"
+      ]
+    },
+    "Ryptillian": {
+      "count": 101,
+      "athletes": [
+        "Mark Rypien"
+      ],
+      "bobaIds": [
+        "113-Ryptillian-Base Set-First Edition-ICE",
+        "173-Ryptillian-Base Set-First Edition-STEEL",
+        "233-Ryptillian-Base Set-First Edition-BRAWL",
+        "53-Ryptillian-Base Set-First Edition-FIRE",
+        "BF113-Ryptillian-Battlefoil-First Edition-GLOW",
+        "BF173-Ryptillian-Battlefoil-First Edition-FIRE",
+        "BF233-Ryptillian-Battlefoil-First Edition-ICE",
+        "BF293-Ryptillian-Battlefoil-First Edition-STEEL",
+        "BF353-Ryptillian-Battlefoil-First Edition-BRAWL",
+        "BF53-Ryptillian-Battlefoil-First Edition-HEX"
       ]
     },
     "SaQuads": {
@@ -5444,6 +7551,42 @@
         "BF-36-Sabotage-Battlefoil-First Edition-HEX",
         "BF-96-Sabotage-Battlefoil-First Edition-GLOW",
         "BGBF-39-Sabotage-Bubble Gum Battlefoil-First Edition-GUM"
+      ]
+    },
+    "Sack King": {
+      "count": 95,
+      "athletes": [
+        "Bruce Smith"
+      ],
+      "bobaIds": [
+        "BRSA1-Sack King-Inspired Ink Superfoil-Debut-SUPER",
+        "BRSA2-Sack King-Inspired Ink Battlefoil-Debut-GUM",
+        "BRSA3-Sack King-Inspired Ink Battlefoil-Debut-HEX",
+        "BRSA4-Sack King-Inspired Ink Battlefoil-Debut-GLOW",
+        "BRSA5-Sack King-Inspired Ink Battlefoil-Debut-FIRE",
+        "BRSA6-Sack King-Inspired Ink Battlefoil-Debut-ICE",
+        "BRSA7-Sack King-Inspired Ink Battlefoil-Debut-STEEL",
+        "BRSA8-Sack King-Inspired Ink Battlefoil-Debut-STEEL",
+        "BRSA9-Sack King-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF30-Sack King-Superfoil-Debut-SUPER"
+      ]
+    },
+    "Samurai Mike": {
+      "count": 95,
+      "athletes": [
+        "Mike Singletary"
+      ],
+      "bobaIds": [
+        "MSA1-Samurai Mike-Inspired Ink Superfoil-Debut-SUPER",
+        "MSA2-Samurai Mike-Inspired Ink Battlefoil-Debut-GUM",
+        "MSA3-Samurai Mike-Inspired Ink Battlefoil-Debut-HEX",
+        "MSA4-Samurai Mike-Inspired Ink Battlefoil-Debut-GLOW",
+        "MSA5-Samurai Mike-Inspired Ink Battlefoil-Debut-FIRE",
+        "MSA6-Samurai Mike-Inspired Ink Battlefoil-Debut-ICE",
+        "MSA7-Samurai Mike-Inspired Ink Battlefoil-Debut-STEEL",
+        "MSA8-Samurai Mike-Inspired Ink Battlefoil-Debut-STEEL",
+        "MSA9-Samurai Mike-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF43-Samurai Mike-Superfoil-Debut-SUPER"
       ]
     },
     "Santa-Moss": {
@@ -5483,7 +7626,7 @@
       ]
     },
     "Scary": {
-      "count": 82,
+      "count": 183,
       "athletes": [
         "Terry McLaurin"
       ],
@@ -5501,7 +7644,7 @@
       ]
     },
     "Sea-Largent": {
-      "count": 39,
+      "count": 134,
       "athletes": [
         "Steve Largent"
       ],
@@ -5545,6 +7688,42 @@
         "ALT-5-Sensei-Billy Cameo Alt Arts-Billy BOBA KAI-ALT"
       ]
     },
+    "Sevenring": {
+      "count": 93,
+      "athletes": [
+        "Tom Brady"
+      ],
+      "bobaIds": [
+        "B68-Sevenring-Blue Battlefoil-First Edition-ICE",
+        "BG1-Sevenring-Superfoil-First Edition-GUM",
+        "G68-Sevenring-Green Battlefoil-First Edition-GLOW",
+        "O68-Sevenring-Orange Battlefoil-First Edition-FIRE",
+        "P68-Sevenring-Pink Battlefoil-First Edition-HEX",
+        "R201-Sevenring-80's 8-Bit Rad Battlefoil-First Edition-GLOW",
+        "R68-Sevenring-80's 8-Bit Rad Battlefoil-First Edition-HEX",
+        "R68-Sevenring-Red Battlefoil-First Edition-BRAWL",
+        "S68-Sevenring-Silver Battlefoil-First Edition-STEEL",
+        "SF67-Sevenring-Superfoil-First Edition-SUPER"
+      ]
+    },
+    "Shadowstrike": {
+      "count": 101,
+      "athletes": [
+        "Davante Adams"
+      ],
+      "bobaIds": [
+        "154-Shadowstrike-Base Set-First Edition-STEEL",
+        "214-Shadowstrike-Base Set-First Edition-BRAWL",
+        "34-Shadowstrike-Base Set-First Edition-FIRE",
+        "94-Shadowstrike-Base Set-First Edition-ICE",
+        "BF154-Shadowstrike-Battlefoil-First Edition-FIRE",
+        "BF214-Shadowstrike-Battlefoil-First Edition-ICE",
+        "BF274-Shadowstrike-Battlefoil-First Edition-STEEL",
+        "BF334-Shadowstrike-Battlefoil-First Edition-BRAWL",
+        "BF34-Shadowstrike-Battlefoil-First Edition-HEX",
+        "BF94-Shadowstrike-Battlefoil-First Edition-GLOW"
+      ]
+    },
     "Shells": {
       "count": 70,
       "athletes": [
@@ -5564,8 +7743,9 @@
       ]
     },
     "Shepherd": {
-      "count": 37,
+      "count": 138,
       "athletes": [
+        "CeeDee Lamb",
         "Ceedee Lamb"
       ],
       "bobaIds": [
@@ -5579,6 +7759,24 @@
         "BF-174-Shepherd-Battlefoil-First Edition-ICE",
         "BF-175-Shepherd-Battlefoil-First Edition-STEEL",
         "BGBF-35-Shepherd-Battlefoil-First Edition-GUM"
+      ]
+    },
+    "Sheriff": {
+      "count": 93,
+      "athletes": [
+        "Peyton Manning"
+      ],
+      "bobaIds": [
+        "B71-Sheriff-Blue Battlefoil-First Edition-ICE",
+        "BG4-Sheriff-Superfoil-First Edition-GUM",
+        "G71-Sheriff-Green Battlefoil-First Edition-GLOW",
+        "O71-Sheriff-Orange Battlefoil-First Edition-FIRE",
+        "P71-Sheriff-Pink Battlefoil-First Edition-HEX",
+        "R204-Sheriff-80's 8-Bit Rad Battlefoil-First Edition-GLOW",
+        "R71-Sheriff-80's 8-Bit Rad Battlefoil-First Edition-HEX",
+        "R71-Sheriff-Red Battlefoil-First Edition-BRAWL",
+        "S71-Sheriff-Silver Battlefoil-First Edition-STEEL",
+        "SF70-Sheriff-Superfoil-First Edition-SUPER"
       ]
     },
     "Showtime": {
@@ -5600,8 +7798,9 @@
       ]
     },
     "Shrouded": {
-      "count": 38,
+      "count": 139,
       "athletes": [
+        "C.J. Stroud",
         "CJ Stroud"
       ],
       "bobaIds": [
@@ -5615,6 +7814,24 @@
         "BF-29-Shrouded-Battlefoil-First Edition-ICE",
         "BF-30-Shrouded-Battlefoil-First Edition-STEEL",
         "BGBF-6-Shrouded-Battlefoil-First Edition-GUM"
+      ]
+    },
+    "Shuffler": {
+      "count": 95,
+      "athletes": [
+        "Jim McMahon"
+      ],
+      "bobaIds": [
+        "JMA1-Shuffler-Inspired Ink Superfoil-Debut-SUPER",
+        "JMA2-Shuffler-Inspired Ink Battlefoil-Debut-GUM",
+        "JMA3-Shuffler-Inspired Ink Battlefoil-Debut-HEX",
+        "JMA4-Shuffler-Inspired Ink Battlefoil-Debut-GLOW",
+        "JMA5-Shuffler-Inspired Ink Battlefoil-Debut-FIRE",
+        "JMA6-Shuffler-Inspired Ink Battlefoil-Debut-ICE",
+        "JMA7-Shuffler-Inspired Ink Battlefoil-Debut-STEEL",
+        "JMA8-Shuffler-Inspired Ink Battlefoil-Debut-STEEL",
+        "JMA9-Shuffler-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF25-Shuffler-Superfoil-Debut-SUPER"
       ]
     },
     "Shystep": {
@@ -5653,8 +7870,26 @@
         "BGBF-42-Simon Says-Bubble Gum Battlefoil-First Edition-GUM"
       ]
     },
+    "Skatter": {
+      "count": 101,
+      "athletes": [
+        "Cam Skattebo"
+      ],
+      "bobaIds": [
+        "139-Skatter-Base Set-First Edition-STEEL",
+        "19-Skatter-Base Set-First Edition-FIRE",
+        "199-Skatter-Base Set-First Edition-BRAWL",
+        "79-Skatter-Base Set-First Edition-ICE",
+        "BF139-Skatter-Battlefoil-First Edition-FIRE",
+        "BF19-Skatter-Battlefoil-First Edition-HEX",
+        "BF199-Skatter-Battlefoil-First Edition-ICE",
+        "BF259-Skatter-Battlefoil-First Edition-STEEL",
+        "BF319-Skatter-Battlefoil-First Edition-BRAWL",
+        "BF79-Skatter-Battlefoil-First Edition-GLOW"
+      ]
+    },
     "Skeee": {
-      "count": 30,
+      "count": 27,
       "athletes": [
         "Paul Skenes"
       ],
@@ -5668,7 +7903,7 @@
         "BL-P117-Skeee-Pink Blast-First Edition-HEX",
         "BL-S117-Skeee-Silver Blast-First Edition-STEEL",
         "FT-41-Skeee-Fire Tracks Battlefoil-First Edition-FIRE",
-        "GBF-41-Skeee-Green Battlefoil-First Edition"
+        "GLBF-41-Skeee-Grandma's Linoleum Battlefoil-First Edition-HEX"
       ]
     },
     "Skuba": {
@@ -5705,6 +7940,24 @@
         "BFA-30-Slash-Inspired Ink Battlefoil-Kordell Stewart Debut-HEX",
         "BFA-68-Slash-Inspired Ink Battlefoil-Kordell Stewart Debut-GLOW",
         "BGA-30-Slash-Inspired Ink Bubble Gum Battlefoil-Kordell Stewart Debut-GUM"
+      ]
+    },
+    "Slaughterhouse": {
+      "count": 101,
+      "athletes": [
+        "Webster Slaughter"
+      ],
+      "bobaIds": [
+        "115-Slaughterhouse-Base Set-First Edition-ICE",
+        "175-Slaughterhouse-Base Set-First Edition-STEEL",
+        "235-Slaughterhouse-Base Set-First Edition-BRAWL",
+        "55-Slaughterhouse-Base Set-First Edition-FIRE",
+        "BF115-Slaughterhouse-Battlefoil-First Edition-GLOW",
+        "BF175-Slaughterhouse-Battlefoil-First Edition-FIRE",
+        "BF235-Slaughterhouse-Battlefoil-First Edition-ICE",
+        "BF295-Slaughterhouse-Battlefoil-First Edition-STEEL",
+        "BF355-Slaughterhouse-Battlefoil-First Edition-BRAWL",
+        "BF55-Slaughterhouse-Battlefoil-First Edition-HEX"
       ]
     },
     "Smoke": {
@@ -5852,7 +8105,7 @@
       ]
     },
     "Sterling": {
-      "count": 39,
+      "count": 132,
       "athletes": [
         "Sterling Sharpe"
       ],
@@ -5867,6 +8120,30 @@
         "BFA-25-Sterling-Inspired Ink Battlefoil-Sterling Sharpe Debut-HEX",
         "BFA-63-Sterling-Inspired Ink Battlefoil-Sterling Sharpe Debut-GLOW",
         "BGA-25-Sterling-Inspired Ink Bubble Gum Battlefoil-Sterling Sharpe Debut-GUM"
+      ]
+    },
+    "Steve Largent": {
+      "count": 4,
+      "athletes": [
+        "Steve Largent"
+      ],
+      "bobaIds": [
+        "P127-Steve Largent-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P163-Steve Largent-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P55-Steve Largent-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P91-Steve Largent-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
+    "Steve Young": {
+      "count": 4,
+      "athletes": [
+        "Steve Young"
+      ],
+      "bobaIds": [
+        "P115-Steve Young-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P151-Steve Young-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P43-Steve Young-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P79-Steve Young-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
       ]
     },
     "Stitcher": {
@@ -5905,8 +8182,44 @@
         "ABF-377-Superbaby-Alpha Battlefoil-2026 Edition-FIRE"
       ]
     },
+    "Sweetest of Sweet": {
+      "count": 93,
+      "athletes": [
+        "Walter Payton"
+      ],
+      "bobaIds": [
+        "B72-Sweetest of Sweet-Blue Battlefoil-First Edition-ICE",
+        "BG5-Sweetest of Sweet-Superfoil-First Edition-GUM",
+        "G72-Sweetest of Sweet-Green Battlefoil-First Edition-GLOW",
+        "O72-Sweetest of Sweet-Orange Battlefoil-First Edition-FIRE",
+        "P72-Sweetest of Sweet-Pink Battlefoil-First Edition-HEX",
+        "R205-Sweetest of Sweet-80's 8-Bit Rad Battlefoil-First Edition-GLOW",
+        "R72-Sweetest of Sweet-80's 8-Bit Rad Battlefoil-First Edition-HEX",
+        "R72-Sweetest of Sweet-Red Battlefoil-First Edition-BRAWL",
+        "S72-Sweetest of Sweet-Silver Battlefoil-First Edition-STEEL",
+        "SF71-Sweetest of Sweet-Superfoil-First Edition-SUPER"
+      ]
+    },
+    "Swervin\u2019": {
+      "count": 101,
+      "athletes": [
+        "Michael Irvin"
+      ],
+      "bobaIds": [
+        "10-Swervin\u2019-Base Set-First Edition-FIRE",
+        "130-Swervin\u2019-Base Set-First Edition-STEEL",
+        "190-Swervin\u2019-Base Set-First Edition-BRAWL",
+        "70-Swervin\u2019-Base Set-First Edition-ICE",
+        "BF10-Swervin\u2019-Battlefoil-First Edition-HEX",
+        "BF130-Swervin\u2019-Battlefoil-First Edition-FIRE",
+        "BF190-Swervin\u2019-Battlefoil-First Edition-ICE",
+        "BF250-Swervin\u2019-Battlefoil-First Edition-STEEL",
+        "BF310-Swervin\u2019-Battlefoil-First Edition-BRAWL",
+        "BF70-Swervin\u2019-Battlefoil-First Edition-GLOW"
+      ]
+    },
     "Switchblade": {
-      "count": 82,
+      "count": 183,
       "athletes": [
         "Travis Hunter"
       ],
@@ -5941,6 +8254,24 @@
         "BGA-29-Swoopes-Inspired Ink Battlefoil-Sheryl Swoopes Debut-GUM"
       ]
     },
+    "T.D.": {
+      "count": 93,
+      "athletes": [
+        "Tony Dorsett"
+      ],
+      "bobaIds": [
+        "SF39-T.D.-Superfoil-Debut-SUPER",
+        "TDA1-T.D.-Inspired Ink Superfoil-Debut-SUPER",
+        "TDA2-T.D.-Inspired Ink Battlefoil-Debut-GUM",
+        "TDA3-T.D.-Inspired Ink Battlefoil-Debut-HEX",
+        "TDA4-T.D.-Inspired Ink Battlefoil-Debut-GLOW",
+        "TDA5-T.D.-Inspired Ink Battlefoil-Debut-FIRE",
+        "TDA6-T.D.-Inspired Ink Battlefoil-Debut-ICE",
+        "TDA7-T.D.-Inspired Ink Battlefoil-Debut-STEEL",
+        "TDA8-T.D.-Inspired Ink Battlefoil-Debut-STEEL",
+        "TDA9-T.D.-Inspired Ink Battlefoil-Debut-BRAWL"
+      ]
+    },
     "Tank": {
       "count": 67,
       "athletes": [
@@ -5963,7 +8294,7 @@
       "count": 119,
       "athletes": [
         "Fernando Tatis Jr.",
-        "Fernando Tatís Jr."
+        "Fernando Tat\u00eds Jr."
       ],
       "bobaIds": [
         "151-Tattoo-Base Set-2026 Edition-STEEL",
@@ -5994,6 +8325,13 @@
         "BF-34-Taze'em-Battlefoil-First Edition-ICE",
         "BF-35-Taze'em-Battlefoil-First Edition-STEEL",
         "BGBF-7-Taze'em-Battlefoil-First Edition-GUM"
+      ]
+    },
+    "The Flyers": {
+      "count": 1,
+      "athletes": [],
+      "bobaIds": [
+        "HT5-The Flyers-Halftime Alts-Tecmo Bowl Halftime-ALT"
       ]
     },
     "The Ironman": {
@@ -6031,6 +8369,31 @@
         "BLBF-133-The Kid-Blizzard Battlefoil-Cover Hero-GLOW",
         "BLBF-2-The Kid-Blizzard Battlefoil-Cover Hero-HEX",
         "BLBF-264-The Kid-Blizzard Battlefoil-Cover Hero-FIRE"
+      ]
+    },
+    "The Manster": {
+      "count": 93,
+      "athletes": [
+        "Randy White"
+      ],
+      "bobaIds": [
+        "RWA1-The Manster-Inspired Ink Superfoil-Debut-SUPER",
+        "RWA2-The Manster-Inspired Ink Battlefoil-Debut-GUM",
+        "RWA3-The Manster-Inspired Ink Battlefoil-Debut-HEX",
+        "RWA4-The Manster-Inspired Ink Battlefoil-Debut-GLOW",
+        "RWA5-The Manster-Inspired Ink Battlefoil-Debut-FIRE",
+        "RWA6-The Manster-Inspired Ink Battlefoil-Debut-ICE",
+        "RWA7-The Manster-Inspired Ink Battlefoil-Debut-STEEL",
+        "RWA8-The Manster-Inspired Ink Battlefoil-Debut-STEEL",
+        "RWA9-The Manster-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF63-The Manster-Superfoil-Debut-SUPER"
+      ]
+    },
+    "The Pom-Poms": {
+      "count": 1,
+      "athletes": [],
+      "bobaIds": [
+        "HT2-The Pom-Poms-Halftime Alts-Tecmo Bowl Halftime-ALT"
       ]
     },
     "The Red Baron": {
@@ -6123,8 +8486,20 @@
         "BGA-20-Thrill-Inspired Ink Battlefoil-Will Clark Debut-GUM"
       ]
     },
+    "Thurman Thomas": {
+      "count": 4,
+      "athletes": [
+        "Thurman Thomas"
+      ],
+      "bobaIds": [
+        "P123-Thurman Thomas-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P159-Thurman Thomas-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P51-Thurman Thomas-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P87-Thurman Thomas-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Thurmanator": {
-      "count": 32,
+      "count": 126,
       "athletes": [
         "Thurman Thomas"
       ],
@@ -6177,6 +8552,18 @@
         "BGA-31-Tikoff-Inspired Ink Bubble Gum Battlefoil-Fred Biletnikoff Debut-GUM"
       ]
     },
+    "Tim Brown": {
+      "count": 4,
+      "athletes": [
+        "Tim Brown"
+      ],
+      "bobaIds": [
+        "P100-Tim Brown-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P136-Tim Brown-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P172-Tim Brown-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P64-Tim Brown-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Time": {
       "count": 37,
       "athletes": [
@@ -6196,7 +8583,7 @@
       ]
     },
     "Timmy": {
-      "count": 32,
+      "count": 127,
       "athletes": [
         "Tim Brown"
       ],
@@ -6249,6 +8636,24 @@
         "BGBF-20-Tongue-Twister-Battlefoil-First Edition-GUM"
       ]
     },
+    "Too Tall": {
+      "count": 93,
+      "athletes": [
+        "Ed \"Too Tall\" Jones"
+      ],
+      "bobaIds": [
+        "EJA1-Too Tall-Inspired Ink Superfoil-Debut-SUPER",
+        "EJA2-Too Tall-Inspired Ink Battlefoil-Debut-GUM",
+        "EJA3-Too Tall-Inspired Ink Battlefoil-Debut-HEX",
+        "EJA4-Too Tall-Inspired Ink Battlefoil-Debut-GLOW",
+        "EJA5-Too Tall-Inspired Ink Battlefoil-Debut-FIRE",
+        "EJA6-Too Tall-Inspired Ink Battlefoil-Debut-ICE",
+        "EJA7-Too Tall-Inspired Ink Battlefoil-Debut-STEEL",
+        "EJA8-Too Tall-Inspired Ink Battlefoil-Debut-STEEL",
+        "EJA9-Too Tall-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF41-Too Tall-Superfoil-Debut-SUPER"
+      ]
+    },
     "Torque": {
       "count": 46,
       "athletes": [
@@ -6285,8 +8690,20 @@
         "BGBF-45-Triple Threat-Battlefoil-First Edition-GUM"
       ]
     },
+    "Troy Aikman": {
+      "count": 4,
+      "athletes": [
+        "Troy Aikman"
+      ],
+      "bobaIds": [
+        "P120-Troy Aikman-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P156-Troy Aikman-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P48-Troy Aikman-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P84-Troy Aikman-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Troy of Dallas": {
-      "count": 70,
+      "count": 165,
       "athletes": [
         "Troy Aikman"
       ],
@@ -6321,6 +8738,24 @@
         "BGBF-23-Turntable-Battlefoil-First Edition-GUM"
       ]
     },
+    "Ultimate Weapon": {
+      "count": 95,
+      "athletes": [
+        "Randall Cunningham"
+      ],
+      "bobaIds": [
+        "RCA1-Ultimate Weapon-Inspired Ink Superfoil-Debut-SUPER",
+        "RCA2-Ultimate Weapon-Inspired Ink Battlefoil-Debut-GUM",
+        "RCA3-Ultimate Weapon-Inspired Ink Battlefoil-Debut-HEX",
+        "RCA4-Ultimate Weapon-Inspired Ink Battlefoil-Debut-GLOW",
+        "RCA5-Ultimate Weapon-Inspired Ink Battlefoil-Debut-FIRE",
+        "RCA6-Ultimate Weapon-Inspired Ink Battlefoil-Debut-ICE",
+        "RCA7-Ultimate Weapon-Inspired Ink Battlefoil-Debut-STEEL",
+        "RCA8-Ultimate Weapon-Inspired Ink Battlefoil-Debut-STEEL",
+        "RCA9-Ultimate Weapon-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF24-Ultimate Weapon-Superfoil-Debut-SUPER"
+      ]
+    },
     "Unanimous Sandman": {
       "count": 70,
       "athletes": [
@@ -6337,6 +8772,42 @@
         "BLBF-138-Unanimous Sandman-Blizzard Battlefoil-Mariano Rivera Debut-GLOW",
         "BLBF-269-Unanimous Sandman-Blizzard Battlefoil-Mariano Rivera Debut-FIRE",
         "BLBF-7-Unanimous Sandman-Blizzard Battlefoil-Mariano Rivera Debut-HEX"
+      ]
+    },
+    "Underdoug": {
+      "count": 93,
+      "athletes": [
+        "Doug Williams"
+      ],
+      "bobaIds": [
+        "DWA1-Underdoug-Inspired Ink Superfoil-Debut-SUPER",
+        "DWA2-Underdoug-Inspired Ink Battlefoil-Debut-GUM",
+        "DWA3-Underdoug-Inspired Ink Battlefoil-Debut-HEX",
+        "DWA4-Underdoug-Inspired Ink Battlefoil-Debut-GLOW",
+        "DWA5-Underdoug-Inspired Ink Battlefoil-Debut-FIRE",
+        "DWA6-Underdoug-Inspired Ink Battlefoil-Debut-ICE",
+        "DWA7-Underdoug-Inspired Ink Battlefoil-Debut-STEEL",
+        "DWA8-Underdoug-Inspired Ink Battlefoil-Debut-STEEL",
+        "DWA9-Underdoug-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF57-Underdoug-Superfoil-Debut-SUPER"
+      ]
+    },
+    "Undrafted Wrecking Ball": {
+      "count": 93,
+      "athletes": [
+        "Gary Clark"
+      ],
+      "bobaIds": [
+        "GCA1-Undrafted Wrecking Ball-Inspired Ink Superfoil-Debut-SUPER",
+        "GCA2-Undrafted Wrecking Ball-Inspired Ink Battlefoil-Debut-GUM",
+        "GCA3-Undrafted Wrecking Ball-Inspired Ink Battlefoil-Debut-HEX",
+        "GCA4-Undrafted Wrecking Ball-Inspired Ink Battlefoil-Debut-GLOW",
+        "GCA5-Undrafted Wrecking Ball-Inspired Ink Battlefoil-Debut-FIRE",
+        "GCA6-Undrafted Wrecking Ball-Inspired Ink Battlefoil-Debut-ICE",
+        "GCA7-Undrafted Wrecking Ball-Inspired Ink Battlefoil-Debut-STEEL",
+        "GCA8-Undrafted Wrecking Ball-Inspired Ink Battlefoil-Debut-STEEL",
+        "GCA9-Undrafted Wrecking Ball-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF46-Undrafted Wrecking Ball-Superfoil-Debut-SUPER"
       ]
     },
     "Unibrow": {
@@ -6394,6 +8865,24 @@
         "ABF-74-Victory-Alpha Battlefoil-2026 Edition-HEX"
       ]
     },
+    "Vinniverde": {
+      "count": 93,
+      "athletes": [
+        "Vinny Testaverde"
+      ],
+      "bobaIds": [
+        "SF28-Vinniverde-Superfoil-Debut-SUPER",
+        "VTA1-Vinniverde-Inspired Ink Superfoil-Debut-SUPER",
+        "VTA2-Vinniverde-Inspired Ink Battlefoil-Debut-GUM",
+        "VTA3-Vinniverde-Inspired Ink Battlefoil-Debut-HEX",
+        "VTA4-Vinniverde-Inspired Ink Battlefoil-Debut-GLOW",
+        "VTA5-Vinniverde-Inspired Ink Battlefoil-Debut-FIRE",
+        "VTA6-Vinniverde-Inspired Ink Battlefoil-Debut-ICE",
+        "VTA7-Vinniverde-Inspired Ink Battlefoil-Debut-STEEL",
+        "VTA8-Vinniverde-Inspired Ink Battlefoil-Debut-STEEL",
+        "VTA9-Vinniverde-Inspired Ink Battlefoil-Debut-BRAWL"
+      ]
+    },
     "Vlad the Impaler": {
       "count": 70,
       "athletes": [
@@ -6449,7 +8938,7 @@
       ]
     },
     "Warden": {
-      "count": 82,
+      "count": 183,
       "athletes": [
         "Cam Ward"
       ],
@@ -6485,7 +8974,7 @@
       ]
     },
     "Warp": {
-      "count": 50,
+      "count": 153,
       "athletes": [
         "Lamar Jackson"
       ],
@@ -6518,6 +9007,24 @@
         "ABF-616-Wattage-Alpha Battlefoil-First Edition-STEEL",
         "ABF-747-Wattage-Alpha Battlefoil-First Edition-BRAWL",
         "ABF-92-Wattage-Alpha Battlefoil-First Edition-HEX"
+      ]
+    },
+    "Watterslide": {
+      "count": 101,
+      "athletes": [
+        "Ricky Watters"
+      ],
+      "bobaIds": [
+        "107-Watterslide-Base Set-First Edition-ICE",
+        "167-Watterslide-Base Set-First Edition-STEEL",
+        "227-Watterslide-Base Set-First Edition-BRAWL",
+        "47-Watterslide-Base Set-First Edition-FIRE",
+        "BF107-Watterslide-Battlefoil-First Edition-GLOW",
+        "BF167-Watterslide-Battlefoil-First Edition-FIRE",
+        "BF227-Watterslide-Battlefoil-First Edition-ICE",
+        "BF287-Watterslide-Battlefoil-First Edition-STEEL",
+        "BF347-Watterslide-Battlefoil-First Edition-BRAWL",
+        "BF47-Watterslide-Battlefoil-First Edition-HEX"
       ]
     },
     "Wild Beard": {
@@ -6574,6 +9081,18 @@
         "BLBF-167-Wildbeard-Blizzard Battlefoil-First Edition-GLOW"
       ]
     },
+    "William Perry": {
+      "count": 4,
+      "athletes": [
+        "William Perry"
+      ],
+      "bobaIds": [
+        "P103-William Perry-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P139-William Perry-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P175-William Perry-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT",
+        "P67-William Perry-Pixel Helmet Alt-Day 1 Tecmo Bowl-ALT"
+      ]
+    },
     "Windmill": {
       "count": 40,
       "athletes": [
@@ -6608,6 +9127,24 @@
         "BFA-48-Wizard-Inspired Ink Battlefoil-Ozzie Smith Debut-GLOW",
         "BFA-86-Wizard-Inspired Ink Battlefoil-Ozzie Smith Debut-FIRE",
         "BGA-10-Wizard-Inspired Ink Bubble Gum Battlefoil-Ozzie Smith Debut-GUM"
+      ]
+    },
+    "Woodchipper": {
+      "count": 93,
+      "athletes": [
+        "Rod Woodson"
+      ],
+      "bobaIds": [
+        "RWDA1-Woodchipper-Inspired Ink Superfoil-Debut-SUPER",
+        "RWDA2-Woodchipper-Inspired Ink Battlefoil-Debut-GUM",
+        "RWDA3-Woodchipper-Inspired Ink Battlefoil-Debut-HEX",
+        "RWDA4-Woodchipper-Inspired Ink Battlefoil-Debut-GLOW",
+        "RWDA5-Woodchipper-Inspired Ink Battlefoil-Debut-FIRE",
+        "RWDA6-Woodchipper-Inspired Ink Battlefoil-Debut-ICE",
+        "RWDA7-Woodchipper-Inspired Ink Battlefoil-Debut-STEEL",
+        "RWDA8-Woodchipper-Inspired Ink Battlefoil-Debut-STEEL",
+        "RWDA9-Woodchipper-Inspired Ink Battlefoil-Debut-BRAWL",
+        "SF64-Woodchipper-Superfoil-Debut-SUPER"
       ]
     },
     "Woody": {
@@ -6665,7 +9202,7 @@
       ]
     },
     "Yeti": {
-      "count": 37,
+      "count": 138,
       "athletes": [
         "Travis Kelce"
       ],
@@ -6683,7 +9220,7 @@
       ]
     },
     "Young-Gunner": {
-      "count": 34,
+      "count": 129,
       "athletes": [
         "Steve Young"
       ],
@@ -6698,6 +9235,24 @@
         "BFA-8-Young-Gunner-Inspired Ink Battlefoil-Steve Young Debut-FIRE",
         "BFA-9-Young-Gunner-Inspired Ink Battlefoil-Steve Young Debut-ICE",
         "BGA-3-Young-Gunner-Inspired Ink Battlefoil-Steve Young Debut-GUM"
+      ]
+    },
+    "Youngblood": {
+      "count": 101,
+      "athletes": [
+        "Bryce Young"
+      ],
+      "bobaIds": [
+        "145-Youngblood-Base Set-First Edition-STEEL",
+        "205-Youngblood-Base Set-First Edition-BRAWL",
+        "25-Youngblood-Base Set-First Edition-FIRE",
+        "85-Youngblood-Base Set-First Edition-ICE",
+        "BF145-Youngblood-Battlefoil-First Edition-FIRE",
+        "BF205-Youngblood-Battlefoil-First Edition-ICE",
+        "BF25-Youngblood-Battlefoil-First Edition-HEX",
+        "BF265-Youngblood-Battlefoil-First Edition-STEEL",
+        "BF325-Youngblood-Battlefoil-First Edition-BRAWL",
+        "BF85-Youngblood-Battlefoil-First Edition-GLOW"
       ]
     },
     "Zephyr": {
@@ -6718,57 +9273,57 @@
         "ABF-775-Zephyr-Alpha Battlefoil-First Edition-BRAWL"
       ]
     },
-    "二百": {
+    "\u4e8c\u767e": {
       "count": 1,
       "athletes": [
         "Shohei Ohtani"
       ],
       "bobaIds": [
-        "LA-30-二百-Kanjifoil-Champions Kanji Variation-ALT"
+        "LA-30-\u4e8c\u767e-Kanjifoil-Champions Kanji Variation-ALT"
       ]
     },
-    "百三十": {
+    "\u767e\u4e09\u5341": {
       "count": 1,
       "athletes": [
         "Shohei Ohtani"
       ],
       "bobaIds": [
-        "LA-35-百三十-Kanjifoil-Champions Kanji Variation-STEEL"
+        "LA-35-\u767e\u4e09\u5341-Kanjifoil-Champions Kanji Variation-STEEL"
       ]
     },
-    "百三十五": {
+    "\u767e\u4e09\u5341\u4e94": {
       "count": 2,
       "athletes": [
         "Shohei Ohtani"
       ],
       "bobaIds": [
-        "LA-33-百三十五-Kanjifoil-Champions Kanji Variation-FIRE",
-        "LA-34-百三十五-Kanjifoil-Champions Kanji Variation-ICE"
+        "LA-33-\u767e\u4e09\u5341\u4e94-Kanjifoil-Champions Kanji Variation-FIRE",
+        "LA-34-\u767e\u4e09\u5341\u4e94-Kanjifoil-Champions Kanji Variation-ICE"
       ]
     },
-    "百八十五": {
+    "\u767e\u516b\u5341\u4e94": {
       "count": 1,
       "athletes": [
         "Shohei Ohtani"
       ],
       "bobaIds": [
-        "LA-31-百八十五-Kanjifoil-Champions Kanji Variation-HEX"
+        "LA-31-\u767e\u516b\u5341\u4e94-Kanjifoil-Champions Kanji Variation-HEX"
       ]
     },
-    "百四十": {
+    "\u767e\u56db\u5341": {
       "count": 1,
       "athletes": [
         "Shohei Ohtani"
       ],
       "bobaIds": [
-        "LA-32-百四十-Kanjifoil-Champions Kanji Variation-GLOW"
+        "LA-32-\u767e\u56db\u5341-Kanjifoil-Champions Kanji Variation-GLOW"
       ]
     }
   },
   "cardTypes": {
-    "Hero": 17271,
-    "Play": 515,
-    "HotDog": 137,
+    "Hero": 30351,
+    "Play": 740,
+    "HotDog": 177,
     "Sealed Product": 45
   },
   "dbsTiers": {
@@ -6778,19 +9333,19 @@
     "Very High": 15
   },
   "hdCosts": {
-    "0": 134,
-    "1": 164,
-    "2": 137,
-    "3": 52,
-    "4": 19,
+    "0": 191,
+    "1": 249,
+    "2": 193,
+    "3": 75,
+    "4": 23,
     "5": 6,
     "6": 3
   },
   "playSubtypes": {
-    "Standard": 380,
-    "BonusPlay": 75,
+    "Standard": 580,
+    "BonusPlay": 100,
     "HTD": 60
   },
-  "totalCards": 17968,
-  "totalWithImages": 16159
+  "totalCards": 31313,
+  "totalWithImages": 29693
 }

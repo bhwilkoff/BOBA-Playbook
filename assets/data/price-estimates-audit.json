@@ -579,17 +579,17 @@
       "coverage_pct": 84.9
     },
     {
-      "weapon": "ALT",
-      "tier": null,
-      "in_catalog": 47,
-      "with_estimate": 47,
-      "coverage_pct": 100.0
-    },
-    {
       "weapon": "CYBER",
       "tier": null,
       "in_catalog": 28,
       "with_estimate": 28,
+      "coverage_pct": 100.0
+    },
+    {
+      "weapon": "ALT",
+      "tier": null,
+      "in_catalog": 47,
+      "with_estimate": 47,
       "coverage_pct": 100.0
     },
     {

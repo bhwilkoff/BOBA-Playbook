@@ -525,58 +525,58 @@
     {
       "weapon": "SUPER",
       "tier": 5,
-      "in_catalog": 455,
+      "in_catalog": 653,
       "with_estimate": 455,
-      "coverage_pct": 100.0
-    },
-    {
-      "weapon": "GUM",
-      "tier": 4,
-      "in_catalog": 499,
-      "with_estimate": 499,
-      "coverage_pct": 100.0
+      "coverage_pct": 69.7
     },
     {
       "weapon": "HEX",
       "tier": 4,
-      "in_catalog": 2491,
+      "in_catalog": 4413,
       "with_estimate": 2183,
-      "coverage_pct": 87.6
+      "coverage_pct": 49.5
+    },
+    {
+      "weapon": "GUM",
+      "tier": 4,
+      "in_catalog": 631,
+      "with_estimate": 499,
+      "coverage_pct": 79.1
     },
     {
       "weapon": "GLOW",
       "tier": 3,
-      "in_catalog": 2722,
+      "in_catalog": 4776,
       "with_estimate": 1972,
-      "coverage_pct": 72.4
+      "coverage_pct": 41.3
     },
     {
       "weapon": "ICE",
       "tier": 2,
-      "in_catalog": 3240,
+      "in_catalog": 5487,
       "with_estimate": 2902,
-      "coverage_pct": 89.6
+      "coverage_pct": 52.9
     },
     {
       "weapon": "FIRE",
       "tier": 2,
-      "in_catalog": 3241,
+      "in_catalog": 5488,
       "with_estimate": 2668,
-      "coverage_pct": 82.3
-    },
-    {
-      "weapon": "BRAWL",
-      "tier": 1,
-      "in_catalog": 1625,
-      "with_estimate": 1494,
-      "coverage_pct": 91.9
+      "coverage_pct": 48.6
     },
     {
       "weapon": "STEEL",
       "tier": 1,
-      "in_catalog": 2928,
+      "in_catalog": 4974,
       "with_estimate": 2486,
-      "coverage_pct": 84.9
+      "coverage_pct": 50.0
+    },
+    {
+      "weapon": "BRAWL",
+      "tier": 1,
+      "in_catalog": 3606,
+      "with_estimate": 1494,
+      "coverage_pct": 41.4
     },
     {
       "weapon": "CYBER",
@@ -588,9 +588,9 @@
     {
       "weapon": "ALT",
       "tier": null,
-      "in_catalog": 47,
+      "in_catalog": 290,
       "with_estimate": 47,
-      "coverage_pct": 100.0
+      "coverage_pct": 16.2
     },
     {
       "weapon": "NONE",

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-06-19",
+  "lastUpdated": "2026-06-20",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,27 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "tecmo-bowl-set-details-by-box-type",
+      "title": "Tecmo Bowl Set Details by Box Type",
+      "date": "2026-06-19",
+      "url": "https://bobattlearena.com/blog/tecmo-bowl-set-details-by-box-type",
+      "excerpt": "Bo Jackson Battle Arena Tecmo Bowl Edition, brings the nostalgia of the 80s and exciting chases with all-new Tecmo Bowl themed parallels, inserts, and the biggest autograph lineup in BoBA history! Aut..."
+    },
+    {
+      "id": "the-tecmo-bowl-8-bit-chase-starts-now",
+      "title": "The Tecmo Bowl 8-Bit Chase Starts Now",
+      "date": "2026-06-19",
+      "url": "https://bobattlearena.com/blog/the-tecmo-bowl-8-bit-chase-starts-now",
+      "excerpt": "Tecmo Bowl Edition is live, and it's a monster. This is a huge set, deep enough to keep you ripping for months. But buried inside that beast is a chase worth circling on the calendar. There are 45 8-..."
+    },
+    {
+      "id": "some-early-tecmo-bowl-edition-hits",
+      "title": "Some Early Tecmo Bowl Edition Hits",
+      "date": "2026-06-18",
+      "url": "https://bobattlearena.com/blog/some-early-tecmo-bowl-edition-hits",
+      "excerpt": "Tecmo Bowl Edition is officially out, and some huge early hits are already starting to surface. Follow the BoBA Category on Whatnot From the first boxes ripped plus the breaks, it’s clear ..."
+    },
     {
       "id": "june-18-release-timing-update",
       "title": "June 18 Release Timing Update",

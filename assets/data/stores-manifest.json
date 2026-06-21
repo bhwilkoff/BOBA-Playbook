@@ -1,9 +1,9 @@
 {
-  "scraped_at": "2026-06-14T07:52:38",
+  "scraped_at": "2026-06-21T08:05:45",
   "source": "https://bobattlearena.com/api/stores-cache",
-  "raw_file": "stores-raw-2026-06-14.json",
+  "raw_file": "stores-raw-2026-06-21.json",
   "stores_file": "stores.json",
-  "raw_count": 2094,
-  "stores_count": 2085,
-  "stores_sha256": "dc2170a24d2bb09fe0fadbd839e34ad2bd085b5dfbe57349d13ba0752873735b"
+  "raw_count": 2770,
+  "stores_count": 2761,
+  "stores_sha256": "e9735563b6db522c0140d562e32efbb5f8f03d9f66d6acf289445f7a0aa59296"
 }

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-06-25",
+  "lastUpdated": "2026-06-26",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,13 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "we-messed-up-our-apology-and-plan-to-fix-it",
+      "title": "We Messed Up: Our Apology and Plan to Fix It",
+      "date": "2026-06-25",
+      "url": "https://bobattlearena.com/blog/we-messed-up-our-apology-and-plan-to-fix-it",
+      "excerpt": "This isn't a post we enjoy writing. We hate self-inflicted wounds, and right now we've got two that need addressing. We're going to skip the excuses and get straight to it: here's what we messed up, a..."
+    },
     {
       "id": "double-mega-and-other-logistics-updates",
       "title": "Double Mega and Other Logistics Updates",

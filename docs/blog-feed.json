@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-06-26",
+  "lastUpdated": "2026-06-27",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,20 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "tecmo-bowl-edition-card-mapping",
+      "title": "Tecmo Bowl Edition Card Mapping",
+      "date": "2026-06-26",
+      "url": "https://bobattlearena.com/blog/tecmo-bowl-edition-card-mapping",
+      "excerpt": "When designing the Tecmo Bowl Insert and Parallels we started with the existing master set framework (ie the Griffey set framework) and “mapping” each card to a corresponding Tecmo Bowl version. Wh..."
+    },
+    {
+      "id": "introducing-hero-proof-cards",
+      "title": "Introducing Hero Proof Cards",
+      "date": "2026-06-26",
+      "url": "https://bobattlearena.com/blog/introducing-hero-proof-cards",
+      "excerpt": "When we send an athlete their cards to sign, they always want to keep one. But we are pretty non-negotiable when it comes to them keeping one of their best cards in the set. We refrain from giving th..."
+    },
     {
       "id": "we-messed-up-our-apology-and-plan-to-fix-it",
       "title": "We Messed Up: Our Apology and Plan to Fix It",

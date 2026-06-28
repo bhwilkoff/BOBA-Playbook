@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-06-27",
+  "lastUpdated": "2026-06-28",
   "_schema": {
     "_comment": "Per-event fields. Add real dates as BoBA announces them.",
     "id": "string — stable slug for cross-references",
@@ -31,30 +31,6 @@
       "set": "Tecmo Bowl Edition",
       "url": "https://bobattlearena.com/blog/june-18th-is-going-to-be-worth-the-wait/",
       "_curated": true
-    },
-    {
-      "id": "cardeio-c6fd76da-9add-4bca-bf64-6b2f90cfcc70",
-      "kind": "tournament",
-      "title": "SCG CON Las Vegas - Checklist Vegas Baby!",
-      "date": "2026-06-27",
-      "url": "https://play.bobattlearena.com/events/c6fd76da-9add-4bca-bf64-6b2f90cfcc70",
-      "endDate": "2026-06-28",
-      "location": "Las Vegas, NV",
-      "formats": [
-        "Playmaker Tournament"
-      ]
-    },
-    {
-      "id": "cardeio-eced3b73-1492-4630-976f-86c7526a7504",
-      "kind": "tournament",
-      "title": "Wisconsin Card Show Double Mega Sealed.",
-      "date": "2026-06-27",
-      "url": "https://play.bobattlearena.com/events/eced3b73-1492-4630-976f-86c7526a7504",
-      "endDate": "2026-06-27",
-      "location": "Milwaukee, WI",
-      "formats": [
-        "Playmaker Tournament"
-      ]
     },
     {
       "id": "cardeio-6f61aee7-c0ad-42e2-b40d-99182378216c",

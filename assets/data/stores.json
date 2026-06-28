@@ -16250,60 +16250,10 @@
     "modifiedAt": "2026-06-18T22:51:17Z"
   },
   {
-    "id": 9634,
-    "name": "CARDS HQ, LLC",
-    "slug": "cards-hq-llc-2",
-    "phone": "",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "120 INTERSTATE N PKWY, STE 222, Atlanta, GA, 30339",
-      "street": "120 INTERSTATE N PKWY, STE 222",
-      "city": "Atlanta",
-      "state": "Georgia",
-      "stateShort": "GA",
-      "postCode": "30339",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.903262,
-      "lng": -84.465725
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=cards-hq-llc-2",
-    "modifiedAt": "2026-06-18T22:51:19Z"
-  },
-  {
-    "id": 9296,
-    "name": "CARDS HQ, LLC",
-    "slug": "cards-hq-llc",
-    "phone": "",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "120 INTERSTATE N PKWY, STE 222, Atlanta, GA, 30339",
-      "street": "120 INTERSTATE N PKWY, STE 222",
-      "city": "Atlanta",
-      "state": "Georgia",
-      "stateShort": "GA",
-      "postCode": "30339",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.903262,
-      "lng": -84.465725
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=cards-hq-llc",
-    "modifiedAt": "2026-06-18T22:50:53Z"
-  },
-  {
     "id": 8170,
     "name": "CardsHQ",
     "slug": "cardshq",
-    "phone": "+1 770-713-4768",
+    "phone": "+1 678-741-7618",
     "email": "",
     "website": "",
     "address": {
@@ -16322,13 +16272,13 @@
     },
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=cardshq",
-    "modifiedAt": "2026-06-18T22:51:10Z"
+    "modifiedAt": "2026-06-24T13:05:39Z"
   },
   {
     "id": 6668,
     "name": "CardsHQ",
     "slug": "card-hq",
-    "phone": "",
+    "phone": "+1 678-741-7618",
     "email": "",
     "website": "https://www.cardshq.com/pages/get-directions",
     "address": {
@@ -16347,7 +16297,7 @@
     },
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=card-hq",
-    "modifiedAt": "2026-06-18T22:51:17Z"
+    "modifiedAt": "2026-06-24T13:05:19Z"
   },
   {
     "id": 7236,

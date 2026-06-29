@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-06-28",
+  "lastUpdated": "2026-06-29",
   "_schema": {
     "_comment": "Per-event fields. Add real dates as BoBA announces them.",
     "id": "string — stable slug for cross-references",
@@ -31,18 +31,6 @@
       "set": "Tecmo Bowl Edition",
       "url": "https://bobattlearena.com/blog/june-18th-is-going-to-be-worth-the-wait/",
       "_curated": true
-    },
-    {
-      "id": "cardeio-6f61aee7-c0ad-42e2-b40d-99182378216c",
-      "kind": "tournament",
-      "title": "SCG CON Las Vegas - Double Mega Sealed $3K",
-      "date": "2026-06-28",
-      "url": "https://play.bobattlearena.com/events/6f61aee7-c0ad-42e2-b40d-99182378216c",
-      "endDate": "2026-06-29",
-      "location": "Las Vegas, NV",
-      "formats": [
-        "Playmaker Tournament"
-      ]
     },
     {
       "id": "cardeio-0eada6dd-5f53-43b9-bd1c-149409a44fe0",

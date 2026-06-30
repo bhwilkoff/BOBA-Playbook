@@ -158,6 +158,7 @@ header { flex-shrink: 0; position: relative; }
 
 ### iOS Constraints
 - **iOS 26+ minimum deployment target** (`IPHONEOS_DEPLOYMENT_TARGET = 26.4` in pbxproj). Use iOS 26 native APIs directly — Liquid Glass, native `Tab(role: .search)`, scroll-edge effects, `.containerRelativeFrame`, `.scrollPosition`, etc. — without `@available` guards. Existing `@available(iOS 18.0, *)` guards in the codebase are no-ops; remove when touching the file but don't sweep proactively. Don't write code as a workaround for iOS 17/18 quirks.
+- **Submitting to the App Store = the cloud build (DEFAULT):** `gh workflow run appstore-build.yml -f platform=ios`. The dev Mac runs a beta macOS, so a local `xcodebuild archive` is rejected (ITMS-90301) — don't ship locally. See `docs/CLOUD-SUBMISSION.md`. Play submission: existing `android-build.yml` (tag→internal) + the new `tools/submit-play.sh` (CLI, production).
 - No third-party Swift packages — Apple frameworks only
 - Keychain for all credential storage — never UserDefaults for secrets
 

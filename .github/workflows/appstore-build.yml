@@ -1,0 +1,85 @@
+name: App Store build (cloud)
+
+# Build + sign + upload the App Store binaries on a GitHub-hosted macos-26 runner (RELEASED macOS +
+# Xcode 26.6) — the DEFAULT way to ship this app. The dev Mac is on a beta macOS, so local builds are
+# rejected ITMS-90301; and Apple keeps raising the Xcode floor (ITMS-90111). A cloud runner sidesteps
+# both, FREE for this public repo. Signing is MANUAL via .p12 secrets (cloud signing fails for this
+# team key). Bump AppVersion.xcconfig + push BEFORE dispatching so the build number is monotonic.
+#
+# REQUIRED SECRETS (shared across the team's apps; set via tools/ci_make_signing_p12.py + gh secret set):
+#   APPLE_DIST_P12 / APPLE_INSTALLER_P12 / APPLE_P12_PASSWORD / APPLE_DIST_CERT_ID
+#   ASC_KEY_P8 / ASC_KEY_ID / ASC_ISSUER_ID
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Which platform(s) to build + upload'
+        required: true
+        default: 'all'
+        type: choice
+        options: [all, ios]
+
+concurrency:
+  group: appstore-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Select a released Xcode 26.6+ (clears the ITMS-90111 floor)
+        run: |
+          XC="$(ls -d /Applications/Xcode_26.6*.app 2>/dev/null | sort -V | tail -1)"
+          [ -n "$XC" ] || XC="$(ls -d /Applications/Xcode_26.*.app 2>/dev/null | sort -V | tail -1)"
+          echo "Selected Xcode: $XC"
+          sudo xcode-select -s "$XC"
+          echo "DEVELOPER_DIR=$XC/Contents/Developer" >> "$GITHUB_ENV"
+          "$XC/Contents/Developer/usr/bin/xcodebuild" -version
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install --quiet PyJWT cryptography requests
+
+      - name: Import signing certs into a temporary keychain
+        env:
+          P12PW: ${{ secrets.APPLE_P12_PASSWORD }}
+          DIST_P12_B64: ${{ secrets.APPLE_DIST_P12 }}
+          INST_P12_B64: ${{ secrets.APPLE_INSTALLER_P12 }}
+        run: |
+          KC="$RUNNER_TEMP/aw-signing.keychain-db"
+          KCPW="$(openssl rand -hex 16)"; echo "::add-mask::$KCPW"
+          security create-keychain -p "$KCPW" "$KC"
+          security set-keychain-settings -lut 7200 "$KC"
+          security unlock-keychain -p "$KCPW" "$KC"
+          printf '%s' "$DIST_P12_B64" | base64 -d > "$RUNNER_TEMP/dist.p12"
+          printf '%s' "$INST_P12_B64" | base64 -d > "$RUNNER_TEMP/inst.p12"
+          security import "$RUNNER_TEMP/dist.p12" -k "$KC" -P "$P12PW" -A -T /usr/bin/codesign -T /usr/bin/productbuild
+          security import "$RUNNER_TEMP/inst.p12" -k "$KC" -P "$P12PW" -A -T /usr/bin/codesign -T /usr/bin/productbuild
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KCPW" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | sed 's/[" ]//g')
+          security default-keychain -s "$KC"
+          rm -f "$RUNNER_TEMP/dist.p12" "$RUNNER_TEMP/inst.p12"
+          security find-identity -v -p codesigning "$KC"
+
+      - name: Install the ASC API key + credentials
+        env:
+          ASC_KEY_P8_B64: ${{ secrets.ASC_KEY_P8 }}
+          KID: ${{ secrets.ASC_KEY_ID }}
+          ISS: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s' "$ASC_KEY_P8_B64" | base64 -d > ~/.appstoreconnect/private_keys/AuthKey_${KID}.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KID}.p8
+          printf 'ASC_KEY_ID=%s\nASC_ISSUER_ID=%s\n' "$KID" "$ISS" > tools/asc-credentials.env
+
+      - name: Archive + sign + upload to App Store Connect
+        env:
+          ASC_DIST_CERT_ID: ${{ secrets.APPLE_DIST_CERT_ID }}
+        run: |
+          echo "Building ${{ github.event.inputs.platform }} | $(sw_vers -productVersion) ($(sw_vers -buildVersion)) | $(xcodebuild -version | tr '\n' ' ')"
+          tools/submit-appstore.sh "${{ github.event.inputs.platform }}"

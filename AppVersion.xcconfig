@@ -3,8 +3,8 @@
 // Xcode identity panel; that creates a per-target override that shadows
 // this file and causes targets to drift apart again.
 
-MARKETING_VERSION = 2.418
-CURRENT_PROJECT_VERSION = 680
+MARKETING_VERSION = 2.419
+CURRENT_PROJECT_VERSION = 681
 
 // iOS 27 SDK gate (DECISIONS.md #066 amendment). The app adopts iOS-27-only
 // APIs additively, but those symbols don't exist in the iOS 26 SDK shipped

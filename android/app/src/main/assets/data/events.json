@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-07-01",
+  "lastUpdated": "2026-07-02",
   "_schema": {
     "_comment": "Per-event fields. Add real dates as BoBA announces them.",
     "id": "string — stable slug for cross-references",
@@ -31,6 +31,18 @@
       "set": "Tecmo Bowl Edition",
       "url": "https://bobattlearena.com/blog/june-18th-is-going-to-be-worth-the-wait/",
       "_curated": true
+    },
+    {
+      "id": "cardeio-2eb928e4-4750-4c44-af94-67e5e2fca59b",
+      "kind": "tournament",
+      "title": "Learn To Play Bo Jackson Battle Arena Night",
+      "date": "2026-07-08",
+      "url": "https://play.bobattlearena.com/events/2eb928e4-4750-4c44-af94-67e5e2fca59b",
+      "endDate": "2026-07-08",
+      "location": "Galax, VA",
+      "formats": [
+        "Casual Meetup"
+      ]
     },
     {
       "id": "cardeio-0eada6dd-5f53-43b9-bd1c-149409a44fe0",
@@ -64,6 +76,18 @@
       "url": "https://play.bobattlearena.com/events/099f0fb1-23ff-4810-94a3-46b95b1e314e",
       "endDate": "2026-07-11",
       "location": "Eureka Springs, Arkansas",
+      "formats": [
+        "Playmaker Tournament"
+      ]
+    },
+    {
+      "id": "cardeio-0252201d-6c93-42c3-98a0-028daf7b2e79",
+      "kind": "tournament",
+      "title": "T-roys Card Shaq Sealed Tournament Tecmo Double Mega",
+      "date": "2026-07-18",
+      "url": "https://play.bobattlearena.com/events/0252201d-6c93-42c3-98a0-028daf7b2e79",
+      "endDate": "2026-07-18",
+      "location": "Galax, VA",
       "formats": [
         "Playmaker Tournament"
       ]

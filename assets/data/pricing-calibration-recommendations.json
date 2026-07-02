@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-07-01T10:40:17.794068+00:00",
+  "generatedAt": "2026-07-02T09:48:32.967201+00:00",
   "windowDays": 14,
-  "rowsAnalyzed": 33,
-  "from": "2026-06-18",
-  "to": "2026-07-01",
+  "rowsAnalyzed": 34,
+  "from": "2026-06-19",
+  "to": "2026-07-02",
   "recommendations": [
     {
       "category": "tier_ordering_inversion",
@@ -32,10 +32,66 @@
     {
       "category": "persistent_low_coverage",
       "severity": "medium",
+      "weapon": "SUPER",
+      "tier": 5,
+      "days_below_80": 14,
+      "recommendation": "SUPER (tier 5) coverage <80% for 14/14 days. Either tracker data isn't accruing for this weapon (run `scripts/crawl_active_listings.py --treatments` with treatments where SUPER appears; or `scripts/refresh_stale_prices.py --source whatnot`) OR the strict-gate is too aggressive for this weapon's market (consider widening fallback)."
+    },
+    {
+      "category": "persistent_low_coverage",
+      "severity": "medium",
+      "weapon": "HEX",
+      "tier": 4,
+      "days_below_80": 14,
+      "recommendation": "HEX (tier 4) coverage <80% for 14/14 days. Either tracker data isn't accruing for this weapon (run `scripts/crawl_active_listings.py --treatments` with treatments where HEX appears; or `scripts/refresh_stale_prices.py --source whatnot`) OR the strict-gate is too aggressive for this weapon's market (consider widening fallback)."
+    },
+    {
+      "category": "persistent_low_coverage",
+      "severity": "medium",
+      "weapon": "GUM",
+      "tier": 4,
+      "days_below_80": 14,
+      "recommendation": "GUM (tier 4) coverage <80% for 14/14 days. Either tracker data isn't accruing for this weapon (run `scripts/crawl_active_listings.py --treatments` with treatments where GUM appears; or `scripts/refresh_stale_prices.py --source whatnot`) OR the strict-gate is too aggressive for this weapon's market (consider widening fallback)."
+    },
+    {
+      "category": "persistent_low_coverage",
+      "severity": "medium",
       "weapon": "GLOW",
       "tier": 3,
       "days_below_80": 14,
       "recommendation": "GLOW (tier 3) coverage <80% for 14/14 days. Either tracker data isn't accruing for this weapon (run `scripts/crawl_active_listings.py --treatments` with treatments where GLOW appears; or `scripts/refresh_stale_prices.py --source whatnot`) OR the strict-gate is too aggressive for this weapon's market (consider widening fallback)."
+    },
+    {
+      "category": "persistent_low_coverage",
+      "severity": "medium",
+      "weapon": "FIRE",
+      "tier": 2,
+      "days_below_80": 14,
+      "recommendation": "FIRE (tier 2) coverage <80% for 14/14 days. Either tracker data isn't accruing for this weapon (run `scripts/crawl_active_listings.py --treatments` with treatments where FIRE appears; or `scripts/refresh_stale_prices.py --source whatnot`) OR the strict-gate is too aggressive for this weapon's market (consider widening fallback)."
+    },
+    {
+      "category": "persistent_low_coverage",
+      "severity": "medium",
+      "weapon": "ICE",
+      "tier": 2,
+      "days_below_80": 14,
+      "recommendation": "ICE (tier 2) coverage <80% for 14/14 days. Either tracker data isn't accruing for this weapon (run `scripts/crawl_active_listings.py --treatments` with treatments where ICE appears; or `scripts/refresh_stale_prices.py --source whatnot`) OR the strict-gate is too aggressive for this weapon's market (consider widening fallback)."
+    },
+    {
+      "category": "persistent_low_coverage",
+      "severity": "medium",
+      "weapon": "STEEL",
+      "tier": 1,
+      "days_below_80": 14,
+      "recommendation": "STEEL (tier 1) coverage <80% for 14/14 days. Either tracker data isn't accruing for this weapon (run `scripts/crawl_active_listings.py --treatments` with treatments where STEEL appears; or `scripts/refresh_stale_prices.py --source whatnot`) OR the strict-gate is too aggressive for this weapon's market (consider widening fallback)."
+    },
+    {
+      "category": "persistent_low_coverage",
+      "severity": "medium",
+      "weapon": "BRAWL",
+      "tier": 1,
+      "days_below_80": 14,
+      "recommendation": "BRAWL (tier 1) coverage <80% for 14/14 days. Either tracker data isn't accruing for this weapon (run `scripts/crawl_active_listings.py --treatments` with treatments where BRAWL appears; or `scripts/refresh_stale_prices.py --source whatnot`) OR the strict-gate is too aggressive for this weapon's market (consider widening fallback)."
     },
     {
       "category": "persistent_suspect_low",

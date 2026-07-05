@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-07-04",
+  "lastUpdated": "2026-07-05",
   "_schema": {
     "_comment": "Per-event fields. Add real dates as BoBA announces them.",
     "id": "string — stable slug for cross-references",
@@ -81,6 +81,18 @@
       ]
     },
     {
+      "id": "cardeio-8f14c171-2929-4432-862f-85fdf3039e3e",
+      "kind": "tournament",
+      "title": "Bo Jackson Battle Arena Learn to Play",
+      "date": "2026-07-13",
+      "url": "https://play.bobattlearena.com/events/8f14c171-2929-4432-862f-85fdf3039e3e",
+      "endDate": "2026-07-13",
+      "location": "Oreland, PA",
+      "formats": [
+        "Casual Meetup"
+      ]
+    },
+    {
       "id": "cardeio-0252201d-6c93-42c3-98a0-028daf7b2e79",
       "kind": "tournament",
       "title": "T-roys Card Shaq Sealed Tournament Tecmo Double Mega",
@@ -90,6 +102,18 @@
       "location": "Galax, VA",
       "formats": [
         "Playmaker Tournament"
+      ]
+    },
+    {
+      "id": "cardeio-c87ce827-756e-405a-b14c-3b024db427a3",
+      "kind": "tournament",
+      "title": "Bo Jackson Battle Arena Learn to Play",
+      "date": "2026-07-20",
+      "url": "https://play.bobattlearena.com/events/c87ce827-756e-405a-b14c-3b024db427a3",
+      "endDate": "2026-07-20",
+      "location": "Oreland, PA",
+      "formats": [
+        "Casual Meetup"
       ]
     }
   ]

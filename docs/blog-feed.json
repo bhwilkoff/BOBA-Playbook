@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-07-07",
+  "lastUpdated": "2026-07-08",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,13 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "official-rules-update",
+      "title": "Official Rules Update",
+      "date": "2026-07-07",
+      "url": "https://bobattlearena.com/blog/official-rules-update",
+      "excerpt": "Today we're publishing a set of updates to the Bo Jackson Battle Arena Tournament Rules and Comprehensive Rules. This includes two new tournament integrity policies, two gameplay clarifications, and t..."
+    },
     {
       "id": "tecmo-bowl-edition-card-mapping",
       "title": "Tecmo Bowl Edition Card Mapping",

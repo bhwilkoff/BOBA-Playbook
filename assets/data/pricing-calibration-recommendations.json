@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-07-10T10:26:48.082653+00:00",
+  "generatedAt": "2026-07-11T05:51:38.442218+00:00",
   "windowDays": 14,
-  "rowsAnalyzed": 42,
-  "from": "2026-06-27",
-  "to": "2026-07-10",
+  "rowsAnalyzed": 43,
+  "from": "2026-06-28",
+  "to": "2026-07-11",
   "recommendations": [
     {
       "category": "tier_ordering_inversion",

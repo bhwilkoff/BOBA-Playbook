@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-07-15",
+  "lastUpdated": "2026-07-16",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,13 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "2026-boba-world-championships-faq-and-deck-building",
+      "title": "2026 BoBA World Championships FAQ and Deck Building",
+      "date": "2026-07-15",
+      "url": "https://bobattlearena.com/blog/2026-boba-world-championships-faq-and-deck-building",
+      "excerpt": "Important Details for All Divisions and Game Modes One Entry Per Deck If you are playing in multiple formats, you must have a completely unique deck for each event entry. No Deck Modifications Duri..."
+    },
     {
       "id": "2026-world-championships-event-legal-proxies",
       "title": "2026 World Championships Event Legal Proxies",

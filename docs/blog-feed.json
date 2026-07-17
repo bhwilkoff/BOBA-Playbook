@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-07-16",
+  "lastUpdated": "2026-07-17",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,13 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "the-future-of-secret-1-1s",
+      "title": "The Future of Secret 1/1s",
+      "date": "2026-07-16",
+      "url": "https://bobattlearena.com/blog/the-future-of-secret-1-1s",
+      "excerpt": "Frenchie recorded a quick update on his drive to work to talk about an important change coming to Bo Jackson Battle Arena. If you've been following BoBA for any length of time, you know we're always ..."
+    },
     {
       "id": "2026-boba-world-championships-faq-and-deck-building",
       "title": "2026 BoBA World Championships FAQ and Deck Building",

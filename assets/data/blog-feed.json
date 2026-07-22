@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-07-21",
+  "lastUpdated": "2026-07-22",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,13 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "mahomes-hobby-pre-sale-the-details",
+      "title": "Mahomes Hobby Pre-Sale: The Details",
+      "date": "2026-07-21",
+      "url": "https://bobattlearena.com/blog/mahomes-hobby-pre-sale-the-details",
+      "excerpt": "We know there has been a lot of speculation on this. We're about to start including the pre-sale price on some marketing materials, so we want our Veteran Coaches and Collectors to hear it first. P..."
+    },
     {
       "id": "the-future-of-secret-1-1s",
       "title": "The Future of Secret 1/1s",
@@ -42,6 +49,13 @@
       "date": "2026-07-07",
       "url": "https://bobattlearena.com/blog/official-rules-update",
       "excerpt": "Today we're publishing a set of updates to the Bo Jackson Battle Arena Tournament Rules and Comprehensive Rules. This includes two new tournament integrity policies, two gameplay clarifications, and t..."
+    },
+    {
+      "id": "500000-prize-pool-coming-to-the-2026-world-championships",
+      "title": "$500,000+ Prize Pool Coming to the 2026 World Championships!",
+      "date": "2026-07-01",
+      "url": "https://bobattlearena.com/blog/500000-prize-pool-coming-to-the-2026-world-championships",
+      "excerpt": "BoBA 2026 is officially here with expanded formats, deeper strategy, and the most ambitious competitive season yet... bigger than anything we’ve ever done. This year features over half a million doll..."
     },
     {
       "id": "tecmo-bowl-edition-card-mapping",
@@ -217,13 +231,6 @@
       "date": "2026-02-10",
       "url": "https://bobattlearena.com/blog/the-boba-set-ascension-how-heroes-progress-through-the-arena",
       "excerpt": "Bo Jackson Battle Arena is built to grow over time. New Heroes and Plays enter the Arena. The game expands. History takes shape. To keep BoBA clear, exciting, and approachable as it grows, we use ..."
-    },
-    {
-      "id": "500000-prize-pool-coming-to-the-2026-world-championships",
-      "title": "$500,000+ Prize Pool Coming to the 2026 World Championships!",
-      "date": "2026-02-05",
-      "url": "https://bobattlearena.com/blog/500000-prize-pool-coming-to-the-2026-world-championships",
-      "excerpt": "BoBA 2026 is officially here with expanded formats, deeper strategy, and the most ambitious competitive season yet... bigger than anything we’ve ever done. This year features over half a million doll..."
     },
     {
       "id": "apex-madness-comes-to-scg-con-milwaukee",

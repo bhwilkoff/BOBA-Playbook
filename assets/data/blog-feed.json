@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-07-28",
+  "lastUpdated": "2026-07-29",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,13 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "whats-in-the-n26-packs",
+      "title": "What's in the N'26 Packs?",
+      "date": "2026-07-28",
+      "url": "https://bobattlearena.com/blog/whats-in-the-n26-packs",
+      "excerpt": "Less than 2,000 of these N’26 packs are made. Up to 200 will be held back for future promotions and the rest are slated to go into the wild at the National. During the National, get them at our Booth..."
+    },
     {
       "id": "mahomes-hobby-pre-sale-the-details",
       "title": "Mahomes Hobby Pre-Sale: The Details",

@@ -4744,6 +4744,80 @@
         "WEAPON_TIER4_PREMIUM_MID": 6,
         "WEAPON_TIER4_PREMIUM_HIGH": 12
       }
+    },
+    {
+      "date": "2026-08-04",
+      "generatedAt": "2026-05-30T14:58:06.039330+00:00",
+      "buildVersion": "2.419",
+      "coverage": {
+        "total": 31313,
+        "estimated": 15395,
+        "pct": 0.4916
+      },
+      "audit_counts": {
+        "weapon_tier_violations": 11,
+        "printrun_violations": 1,
+        "hero_ladder_inversions": 50,
+        "low_coverage_weapons": [
+          "SUPER",
+          "GUM",
+          "HEX",
+          "GLOW",
+          "FIRE",
+          "ICE",
+          "STEEL",
+          "BRAWL"
+        ],
+        "suspect_low": 200,
+        "suspect_high": 0,
+        "missing_in_covered_clusters": 1,
+        "cluster_outliers": 200,
+        "outlier_rich_clusters": 0,
+        "two_plus_flagged": 2
+      },
+      "weapon_medians": {
+        "FIRE": 53.3,
+        "ICE": 41.0,
+        "STEEL": 15.99,
+        "BRAWL": 82.0,
+        "SUPER": 307.5,
+        "GUM": 227.55,
+        "HEX": 294.95,
+        "GLOW": 143.5,
+        "ALT": 23.78,
+        "NONE": 41.71,
+        "CYBER": 311.59
+      },
+      "printrun_medians": {
+        "/1": 307.5,
+        "/25": 389.49,
+        "/50": 246.0,
+        "/10": 1721.95
+      },
+      "basis_breakdown": {
+        "direct_comp": 11797,
+        "wide_gap_fallback": 1653,
+        "weapon_extrapolated_tier4": 1482,
+        "rarity_extrapolated_super": 455,
+        "sealed_direct": 8,
+        "other": 0
+      },
+      "config_snapshot": {
+        "SOLD_HAIRCUT": 0.82,
+        "MIN_CARDS": 3,
+        "MIN_SIM": 9,
+        "MAX_SIM_GAP": 4,
+        "MAX_COMPS": 16,
+        "CONF_AVG_SIM_MED": 14,
+        "CONF_HIGH": 8,
+        "SEALED_MIN_PRICE": 10,
+        "SUPER_PREMIUM_LOW": 35,
+        "SUPER_PREMIUM_MID": 100,
+        "SUPER_PREMIUM_HIGH": 300,
+        "WEAPON_TIER4_PREMIUM_LOW": 3,
+        "WEAPON_TIER4_PREMIUM_MID": 6,
+        "WEAPON_TIER4_PREMIUM_HIGH": 12
+      }
     }
   ]
 }

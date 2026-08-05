@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-08-04",
+  "lastUpdated": "2026-08-05",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,13 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "2026-bo-jackson-battle-arena-world-championships-prizing-and-payout-information",
+      "title": "2026 Bo Jackson Battle Arena World Championships Prizing and Payout Information.",
+      "date": "2026-08-04",
+      "url": "https://bobattlearena.com/blog/2026-bo-jackson-battle-arena-world-championships-prizing-and-payout-information",
+      "excerpt": "Official Prize Payouts 8 Divisions. Championship Week's biggest prize pool in BoBA history. The official prize payouts for the 2026 BoBA World Championships are now available. From Brawl Playma..."
+    },
     {
       "id": "whats-in-the-n26-packs",
       "title": "What's in the N'26 Packs?",

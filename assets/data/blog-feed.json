@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-08-06",
+  "lastUpdated": "2026-08-07",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -9,8 +9,15 @@
   },
   "posts": [
     {
+      "id": "bo-jackson-battle-arena-at-the-national-2026-recap",
+      "title": "Bo Jackson Battle Arena at The National 2026: Recap",
+      "date": "2026-08-06",
+      "url": "https://bobattlearena.com/blog/bo-jackson-battle-arena-at-the-national-2026-recap",
+      "excerpt": "The National 2026 felt like another step forward for Bo Jackson Battle Arena. All weekend, the booth stayed crowded. Lines kept forming, and the mix of returning community members and first-time vi..."
+    },
+    {
       "id": "2026-bo-jackson-battle-arena-world-championships-prizing-and-payout-information",
-      "title": "2026 Bo Jackson Battle Arena World Championships Prizing and Payout Information.",
+      "title": "2026 Bo Jackson Battle Arena World Championships Prizing and Payout Information",
       "date": "2026-08-04",
       "url": "https://bobattlearena.com/blog/2026-bo-jackson-battle-arena-world-championships-prizing-and-payout-information",
       "excerpt": "Official Prize Payouts 8 Divisions. Championship Week's biggest prize pool in BoBA history. The official prize payouts for the 2026 BoBA World Championships are now available. From Brawl Playma..."

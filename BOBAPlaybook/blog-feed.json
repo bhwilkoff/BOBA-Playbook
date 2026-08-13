@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-08-12",
+  "lastUpdated": "2026-08-13",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,13 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "2026-update-edition-presale-the-details",
+      "title": "2026 Update Edition Presale: The Details",
+      "date": "2026-08-12",
+      "url": "https://bobattlearena.com/blog/2026-update-edition-presale-the-details",
+      "excerpt": "There's a lot to cover here, so here's the short version up top. Full details are below. The Short Version Your code will be sent via email and text next Thursday, August 20th at 12PM EDT and will..."
+    },
     {
       "id": "bo-jackson-battle-arena-at-the-national-2026-recap",
       "title": "Bo Jackson Battle Arena at The National 2026: Recap",

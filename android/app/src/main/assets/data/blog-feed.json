@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-08-16",
+  "lastUpdated": "2026-08-17",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",

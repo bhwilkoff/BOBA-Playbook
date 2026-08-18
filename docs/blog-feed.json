@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-08-17",
+  "lastUpdated": "2026-08-18",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,13 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "introducing-ghost-weapon-and-graviton-inserts",
+      "title": "Introducing Ghost Weapon and Graviton Inserts",
+      "date": "2026-08-17",
+      "url": "https://bobattlearena.com/blog/introducing-ghost-weapon-and-graviton-inserts",
+      "excerpt": "We're adding two new layers to the chase in Bo Jackson Battle Arena: Ghost, a brand-new weapon type... and Graviton, a new insert with Ghost only (for now). The New Ghost Weapon We're introducin..."
+    },
     {
       "id": "2026-update-edition-presale-the-details",
       "title": "2026 Update Edition Presale: The Details",

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-08-21",
+  "lastUpdated": "2026-08-22",
   "source": "https://bobattlearena.com/blog",
   "_refresh": {
     "script": "scripts/refresh_blog.py",
@@ -8,6 +8,13 @@
     "cadence": "daily — scrapes title/url/excerpt from the public /blog listing at https://bobattlearena.com/blog/all; enriches with publication dates from the WP REST endpoint at https://promo.bobattlearena.com/wp-json/wp/v2/posts. The autonomous /loop mines this file for unprocessed posts to convert into candidate work items."
   },
   "posts": [
+    {
+      "id": "introducing-the-billy-cameos-of-the-mahomes-set",
+      "title": "Introducing the Billy Cameos of the Mahomes Set",
+      "date": "2026-08-19",
+      "url": "https://bobattlearena.com/blog/introducing-the-billy-cameos-of-the-mahomes-set",
+      "excerpt": "Billy Cameos are always one of the most fun chases in a Battle Arena release. They're some of the most visually distinct cards in the set, and they tend to be the first cards collectors cling to once ..."
+    },
     {
       "id": "introducing-ghost-weapon-and-graviton-inserts",
       "title": "Introducing Ghost Weapon and Graviton Inserts",

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-08-24",
+  "lastUpdated": "2026-08-25",
   "_schema": {
     "_comment": "Per-event fields. Add real dates as BoBA announces them.",
     "id": "string — stable slug for cross-references",

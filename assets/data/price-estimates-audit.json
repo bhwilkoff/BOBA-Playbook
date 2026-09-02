@@ -565,18 +565,18 @@
       "coverage_pct": 48.6
     },
     {
-      "weapon": "BRAWL",
-      "tier": 1,
-      "in_catalog": 3606,
-      "with_estimate": 1494,
-      "coverage_pct": 41.4
-    },
-    {
       "weapon": "STEEL",
       "tier": 1,
       "in_catalog": 4974,
       "with_estimate": 2486,
       "coverage_pct": 50.0
+    },
+    {
+      "weapon": "BRAWL",
+      "tier": 1,
+      "in_catalog": 3606,
+      "with_estimate": 1494,
+      "coverage_pct": 41.4
     },
     {
       "weapon": "NONE",

@@ -565,13 +565,6 @@
       "coverage_pct": 48.6
     },
     {
-      "weapon": "STEEL",
-      "tier": 1,
-      "in_catalog": 4974,
-      "with_estimate": 2486,
-      "coverage_pct": 50.0
-    },
-    {
       "weapon": "BRAWL",
       "tier": 1,
       "in_catalog": 3606,
@@ -579,10 +572,17 @@
       "coverage_pct": 41.4
     },
     {
-      "weapon": "NONE",
+      "weapon": "STEEL",
+      "tier": 1,
+      "in_catalog": 4974,
+      "with_estimate": 2486,
+      "coverage_pct": 50.0
+    },
+    {
+      "weapon": "CYBER",
       "tier": null,
-      "in_catalog": 3,
-      "with_estimate": 3,
+      "in_catalog": 28,
+      "with_estimate": 28,
       "coverage_pct": 100.0
     },
     {
@@ -593,10 +593,10 @@
       "coverage_pct": 16.2
     },
     {
-      "weapon": "CYBER",
+      "weapon": "NONE",
       "tier": null,
-      "in_catalog": 28,
-      "with_estimate": 28,
+      "in_catalog": 3,
+      "with_estimate": 3,
       "coverage_pct": 100.0
     }
   ],

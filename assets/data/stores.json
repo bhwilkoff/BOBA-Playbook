@@ -2875,31 +2875,6 @@
     "modifiedAt": "2026-06-18T22:51:13Z"
   },
   {
-    "id": 8443,
-    "name": "Target - Scottsdale",
-    "slug": "target-scottsdale-2",
-    "phone": "14808602800",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "15444 N Frank Lloyd Wright Blvd, Scottsdale, AZ, 85260-2845",
-      "street": "15444 N Frank Lloyd Wright Blvd",
-      "city": "Scottsdale",
-      "state": "Arizona",
-      "stateShort": "AZ",
-      "postCode": "85260",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.62677,
-      "lng": -111.888921
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-scottsdale-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7998,
     "name": "Target - Scottsdale",
     "slug": "target-scottsdale",
@@ -2950,31 +2925,6 @@
     "modifiedAt": "2026-06-18T22:51:15Z"
   },
   {
-    "id": 8480,
-    "name": "Target - Surprise",
-    "slug": "target-surprise-2",
-    "phone": "16232012173",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "14101 N. Prasada Pkwy, Surprise, AZ, 85388-8015",
-      "street": "14101 N. Prasada Pkwy",
-      "city": "Surprise",
-      "state": "Arizona",
-      "stateShort": "AZ",
-      "postCode": "85388",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.612624,
-      "lng": -112.413144
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-surprise-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8035,
     "name": "Target - Surprise",
     "slug": "target-surprise",
@@ -3023,31 +2973,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-232",
     "modifiedAt": "2026-06-18T22:51:14Z"
-  },
-  {
-    "id": 8486,
-    "name": "Target - Tempe",
-    "slug": "target-tempe-2",
-    "phone": "14808319162",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1818 E Baseline Rd, Tempe, AZ, 85283-1502",
-      "street": "1818 E Baseline Rd",
-      "city": "Tempe",
-      "state": "Arizona",
-      "stateShort": "AZ",
-      "postCode": "85283",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.379418,
-      "lng": -111.907605
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-tempe-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8041,
@@ -7350,31 +7275,6 @@
     "modifiedAt": "2026-06-18T22:51:11Z"
   },
   {
-    "id": 8415,
-    "name": "Target - Rowland Heights",
-    "slug": "target-rowland-heights-2",
-    "phone": "16269132880",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "17751 Colima Rd, Rowland Heights, CA, 91748-1714",
-      "street": "17751 Colima Rd",
-      "city": "Rowland Heights",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "91748",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.991567,
-      "lng": -117.918656
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-rowland-heights-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7970,
     "name": "Target - Rowland Heights",
     "slug": "target-rowland-heights",
@@ -7475,31 +7375,6 @@
     "modifiedAt": "2026-06-18T22:50:54Z"
   },
   {
-    "id": 8417,
-    "name": "Target - Sacramento",
-    "slug": "target-sacramento-2",
-    "phone": "19165253576",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "8101 Cosumnes River Blvd, Sacramento, CA, 95823-5415",
-      "street": "8101 Cosumnes River Blvd",
-      "city": "Sacramento",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "95823",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.459052,
-      "lng": -121.413725
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-sacramento-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7972,
     "name": "Target - Sacramento",
     "slug": "target-sacramento",
@@ -7550,31 +7425,6 @@
     "modifiedAt": "2026-06-18T22:51:13Z"
   },
   {
-    "id": 8423,
-    "name": "Target - Salinas",
-    "slug": "target-salinas-2",
-    "phone": "18314420547",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1640 N Main St, Salinas, CA, 93906-5102",
-      "street": "1640 N Main St",
-      "city": "Salinas",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "93906",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 36.714522,
-      "lng": -121.653121
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-salinas-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7978,
     "name": "Target - Salinas",
     "slug": "target-salinas",
@@ -7598,31 +7448,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-salinas",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8430,
-    "name": "Target - San Clemente",
-    "slug": "target-san-clemente-2",
-    "phone": "19494568668",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "990 Avenida Vista Hermosa, San Clemente, CA, 92673-6360",
-      "street": "990 Avenida Vista Hermosa",
-      "city": "San Clemente",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "92673",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.463739,
-      "lng": -117.606438
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-san-clemente-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 7985,
@@ -7698,31 +7523,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-55",
     "modifiedAt": "2026-06-18T22:51:15Z"
-  },
-  {
-    "id": 8431,
-    "name": "Target - San Diego",
-    "slug": "target-san-diego-2",
-    "phone": "18583096564",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "5680 Balboa Ave, San Diego, CA, 92111-2702",
-      "street": "5680 Balboa Ave",
-      "city": "San Diego",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "92111",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 32.820176,
-      "lng": -117.179722
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-san-diego-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 7986,
@@ -7925,31 +7725,6 @@
     "modifiedAt": "2026-06-18T22:50:53Z"
   },
   {
-    "id": 8432,
-    "name": "Target - San Pedro",
-    "slug": "target-san-pedro-2",
-    "phone": "13105076289",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1701 N Gaffey St, San Pedro, CA, 90731-1274",
-      "street": "1701 N Gaffey St",
-      "city": "San Pedro",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "90731",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.76094,
-      "lng": -118.29308
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-san-pedro-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7987,
     "name": "Target - San Pedro",
     "slug": "target-san-pedro",
@@ -7975,31 +7750,6 @@
     "modifiedAt": "2026-06-18T22:51:11Z"
   },
   {
-    "id": 8433,
-    "name": "Target - San Rafael",
-    "slug": "target-san-rafael-2",
-    "phone": "14152996112",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "125 Shoreline Pkwy, San Rafael, CA, 94901-5521",
-      "street": "125 Shoreline Pkwy",
-      "city": "San Rafael",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "94901",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 37.954837,
-      "lng": -122.491313
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-san-rafael-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7988,
     "name": "Target - San Rafael",
     "slug": "target-san-rafael",
@@ -8023,31 +7773,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-san-rafael",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8434,
-    "name": "Target - Sand City",
-    "slug": "target-sand-city-2",
-    "phone": "18313921990",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "2040 California Ave, Sand City, CA, 93955-3150",
-      "street": "2040 California Ave",
-      "city": "Sand City",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "93955",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 36.620908,
-      "lng": -121.843476
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-sand-city-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 7989,
@@ -8098,31 +7823,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-390",
     "modifiedAt": "2026-06-18T22:51:13Z"
-  },
-  {
-    "id": 8435,
-    "name": "Target - Santa Clarita",
-    "slug": "target-santa-clarita-2",
-    "phone": "16619775154",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "19105 Golden Valley Rd, Santa Clarita, CA, 91387-1428",
-      "street": "19105 Golden Valley Rd",
-      "city": "Santa Clarita",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "91387",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 34.39426,
-      "lng": -118.464584
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-santa-clarita-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 7990,
@@ -8300,31 +8000,6 @@
     "modifiedAt": "2026-06-18T22:50:55Z"
   },
   {
-    "id": 8436,
-    "name": "Target - Santa Rosa",
-    "slug": "target-santa-rosa-2",
-    "phone": "17075750665",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1980 Santa Rosa Ave, Santa Rosa, CA, 95407-7621",
-      "street": "1980 Santa Rosa Ave",
-      "city": "Santa Rosa",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "95407",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.417273,
-      "lng": -122.709322
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-santa-rosa-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7991,
     "name": "Target - Santa Rosa",
     "slug": "target-santa-rosa",
@@ -8348,31 +8023,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-santa-rosa",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8437,
-    "name": "Target - Santee",
-    "slug": "target-santee-2",
-    "phone": "16194499790",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "9846 Mission Gorge Rd, Santee, CA, 92071-3834",
-      "street": "9846 Mission Gorge Rd",
-      "city": "Santee",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "92071",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 32.8388,
-      "lng": -116.982856
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-santee-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 7992,
@@ -8400,31 +8050,6 @@
     "modifiedAt": "2026-06-18T22:51:11Z"
   },
   {
-    "id": 8451,
-    "name": "Target - Simi Valley",
-    "slug": "target-simi-valley-2",
-    "phone": "18054165790",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "51 Tierra Rejada Rd, Simi Valley, CA, 93065-2902",
-      "street": "51 Tierra Rejada Rd",
-      "city": "Simi Valley",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "93065",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 34.273483,
-      "lng": -118.797818
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-simi-valley-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8006,
     "name": "Target - Simi Valley",
     "slug": "target-simi-valley",
@@ -8448,31 +8073,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-simi-valley",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8459,
-    "name": "Target - South Lake Tahoe",
-    "slug": "target-south-lake-tahoe-2",
-    "phone": "15307214497",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "4000 Lake Tahoe Blvd, Unit 6, South Lake Tahoe, CA, 96150-6993",
-      "street": "4000 Lake Tahoe Blvd, Unit 6",
-      "city": "South Lake Tahoe",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "96150",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.954003,
-      "lng": -119.943564
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-south-lake-tahoe-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8014,
@@ -8523,31 +8123,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-512",
     "modifiedAt": "2026-06-18T22:51:13Z"
-  },
-  {
-    "id": 8473,
-    "name": "Target - Stockton",
-    "slug": "target-stockton-2",
-    "phone": "12092350251",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "10424 Trinity Parkway, Stockton, CA, 95219-7225",
-      "street": "10424 Trinity Parkway",
-      "city": "Stockton",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "95219",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.04995,
-      "lng": -121.374473
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-stockton-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8028,
@@ -8648,31 +8223,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-74",
     "modifiedAt": "2026-06-18T22:51:15Z"
-  },
-  {
-    "id": 8485,
-    "name": "Target - Temecula",
-    "slug": "target-temecula-2",
-    "phone": "19516762668",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "29676 Rancho California Rd, Temecula, CA, 92591-5283",
-      "street": "29676 Rancho California Rd",
-      "city": "Temecula",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "92591",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.506838,
-      "lng": -117.146021
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-temecula-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8040,
@@ -8800,31 +8350,6 @@
     "modifiedAt": "2026-06-18T22:51:12Z"
   },
   {
-    "id": 8493,
-    "name": "Target - Torrance",
-    "slug": "target-torrance-2",
-    "phone": "13102141561",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "3433 Sepulveda Blvd, Torrance, CA, 90505-2606",
-      "street": "3433 Sepulveda Blvd",
-      "city": "Torrance",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "90505",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.826557,
-      "lng": -118.345935
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-torrance-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8048,
     "name": "Target - Torrance",
     "slug": "target-torrance",
@@ -8848,31 +8373,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-torrance",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8495,
-    "name": "Target - Tracy",
-    "slug": "target-tracy-2",
-    "phone": "12098333494",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "2800 Naglee Rd, Tracy, CA, 95304-7307",
-      "street": "2800 Naglee Rd",
-      "city": "Tracy",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "95304",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 37.75747,
-      "lng": -121.459293
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-tracy-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8050,
@@ -8925,31 +8425,6 @@
     "modifiedAt": "2026-06-18T22:51:13Z"
   },
   {
-    "id": 8499,
-    "name": "Target - Turlock",
-    "slug": "target-turlock-2",
-    "phone": "12096320132",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "3000 Countryside Dr, Turlock, CA, 95380-8402",
-      "street": "3000 Countryside Dr",
-      "city": "Turlock",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "95380",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 37.520714,
-      "lng": -120.878607
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-turlock-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8054,
     "name": "Target - Turlock",
     "slug": "target-turlock",
@@ -8998,31 +8473,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-387",
     "modifiedAt": "2026-06-18T22:51:13Z"
-  },
-  {
-    "id": 8501,
-    "name": "Target - Tustin",
-    "slug": "target-tustin-2",
-    "phone": "17143612100",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "2300 Park Ave, Tustin, CA, 92782-2702",
-      "street": "2300 Park Ave",
-      "city": "Tustin",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "92782",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.700292,
-      "lng": -117.827309
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-tustin-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8056,
@@ -9075,31 +8525,6 @@
     "modifiedAt": "2026-06-18T22:51:13Z"
   },
   {
-    "id": 8503,
-    "name": "Target - Upland",
-    "slug": "target-upland-2",
-    "phone": "19099850348",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1931 Campus Ave, Upland, CA, 91784-1667",
-      "street": "1931 Campus Ave",
-      "city": "Upland",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "91784",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 34.133654,
-      "lng": -117.640747
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-upland-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8058,
     "name": "Target - Upland",
     "slug": "target-upland",
@@ -9123,31 +8548,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-upland",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8507,
-    "name": "Target - Valencia",
-    "slug": "target-valencia-2",
-    "phone": "16612548001",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "24425 Magic Mountain Pkwy, Valencia, CA, 91355-3403",
-      "street": "24425 Magic Mountain Pkwy",
-      "city": "Valencia",
-      "state": "California",
-      "stateShort": "CA",
-      "postCode": "91355",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 34.421129,
-      "lng": -118.561593
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-valencia-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8062,
@@ -10400,31 +9800,6 @@
     "modifiedAt": "2026-06-18T22:51:14Z"
   },
   {
-    "id": 8488,
-    "name": "Target - Thornton",
-    "slug": "target-thornton-2",
-    "phone": "13032800400",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1001 E 120th Ave, Thornton, CO, 80233-5711",
-      "street": "1001 E 120th Ave",
-      "city": "Thornton",
-      "state": "Colorado",
-      "stateShort": "CO",
-      "postCode": "80233",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 39.916881,
-      "lng": -104.974545
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-thornton-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8043,
     "name": "Target - Thornton",
     "slug": "target-thornton",
@@ -11400,31 +10775,6 @@
     "modifiedAt": "2026-06-18T22:51:17Z"
   },
   {
-    "id": 8463,
-    "name": "Target - Southington",
-    "slug": "target-southington-2",
-    "phone": "18604066754",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "600 Executive Blvd, Southington, CT, 06489-6008",
-      "street": "600 Executive Blvd",
-      "city": "Southington",
-      "state": "Connecticut",
-      "stateShort": "CT",
-      "postCode": "6489",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.610957,
-      "lng": -72.901937
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-southington-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8018,
     "name": "Target - Southington",
     "slug": "target-southington",
@@ -11448,31 +10798,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-southington",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8470,
-    "name": "Target - Stamford",
-    "slug": "target-stamford-2",
-    "phone": "12033880006",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "21 Broad St, Stamford, CT, 06901-2309",
-      "street": "21 Broad St",
-      "city": "Stamford",
-      "state": "Connecticut",
-      "stateShort": "CT",
-      "postCode": "6901",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.055331,
-      "lng": -73.54128
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-stamford-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8025,
@@ -11550,31 +10875,6 @@
     "modifiedAt": "2026-06-18T22:50:55Z"
   },
   {
-    "id": 8494,
-    "name": "Target - Torrington",
-    "slug": "target-torrington-2",
-    "phone": "18606184007",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1922 E Main St, Torrington, CT, 06790-3101",
-      "street": "1922 E Main St",
-      "city": "Torrington",
-      "state": "Connecticut",
-      "stateShort": "CT",
-      "postCode": "6790",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.819199,
-      "lng": -73.075238
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-torrington-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8049,
     "name": "Target - Torrington",
     "slug": "target-torrington",
@@ -11598,56 +10898,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-torrington",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8498,
-    "name": "Target - Trumbull",
-    "slug": "target-trumbull-4",
-    "phone": "12034550102",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "120 Hawley Ln, Trumbull, CT, 06611-5347",
-      "street": "120 Hawley Ln",
-      "city": "Trumbull",
-      "state": "Connecticut",
-      "stateShort": "CT",
-      "postCode": "6611",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.232538,
-      "lng": -73.152538
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-trumbull-4",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
-    "id": 8497,
-    "name": "Target - Trumbull",
-    "slug": "target-trumbull-3",
-    "phone": "12038732013",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "5065 Main St, Trumbull, CT, 06611-4204",
-      "street": "5065 Main St",
-      "city": "Trumbull",
-      "state": "Connecticut",
-      "stateShort": "CT",
-      "postCode": "6611",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.229286,
-      "lng": -73.226575
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-trumbull-3",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8053,
@@ -15325,31 +14575,6 @@
     "modifiedAt": "2026-06-18T22:51:00Z"
   },
   {
-    "id": 8468,
-    "name": "Target - St Augustine",
-    "slug": "target-st-augustine-2",
-    "phone": "19048102336",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1440 US Hwy 1 S, Saint Augustine, FL, 32084-4211",
-      "street": "1440 US Hwy 1 S",
-      "city": "Saint Augustine",
-      "state": "Florida",
-      "stateShort": "FL",
-      "postCode": "32084",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 29.876171,
-      "lng": -81.322193
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-st-augustine-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8023,
     "name": "Target - St Augustine",
     "slug": "target-st-augustine",
@@ -15450,31 +14675,6 @@
     "modifiedAt": "2026-06-18T22:51:12Z"
   },
   {
-    "id": 8469,
-    "name": "Target - St Petersburg",
-    "slug": "target-st-petersburg-2",
-    "phone": "17275762735",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "8151 Dr Martin Luther King St N, Saint Petersburg, FL, 33702-4111",
-      "street": "8151 Dr Martin Luther King St N",
-      "city": "Saint Petersburg",
-      "state": "Florida",
-      "stateShort": "FL",
-      "postCode": "33702",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 27.846034,
-      "lng": -82.643962
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-st-petersburg-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8024,
     "name": "Target - St Petersburg",
     "slug": "target-st-petersburg",
@@ -15548,31 +14748,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-18",
     "modifiedAt": "2026-06-18T22:51:16Z"
-  },
-  {
-    "id": 8438,
-    "name": "Target - Sarasota",
-    "slug": "target-sarasota-2",
-    "phone": "19413607520",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "101 N Cattlemen Rd, Sarasota, FL, 34243-4700",
-      "street": "101 N Cattlemen Rd",
-      "city": "Sarasota",
-      "state": "Florida",
-      "stateShort": "FL",
-      "postCode": "34243",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 27.386757,
-      "lng": -82.458536
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-sarasota-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 7993,
@@ -15848,31 +15023,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dsg-house-of-sport-9",
     "modifiedAt": "2026-06-18T22:51:15Z"
-  },
-  {
-    "id": 8496,
-    "name": "Target - Trinity",
-    "slug": "target-trinity-2",
-    "phone": "17273762140",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "2900 Little Rd, Trinity, FL, 34655-4420",
-      "street": "2900 Little Rd",
-      "city": "Trinity",
-      "state": "Florida",
-      "stateShort": "FL",
-      "postCode": "34655",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 28.200974,
-      "lng": -82.663928
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-trinity-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8051,
@@ -18575,31 +17725,6 @@
     "modifiedAt": "2026-06-18T22:50:56Z"
   },
   {
-    "id": 8504,
-    "name": "Target - Urbandale",
-    "slug": "target-urbandale-3",
-    "phone": "15153316115",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "5901 Douglas Ave, Des Moines, IA, 50322-3303",
-      "street": "5901 Douglas Ave",
-      "city": "Des Moines",
-      "state": "Iowa",
-      "stateShort": "IA",
-      "postCode": "50322",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.630144,
-      "lng": -93.70041
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-urbandale-3",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8059,
     "name": "Target - Urbandale",
     "slug": "target-urbandale",
@@ -18898,31 +18023,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=card-vault-dsm-llc",
     "modifiedAt": "2026-06-18T22:50:57Z"
-  },
-  {
-    "id": 8505,
-    "name": "Target - Urbandale",
-    "slug": "target-urbandale-4",
-    "phone": "15152706556",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "11148 Plum Dr, Urbandale, IA, 50322-6328",
-      "street": "11148 Plum Dr",
-      "city": "Urbandale",
-      "state": "Iowa",
-      "stateShort": "IA",
-      "postCode": "50322",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.64736,
-      "lng": -93.766629
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-urbandale-4",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8060,
@@ -22175,31 +21275,6 @@
     "modifiedAt": "2026-06-18T22:51:14Z"
   },
   {
-    "id": 8440,
-    "name": "Target - Schaumburg",
-    "slug": "target-schaumburg-2",
-    "phone": "18477980192",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "2621 W Schaumburg Rd, Schaumburg, IL, 60194-3894",
-      "street": "2621 W Schaumburg Rd",
-      "city": "Schaumburg",
-      "state": "Illinois",
-      "stateShort": "IL",
-      "postCode": "60194",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.022843,
-      "lng": -88.146139
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-schaumburg-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7995,
     "name": "Target - Schaumburg",
     "slug": "target-schaumburg",
@@ -22223,31 +21298,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-schaumburg",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8450,
-    "name": "Target - Shiloh",
-    "slug": "target-shiloh-2",
-    "phone": "16186283333",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "3400 Green Mount Crossing Dr, Shiloh, IL, 62269-7277",
-      "street": "3400 Green Mount Crossing Dr",
-      "city": "Shiloh",
-      "state": "Illinois",
-      "stateShort": "IL",
-      "postCode": "62269",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.57262,
-      "lng": -89.923768
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-shiloh-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8005,
@@ -22425,31 +21475,6 @@
     "modifiedAt": "2026-06-18T22:51:14Z"
   },
   {
-    "id": 8489,
-    "name": "Target - Tinley Park",
-    "slug": "target-tinley-park-2",
-    "phone": "18158063210",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "7300 191st St, Tinley Park, IL, 60487-9361",
-      "street": "7300 191st St",
-      "city": "Tinley Park",
-      "state": "Illinois",
-      "stateShort": "IL",
-      "postCode": "60487",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.545355,
-      "lng": -87.795501
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-tinley-park-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8044,
     "name": "Target - Tinley Park",
     "slug": "target-tinley-park",
@@ -22498,31 +21523,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-330",
     "modifiedAt": "2026-06-18T22:51:14Z"
-  },
-  {
-    "id": 8510,
-    "name": "Target - Vernon Hills",
-    "slug": "target-vernon-hills-2",
-    "phone": "18476800390",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "313 E Townline Rd, Vernon Hills, IL, 60061-1555",
-      "street": "313 E Townline Rd",
-      "city": "Vernon Hills",
-      "state": "Illinois",
-      "stateShort": "IL",
-      "postCode": "60061",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.238784,
-      "lng": -87.957049
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-vernon-hills-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8065,
@@ -24250,31 +23250,6 @@
     "modifiedAt": "2026-06-18T22:51:10Z"
   },
   {
-    "id": 8455,
-    "name": "Target - South Bend",
-    "slug": "target-south-bend-2",
-    "phone": "15742991402",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1400 E Ireland Rd, South Bend, IN, 46614-3452",
-      "street": "1400 E Ireland Rd",
-      "city": "South Bend",
-      "state": "Indiana",
-      "stateShort": "IN",
-      "postCode": "46614",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.627181,
-      "lng": -86.228938
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-south-bend-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8010,
     "name": "Target - South Bend",
     "slug": "target-south-bend",
@@ -24323,31 +23298,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-538",
     "modifiedAt": "2026-06-18T22:51:13Z"
-  },
-  {
-    "id": 8508,
-    "name": "Target - Valparaiso",
-    "slug": "target-valparaiso-2",
-    "phone": "12195316448",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "2420 Laporte Ave, Valparaiso, IN, 46383-6914",
-      "street": "2420 Laporte Ave",
-      "city": "Valparaiso",
-      "state": "Indiana",
-      "stateShort": "IN",
-      "postCode": "46383",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.466669,
-      "lng": -87.030148
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-valparaiso-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8063,
@@ -28025,31 +26975,6 @@
     "modifiedAt": "2026-06-18T22:51:10Z"
   },
   {
-    "id": 8444,
-    "name": "Target - Seekonk",
-    "slug": "target-seekonk-2",
-    "phone": "15083361117",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "79 Commerce Way, Seekonk, MA, 02771-5816",
-      "street": "79 Commerce Way",
-      "city": "Seekonk",
-      "state": "Massachusetts",
-      "stateShort": "MA",
-      "postCode": "2771",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.796143,
-      "lng": -71.320297
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-seekonk-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7999,
     "name": "Target - Seekonk",
     "slug": "target-seekonk",
@@ -28073,31 +26998,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-seekonk",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8457,
-    "name": "Target - South Easton",
-    "slug": "target-south-easton-2",
-    "phone": "15082300005",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "41 Robert Dr, South Easton, MA, 02375-1352",
-      "street": "41 Robert Dr",
-      "city": "South Easton",
-      "state": "Massachusetts",
-      "stateShort": "MA",
-      "postCode": "2375",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.027787,
-      "lng": -71.143662
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-south-easton-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8012,
@@ -28125,31 +27025,6 @@
     "modifiedAt": "2026-06-18T22:51:11Z"
   },
   {
-    "id": 8474,
-    "name": "Target - Stoughton",
-    "slug": "target-stoughton-2",
-    "phone": "17818474000",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1 Hawes Way, Stoughton, MA, 02072-1162",
-      "street": "1 Hawes Way",
-      "city": "Stoughton",
-      "state": "Massachusetts",
-      "stateShort": "MA",
-      "postCode": "2072",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.152153,
-      "lng": -71.072764
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-stoughton-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8029,
     "name": "Target - Stoughton",
     "slug": "target-stoughton",
@@ -28175,31 +27050,6 @@
     "modifiedAt": "2026-06-18T22:51:11Z"
   },
   {
-    "id": 8481,
-    "name": "Target - Swansea",
-    "slug": "target-swansea-2",
-    "phone": "17744883684",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "579 GAR Hwy, Swansea, MA, 02777-4587",
-      "street": "579 GAR Hwy",
-      "city": "Swansea",
-      "state": "Massachusetts",
-      "stateShort": "MA",
-      "postCode": "2777",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.761747,
-      "lng": -71.220642
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-swansea-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8036,
     "name": "Target - Swansea",
     "slug": "target-swansea",
@@ -28223,31 +27073,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-swansea",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8483,
-    "name": "Target - Taunton",
-    "slug": "target-taunton-2",
-    "phone": "15088248004",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "81 Taunton Depot Dr, Taunton, MA, 02780-6915",
-      "street": "81 Taunton Depot Dr",
-      "city": "Taunton",
-      "state": "Massachusetts",
-      "stateShort": "MA",
-      "postCode": "2780",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.878087,
-      "lng": -71.069319
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-taunton-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8038,
@@ -29700,31 +28525,6 @@
     "modifiedAt": "2026-06-18T22:51:14Z"
   },
   {
-    "id": 8424,
-    "name": "Target - Salisbury",
-    "slug": "target-salisbury-2",
-    "phone": "14105726144",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "125 E North Pointe Dr, Salisbury, MD, 21804-2283",
-      "street": "125 E North Pointe Dr",
-      "city": "Salisbury",
-      "state": "Maryland",
-      "stateShort": "MD",
-      "postCode": "21804",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.415576,
-      "lng": -75.564856
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-salisbury-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7979,
     "name": "Target - Salisbury",
     "slug": "target-salisbury",
@@ -30200,31 +29000,6 @@
     "modifiedAt": "2026-06-18T22:51:10Z"
   },
   {
-    "id": 8461,
-    "name": "Target - South Portland",
-    "slug": "target-south-portland-2",
-    "phone": "12078711156",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "200 Running Hill Rd, South Portland, ME, 04106-3258",
-      "street": "200 Running Hill Rd",
-      "city": "South Portland",
-      "state": "Maine",
-      "stateShort": "ME",
-      "postCode": "4106",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 43.635293,
-      "lng": -70.345583
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-south-portland-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8016,
     "name": "Target - South Portland",
     "slug": "target-south-portland",
@@ -30273,31 +29048,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-209",
     "modifiedAt": "2026-06-18T22:51:14Z"
-  },
-  {
-    "id": 8492,
-    "name": "Target - Topsham",
-    "slug": "target-topsham-2",
-    "phone": "12075045050",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "125 Topsham Fair Mall Rd, Topsham, ME, 04086-1741",
-      "street": "125 Topsham Fair Mall Rd",
-      "city": "Topsham",
-      "state": "Maine",
-      "stateShort": "ME",
-      "postCode": "4086",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 43.933655,
-      "lng": -69.985398
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-topsham-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8047,
@@ -31625,31 +30375,6 @@
     "modifiedAt": "2026-06-18T22:51:01Z"
   },
   {
-    "id": 8448,
-    "name": "Target - Shelby Township",
-    "slug": "target-shelby-township-2",
-    "phone": "15866778687",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "8200 26 Mile Rd, Shelby Township, MI, 48316-5132",
-      "street": "8200 26 Mile Rd",
-      "city": "Shelby Township",
-      "state": "Michigan",
-      "stateShort": "MI",
-      "postCode": "48316",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.710964,
-      "lng": -83.0327
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-shelby-township-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8003,
     "name": "Target - Shelby Township",
     "slug": "target-shelby-township",
@@ -31723,31 +30448,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-643",
     "modifiedAt": "2026-06-18T22:51:10Z"
-  },
-  {
-    "id": 8484,
-    "name": "Target - Taylor",
-    "slug": "target-taylor-2",
-    "phone": "17343740303",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "14099 Pardee Rd, Taylor, MI, 48180-4792",
-      "street": "14099 Pardee Rd",
-      "city": "Taylor",
-      "state": "Michigan",
-      "stateShort": "MI",
-      "postCode": "48180",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.203653,
-      "lng": -83.255698
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-taylor-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8039,
@@ -31898,31 +30598,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=jawbreakers-card-shop",
     "modifiedAt": "2026-06-18T22:51:17Z"
-  },
-  {
-    "id": 8506,
-    "name": "Target - Utica",
-    "slug": "target-utica-2",
-    "phone": "15862547100",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "13221 Hall Rd, Utica, MI, 48315-5834",
-      "street": "13221 Hall Rd",
-      "city": "Utica",
-      "state": "Michigan",
-      "stateShort": "MI",
-      "postCode": "48315",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.628133,
-      "lng": -82.996223
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-utica-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8061,
@@ -33198,31 +31873,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=nerdin-out-2",
     "modifiedAt": "2026-06-18T22:50:55Z"
-  },
-  {
-    "id": 8418,
-    "name": "Target - Saint Cloud",
-    "slug": "target-saint-cloud-2",
-    "phone": "13202534740",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "4201 W Division St, Saint Cloud, MN, 56301-6601",
-      "street": "4201 W Division St",
-      "city": "Saint Cloud",
-      "state": "Minnesota",
-      "stateShort": "MN",
-      "postCode": "56301",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 45.553227,
-      "lng": -94.210151
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-saint-cloud-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 7973,
@@ -34575,56 +33225,6 @@
     "modifiedAt": "2026-06-18T22:50:53Z"
   },
   {
-    "id": 8420,
-    "name": "Target - Saint Louis",
-    "slug": "target-saint-louis-4",
-    "phone": "13148926336",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "4250 Rusty Rd, Saint Louis, MO, 63128-1973",
-      "street": "4250 Rusty Rd",
-      "city": "Saint Louis",
-      "state": "Missouri",
-      "stateShort": "MO",
-      "postCode": "63128",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.506233,
-      "lng": -90.339783
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-saint-louis-4",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
-    "id": 8419,
-    "name": "Target - Saint Louis",
-    "slug": "target-saint-louis-3",
-    "phone": "13148020122",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "4255 Hampton Ave, Saint Louis, MO, 63109-2120",
-      "street": "4255 Hampton Ave",
-      "city": "Saint Louis",
-      "state": "Missouri",
-      "stateShort": "MO",
-      "postCode": "63109",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.592661,
-      "lng": -90.295668
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-saint-louis-3",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7975,
     "name": "Target - Saint Louis",
     "slug": "target-saint-louis-2",
@@ -34748,31 +33348,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=restlesscraft-breakers",
     "modifiedAt": "2026-06-18T22:50:55Z"
-  },
-  {
-    "id": 8421,
-    "name": "Target - Saint Peters",
-    "slug": "target-saint-peters-2",
-    "phone": "16369399433",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "6241 Mid Rivers Mall Dr, Saint Peters, MO, 63304-1102",
-      "street": "6241 Mid Rivers Mall Dr",
-      "city": "Saint Peters",
-      "state": "Missouri",
-      "stateShort": "MO",
-      "postCode": "63304",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.739231,
-      "lng": -90.636478
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-saint-peters-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 7976,
@@ -36925,31 +35500,6 @@
     "modifiedAt": "2026-06-18T22:51:17Z"
   },
   {
-    "id": 8514,
-    "name": "Target - Wake Forest",
-    "slug": "target-wake-forest-2",
-    "phone": "19197611001",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "12000 Retail Dr, Wake Forest, NC, 27587-7353",
-      "street": "12000 Retail Dr",
-      "city": "Wake Forest",
-      "state": "North Carolina",
-      "stateShort": "NC",
-      "postCode": "27587",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 35.974191,
-      "lng": -78.541855
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-wake-forest-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8069,
     "name": "Target - Wake Forest",
     "slug": "target-wake-forest",
@@ -38223,31 +36773,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dsg-house-of-sport-7",
     "modifiedAt": "2026-06-18T22:51:15Z"
-  },
-  {
-    "id": 8422,
-    "name": "Target - Salem",
-    "slug": "target-salem-2",
-    "phone": "16038700071",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "203 S Broadway, Salem, NH, 03079-3311",
-      "street": "203 S Broadway",
-      "city": "Salem",
-      "state": "New Hampshire",
-      "stateShort": "NH",
-      "postCode": "3079",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.764886,
-      "lng": -71.215543
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-salem-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 7977,
@@ -40250,31 +38775,6 @@
     "modifiedAt": "2026-06-18T22:51:13Z"
   },
   {
-    "id": 8491,
-    "name": "Target - Toms River",
-    "slug": "target-toms-river-2",
-    "phone": "17325570220",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1331 Hooper Ave, Toms River, NJ, 08753-2822",
-      "street": "1331 Hooper Ave",
-      "city": "Toms River",
-      "state": "New Jersey",
-      "stateShort": "NJ",
-      "postCode": "8753",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 39.989995,
-      "lng": -74.174127
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-toms-river-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8046,
     "name": "Target - Toms River",
     "slug": "target-toms-river",
@@ -40298,31 +38798,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-toms-river",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8500,
-    "name": "Target - Turnersville",
-    "slug": "target-turnersville-2",
-    "phone": "18568750082",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "4001 Black Horse Pike, Turnersville, NJ, 08012-1762",
-      "street": "4001 Black Horse Pike",
-      "city": "Turnersville",
-      "state": "New Jersey",
-      "stateShort": "NJ",
-      "postCode": "8012",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 39.738343,
-      "lng": -75.042134
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-turnersville-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8055,
@@ -40400,31 +38875,6 @@
     "modifiedAt": "2026-06-18T22:51:13Z"
   },
   {
-    "id": 8502,
-    "name": "Target - Union",
-    "slug": "target-union-2",
-    "phone": "19086882344",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "2690 US Hwy 22 E, Union, NJ, 07083-8512",
-      "street": "2690 US Hwy 22 E",
-      "city": "Union",
-      "state": "New Jersey",
-      "stateShort": "NJ",
-      "postCode": "7083",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.686568,
-      "lng": -74.308474
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-union-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8057,
     "name": "Target - Union",
     "slug": "target-union",
@@ -40448,31 +38898,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-union",
     "modifiedAt": "2026-06-18T22:51:11Z"
-  },
-  {
-    "id": 8509,
-    "name": "Target - Vauxhall",
-    "slug": "target-vauxhall-2",
-    "phone": "19086229002",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "2235 Springfield Ave, Vauxhall, NJ, 07088-1100",
-      "street": "2235 Springfield Ave",
-      "city": "Vauxhall",
-      "state": "New Jersey",
-      "stateShort": "NJ",
-      "postCode": "7088",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.71746,
-      "lng": -74.287996
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-vauxhall-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8064,
@@ -41698,31 +40123,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-545",
     "modifiedAt": "2026-06-18T22:51:13Z"
-  },
-  {
-    "id": 8464,
-    "name": "Target - Sparks",
-    "slug": "target-sparks-2",
-    "phone": "17753321003",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1550 E Lincoln Way, Sparks, NV, 89434-8989",
-      "street": "1550 E Lincoln Way",
-      "city": "Sparks",
-      "state": "Nevada",
-      "stateShort": "NV",
-      "postCode": "89434",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 39.535823,
-      "lng": -119.717561
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-sparks-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8019,
@@ -44450,31 +42850,6 @@
     "modifiedAt": "2026-06-18T22:51:10Z"
   },
   {
-    "id": 8439,
-    "name": "Target - Saratoga Springs",
-    "slug": "target-saratoga-springs-2",
-    "phone": "15182260003",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "3031 Route 50, Saratoga Springs, NY, 12866-2926",
-      "street": "3031 Route 50",
-      "city": "Saratoga Springs",
-      "state": "New York",
-      "stateShort": "NY",
-      "postCode": "12866",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 43.098933,
-      "lng": -73.744248
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-saratoga-springs-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7994,
     "name": "Target - Saratoga Springs",
     "slug": "target-saratoga-springs",
@@ -44548,31 +42923,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=vintage-sports-club",
     "modifiedAt": "2026-06-18T22:50:52Z"
-  },
-  {
-    "id": 8441,
-    "name": "Target - Schenectady",
-    "slug": "target-schenectady-2",
-    "phone": "15183468540",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "428 Balltown Rd, Schenectady, NY, 12304-2245",
-      "street": "428 Balltown Rd",
-      "city": "Schenectady",
-      "state": "New York",
-      "stateShort": "NY",
-      "postCode": "12304",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 42.775167,
-      "lng": -73.889396
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-schenectady-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 7996,
@@ -44650,31 +43000,6 @@
     "modifiedAt": "2026-06-18T22:50:59Z"
   },
   {
-    "id": 8462,
-    "name": "Target - South Setauket",
-    "slug": "target-south-setauket-2",
-    "phone": "16315805356",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "255 Pond Path Rd, South Setauket, NY, 11720-2007",
-      "street": "255 Pond Path Rd",
-      "city": "South Setauket",
-      "state": "New York",
-      "stateShort": "NY",
-      "postCode": "11720",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.883128,
-      "lng": -73.099236
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-south-setauket-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8017,
     "name": "Target - South Setauket",
     "slug": "target-south-setauket",
@@ -44723,56 +43048,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-303",
     "modifiedAt": "2026-06-18T22:51:14Z"
-  },
-  {
-    "id": 8472,
-    "name": "Target - Staten Island",
-    "slug": "target-staten-island-4",
-    "phone": "19177915851",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "2873 Richmond Ave, Staten Island, NY, 10314-5811",
-      "street": "2873 Richmond Ave",
-      "city": "Staten Island",
-      "state": "New York",
-      "stateShort": "NY",
-      "postCode": "10314",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.574867,
-      "lng": -74.167472
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-staten-island-4",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
-    "id": 8471,
-    "name": "Target - Staten Island",
-    "slug": "target-staten-island-3",
-    "phone": "17187016205",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "2900 Veterans Rd W, Staten Island, NY, 10309-2500",
-      "street": "2900 Veterans Rd W",
-      "city": "Staten Island",
-      "state": "New York",
-      "stateShort": "NY",
-      "postCode": "10309",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.52841,
-      "lng": -74.231971
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-staten-island-3",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8027,
@@ -44923,31 +43198,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=gg-cards-and-breaks",
     "modifiedAt": "2026-06-18T22:50:53Z"
-  },
-  {
-    "id": 8482,
-    "name": "Target - Syracuse",
-    "slug": "target-syracuse-2",
-    "phone": "13152330600",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "3657 W Genesee St, Syracuse, NY, 13219-2003",
-      "street": "3657 W Genesee St",
-      "city": "Syracuse",
-      "state": "New York",
-      "stateShort": "NY",
-      "postCode": "13219",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 43.046634,
-      "lng": -76.23626
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-syracuse-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8037,
@@ -48300,31 +46550,6 @@
     "modifiedAt": "2026-06-18T22:51:13Z"
   },
   {
-    "id": 8460,
-    "name": "Target - South Lebanon",
-    "slug": "target-south-lebanon-2",
-    "phone": "15134940700",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "400 Corwin Nixon Blvd, South Lebanon, OH, 45065-1196",
-      "street": "400 Corwin Nixon Blvd",
-      "city": "South Lebanon",
-      "state": "Ohio",
-      "stateShort": "OH",
-      "postCode": "45065",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 39.378048,
-      "lng": -84.220792
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-south-lebanon-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8015,
     "name": "Target - South Lebanon",
     "slug": "target-south-lebanon",
@@ -48375,31 +46600,6 @@
     "modifiedAt": "2026-06-18T22:51:15Z"
   },
   {
-    "id": 8475,
-    "name": "Target - Stow",
-    "slug": "target-stow-2",
-    "phone": "13306885928",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "4200 Kent Rd, Stow, OH, 44224-4325",
-      "street": "4200 Kent Rd",
-      "city": "Stow",
-      "state": "Ohio",
-      "stateShort": "OH",
-      "postCode": "44224",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.155672,
-      "lng": -81.410201
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-stow-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8030,
     "name": "Target - Stow",
     "slug": "target-stow",
@@ -48448,31 +46648,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-house-of-sport-2",
     "modifiedAt": "2026-06-18T22:51:15Z"
-  },
-  {
-    "id": 8476,
-    "name": "Target - Strongsville",
-    "slug": "target-strongsville-2",
-    "phone": "14402389924",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "18200 Royalton Rd, Strongsville, OH, 44136-5181",
-      "street": "18200 Royalton Rd",
-      "city": "Strongsville",
-      "state": "Ohio",
-      "stateShort": "OH",
-      "postCode": "44136",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.317226,
-      "lng": -81.828049
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-strongsville-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8031,
@@ -48548,31 +46723,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-155",
     "modifiedAt": "2026-06-18T22:51:14Z"
-  },
-  {
-    "id": 8490,
-    "name": "Target - Toledo",
-    "slug": "target-toledo-2",
-    "phone": "14198433441",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "5225 Monroe St, Toledo, OH, 43623-3139",
-      "street": "5225 Monroe St",
-      "city": "Toledo",
-      "state": "Ohio",
-      "stateShort": "OH",
-      "postCode": "43623",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.699525,
-      "lng": -83.653815
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-toledo-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8045,
@@ -49598,31 +47748,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-326",
     "modifiedAt": "2026-06-18T22:51:14Z"
-  },
-  {
-    "id": 8449,
-    "name": "Target - Sherwood",
-    "slug": "target-sherwood-2",
-    "phone": "15036106000",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "21365 SW Baler Way, Sherwood, OR, 97140-8989",
-      "street": "21365 SW Baler Way",
-      "city": "Sherwood",
-      "state": "Oregon",
-      "stateShort": "OR",
-      "postCode": "97140",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 45.366094,
-      "lng": -122.838057
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-sherwood-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8004,
@@ -53000,31 +51125,6 @@
     "modifiedAt": "2026-06-18T22:51:11Z"
   },
   {
-    "id": 8416,
-    "name": "Target - Royersford",
-    "slug": "target-royersford-2",
-    "phone": "16102262151",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1824 E Ridge Pike, Royersford, PA, 19468-2819",
-      "street": "1824 E Ridge Pike",
-      "city": "Royersford",
-      "state": "Pennsylvania",
-      "stateShort": "PA",
-      "postCode": "19468",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.213662,
-      "lng": -75.497241
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-royersford-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7971,
     "name": "Target - Royersford",
     "slug": "target-royersford",
@@ -53073,31 +51173,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-247",
     "modifiedAt": "2026-06-18T22:51:14Z"
-  },
-  {
-    "id": 8445,
-    "name": "Target - Selinsgrove",
-    "slug": "target-selinsgrove-2",
-    "phone": "15707434930",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "501 Market Place Blvd, Selinsgrove, PA, 17870-2407",
-      "street": "501 Market Place Blvd",
-      "city": "Selinsgrove",
-      "state": "Pennsylvania",
-      "stateShort": "PA",
-      "postCode": "17870",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.842346,
-      "lng": -76.838679
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-selinsgrove-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8000,
@@ -53175,31 +51250,6 @@
     "modifiedAt": "2026-06-18T22:50:53Z"
   },
   {
-    "id": 8467,
-    "name": "Target - Springfield",
-    "slug": "target-springfield-2",
-    "phone": "16103380530",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "857 Baltimore Pike, Springfield, PA, 19064-3963",
-      "street": "857 Baltimore Pike",
-      "city": "Springfield",
-      "state": "Pennsylvania",
-      "stateShort": "PA",
-      "postCode": "19064",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 39.915384,
-      "lng": -75.3376
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-springfield-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8022,
     "name": "Target - Springfield",
     "slug": "target-springfield",
@@ -53273,31 +51323,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-483",
     "modifiedAt": "2026-06-18T22:51:13Z"
-  },
-  {
-    "id": 8487,
-    "name": "Target - Temple",
-    "slug": "target-temple-2",
-    "phone": "16109215140",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "4220 N 5th Street Hwy, Temple, PA, 19560-1738",
-      "street": "4220 N 5th Street Hwy",
-      "city": "Temple",
-      "state": "Pennsylvania",
-      "stateShort": "PA",
-      "postCode": "19560",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.39748,
-      "lng": -75.928861
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-temple-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8042,
@@ -54173,31 +52198,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-677",
     "modifiedAt": "2026-06-18T22:51:10Z"
-  },
-  {
-    "id": 8454,
-    "name": "Target - Smithfield",
-    "slug": "target-smithfield-2",
-    "phone": "14012321699",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "371 Putnam Pike Ste A-250, Smithfield, RI, 02917-2440",
-      "street": "371 Putnam Pike Ste A-250",
-      "city": "Smithfield",
-      "state": "Rhode Island",
-      "stateShort": "RI",
-      "postCode": "2917",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 41.871164,
-      "lng": -71.521325
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-smithfield-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8009,
@@ -55150,31 +53150,6 @@
     "modifiedAt": "2026-06-18T22:51:11Z"
   },
   {
-    "id": 8452,
-    "name": "Target - Simpsonville",
-    "slug": "target-simpsonville-2",
-    "phone": "18649637251",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "694 Fairview Rd, Simpsonville, SC, 29680-6708",
-      "street": "694 Fairview Rd",
-      "city": "Simpsonville",
-      "state": "South Carolina",
-      "stateShort": "SC",
-      "postCode": "29680",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 34.706053,
-      "lng": -82.260212
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-simpsonville-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8007,
     "name": "Target - Simpsonville",
     "slug": "target-simpsonville",
@@ -55323,31 +53298,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-216",
     "modifiedAt": "2026-06-18T22:51:14Z"
-  },
-  {
-    "id": 8478,
-    "name": "Target - Summerville",
-    "slug": "target-summerville-2",
-    "phone": "18438320429",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "450 Azalea Square Blvd, Summerville, SC, 29483-7321",
-      "street": "450 Azalea Square Blvd",
-      "city": "Summerville",
-      "state": "South Carolina",
-      "stateShort": "SC",
-      "postCode": "29483",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 33.04058,
-      "lng": -80.157248
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-summerville-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8033,
@@ -55548,31 +53498,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-480",
     "modifiedAt": "2026-06-18T22:51:13Z"
-  },
-  {
-    "id": 8453,
-    "name": "Target - Sioux Falls",
-    "slug": "target-sioux-falls-2",
-    "phone": "16053611551",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "3600 S Louise Ave, Sioux Falls, SD, 57106-6326",
-      "street": "3600 S Louise Ave",
-      "city": "Sioux Falls",
-      "state": "South Dakota",
-      "stateShort": "SD",
-      "postCode": "57106",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 43.512153,
-      "lng": -96.768716
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-sioux-falls-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8008,
@@ -57100,31 +55025,6 @@
     "modifiedAt": "2026-06-18T22:51:13Z"
   },
   {
-    "id": 8447,
-    "name": "Target - Sevierville",
-    "slug": "target-sevierville-2",
-    "phone": "18658683192",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "840 Winfield Dunn Pkwy, Sevierville, TN, 37876",
-      "street": "840 Winfield Dunn Pkwy",
-      "city": "Sevierville",
-      "state": "Tennessee",
-      "stateShort": "TN",
-      "postCode": "37876",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 35.885357,
-      "lng": -83.576666
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-sevierville-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8002,
     "name": "Target - Sevierville",
     "slug": "target-sevierville",
@@ -57298,31 +55198,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=bsw-cards-and-collectibles",
     "modifiedAt": "2026-06-18T22:50:56Z"
-  },
-  {
-    "id": 8466,
-    "name": "Target - Spring Hill",
-    "slug": "target-spring-hill-2",
-    "phone": "19314891030",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1033 Crossings Blvd, Spring Hill, TN, 37174-2755",
-      "street": "1033 Crossings Blvd",
-      "city": "Spring Hill",
-      "state": "Tennessee",
-      "stateShort": "TN",
-      "postCode": "37174",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 35.741739,
-      "lng": -86.936933
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-spring-hill-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8021,
@@ -61100,81 +58975,6 @@
     "modifiedAt": "2026-06-18T22:51:17Z"
   },
   {
-    "id": 8429,
-    "name": "Target - San Antonio",
-    "slug": "target-san-antonio-6",
-    "phone": "12102470113",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "17502 La Cantera Pkwy, San Antonio, TX, 78257-8202",
-      "street": "17502 La Cantera Pkwy",
-      "city": "San Antonio",
-      "state": "Texas",
-      "stateShort": "TX",
-      "postCode": "78257",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 29.606336,
-      "lng": -98.596949
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-san-antonio-6",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
-    "id": 8428,
-    "name": "Target - San Antonio",
-    "slug": "target-san-antonio-5",
-    "phone": "12107647876",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "18255 Blanco Rd, San Antonio, TX, 78258-4585",
-      "street": "18255 Blanco Rd",
-      "city": "San Antonio",
-      "state": "Texas",
-      "stateShort": "TX",
-      "postCode": "78258",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 29.61217,
-      "lng": -98.510249
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-san-antonio-5",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
-    "id": 8427,
-    "name": "Target - San Antonio",
-    "slug": "target-san-antonio-4",
-    "phone": "12102470016",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "8223 State Highway 151, San Antonio, TX, 78245-2104",
-      "street": "8223 State Highway 151",
-      "city": "San Antonio",
-      "state": "Texas",
-      "stateShort": "TX",
-      "postCode": "78245",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 29.438777,
-      "lng": -98.649735
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-san-antonio-4",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7984,
     "name": "Target - San Antonio",
     "slug": "target-san-antonio-3",
@@ -61300,31 +59100,6 @@
     "modifiedAt": "2026-06-18T22:50:59Z"
   },
   {
-    "id": 8446,
-    "name": "Target - Selma",
-    "slug": "target-selma-2",
-    "phone": "12109459102",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "8234 Agora Pkwy, Selma, TX, 78154-1304",
-      "street": "8234 Agora Pkwy",
-      "city": "Selma",
-      "state": "Texas",
-      "stateShort": "TX",
-      "postCode": "78154",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 29.568338,
-      "lng": -98.327112
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-selma-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8001,
     "name": "Target - Selma",
     "slug": "target-selma",
@@ -61398,31 +59173,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-581",
     "modifiedAt": "2026-06-18T22:51:12Z"
-  },
-  {
-    "id": 8477,
-    "name": "Target - Sugar Land",
-    "slug": "target-sugar-land-2",
-    "phone": "12813400550",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "16300 Southwest Fwy, Sugar Land, TX, 77479-2371",
-      "street": "16300 Southwest Fwy",
-      "city": "Sugar Land",
-      "state": "Texas",
-      "stateShort": "TX",
-      "postCode": "77479",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 29.596046,
-      "lng": -95.627747
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-sugar-land-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8032,
@@ -61900,56 +59650,6 @@
     "modifiedAt": "2026-06-18T22:51:17Z"
   },
   {
-    "id": 8426,
-    "name": "Target - Salt Lake City",
-    "slug": "target-salt-lake-city-4",
-    "phone": "18012552292",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "7025 S Park Centre Dr, Salt Lake City, UT, 84121-6619",
-      "street": "7025 S Park Centre Dr",
-      "city": "Salt Lake City",
-      "state": "Utah",
-      "stateShort": "UT",
-      "postCode": "84121",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.622945,
-      "lng": -111.850066
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-salt-lake-city-4",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
-    "id": 8425,
-    "name": "Target - Salt Lake City",
-    "slug": "target-salt-lake-city-3",
-    "phone": "18014019562",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "1110 S 300 W, Salt Lake City, UT, 84101-3053",
-      "street": "1110 S 300 W",
-      "city": "Salt Lake City",
-      "state": "Utah",
-      "stateShort": "UT",
-      "postCode": "84101",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.744563,
-      "lng": -111.901796
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-salt-lake-city-3",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7981,
     "name": "Target - Salt Lake City",
     "slug": "target-salt-lake-city-2",
@@ -62048,31 +59748,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=overtime-cards-and-collectibles-inc-sandy",
     "modifiedAt": "2026-06-18T22:50:59Z"
-  },
-  {
-    "id": 8458,
-    "name": "Target - South Jordan",
-    "slug": "target-south-jordan-2",
-    "phone": "18013162511",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "11525 Parkway Plaza Dr, South Jordan, UT, 84095-5605",
-      "street": "11525 Parkway Plaza Dr",
-      "city": "South Jordan",
-      "state": "Utah",
-      "stateShort": "UT",
-      "postCode": "84095",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 40.541999,
-      "lng": -111.977954
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-south-jordan-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8013,
@@ -64050,81 +61725,6 @@
     "modifiedAt": "2026-06-18T22:51:17Z"
   },
   {
-    "id": 8513,
-    "name": "Target - Virginia Beach",
-    "slug": "target-virginia-beach-6",
-    "phone": "17574517660",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "4554 Virginia Beach Blvd, Virginia Beach, VA, 23462-3004",
-      "street": "4554 Virginia Beach Blvd",
-      "city": "Virginia Beach",
-      "state": "Virginia",
-      "stateShort": "VA",
-      "postCode": "23462",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 36.844789,
-      "lng": -76.13387
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-virginia-beach-6",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
-    "id": 8512,
-    "name": "Target - Virginia Beach",
-    "slug": "target-virginia-beach-5",
-    "phone": "17574161719",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "2060 S Independence Blvd, Virginia Beach, VA, 23453-4747",
-      "street": "2060 S Independence Blvd",
-      "city": "Virginia Beach",
-      "state": "Virginia",
-      "stateShort": "VA",
-      "postCode": "23453",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 36.788005,
-      "lng": -76.108999
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-virginia-beach-5",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
-    "id": 8511,
-    "name": "Target - Virginia Beach",
-    "slug": "target-virginia-beach-4",
-    "phone": "17574280233",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "525 First Colonial Rd, Virginia Beach, VA, 23451-6119",
-      "street": "525 First Colonial Rd",
-      "city": "Virginia Beach",
-      "state": "Virginia",
-      "stateShort": "VA",
-      "postCode": "23451",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 36.846755,
-      "lng": -76.021621
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-virginia-beach-4",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 8068,
     "name": "Target - Virginia Beach",
     "slug": "target-virginia-beach-3",
@@ -65648,31 +63248,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=dicks-sporting-goods-24",
     "modifiedAt": "2026-06-18T22:51:15Z"
-  },
-  {
-    "id": 8465,
-    "name": "Target - Spokane",
-    "slug": "target-spokane-2",
-    "phone": "15094663006",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "9770 N Newport Hwy, Spokane, WA, 99218-1249",
-      "street": "9770 N Newport Hwy",
-      "city": "Spokane",
-      "state": "Washington",
-      "stateShort": "WA",
-      "postCode": "99218",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 47.74747,
-      "lng": -117.400122
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-spokane-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8020,
@@ -67925,31 +65500,6 @@
     "modifiedAt": "2026-06-18T22:50:58Z"
   },
   {
-    "id": 8442,
-    "name": "Target - Schofield",
-    "slug": "target-schofield-2",
-    "phone": "17153554494",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "2707 Schofield Ave, Schofield, WI, 54476-2430",
-      "street": "2707 Schofield Ave",
-      "city": "Schofield",
-      "state": "Wisconsin",
-      "stateShort": "WI",
-      "postCode": "54476",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 44.906147,
-      "lng": -89.5917
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-schofield-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
-  },
-  {
     "id": 7997,
     "name": "Target - Schofield",
     "slug": "target-schofield",
@@ -68023,31 +65573,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=screaming-oh-llc",
     "modifiedAt": "2026-06-18T22:51:00Z"
-  },
-  {
-    "id": 8479,
-    "name": "Target - Sun Prairie",
-    "slug": "target-sun-prairie-2",
-    "phone": "16088345600",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "660 S Grand Ave, Sun Prairie, WI, 53590-9832",
-      "street": "660 S Grand Ave",
-      "city": "Sun Prairie",
-      "state": "Wisconsin",
-      "stateShort": "WI",
-      "postCode": "53590",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 43.171118,
-      "lng": -89.267978
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-sun-prairie-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8034,
@@ -68623,31 +66148,6 @@
     "placeId": "",
     "officialUrl": "https://promo.bobattlearena.com/?store_locator=bennys-card-vault",
     "modifiedAt": "2026-06-18T22:51:18Z"
-  },
-  {
-    "id": 8456,
-    "name": "Target - South Charleston",
-    "slug": "target-south-charleston-2",
-    "phone": "13047465445",
-    "email": "",
-    "website": "",
-    "address": {
-      "full": "30 Rhl Blvd, South Charleston, WV, 25309-8278",
-      "street": "30 Rhl Blvd",
-      "city": "South Charleston",
-      "state": "West Virginia",
-      "stateShort": "WV",
-      "postCode": "25309",
-      "country": "United States",
-      "countryShort": "US"
-    },
-    "location": {
-      "lat": 38.338689,
-      "lng": -81.714824
-    },
-    "placeId": "",
-    "officialUrl": "https://promo.bobattlearena.com/?store_locator=target-south-charleston-2",
-    "modifiedAt": "2026-06-18T22:51:09Z"
   },
   {
     "id": 8011,

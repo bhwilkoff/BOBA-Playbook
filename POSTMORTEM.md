@@ -16,7 +16,7 @@ We never got approval from the game's publisher to operate the app.
 
 A fan tool can exist for a while without permission. It can't become a durable product that way. Without approval, every important dependency was borrowed: the card data, the card art, the brand name, and the community's trust.
 
-Apple made the same point formally. The June 2026 App Store review rejected the iOS app under **Guideline 4.1 (Copycats)** for using the "BOBA" brand without the rights holder's permission. A disclaimer doesn't solve that; only a license does. We never resubmitted.
+Apple made the same point formally. App Store review rejected the iOS app in June 2026 under **Guideline 4.1 (Copycats)** for using the "BOBA" brand without the rights holder's permission. We added a non-affiliation disclaimer, fixed the other issues and resubmitted. On July 1 it was rejected again under 4.1, along with 2.5.4 (Software Requirements). A disclaimer doesn't solve a 4.1 rejection; only a license does.
 
 Running the backend also cost real resources: a Cloudflare account and a Supabase org that other projects needed. That was hard to justify for an app that couldn't grow.
 

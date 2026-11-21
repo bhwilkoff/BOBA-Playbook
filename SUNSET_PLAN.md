@@ -28,7 +28,7 @@
 
 **Store presence:**
 - Google Play: `com.bobaplaybook.app` (versionCode 8, 1.0.0).
-- Apple: TestFlight builds only. The App Store review rejected it on 2026-06-18 (4.1 copycat, plus 2.1(a) and 5.1.1(v)) and it was never resubmitted.
+- Apple: TestFlight builds only. App Store review rejected it on 2026-06-18 (4.1 copycat, plus 2.1(a) and 5.1.1(v)). It was resubmitted as 2.418 and rejected again on 2026-07-01 (4.1 plus 2.5.4).
 
 **Third-party registrations:**
 - Google Cloud: OAuth web client, Android OAuth client, Maps API key.
@@ -50,11 +50,11 @@
 - [x] Export collection/deck CSVs for the 11 users with data (Ben's own accounts excluded). Saved locally, outside the repo, in `~/Documents/BOBA-Sunset-Exports/`.
 - [ ] Send the 12 Gmail drafts in ben@learningischange.com: 11 individual emails with CSVs attached, plus 1 BCC to the 18 users with no data.
 - [x] Pause the Supabase project `boba-card-app`, which frees the free-tier slot for CentMemo. The data stays restorable for 90 days.
-- [ ] **Google Play:** Unpublish via Test and release → Advanced settings → App availability → Unpublish.
-- [ ] **App Store Connect:**
-  - Expire every TestFlight build, then remove the testers and the public link.
-  - Remove the app from sale in all regions.
-  - Then App Information → **Remove App**.
+- [x] **Google Play:** Unpublished 2026-11-21. It had 18 installs. The app can still be deleted from the same page; that needs the registration-fee transaction ID and becomes permanent after 7 days.
+- [x] **App Store Connect:**
+  - All 25 TestFlight builds had already expired (90-day limit).
+  - The open review submission was cancelled on 2026-11-21.
+  - **Remove App is blocked.** Apple doesn't allow removing an app whose version is in Rejected status. Nothing is distributed, so it's harmless to leave. To clear it fully, contact Apple Developer Support (App ID 6761785074).
 
 ### By 2026-11-28: delete user data
 - [ ] **Sign in with Apple:** call `/auth/revoke` for every Apple-linked user that has a stored token. Do this BEFORE deleting the Services ID or key.

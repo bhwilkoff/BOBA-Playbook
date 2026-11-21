@@ -47,7 +47,9 @@
 - [x] Disable the scheduled GitHub Actions workflows (pricing, pipeline A/B/C, blog, events, stores, pHash).
 - [x] Replace bobaplaybook.com with a static shutdown page. `/privacy/`, `/terms/` and `/data-deletion/` stay live.
 - [x] Remove the publisher's IP from the repo tree. Add the MIT LICENSE, the archive README, and POSTMORTEM.md.
-- [ ] Email all 32 account holders, attaching collection/deck CSVs for the 14 users who have data. Drafts are in Gmail.
+- [x] Export collection/deck CSVs for the 11 users with data (Ben's own accounts excluded). Saved locally, outside the repo, in `~/Documents/BOBA-Sunset-Exports/`.
+- [ ] Send the 12 Gmail drafts in ben@learningischange.com: 11 individual emails with CSVs attached, plus 1 BCC to the 18 users with no data.
+- [x] Pause the Supabase project `boba-card-app`, which frees the free-tier slot for CentMemo. The data stays restorable for 90 days.
 - [ ] **Google Play:** Unpublish via Test and release → Advanced settings → App availability → Unpublish.
 - [ ] **App Store Connect:**
   - Expire every TestFlight build, then remove the testers and the public link.

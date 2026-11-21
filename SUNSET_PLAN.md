@@ -59,12 +59,12 @@
 ### By 2026-11-28: delete user data
 - [ ] **Sign in with Apple:** call `/auth/revoke` for every Apple-linked user that has a stored token. Do this BEFORE deleting the Services ID or key.
 - [ ] Delete all accounts and user rows. FK cascade covers `user_cards`, `decks` and `deck_cards`. Also delete `user_profiles`, `card_corrections`, `community_comps`, etc.
-- [ ] Delete `avatars/` from R2.
-- [ ] Delete the `boba-pricing` D1 database and the 4 KV namespaces.
+- [x] Delete `avatars/` from R2. Covered by the expire-all lifecycle rule below.
+- [x] Delete the `boba-pricing` D1 database and the 4 KV namespaces. The D1 was first backed up to `~/Documents/BOBA-Sunset-Exports/boba-pricing-d1.sql`. Done 2026-11-21.
 
 ### Right after: tear down infrastructure
-- [ ] Delete all 10 `boba-*` Workers. That includes `boba-account-delete`, because no accounts remain.
-- [ ] **R2 `boba-card-images`:** delete it. The card art is the publisher's IP, and serving it without approval is the reason we're stopping.
+- [x] Delete all 10 `boba-*` Workers (2026-11-21).
+- [~] **R2 `boba-card-images`:** public r2.dev access was disabled and an `expire-all` 1-day lifecycle rule added on 2026-11-21. **On or after 2026-11-23, run `npx wrangler r2 bucket delete boba-card-images`.** Reason for deleting it: The card art is the publisher's IP, and serving it without approval is the reason we're stopping.
 - [ ] Delete the Supabase project `boba-card-app`. Pause it first if you want a cool-off week.
 - [ ] Revoke and delete: the Google OAuth clients plus the Maps and YouTube keys (or the whole GCP project if it's BOBA-only), the Firebase project, the Discord application, the Apple Services ID / SIWA key / ASC API key, and the eBay keyset.
 - [ ] Remove the remaining GitHub secrets (`gh secret list`).

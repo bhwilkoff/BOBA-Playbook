@@ -30,31 +30,18 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Assemble _site/
+        # BOBA Playbook shut down 2026-11-21. The live site is now a static
+        # shutdown notice plus the legal pages (Play requires the data-deletion
+        # URL to stay reachable). The web app source stays in the repo root
+        # for reference but is no longer deployed.
         run: |
           set -euo pipefail
-          mkdir -p _site
-          # Top-level files served as-is.
-          cp -v \
-            index.html \
-            404.html \
-            discord-callback.html \
-            manifest.json \
-            CNAME \
-            .nojekyll \
-            _site/
-          # Asset directories. Each entry must exist; CI fails loudly
-          # if any of them are deleted without updating this list.
-          for dir in css js assets docs terms privacy data-deletion Logos Resources; do
-            cp -r "$dir" _site/
-          done
-          # .well-known/ holds apple-app-site-association +
-          # assetlinks.json — load-bearing for iOS Universal Links
-          # and Android App Links. Don't deploy without these.
-          mkdir -p _site/.well-known
-          cp .well-known/apple-app-site-association _site/.well-known/
-          cp .well-known/assetlinks.json _site/.well-known/
-          echo "--- _site/ contents ---"
-          find _site -maxdepth 2 -type f | sort
+          mkdir -p _site/assets
+          cp -v site/index.html CNAME .nojekyll _site/
+          cp -v site/index.html _site/404.html
+          cp -r terms privacy data-deletion _site/
+          cp -r assets/icons _site/assets/
+          find _site -type f | sort
 
       - uses: actions/configure-pages@v5
 

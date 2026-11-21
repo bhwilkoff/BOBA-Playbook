@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BOBA Playbook has shut down</title>
+  <meta name="description" content="BOBA Playbook, an unofficial companion app for Bo Jackson Battle Arena, shut down on November 21, 2026. Read the post mortem and explore the open-source code.">
+  <meta property="og:title" content="BOBA Playbook has shut down">
+  <meta property="og:description" content="Read the post mortem and explore the open-source code.">
+  <meta property="og:image" content="https://bobaplaybook.com/assets/icons/boba_playbook_icon_512.png">
+  <link rel="icon" href="/assets/icons/boba_playbook_icon_60.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chakra+Petch:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange: #FF4D00;
+      --cyan: #00F5FF;
+      --near-black: #080810;
+      --surface: #0D0D1A;
+      --text: #F0F0FF;
+      --text-2: #A8A8C8;
+      --border: rgba(255,255,255,0.1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: var(--near-black); }
+    body {
+      background: var(--near-black);
+      color: var(--text);
+      font-family: 'Chakra Petch', system-ui, sans-serif;
+      font-size: 1.0625rem;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    main { max-width: 640px; margin: 0 auto; padding: 56px 16px 64px; }
+    .mark { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+    .mark img { width: 44px; height: 44px; border-radius: 10px; }
+    .mark span { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 0.04em; }
+    .mark b { color: var(--orange); font-weight: 400; }
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-weight: 400;
+      font-size: clamp(2.5rem, 9vw, 3.75rem);
+      line-height: 1;
+      letter-spacing: 0.02em;
+      margin-bottom: 12px;
+    }
+    .date { color: var(--text-2); margin-bottom: 32px; }
+    h2 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-2);
+      margin: 40px 0 10px;
+    }
+    p + p { margin-top: 14px; }
+    a { color: var(--cyan); text-underline-offset: 3px; }
+    a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 2px; }
+    .links { list-style: none; margin-top: 14px; border-top: 1px solid var(--border); }
+    .links li { border-bottom: 1px solid var(--border); }
+    .links a { display: block; padding: 14px 0; text-decoration: none; font-weight: 600; }
+    .links a:hover span { text-decoration: underline; }
+    .links small { display: block; color: var(--text-2); font-weight: 400; font-size: 0.9375rem; }
+    footer { margin-top: 48px; color: var(--text-2); font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark">
+      <img src="/assets/icons/boba_playbook_icon_180.png" alt="" width="44" height="44">
+      <span>BOBA <b>PLAYBOOK</b></span>
+    </div>
+
+    <h1>BOBA Playbook has shut down.</h1>
+    <p class="date">November 21, 2026</p>
+
+    <p>BOBA Playbook was an unofficial, fan-built companion app for the Bo Jackson Battle Arena trading card game. It let you search cards, scan them, track your collection, build decks and look up rules.</p>
+    <p>We never received approval from the game's publisher to operate it, so we've shut it down. The web app and the Android app are no longer available, and the iOS beta has ended.</p>
+    <p>Thank you to everyone who tested it, filed bugs, and shared their binders with us.</p>
+
+    <h2>Your data</h2>
+    <p>All accounts, collections, decks and avatars will be permanently deleted by <strong>November 28, 2026</strong>. You don't need to do anything. If you want your data deleted sooner, or a copy of your collection first, email <a href="mailto:privacy@bobaplaybook.com">privacy@bobaplaybook.com</a>. <a href="/data-deletion/">More about data deletion</a>.</p>
+
+    <h2>For builders</h2>
+    <p>The code is open source under the MIT license. The post mortem covers what we built, what went wrong, and which pieces are worth reusing. Card content belongs to its owners and isn't included. If you want to build in this space, talk to the publisher first.</p>
+    <ul class="links">
+      <li><a href="https://github.com/bhwilkoff/BOBA-Playbook/blob/main/POSTMORTEM.md"><span>Read the post mortem →</span><small>Why it shut down, lessons learned, what's reusable</small></a></li>
+      <li><a href="https://github.com/bhwilkoff/BOBA-Playbook"><span>Browse the source on GitHub →</span><small>Web, iOS, Android, Cloudflare Workers and pipeline code</small></a></li>
+    </ul>
+
+    <footer>
+      <p>BOBA Playbook was never affiliated with, endorsed by, or licensed by Bo Jackson Battle Arena or its parent company. All trademarks belong to their owners.</p>
+      <p><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/data-deletion/">Data deletion</a></p>
+    </footer>
+  </main>
+</body>
+</html>

@@ -300,7 +300,7 @@ gh secret set UPLOAD_KEY_PASSWORD      --body "YOUR_KEY_PASSWORD"
 
 # Maps API key for the Find a Store map (same value as in
 # android/local.properties)
-gh secret set MAPS_API_KEY --body "AIzaSyBLWDpGY5K0fLaw8HI-2EaOVkKm5PxOZPc"
+gh secret set MAPS_API_KEY --body "<YOUR_MAPS_API_KEY>"
 ```
 
 **What Claude does after:** if you paste the keystore + key passwords to me (or run the above and tell me you've done it), I'll verify the secrets exist + run a dry release-build locally to confirm signing wires up.

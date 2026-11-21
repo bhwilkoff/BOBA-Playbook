@@ -80,7 +80,12 @@ data_in_commit=$(git diff --cached --name-only \
        'scripts/boba_id.py' \
     2>/dev/null | wc -l | tr -d ' ')
 
-if [ "$data_in_commit" -gt 0 ]; then
+# The card catalog was removed from the repo at shutdown (2026-11-21,
+# publisher IP). Without it there is nothing to audit; anyone who brings
+# their own catalog to assets/data/cards.json gets the check back.
+if [ ! -f assets/data/cards.json ]; then
+    echo "  ▸ No card catalog in repo — skipping bobaId v3 audit"
+elif [ "$data_in_commit" -gt 0 ]; then
     echo "  ▸ Catalog data staged — running bobaId v3 audit…"
     if python3 pipeline/scripts/audit_bobaid_v3.py > /tmp/audit-output.log 2>&1; then
         echo "  ✓ bobaId v3 audit clean"
